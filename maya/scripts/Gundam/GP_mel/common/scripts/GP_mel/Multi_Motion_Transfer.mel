@@ -1,0 +1,804 @@
+//Multi_Motion_Transfer
+//
+//「キャラAのモーションファイル(maya)複数を、キャラBへ移す」スクリプト。
+//機能1、指定したフォルダからモーションファイル全種類を取得・Animファイルとして出力
+//機能2、出力されたAnimファイルを、指定したリグベースデータへインポートし保存
+//・「motion_c○○○_0000_～」の○○○を自動設定する
+//・「motion_ref～」をリファレンスするモーション(射撃a、bなど)を判別し、元の状態で構築する
+//・ミュートされたノードと数値を記録し、ロードする
+//・元データにあっても無くても、ベースポーズを最後に作成
+//
+//20140415	:GP2対応?
+//20121002	:CSS対応
+//20120907	:リファレンス親への拡張子変更に、リファレンス子が対応していなかったのを対応
+//20120906	:".ma"で検索すると「(任意の一文字)ma」で検出してしまうので修正
+//20120820	:駄目元で開いて駄目でも先に進むインポート機能
+//20120810	:.maファイルの処理に対応
+//20120807	:インポート・新規シーンで再構築していた従来機能のほかに、既存のシーンのオープン⇒マージ機能を追加
+//20120802	:入出力処理対象を絞る機能を実装
+//20120613	:rigbase掃除機能
+//20120606	:UI総一新、タブ分け等で機能分割(6/12は更新箇所記述のみ)
+//20120515	:非べイクでのモーションAnim出力機能を追加
+//20120514	:モーション名対応「motion_chr」
+//20120510	:export機能に、リグをリファレンスしていない状況への対応を追加
+//20120425	:4桁対応
+//20120424	:進捗表示・キャンセル機能追加
+//
+//20120412	:機能追加・調整
+//			all系を「motion_ref_00x0_～.mb」で保存する。
+//			また、パーツ用出力時を想定し、リファレンス先を相対パスで指定する。
+
+catch(`loadPlugin "animImportExport.mll"`);
+//--------------------------------------------------------------------------------
+global proc string getMMTVersion(){
+	string $MMTversion = "ver2.00T_20140402";
+	return ($MMTversion);
+}
+//--------------------------------------------------------------------------------
+//export
+//--------------------------------------------------------------------------------
+global proc eptMotionTransfer(string $mbPass ,string $animPass){
+	sysFile -md $animPass;
+	sysFile -md ($animPass + "base\\");
+	sysFile -md ($animPass + "addRig\\");
+
+//指定フォルダからモーション一覧を取得
+	string $exportTgt = `textFieldGrp -q -text extgtTF`;
+	string $mbFileList[];
+
+	if($exportTgt != ""){
+		string $tgtList[];
+		tokenize $exportTgt " " $tgtList;
+		string $mbFileList_Prime[] = `getFileList -filespec "motion_*.*" -folder $mbPass`;
+		int $i = `size($mbFileList_Prime)`;
+		if(catch (`getFileList -filespec "*_basepose.mb" -folder $mbPass`)){
+				$mbFileList_Prime[$i] = ($mbPass + "_basepose.mb");
+		}else if(catch (`getFileList -filespec "*_basepose.ma" -folder $mbPass`)){
+				$mbFileList_Prime[$i] = ($mbPass + "_basepose.ma");
+		}
+		$i=0;
+		for($mbFileItem in $mbFileList_Prime){
+			for($tgtItem in $tgtList){
+				if(`gmatch $mbFileItem ("*" + $tgtItem + "*") `){
+					$mbFileList[$i] = $mbFileItem;
+					$i++;
+				}
+			}
+		}
+	}else{
+		$mbFileList = `getFileList -filespec "*.mb" -folder $mbPass`;
+		string $unMotList[] = {"chr000000.mb","chr0100_rigbase.mb","chr000000_rigbase.mb"};
+		$mbFileList = stringArrayRemove($unMotList,$mbFileList);
+		int $i = `size($mbFileList)`;
+		if(catch (`getFileList -filespec "*_basepose.mb" -folder $mbPass`)){
+				$mbFileList[$i] = ($mbPass + "_basepose.mb");
+		}else if(catch (`getFileList -filespec "*_basepose.ma" -folder $mbPass`)){
+				$mbFileList[$i] = ($mbPass + "_basepose.ma");
+		}
+	}
+
+	$mbFileList = `sort $mbFileList`;
+
+
+//モーション一覧をcsvへ書き出し(最上段)
+	$motionCsvName = ( $animPass + "MotionList.csv" );
+	if (`filetest -e $motionCsvName` == 0 ){
+		print ("no MotionList.csv\nモーションリスト"+ $motionCsvName +"を新規作成します。");
+	}
+	$fileId=`fopen $motionCsvName "w"`;
+	fprint $fileId ("motionName,startFrame,endFrame\n");
+
+	int $bakeSw = `checkBox -q -v bakeFlag`;
+
+//中断用オプション
+	int $percent = 0;
+	float $calCount = 0;
+	progressWindow -title "Anim出力中"
+		-progress $percent
+		-status "出力作業: 0%"
+		-isInterruptable true;
+
+
+//以下ループ
+	int $i=0;
+	while ( size( $mbFileList[$i] ) > 0 ){
+		string $list[] = `ls -as`;
+
+		//モーションmbファイルを開き、２重リファレンスチェック
+		if( endsWith($mbFileList[$i] , ".ma") ){
+			catch( `file -f -options "v=0"  -ignoreVersion  -typ "mayaAscii" -o ($mbPass + $mbFileList[$i]) ` );
+		}else{
+			catch( `file -f -options "v=0"  -ignoreVersion  -typ "mayaBinary" -o ($mbPass + $mbFileList[$i]) ` );
+		}
+		string $refFile[] = `file -q -r -shn`;
+		float $startF,$endF;
+
+
+
+
+
+//リファレンス構造モーション用
+		if(endsWith($refFile[0] , "rigbase.mb") || endsWith($refFile[0] , "rigbase.ma") ){
+
+			//セレクションセット以下でベイク(将来的にはaddrig対応)
+			$startF = `playbackOptions -q -minTime`;
+			$endF = `playbackOptions -q -maxTime`;
+
+
+			if( $bakeSw == 0 ){
+				bakeResults -t ($startF + ":" + $endF) -simulation true -sampleBy 1 -disableImplicitControl true -preserveOutsideKeys true -sparseAnimCurveBake false -removeBakedAttributeFromLayer false -bakeOnOverrideLayer false -at "tx" -at "ty" -at "tz"  -at "rx" -at "ry" -at "rz" -at "sx" -at "sy" -at "sz" -at "Parent" {"*:selection_set"};
+			}
+
+
+			if(`animLayer -q -exists "BaseAnimation"`){
+				if(`animLayer -q -exists "AnimLayer1"`){delete "AnimLayer*";}
+				animLayer -e -selected true "BaseAnimation";
+			}
+			//残してはいけないキー(上半身スケール)
+//			CBdeleteConnection "*:rig_pelvis.sx";
+//			CBdeleteConnection "*:rig_pelvis.sy";
+//			CBdeleteConnection "*:rig_pelvis.sz";
+
+			string $objs[] = `listConnections -type animCurveTU -d 0 "*:rig_pelvis"`;
+			for($objItem in $objs){
+				delete $objItem;
+			}
+
+//rigトップノードを選択し、anim出力
+			string $exportChara = "*";
+
+			string $kouho[] = {"chr000000","chr0100"};
+			for($item in $kouho){
+				if(stringArrayContains(($item + ":rig") , $list))$exportChara = $item;
+				break;
+			}
+/*
+			select -r ($exportChara + ":rig") ($exportChara + ":addRig") ;
+			file -force -op "precision=8 ; intValue=17 ; nodeNames=1;verboseUnits=0;whichRange=1;range=24:25;options=keys;hierarchy=below;controlPoints=0;shapes=1;helpPictures=0;useChannelBox=0;copyKeyCmd=-animation objects -option keys -hierarchy below -controlPoints 0 -shape 1 " -typ "animExport" -es ($animPass + $mbFileList[$i] + ".anim");
+*/
+			select -r ($exportChara + ":rig") ;
+			file -force -op "precision=8 ; intValue=17 ; nodeNames=1;verboseUnits=0;whichRange=1;range=24:25;options=keys;hierarchy=below;controlPoints=0;shapes=1;helpPictures=0;useChannelBox=0;copyKeyCmd=-animation objects -option keys -hierarchy below -controlPoints 0 -shape 1 " -typ "animExport" -es ($animPass + "base\\" + $mbFileList[$i] + ".anim");
+
+
+			select -r -hi ($exportChara + ":addRig");
+			string $ctrls[] = `ls -sl -type transform`;
+			string $objsRo[] = `listConnections -type animCurveTA -d 0 $ctrls`;
+			string $objsTr[] = `listConnections -type animCurveTL -d 0 $ctrls`;
+
+			if(size($objsRo) != 0 || size($objsTr) != 0){
+				select -r ($exportChara + ":addRig") ;
+				file -force -op "precision=8 ; intValue=17 ; nodeNames=1;verboseUnits=0;whichRange=1;range=24:25;options=keys;hierarchy=below;controlPoints=0;shapes=1;helpPictures=0;useChannelBox=0;copyKeyCmd=-animation objects -option keys -hierarchy below -controlPoints 0 -shape 1 " -typ "animExport" -es ($animPass + "addRig\\" + $mbFileList[$i] + ".anim");
+			}
+
+
+
+
+//ここまでリファレンス構造モーション用。以下、インポート構造モーション用
+		}else if(endsWith($refFile[0] , "0.mb") || endsWith($refFile[0] , "0.ma")){
+
+			//セレクションセット以下でベイク(将来的にはaddrig対応)
+			$startF = `playbackOptions -q -minTime`;
+			$endF = `playbackOptions -q -maxTime`;
+
+
+			if( $bakeSw == 0 ){
+				bakeResults -t ($startF + ":" + $endF) -simulation true -sampleBy 1 -disableImplicitControl true -preserveOutsideKeys true -sparseAnimCurveBake false -removeBakedAttributeFromLayer false -bakeOnOverrideLayer false -at "tx" -at "ty" -at "tz"  -at "rx" -at "ry" -at "rz" -at "sx" -at "sy" -at "sz" -at "Parent" {"selection_set"};
+			}
+
+
+			if(`animLayer -q -exists "BaseAnimation"`){
+				if(`animLayer -q -exists "AnimLayer1"`){delete "AnimLayer*";}
+				animLayer -e -selected true "BaseAnimation";
+			}
+//			CBdeleteConnection "rig_pelvis.sx";
+//			CBdeleteConnection "rig_pelvis.sy";
+//			CBdeleteConnection "rig_pelvis.sz";
+
+			string $objs[] = `listConnections -type animCurveTU -d 0 rig_pelvis`;
+			for($objItem in $objs){
+				delete $objItem;
+			}
+
+
+
+//rigトップノードを選択し、anim出力
+			select -r "rig" ;
+			file -force -op "precision=8 ; intValue=17 ; nodeNames=1;verboseUnits=0;whichRange=1;range=24:25;options=keys;hierarchy=below;controlPoints=0;shapes=1;helpPictures=0;useChannelBox=0;copyKeyCmd=-animation objects -option keys -hierarchy below -controlPoints 0 -shape 1 " -typ "animExport" -es ($animPass + $mbFileList[$i] + ".anim");
+
+		}else{
+			$startF = `playbackOptions -q -minTime`;
+			$endF = `playbackOptions -q -maxTime`;
+			$mbFileList[$i] = ($refFile[0] + "->" + $mbFileList[$i]);
+		}
+		string $muted = makeMutedList();
+
+		string $GP2_exportSetting = GP2_getExportSetting();
+		string $GP2_nodeList = stringArrayToString($list,"@");
+
+		fprint $fileId ($mbFileList[$i] + "," + $startF +  "," + $endF + "," + $muted + "," + $GP2_exportSetting + "," + $GP2_nodeList + "\n");
+
+
+		if(`progressWindow -q -isCancelled`)
+			break;
+		if(`progressWindow -q -progress` >= 100)
+			break;
+		$calCount = ( ($i * 100) / size($mbFileList));
+		$percent = int( $calCount );
+		progressWindow -e -progress $percent
+			-status ("モーションデータをAnimにしています... : "+$percent+"%");
+
+
+		$i++;
+//以上ループ
+	}
+	fclose $fileId;
+	progressWindow -endProgress;
+}
+
+//--------------------------------------------------------------------------------
+//ミュートされたアトリビュートを探し、アトリ>数値 / アトリ>数値 / アトリ>数値・・・と返す
+//--------------------------------------------------------------------------------
+global proc string makeMutedList(){
+	string $muted = "";
+	catch(`select -r "*:selection_set"`);
+	catch(`select -r "*:*:selection_set"`);
+	string $list[] = `ls -sl`;
+	string $attr[] = {".tx",".ty",".tz",".rx",".ry",".rz",".sx",".sy",".sz"};
+	string $tmp[];
+	string $shortName,$chktgt;
+	for($item in $list){
+		for($atit in $attr){
+			$chktgt = $item + $atit;
+			if(catch(`mute -q $chktgt`) == 0 ){
+				int $chk = `mute -q $chktgt`;
+				if($chk == 1){
+					tokenize $chktgt ":" $tmp;
+					$shortName = $tmp[`size($tmp)`-1];
+					$muted = ($muted + $shortName + ">" + `getAttr $chktgt` + "/");
+				}
+			}
+		}
+	}
+	print $muted;
+	if($muted == "")$muted = "0";
+	return($muted);
+}
+
+//--------------------------------------------------------------------------------
+//GP2用の出力設定を取得(～ver1.0)
+//形式は(flag)@(motionName)@(startF)@(endF)@(loopFlg)@(mopID)#...
+//--------------------------------------------------------------------------------
+
+//(メモ)fbxExport用のセーブデータを1.0で更新する。セーブデータ内にバージョン表記と各モーションの所属mopを記述、前者は比較用にfloat?後者はstringにする事
+//アトリビュート名(exportFBXWorkTool_saveData.SettingData_ver)
+//アトリビュート名(exportFBXWorkTool_saveData.mopID_[0-15])
+
+global proc string GP2_getExportSetting(){
+	string $res;
+	string $attr[];
+	string $saveNode = "exportFBXWorkTool_saveData";
+	if((`objExists $saveNode`) == 0){
+		print("GP2用fbx出力設定なし。\r\n");
+		$res = "-noData-";
+	}else{
+		int $i;
+		for( $i=0 ; $i<16 ; $i++){
+			$attr[0] = `getAttr ($saveNode + ".ExportFlag_" + $i)`;
+			$attr[1] = `getAttr ($saveNode + ".ExportName_" + $i)`;
+			$attr[2] = `getAttr ($saveNode + ".startFrame_" + $i)`;
+			$attr[3] = `getAttr ($saveNode + ".endFrame_" + $i)`;
+			$attr[4] = `getAttr ($saveNode + ".loopFrag_" + $i)`;
+			//ver1.0～対応、セーブデータに所属mopを含むか？
+			if(`attributeQuery -node $saveNode -exists ("SettingData_ver")`){
+				$attr[5] = `getAttr ($saveNode + ".mopID_" + $i)`;
+			}else{
+				$attr[5] = getMopIDByPath();
+			}
+			if($attr[1] != ""){
+				$res = $res + $attr[0] + "@" + $attr[1] + "@" + $attr[2] + "@" + $attr[3] + "@" + $attr[4] + "@" + $attr[5] + "#" ;
+			}
+		}
+	}
+	return $res;
+}
+
+global proc string getMopIDByPath(){
+	string $temp_sceneName[] = `file -q -list`;
+	string $fullPath = `dirname( $temp_sceneName[0])`;
+	string $temp[];
+	tokenize $fullPath "/" $temp;
+	tokenize $temp[size($temp)-1] "_" $temp;
+	return $temp[0];
+}
+
+
+//--------------------------------------------------------------------------------
+//import
+//--------------------------------------------------------------------------------
+global proc iptMotionTransfer(string $animPass , string $expPass , string $rigPass , string $chrName ){
+
+//没で。
+	//MMT_cleanRigbase( $rigPass );
+	string $workmode = `radioCollection -q -sl rC1`;		//出慮時事のモード設定、UI上最上段のラジオボタンより
+	string $expt_ext = `radioCollection -q -sl rCexpt`;		//出力時の拡張子、UI上「出力設定」ラジオボタンより
+	string $mbFileList[] = `getFileList -filespec "motion_*.*" -folder $expPass`;
+
+	//指定フォルダからモーション一覧を取得
+	string $animFileList[] = `getFileList -filespec "*.anim" -folder $animPass`;
+
+	string $exportTgt = `textFieldGrp -q -text extgtTF`;
+	string $tgtList[];
+	tokenize $exportTgt " " $tgtList;
+	int $i = 0;
+	$animFileList = `sort $animFileList`;
+
+
+
+//モーション情報をcsvから読み込み
+	$motionCsvName = ( $animPass + "MotionList.csv" );
+
+	if (`filetest -e $motionCsvName` == 0 ){
+		print ("no MotionList.csv\nモーションリスト"+ $motionCsvName +"が見つかりません。");
+	}
+	$fileId=`fopen $motionCsvName "r"`;
+	string $line = `fgetline $fileId`;
+	string $tmp[] ,$tmpa[] , $csvInfo[] , $buffer[];
+	int $i=0;
+
+	while( size($line) > 0 ){
+		$line = `fgetline $fileId`;
+		$csvInfo[$i] = $line;
+		print ($i + "---" + $csvInfo[$i] + "\r\n");
+		$i++;
+	}
+	$csvInfo = `sort $csvInfo`;
+	$i = 0;
+
+	if($exportTgt != ""){
+		string $csvDataTmp[];
+		for($csvDataItem in $csvInfo){
+			for($tgtItem in $tgtList){
+				if(`gmatch $csvDataItem ("*" + $tgtItem + "*") `){
+					$csvDataTmp[$i] = $csvDataItem;
+					$i++;
+				}
+			}
+		}
+		clear $csvInfo;
+		$i = 1;
+		for($csvDataItem in $csvDataTmp){
+			print ($i + "---" + $csvDataItem + "\r\n");
+			$csvInfo[$i] = $csvDataItem;
+			$i++;
+		}
+	}
+
+//中断用オプション
+	int $percent = 0;
+	float $calCount = 0;
+	progressWindow -title "モーションAnimインポート中"
+		-progress $percent
+		-status "インポート作業: 0%"
+		-isInterruptable true;
+
+
+//以下ループ
+	for( $i = 1 ; $i < size($csvInfo) ; $i++){
+		tokenize $csvInfo[$i] "," $buffer;
+		print ("CsvInfo:" + $csvInfo[$i] + " Buffer:" + $buffer[0]);
+
+//完成品の名前製作
+
+		string $newNum = `match "[0-9]+" $chrName`;
+		string $newName = `substitute "motion_c[0-9][0-9][0-9]*_" $buffer[0] ("motion_c" + $newNum + "_")`;
+		$newName = `substitute "motion_chr[0-9][0-9][0-9]*_" $newName ("motion_chr" + $newNum + "_")`;
+		//リファレンスシーンならリファレンス先、単独シーンなら自身のシーン名を新数値に
+
+		file -f -new;
+		//リファレンスしているファイルか、単独ファイルか判別
+		int $check = `gmatch $buffer[0] "*->*"`;
+		if($check){
+			//リファレンスシーン(射撃a～dなど、元モーションをリファレンス)
+			tokenize $newName "->" $tmp;	//tmp[0]がリファレンス親、tmp[1]はリファレンス子
+
+			//all系は保存名調整
+			tokenize $tmp[0] "_" $tmpa;
+			$tmp[0] = "motion_ref";
+			int $t = 2;			//2つ目が「00x0」、3つ目以降がモーション名
+			for($t=2 ; $t < size($tmpa) ; $t++){
+				$tmp[0] = $tmp[0] + "_" + $tmpa[$t];
+			}
+
+			//リファレンス元の拡張子調整
+			if( $expt_ext == "rb_ma" ){
+				$tmp[0] = `substitute "\\.mb" $tmp[0] ".ma"`;
+			}else if( $expt_ext == "rb_mb" ){
+				$tmp[0] = `substitute "\\.ma" $tmp[0] ".mb"`;
+			}
+
+			if(endsWith($tmp[0],".ma")){
+				file -r -type "mayaAscii" -gl -loadReferenceDepth "all" -options "v=0" $tmp[0];
+			}else{
+				file -r -type "mayaBinary" -gl -loadReferenceDepth "all" -options "v=0" $tmp[0];
+			}
+
+			$newName = `substitute "motion_c[0-9][0-9][0-9]*_" $tmp[1] ("motion_c" + $newNum + "_")`;
+
+		}else{
+			//単独シーンの処理（リグベースをリファレンスしてインポート）
+			//別処理・同名シーンがあればロード
+
+			//all系は保存名調整
+/*			if (endsWith($newName,"_all.mb")||endsWith($newName,"_all.ma")){
+				tokenize $newName "_" $tmp;
+				$newName = "motion_ref";
+				int $t = 2;
+				for($t=2 ; $t < size($tmp) ; $t++){
+					$newName = $newName + "_" + $tmp[$t];
+				}
+			}
+*/
+			if( $expt_ext == "rb_ma" ){
+				$newName = `substitute "\\.mb" $newName ".ma"`;
+			}else if( $expt_ext == "rb_mb" ){
+				$newName = `substitute "\\.ma" $newName ".mb"`;
+			}
+
+			tokenize $buffer[0] "." $tmp;
+			string $iptAnim = ($tmp[0] + ".anim");
+
+				print ("\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n★★★★★★★★★★★★★" + $workmode + "☆☆☆☆☆☆☆☆☆☆☆☆☆\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n");
+
+			if($workmode == "rb4" && stringArrayContains($newName , $mbFileList)){
+//				catch( ` file -f -options "v=0"  -ignoreVersion  -typ "mayaBinary" -o ($expPass + $newName) ` );
+				catch( ` file -f -options "v=0"  -ignoreVersion -o ($expPass + $newName) ` );
+			}else{
+			//リグファイルを開く
+				//file -r -type "mayaBinary" -gl -loadReferenceDepth "all" -namespace ( $chrName + "_rigbase") -options "v=0" $rigPass;
+				GPMulti_Motion_Transfer_importRig($rigPass,$chrName);
+
+				print ("\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n★★★★★★★★★★★★★File [" + $newName + "] Unfound.☆☆☆☆☆☆☆☆☆☆☆☆☆\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n");
+			}
+
+			//rigノード選択、animインポート
+//			select -r "*:rig" ;
+/*			select -r "*:*:rig" "*:*:addRig" ;
+			file -import -type "animImport" -options ";targetTime=4;copies=1;option=replace;pictures=1;connect=0;"  -pr -loadReferenceDepth "all" ($animPass + $iptAnim);
+*/
+			select -r "*:*:rig" ;
+			file -import -type "animImport" -options ";targetTime=4;copies=1;option=replace;pictures=1;connect=0;"  -pr -loadReferenceDepth "all" ($animPass + "base\\" + $iptAnim);
+
+			if (`filetest -e ($animPass + "addRig\\" + $iptAnim)` != 0 ){
+				select -r "*:*:addRig" ;
+				file -import -type "animImport" -options ";targetTime=4;copies=1;option=replace;pictures=1;connect=0;"  -pr -loadReferenceDepth "all" ($animPass + "addRig\\" + $iptAnim);
+			}
+		}
+
+		//ミュート対応
+		if($buffer[3] != "0"){
+			tokenize $buffer[3] "/" $tmp;
+			int $j;
+	//		for($muted in $tmp){
+			for($j = 0 ; $j < `size($tmp)` -1 ; $j++){
+				tokenize $tmp[$j] ">" $tmpa;
+				float $t = float($tmpa[1]);
+				setAttr ("*:*:" + $tmpa[0]) $t;
+				mute ("*:*:" + $tmpa[0]);
+			}
+		}
+
+		//読んだ数値で再生範囲指定
+		float $startF = float($buffer[1]);
+		float $endF = float($buffer[2]);
+		playbackOptions -minTime $startF;
+		playbackOptions -maxTime $endF;
+
+	//GP2:出力設定構築
+		if($buffer[4] != "-noData-"){
+			GP2MMT_saveSettings($buffer[4]);
+		}
+
+
+		//新しいキャラIDで保存
+		string $expt_ext = `radioCollection -q -sl rCexpt`;
+		if( $expt_ext == "rb_ma" ){
+			$newName = `substitute "\\.mb" $newName ".ma"`;
+			file -rename ( $expPass + $newName );
+			file -f -s -options "v=0" -type "mayaAscii";
+		}else if( $expt_ext == "rb_keep" ){
+			file -rename ( $expPass + $newName );
+			if(endsWith($newName,".ma")){
+				file -f -s -options "v=0" -type "mayaAscii";
+			}else{
+				file -f -s -options "v=0" -type "mayaBinary";
+			}
+		}else{
+			$newName = `substitute "\\.ma" $newName ".mb"`;
+			file -rename ( $expPass + $newName );
+			file -f -s -options "v=0" -type "mayaBinary";
+		}
+
+		if(`progressWindow -q -isCancelled`)
+			break;
+		if(`progressWindow -q -progress` >= 100)
+			break;
+		$calCount = ( ($i * 100) / size($csvInfo));
+		$percent = int( $calCount );
+		progressWindow -e -progress $percent
+			-status ("モーションをインポートしています... : "+$percent+"%");
+
+//以上ループ
+	}
+	fclose $fileId;
+
+	file -f -new;
+//ベースポーズの処理（リグベースをリファレンスして保存）
+	//file -r -type "mayaBinary" -gl -loadReferenceDepth "all" -namespace ( $chrName + "_rigbase") -options "v=0" $rigPass;
+	GPMulti_Motion_Transfer_importRig($rigPass,$chrName);
+	file -rename ( $expPass + "_basepose.mb" );
+	file -f -s -options "v=0" -type "mayaBinary";
+
+	progressWindow -endProgress;
+}
+
+
+
+global proc GP2MMT_saveSettings(string $saveData){
+	string $saveNode = "exportFBXWorkTool_saveData";
+
+	//セーブノードの新規作成
+	GP2MMT_createSaveNode($saveNode);
+	if($saveData != ""){
+		string $temp[] , $data[];
+		tokenize $saveData "#" $temp;
+		int $i,$p;
+		float $t;
+		for( $i=0 ; $i<16 ; $i++){
+			tokenize $temp[$i] "@" $data;
+			if($data[1] != ""){
+        		$p = int($data[0]);	setAttr ($saveNode + ".ExportFlag_" + $i) $p;
+    			setAttr -type "string" ($saveNode + ".ExportName_" + $i) $data[1];
+    			$t = float($data[2]);	setAttr ($saveNode + ".startFrame_" + $i) $t;
+    			$t = float($data[3]);	setAttr ($saveNode + ".endFrame_" + $i) $t;
+    			$p = int($data[4]);	setAttr ($saveNode + ".loopFrag_" + $i) $p;
+    			setAttr -type "string" ($saveNode + ".mopID_" + $i) $data[5];
+			}
+		}
+	}
+}
+
+
+//アトリビュート名(exportFBXWorkTool_saveData.SettingData_ver)
+//アトリビュート名(exportFBXWorkTool_saveData.mopID_[0-15])
+
+global proc GP2MMT_createSaveNode(string $saveNode){
+	spaceLocator -n $saveNode;
+	addAttr -ln "settingData_ver" -at "double" ("|" + $saveNode);
+	string $saveStates[] = {"ExportFlag","ExportName","startFrame","endFrame","loopFrag","mopID" };
+	string $stateTypes[] = {"-at \"long\"","-dt \"string\"","-at \"double\"","-at \"double\"","-at \"long\"","-dt \"string\""};
+	string $command;
+
+	for($j=0 ; $j < 16 ; $j++){
+	    for($i=0 ; $i < size($saveStates) ; $i++){
+	        $command = ("addAttr -ln \"" + $saveStates[$i] + "_" + $j + "\" " + $stateTypes[$i] + "  |" + $saveNode + ";");
+	        print ($command + "\r\n");
+	        eval( $command);
+	        setAttr -e -keyable true ("|" + $saveNode + "." + $saveStates[$i] + "_" + $j);
+	    }
+	}
+	setAttr ($saveNode + ".visibility") 0;
+}
+
+
+
+//--------------------------------------------------------------------------------
+//リグのリファレンス
+//ws設定を行い、相対パスで作業する。
+//--------------------------------------------------------------------------------
+global proc GPMulti_Motion_Transfer_importRig( string $rigFullPassName , string $chrName ){
+	print $rigFullPassName;
+	string $tokenized[];
+	int $j;
+	string $loadedPass = "";
+	tokenize $rigFullPassName "\\" $tokenized;
+	for( $j=0 ; $j<size($tokenized) ; $j++ ){
+		int $max = size($tokenized);
+		$max-- ;
+		if($j < $max ){
+			$loadedPass = ($loadedPass + $tokenized[$j] + "/");
+		}else{
+			print $loadedPass;
+			workspace -o $loadedPass;
+			file -r -type "mayaBinary" -gl -loadReferenceDepth "all" -namespace ( $chrName + "_rigbase") -options "v=0" $tokenized[$j];
+		}
+	}
+}
+
+
+//--------------------------------------------------------------------
+//出力前にrigbase掃除
+//$projectPass:対象のキャラプロジェクトが格納されたパス
+//$charaID:キャラクターのID
+global proc MMT_cleanRigbase(string $rigPass){
+//コピーでバックアップ保存
+	string $temp[];
+	tokenize $rigPass "." $temp;
+	string $backupName = $temp[0] + "_backup.mb";
+	sysFile -copy $backupName $rigPass;
+//ファイルオープン
+	file -force -open $rigPass;
+//ウィンドウ全部閉じる
+	cleanPanels();
+//保存
+	file -f -s -options "v=0" -type "mayaBinary";
+}
+
+//--------------------------------------------------------------------------------
+//execute
+//--------------------------------------------------------------------------------
+global proc execMotionTransfer(string $workmode,string $p1,string $p2,string $p3,string $p4,string $p5){
+	if ($workmode == "rb1" || $workmode =="rb2"){
+/*
+		if( catch(`CBdeleteConnection "persp.tx"`) ){
+			confirmDialog -title "お手数おかけします" -message ("必要なプロシージャを読み込む為、チャンネルボックスにて\n「コネクションの解除(Break Connection)」を一回行ってください。") -button "OK" -defaultButton "OK";
+		}else{
+			eptMotionTransfer($p1,$p2);
+		}
+*/
+		eptMotionTransfer($p1,$p2);
+
+	}
+	if ($workmode == "rb1" || $workmode == "rb3" || $workmode == "rb4"){
+		iptMotionTransfer($p2,$p3,$p4,$p5);
+	}
+
+	string $MMTwindow = "moTrtool";
+	if ( `window -exists $MMTwindow` )
+	{
+			confirmDialog -title "Multi Motion Transfer" -message ("作業が完了しました。") -button "OK" -defaultButton "OK";
+	}
+}
+
+
+//--------------------------------------------------------------------------------
+//テキストフィールド多すぎない？
+//--------------------------------------------------------------------------------
+global proc MMT_setTextfData(string $textf , string $fileName, string $fileType){
+//テストメッセージ
+	print ("Loaded to " + $textf + " , File " + $fileName + " , Type " + $fileType + "\n");
+
+//フォルダで、ドラ直下等でなければ/追加
+	if ($fileType == "directory" && endsWith($fileName,"/") !=1 ){
+		$fileName = ($fileName + "/");
+	}
+
+//パスを"/"から"\\"へ変換
+	$fileName = `substituteAllString $fileName "/" "\\"`;
+	textFieldButtonGrp -e -text $fileName $textf;
+
+
+//リグ指定時処理、IDを代入
+	if( $textf == "MMT_rigNameTf"){
+		string $rigName = `textFieldButtonGrp -q -text MMT_rigNameTf`;
+		string $charaID;
+		string $sceneName[] = (`file -q -r -shn $rigName`);
+		if( $sceneName[0] == ""){
+			confirmDialog -title "Multi Motion Transfer tool" -message ("指定したリグシーンにて、リファレンスが読み込めませんでした。\n正常なリグシーンで無い可能性があります。") -button "OK" -defaultButton "OK";
+		}else{
+			$sceneName[0] = `substituteAllString $sceneName[0] "/" "\\"`;
+			string $tempa[],$tempb[];
+			tokenize $sceneName[0] "\\" $tempa;
+			tokenize $tempa[(`size($tempa)`-1)] "." $tempb;
+			$charaID = $tempb[0];
+		//	string $charaNum = endString( $charaID,3) ;
+			string $charaNum = `match "[0-9]+" $charaID` ;	//そもそもこの処理不要？
+			textFieldGrp -e -text $charaID MMT_chrNameTf;
+		}
+	}
+
+//元シーン指定時処理、兄弟階層dataフォルダ指定
+	if( $textf == "MMT_iMbNameTf"){
+		string $rigName = `textFieldButtonGrp -q -text MMT_iMbNameTf`;
+		string $tempa[],$tempb[];
+		tokenize $rigName "\\" $tempa;
+		print ("Loaded " + $tempa[(`size($tempa)`-1)] + " \n");
+		if($tempa[(`size($tempa)`-1)] == "scenes"){
+			$tempa[(`size($tempa)`-1)] = "data";
+			string $newPass;
+			for($tempc in $tempa)
+			$newPass = $newPass + $tempc + "\\";
+			textFieldGrp -e -text $newPass MMT_animNameTf;
+		}
+	}
+}
+
+
+
+
+//--------------------------------------------------------------------------------
+//ui
+//--------------------------------------------------------------------------------
+global proc Multi_Motion_Transfer(){
+
+	string $mbPass = "S:\\motion\\maya\\";
+	//対象キャラ名、リグ名を指定
+	string $rigPass = "S:\\motion\\maya\\chr100\\scenes\\c100_rigbase.mb";
+	string $chrName = "chr100";
+
+	//モーションフォルダを指定
+	string $animPass = "S:\\motion\\anim\\";
+
+	string $title = "Multi_Motion_Transfer";
+	string $MTwindow = "moTrtool";
+
+	if ( `window -exists $MTwindow` )
+	{
+		deleteUI	$MTwindow;
+	}
+
+	string $SSwindow = "CSSsystem";
+	if ( `window -exists $SSwindow` ){
+		confirmDialog -title "CharacterSetupSystem" -message ("一部UIが競合するため、CharacterSetupSystemと同時起動はできません。") -button "OK" -defaultButton "OK";
+	}
+
+	string $MMTversion = getMMTVersion();
+	window  -t ($title + "   " + $MMTversion) $MTwindow;
+
+	string $mainLayout = `columnLayout`;
+	string $radioCollection1 = `radioCollection rC1`;
+		string $radioLayout = `rowLayout -numberOfColumns 4 -cw4 100 100 150 160`;
+		radioButton -label "maya -> maya" -select rb1;
+		radioButton -label "maya -> .anim" rb2;
+		radioButton -label ".anim -> maya(new scene)" rb3;
+		radioButton -label ".anim -> maya(load scene)" rb4;
+		setParent ..;
+//元mbのフォルダ指定
+	string $tf1 = (`textFieldButtonGrp -cl3 left both right -cw3 120 440 100 -label "変換元.mbファイルパス" -text $mbPass -ann "変換元の.mbファイルのパスを指定して下さい。" -buttonLabel "Edit" MMT_iMbNameTf`);
+
+//animのフォルダ指定
+	string $tf2 = (`textFieldButtonGrp -cl3 left both right -cw3 120 440 100  -label ".animファイルパス" -text $animPass -ann ".animファイルの保管先パスを指定して下さい。" -buttonLabel "Edit" MMT_animNameTf`);
+
+//元mbのフォルダ指定
+	string $tf3 = (`textFieldButtonGrp -cl3 left both right -cw3 120 440 100  -label "出力先.mbファイルパス" -text $animPass -ann "変換後の.mbファイルのパスを指定して下さい。" -buttonLabel "Edit" MMT_eMbNameTf`);
+
+//対象rigの指定
+	string $tf4 = (`textFieldButtonGrp -cl3 left both right -cw3 120 440 100  -label "出力用キャラクターリグ" -text $rigPass -ann "モーションを流し込むリグのmayaファイルを選択して下さい。" -buttonLabel "Edit" MMT_rigNameTf`);
+
+//(対象キャラ名指定、基本rigから取得したい)
+	string $tf5 = (`textFieldGrp -cl2 left both -cw2 120 440 -label "キャラクターID" -text $chrName -ann "モーションを流し込むキャラのIDです。" MMT_chrNameTf`);
+
+//処理対象選定
+	string $epTf = `textFieldGrp -cl2 left both -cw2 120 440 -label "処理対象を名前で絞る" -ann"エクスポートおよびインポート処理の対象を、名前で絞ります。半角スペースで複数入力した場合、どれかに該当したものが処理されます。" extgtTF`;
+
+//読んで字の如く
+	string $c1 = `checkBox -v 0 -label "Anim出力時、キーのベイクを行わない" bakeFlag`;
+
+	string $radioCollection2 = `radioCollection rCexpt`;
+		string $radioLayout2 = `rowLayout -numberOfColumns 4 -cw4 120 100 100 150`;
+		text -label "出力設定";
+		radioButton -label ".mbで保存" -select rb_mb;
+		radioButton -label ".maで保存" rb_ma;
+		radioButton -label "元ファイルを維持" rb_keep;
+		setParent ..;
+
+//実行
+	string $b1 = `button -w 100 -l "Motion Transfer" Btn`;
+
+	radioButton -edit -onCommand "textFieldButtonGrp -e -en true  MMT_iMbNameTf ;textFieldButtonGrp -e -en true  MMT_eMbNameTf ;textFieldButtonGrp -e -en true  MMT_rigNameTf ;textFieldGrp -e -en true  MMT_chrNameTf ;checkBox -e -en true  bakeFlag ;radioButton -e -en true  rb_mb ;radioButton -e -en true  rb_ma ;radioButton -e -en true  rb_keep ;" rb1;
+	radioButton -edit -onCommand "textFieldButtonGrp -e -en true  MMT_iMbNameTf ;textFieldButtonGrp -e -en false MMT_eMbNameTf ;textFieldButtonGrp -e -en false MMT_rigNameTf ;textFieldGrp -e -en false MMT_chrNameTf ;checkBox -e -en true  bakeFlag ;radioButton -e -en false rb_mb ;radioButton -e -en false rb_ma ;radioButton -e -en false rb_keep ;" rb2;
+	radioButton -edit -onCommand "textFieldButtonGrp -e -en false MMT_iMbNameTf ;textFieldButtonGrp -e -en true  MMT_eMbNameTf ;textFieldButtonGrp -e -en true  MMT_rigNameTf ;textFieldGrp -e -en true  MMT_chrNameTf ;checkBox -e -en false bakeFlag ;radioButton -e -en true  rb_mb ;radioButton -e -en true  rb_ma ;radioButton -e -en true  rb_keep ;" rb3;
+	radioButton -edit -onCommand "textFieldButtonGrp -e -en false MMT_iMbNameTf ;textFieldButtonGrp -e -en true  MMT_eMbNameTf ;textFieldButtonGrp -e -en true  MMT_rigNameTf ;textFieldGrp -e -en true  MMT_chrNameTf ;checkBox -e -en false bakeFlag ;radioButton -e -en true  rb_mb ;radioButton -e -en true  rb_ma ;radioButton -e -en true  rb_keep ;" rb4;
+	button -edit -command "execMotionTransfer( `radioCollection -q -sl rC1`, `textFieldButtonGrp -q -text MMT_iMbNameTf` , `textFieldButtonGrp -q -text MMT_animNameTf` , 	`textFieldButtonGrp -q -text MMT_eMbNameTf` ,`textFieldButtonGrp -q -text MMT_rigNameTf`,`textFieldGrp -q -text MMT_chrNameTf` );" -ann "実行" Btn;
+
+	string $tc1 = `textFieldButtonGrp -edit -bc ("fileBrowserDialog -mode 4 -fileType \"directory\" -actionName \"モーションデータのコピー元フォルダを指定して下さい。\" -fileCommand \"MMT_setTextfData(\\\"MMT_iMbNameTf\\\")\" ") MMT_iMbNameTf`;
+	string $tc2 = `textFieldButtonGrp -edit -bc ("fileBrowserDialog -mode 4 -fileType \"directory\" -actionName \".animファイルを出力するフォルダを指定して下さい。\" -fileCommand \"MMT_setTextfData(\\\"MMT_animNameTf\\\")\" ") MMT_animNameTf`;
+	string $tc3 = `textFieldButtonGrp -edit -bc ("fileBrowserDialog -mode 4 -fileType \"directory\" -actionName \"モーションデータのコピー先フォルダを指定して下さい。\" -fileCommand \"MMT_setTextfData(\\\"MMT_eMbNameTf\\\")\" ") MMT_eMbNameTf`;
+
+	string $com_A = "confirmDialog -title \"Multi Motion Transfer tool\" -message (\"モーションを適用するキャラのリグデータを指定して下さい。\\n[パーツモーション出力用に「L:/～」や仮フォルダ等、切りやすいパスをお勧めします]\") -button \"OK\" -defaultButton \"OK\" ";
+	string $com_B = "fileBrowserDialog -mode 0 -fileType \".mb\" -actionName \"open\" -fileCommand \"MMT_setTextfData( \\\"MMT_rigNameTf\\\" )\" ";
+	string $tc4 = `textFieldButtonGrp -edit -bc ($com_A + ";" + $com_B) MMT_rigNameTf`;
+
+	setParent ..;
+
+	showWindow $MTwindow;
+}

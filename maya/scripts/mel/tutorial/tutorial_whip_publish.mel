@@ -1,0 +1,59 @@
+{
+	
+	int $quantity=10;
+	
+	float $span=5;
+	
+	//createcurve
+	string $curveOption="curve -d 3 ";
+	
+	for ($i=0;$i<$quantity;$i++){
+		$curveOption=($curveOption+"-p "+($i*$span)+" 0 0 ");
+	}
+	
+	$curveOption=$curveOption+";";
+	
+	string $curve=`eval $curveOption`;
+	
+	//createclusuter
+	string $cluster[];
+	for ($i=0;$i<$quantity;$i++){
+		$ctemp=`cluster ($curve+".cv["+$i+"]")`;
+		$cluster[$i]=$ctemp[1];
+	}
+	
+	//CreatePolygonCube;
+	string $cubeName[];
+	for ($i=0;$i<$quantity;$i++){
+		$ctemp=`polyCube -w 1 -h 1 -d 1 -sx 1 -sy 1 -sz 1 -ax 0 1 0 -tx 1 -ch 1 -n ("whipCube"+($i))`;
+		move -rpr ($i*$span) 0 0 $ctemp[0];
+		$cubeName[$i]=$ctemp[0];
+	}
+	
+	//constraint
+	for ($i=0;$i<$quantity;$i++){
+		pointConstraint -offset 0 0 0 -weight 1 $cubeName[$i] $cluster[$i];
+	}
+	
+	//spring
+	for ($i=0;$i<($quantity-1);$i++){
+		constrain -spring  -name "cns_hinge#" -st 5 -d 0.1 -i 0 $cubeName[$i] $cubeName[$i+1];
+	}
+	
+	gravity -pos 0 0 0 -m 9.8 -att 0 -dx 0 -dy -1 -dz 0  -mxd -1  -vsh none -vex 0 -vof 0 0 0 -vsw 360 -tsr 0.5 ;
+	
+	connectDynamic -f gravityField1  $cubeName;
+	
+	//pin start point 
+	string $temp[];
+	$temp=`listRelatives -typ rigidBody $cubeName[0]`;
+	setAttr ($temp[0]+".active") 0;
+	
+	//create tube
+	
+	string $extrudeCircle[]=`circle -c 0 0 0 -nr 0 1 0 -sw 360 -r 0.2 -d 3 -ut 0 -tol 0.01 -s 8 -ch 1`;
+	setAttr ($extrudeCircle[0]+".rotateZ") 90;
+	extrude -ch true -rn true -po 0 -et 2 -ucp 1 -fpt 1 -upn 0 -rotation 0 -scale 1 -rsp 1 $extrudeCircle[0] $curve ;
+
+}
+

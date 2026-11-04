@@ -1,0 +1,118 @@
+//--------------------------------------------------------------------------
+//
+// ScriptName : AriProjectSetter
+// Contents   : プロジェクトセットの手間を減らします。
+// Author     : Ari
+// LastUpdate : 2015/11
+// Note       : 
+//
+//--------------------------------------------------------------------------
+
+proc string AriDirectoryUpper(string $directory, int $up){
+
+string $sepa[];
+tokenize $directory "/" $sepa;
+
+string $targetPath;
+for($i=0; $i<(size($sepa)-$up); $i++){
+$targetPath = $targetPath+$sepa[$i]+"/";
+}
+return $targetPath;
+}
+global proc AriProjectSetter_Get(int $mode){
+global string $AriProjectSetterTx[3];
+string $currentScene = `file -q -sceneName`;
+string $currentProj = `workspace -q -rd`;
+string $targetPath="";
+if($currentScene != ""){
+$targetPath=AriDirectoryUpper($currentScene,2);
+}
+else{
+$targetPath=$currentProj;
+$currentScene="not saved";
+}
+textField -e -text $currentProj  $AriProjectSetterTx[0];
+textField -e -text $currentScene $AriProjectSetterTx[1];
+if($mode==0)textField -e -text $targetPath   $AriProjectSetterTx[2];
+}
+global proc AriProjectSetter_FileDialog(){
+global string $AriProjectSetterTx[3];
+string $defPath = `textField -q -text $AriProjectSetterTx[2]`;
+string $targetPath = $defPath;
+string $path[] =`fileDialog2 -cap "select directory" -dir $defPath -ds 2 -fm 3 -okc "フォルダ"`;
+if($path[0] != "") $targetPath = $path[0];
+textField -e -text $targetPath $AriProjectSetterTx[2];
+}
+global proc AriProjectSetter_ProjSet(){
+global string $AriProjectSetterTx[3];
+string $targetPath = `textField -q -text $AriProjectSetterTx[2]`;
+string $targetPath = substituteAllString($targetPath, "\\", "/");
+textField -e -text $targetPath $AriProjectSetterTx[2];
+if(`filetest -d $targetPath`){
+setProject ($targetPath);
+textField -e -bgc 0.6 0.8 1  $AriProjectSetterTx[0];
+}
+AriProjectSetter_Get(1);
+}
+global proc AriProjectSetter_OpenDire(int $mode){
+global string $AriProjectSetterTx[3];
+string $directory = `textField -q -text $AriProjectSetterTx[$mode]`;
+if(`filetest -f $directory`){
+string $newDire = substituteAllString($directory, "/", "\\");
+print ($newDire+"\n");
+system ("explorer.exe /select,"+$newDire);
+}
+if(`filetest -d $directory`){
+system ("load "+$directory);
+}
+}
+global proc AriProjectSetter(){
+global string $AriProjectSetterTx[3];
+string $buttonUI[10];
+if((`window -ex  AriProjectSetter`)==true)deleteUI AriProjectSetter;
+window -title "AriProjectSetter"  -w 190 -h 170 AriProjectSetter;
+string $form=`formLayout`;
+$buttonUI[2] = `button -w 100 -l "Target Path" -c "AriProjectSetter_OpenDire(2)"`;
+$AriProjectSetterTx[2]=`textField  -text ""`;
+$buttonUI[3] = `nodeIconButton -w 26 -h 24 -style "iconOnly" -command "AriProjectSetter_FileDialog" -image1 "navButtonBrowse.png"`;
+$buttonUI[0] = `button -w 100 -l "Current Project" -c "AriProjectSetter_OpenDire(0)"`;
+$AriProjectSetterTx[0] = `textField -text "" -ed false`;
+$buttonUI[1] = `button -w 100 -l "Current Scene" -c "AriProjectSetter_OpenDire(1)"`;
+$AriProjectSetterTx[1]=`textField  -text "" -ed false`;
+string $sepalatorUI = `separator -h 10 -st "in"`;
+$buttonUI[4] = `button -l "Reload" -c "AriProjectSetter()"`;
+$buttonUI[5] = `button -l "Project Set" -c "AriProjectSetter_ProjSet()"`;
+setParent..;
+showWindow;
+formLayout -edit
+-af $buttonUI[0] "top"   0
+-af $buttonUI[0] "left"  0
+-ac $AriProjectSetterTx[0] "left"  0 $buttonUI[0]
+-af $AriProjectSetterTx[0] "top"   0
+-af $AriProjectSetterTx[0] "right" 0
+-ac $buttonUI[1] "top"   0 $buttonUI[0]
+-af $buttonUI[1] "left"  0
+-ac $AriProjectSetterTx[1] "left"  0 $buttonUI[1]
+-ac $AriProjectSetterTx[1] "top"   0 $buttonUI[0]
+-af $AriProjectSetterTx[1] "right" 0
+-ac $sepalatorUI "top"   0 $buttonUI[1]
+-af $sepalatorUI "left"  0
+-af $sepalatorUI "right" 0
+-ac $buttonUI[2] "top"   0 $sepalatorUI
+-af $buttonUI[2] "left"  0
+-ac $buttonUI[3] "top"   0 $sepalatorUI
+-af $buttonUI[3] "right" 0
+-ac $AriProjectSetterTx[2] "top"   0 $sepalatorUI
+-ac $AriProjectSetterTx[2] "left"  0 $buttonUI[2]
+-ac $AriProjectSetterTx[2] "right" 0 $buttonUI[3]
+-ac $buttonUI[4] "top"   0 $buttonUI[3]
+-af $buttonUI[4] "left"  0
+-ap $buttonUI[4] "right"  0 50
+-af $buttonUI[4] "bottom"  0
+-ac $buttonUI[5] "top"   0 $buttonUI[3]
+-ac $buttonUI[5] "left"  0 $buttonUI[4]
+-af $buttonUI[5] "right"  0
+-af $buttonUI[5] "bottom"  0
+$form;
+AriProjectSetter_Get(0);
+}

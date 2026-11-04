@@ -1,0 +1,16 @@
+=*=*=*=*=*=*=*=*=* building_kk_16 =*=*=*=*=*=*=*=*=*
+[['D:/Projects/Gravite2/graphic/bg/scenes/building/building_kk_16.mb...', '---p4checkout complete---']]
+ERROR ! : D:/Projects/Gravite2/graphic/bg/scenes/building/building_kk_16.mb :cant find SOURCE or TARGET
+TimeSetting=OK
+SAVE succes !
+D:/Projects/Gravite2/assets/bg/model/building_kk_16.atgi
+D:/Projects/Gravite2/assets_local/building_kk_16/bg/model/building_kk_16.atgi COPY---> D:/Projects/Gravite2/assets/bg/model/building_kk_16.atgi
+COPY SUCCESS! : D:/Projects/Gravite2/assets/bg/model/building_kk_16.atgi
+=*=*=*=*=*=*=*=*=* building_kk_17 =*=*=*=*=*=*=*=*=*
+[['D:/Projects/Gravite2/graphic/bg/scenes/building/building_kk_17.mb...', 'file not Checkout : ', '---p4checkout complete---']]
+SUCCESS ! : D:/Projects/Gravite2/graphic/bg/scenes/building/building_kk_17.mb 
+TimeSetting=OK
+SAVE succes !
+D:/Projects/Gravite2/assets/bg/model/building_kk_17.atgi
+D:/Projects/Gravite2/assets_local/building_kk_17/bg/model/building_kk_17.atgi COPY---> D:/Projects/Gravite2/assets/bg/model/building_kk_17.atgi
+COPY SUCCESS! : D:/Projects/Gravite2/assets/bg/model/building_kk_17.atgi

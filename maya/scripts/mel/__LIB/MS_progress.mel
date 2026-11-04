@@ -1,0 +1,11 @@
+
+global proc MS_Progress(){
+	if((`window -ex MS_ProgressWindow`) == true)deleteUI MS_ProgressWindow;
+	if(`windowPref -ex MS_ProgressWindow`){ windowPref -r MS_ProgressWindow; }
+	window -wh 248 70 -tlc 414 516 -tlb true -s true -t "Calculating" MS_ProgressWindow;
+	columnLayout;
+	progressBar -maxValue 10 -width 246 MS_progress;
+	setParent ..;
+	showWindow MS_ProgressWindow;
+};
+

@@ -1,0 +1,21 @@
+global proc MS_edgeVertexTransparent(){
+	//エッジの頂点カラーを0に設定
+	string $obj[]=`ls -sl`;
+	
+	PolySelectConvert 3;
+	
+	string $allVtx[]=`filterExpand -sm 31`;
+	
+	polyColorPerVertex -r 1 -g 1 -b 1 -a 1 -cdo $allVtx;
+	
+	polySelectConstraint -m 3 -t 1 -w 1;
+	
+	string $edgeVtx[]=`filterExpand -sm 31`;
+	
+	polyColorPerVertex -r 1 -g 1 -b 1 -a 0 -cdo $edgeVtx;
+	
+	polySelectConstraint -m 0 -t 0;
+	//polySelectConstraint -m 0 -t 0 -w 0;
+}
+
+

@@ -1,0 +1,71 @@
+global proc MS_loc_CenterResetter_core(int $mode,int $flz_trn,int $flz_rot,int $flz_scl){
+	
+/*
+オブジェクトの中心をピボットの位置に。
+
+
+
+*/
+	if($mode){
+		print"this mode is Test!!!\n";
+	}
+	
+	
+	
+	string $objz[]=`ls -sl`;
+	
+	for($each in $objz){
+		
+		$tx=($each+".tx");
+		$ty=($each+".ty");
+		$tz=($each+".tz");
+		
+		$rx=($each+".rx");
+		$ry=($each+".ry");
+		$rz=($each+".rz");
+		
+		$sx=($each+".sx");
+		$sy=($each+".sy");
+		$sz=($each+".sz");
+		
+		float $orgtx=`getAttr $tx`;
+		float $orgty=`getAttr $ty`;
+		float $orgtz=`getAttr $tz`;
+		
+		float $orgrx=`getAttr $rx`;
+		float $orgry=`getAttr $ry`;
+		float $orgrz=`getAttr $rz`;
+		
+		float $orgsx=`getAttr $sx`;
+		float $orgsy=`getAttr $sy`;
+		float $orgsz=`getAttr $sz`;
+		
+		float $pivlx=`getAttr ($each+".rotatePivotX")`;
+		float $pivly=`getAttr ($each+".rotatePivotY")`;
+		float $pivlz=`getAttr ($each+".rotatePivotZ")`;
+		
+		//.rotatePivotTranslate：なにやら隠しアトリビュート。これを使わないと、pivotの正確な移動値が割り出せない。
+		float $pivtx=`getAttr ($each+".rotatePivotTranslateX")`;
+		float $pivty=`getAttr ($each+".rotatePivotTranslateY")`;
+		float $pivtz=`getAttr ($each+".rotatePivotTranslateZ")`;
+		
+		setAttr $tx (-($pivtx+$pivlx));
+		setAttr $ty (-($pivty+$pivly));
+		setAttr $tz (-($pivtz+$pivlz));
+		
+		setAttr $sx 1;
+		setAttr $sy 1;
+		setAttr $sz 1;
+		
+		makeIdentity -a 1 -t $flz_trn -r $flz_rot -s $flz_scl -n 0 $each;
+		
+		
+		setAttr $tx ($orgtx+$pivlx+$pivtx);
+		setAttr $ty ($orgty+$pivly+$pivty);
+		setAttr $tz ($orgtz+$pivlz+$pivtz);
+		
+	}
+}
+
+
+

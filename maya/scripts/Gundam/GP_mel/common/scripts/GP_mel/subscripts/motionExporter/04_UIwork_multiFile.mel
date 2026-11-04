@@ -1,0 +1,206 @@
+//GP2モーションエクスポータ
+//4,複数ファイル出力用UI挙動
+
+global proc eFT_editTfData(string $accessedData){
+	string $result[] = `fileDialog2 -cap "出力元のモーションmayaファイルを保存しているフォルダを選択してください。" -fileMode 3 -okc "set" -dialogStyle 2`;
+	string $fileName = $result[0];
+
+	if (endsWith($fileName,"/") == 0){
+		$fileName = $fileName + "/";
+	}
+	textFieldButtonGrp -e -text ($fileName) $accessedData;
+	if($accessedData == "eFT_sourcePathTf"){
+		eFT_fileBrRenew($fileName);
+		GP2_motExp_globalSave("multiTabMayaDataFolder");
+	}else{
+		GP2_motExp_globalSave("exportFolder");
+	}
+}
+
+global proc eFT_fileBrRenew(string $newAddress){
+	textFieldButtonGrp -e -text $newAddress eFT_sourcePathTf;
+	textScrollList -e -ra eFT_fileBr_tsl;
+//	string $masterList[];
+	string $folderList[] = `getFileList -fld $newAddress -fs "*."`;
+	string $mbfileList[] = `getFileList -fld $newAddress -fs "*.mb"`;
+	string $temp[];
+
+	if(`tokenize $newAddress "/" $temp` > 1){
+	//	$masterList[0] = "../";
+		textScrollList -e -a "../" eFT_fileBr_tsl;
+	}
+	for($item in $folderList){
+		textScrollList -e -a ("[" + $item + "]") eFT_fileBr_tsl;
+	}
+	for($item in $mbfileList){
+		textScrollList -e -a $item eFT_fileBr_tsl;
+	}
+	
+	
+/*	$masterList = stringArrayCatenate($masterList , $folderList);
+	$masterList = stringArrayCatenate($masterList , $mbfileList);
+	for($item in $masterList){
+		textScrollList -e -a $item eFT_fileBr_tsl;
+	}*/
+//	string $saveDataList[] = {"exportFolder","multiExportSwitch","resetRootPosSwitch","multiTabMayaDataFolder","BookMarks"};
+	GP2_motExp_globalSave("multiTabMayaDataFolder");
+}
+
+
+global proc string eFT_OnePeelAddress(string $preAddress){
+	string $temp[];
+	string $newAddress;
+	tokenize $preAddress "/" $temp;
+	int $i;
+	for($i=0 ; $i < size($temp)-1 ; $i++){
+		$newAddress = ($newAddress + $temp[$i] + "/");
+	}
+	return($newAddress);
+}
+
+global proc eFT_fileBrDC(){
+	string $preAddress = `textFieldButtonGrp -q -tx eFT_sourcePathTf`;
+	string $newAddress;
+	string $dcItem[] = `textScrollList -q -si eFT_fileBr_tsl`;
+	string $temp;
+	if(size($dcItem) == 1){
+		if( $dcItem[0] == "../" ){
+			$newAddress = eFT_OnePeelAddress($preAddress);
+			eFT_fileBrRenew($newAddress);
+		}else if( endsWith( $dcItem[0] , ".mb" ) == 0){
+			$temp = startString( $dcItem[0] , size($dcItem[0])-1 );
+			$temp = endString( $temp , size($temp)-1 );
+			$newAddress = ($preAddress + $temp + "/");
+			eFT_fileBrRenew($newAddress);
+		}
+	}
+}
+
+global proc eFT_BrBookmarkDC(){
+//	string $preAddress = `textFieldButtonGrp -q -tx eFT_sourcePathTf`;
+//	string $newAddress;
+	string $dcItem[] = `textScrollList -q -si eFT_BrBookmark_tsl`;
+	string $temp;
+	if( endsWith( $dcItem[0] , ".mb" )){
+		$temp = dirname($dcItem[0]) + "/";
+		eFT_fileBrRenew($temp);
+		$temp = basename($dcItem[0] , "");
+		textScrollList -e -si $temp eFT_fileBr_tsl;
+	}else{
+		eFT_fileBrRenew($dcItem[0]);
+	}
+}
+
+global proc string[] eFT_DragCallBack( string $dragControl, int $x, int $y, int $mods ){
+	//print ( "Drag from " + $dragControl + "\n" );
+	return { $dragControl };
+}
+
+global proc eFT_addExportList(){
+	string $addedItem[] = `textScrollList -q -ai eFT_ExportFileList_tsl`;
+	string $Address = `textFieldButtonGrp -q -tx eFT_sourcePathTf`;
+	string $dgItem[] = `textScrollList -q -si eFT_fileBr_tsl`;
+	string $temp;
+	for($item in $dgItem){
+		$temp = ($Address + $item);
+		if( endsWith( $item , ".mb" ) && stringArrayContains($temp,$addedItem) == 0){
+			textScrollList -e -append $temp eFT_ExportFileList_tsl;
+//			textScrollList -e -si $temp eFT_ExportFileList_tsl;
+		}
+	}
+}
+
+global proc eFT_delExportList(){
+	string $dgItem[] = `textScrollList -q -si eFT_ExportFileList_tsl`;
+	for($item in $dgItem){
+		textScrollList -e -ri $item eFT_ExportFileList_tsl;
+	}
+}
+
+global proc eFT_DropCallBack( string $drag, string $drop, string $msgs[], int $x, int $y, int $type ){
+
+	string $Address = `textFieldButtonGrp -q -tx eFT_sourcePathTf`;
+	string $dgItem[] = `textScrollList -q -si $drag`;
+	string $temp;
+
+//Browser→Bookmark
+	if ( endsWith($drag,"eFT_fileBr_tsl") && endsWith($drop,"eFT_BrBookmark_tsl") ){
+		for($item in $dgItem){
+			if( endsWith( $item , ".mb" ) == 0){
+				$temp = startString( $item , size($item)-1 );
+				$temp = endString( $temp , size($temp)-1 );
+				textScrollList -e -append ($Address + $temp + "/") $drop;
+			}else{
+				textScrollList -e -append ($Address + $item) $drop;
+			}
+		}
+//	string $saveDataList[] = {"exportFolder","multiExportSwitch","resetRootPosSwitch","multiTabMayaDataFolder","BookMarks"};
+	GP2_motExp_globalSave("BookMarks");
+	}
+
+//Browser→Export
+	if ( endsWith($drag,"eFT_fileBr_tsl") && endsWith($drop,"eFT_ExportFileList_tsl") ){
+		for($item in $dgItem){
+			if( endsWith( $item , ".mb" )){
+				textScrollList -e -append ($Address + $item) $drop;
+				textScrollList -e -si ($Address + $item) $drop;
+			}
+		}
+	}
+
+	//Bookmark→Export
+	if ( endsWith($drag,"eFT_BrBookmark_tsl") && endsWith($drop,"eFT_ExportFileList_tsl") ){
+		for($item in $dgItem){
+			if( endsWith( $item , ".mb" ) ){
+				textScrollList -e -append ($item) $drop;
+				textScrollList -e -si ($item) $drop;
+			}
+		}
+	}
+}
+
+
+global proc eFT_UISlideButton(int $mode){
+	int $pos = `intField -q -v eFT_multiUISldItf`;
+	int $val =  50;
+	if($mode){
+		$pos = $pos - $val;
+	}else{
+		$pos = $pos + $val;
+	}
+	columnLayout -e -w $pos eFT_multiFileColumnLayout;
+	intField -e -v $pos eFT_multiUISldItf;
+}
+
+
+global proc eFT_toolBtn(string $work){
+	string $temp[] ;
+	switch($work){
+		case "eFT_exlAlsbtn" :
+			$temp = `textScrollList -q -ai eFT_ExportFileList_tsl`;
+			for($item in $temp){
+				textScrollList -e -si $item eFT_ExportFileList_tsl;
+			}
+			break;
+		case "eFT_exlAldbtn" :
+			textScrollList -e -ra eFT_ExportFileList_tsl;
+			break;
+		case "eFT_exlCusbtn" :
+			$temp = `textScrollList -q -si eFT_ExportFileList_tsl`;
+			textScrollList -e -ra eFT_ExportFileList_tsl;
+			for($item in $temp){
+				textScrollList -e -a $item eFT_ExportFileList_tsl;
+				textScrollList -e -si $item eFT_ExportFileList_tsl;
+			}
+			break;
+		case "eFT_dBMbtn" :
+			$temp = `textScrollList -q -si eFT_BrBookmark_tsl`;
+			for($item in $temp){
+				textScrollList -e -ri $item eFT_BrBookmark_tsl;
+			}
+			GP2_motExp_globalSave("BookMarks");
+			break;
+		
+	}
+
+}

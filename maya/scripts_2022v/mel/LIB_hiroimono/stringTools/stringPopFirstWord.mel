@@ -1,0 +1,30 @@
+//stringPopFirstWord, by Julian Love, julian@lightmail.com. Part of the StringTools set.
+//
+//description:	chops off the last word of the supplied string based on the
+//				supplied word char
+//
+//usage:		stringPopFirstWord string[source string] string[character that separates words];
+//
+//examples:		stringPopFirstWord "hello world." " ";
+//				// Result: world. //
+//
+//				stringPopFirstWord "left_wrist_controller" "_";
+//				// Result: wrist_controller //
+
+
+global proc string stringPopFirstWord (string $item, string $wordChar){
+	string	$tokenList[];
+	string	$returnString;
+	int		$x;
+
+	tokenize $item $wordChar $tokenList;
+
+	for ($x=1; $x<size($tokenList); $x++){
+		if ($x != (size($tokenList)-1))
+			{$returnString += ($tokenList[$x] + $wordChar);}
+		else
+			{$returnString += $tokenList[$x];}
+	}
+
+	return $returnString;
+}

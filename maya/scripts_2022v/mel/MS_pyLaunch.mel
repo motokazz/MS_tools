@@ -1,0 +1,247 @@
+/*
+MS_pyLaunch
+テキストボックスのパス内にある.pyファイルを検索して、ボタンリストを作成します。
+作成されたボタンを押すと、インポート＆リロードコマンドを実行します。
+※このとき、スクリプトウィンドウに実行コマンドがプリントされますので、これをpythonタイプでシェルフに登録すればpythonファイル実行のシェルフボタンが簡単に作成できます。
+
+～UIの説明～
+■テキストエリア
+検索するファイルパスを入力します。
+■[Brouse]ボタン
+パスをブラウジングして入力することも出来ます。
+■[launch]ボタン
+フォルダ内を検索してそのファイルが実行可能になるボタン群を作成します。
+■[help]内
+・[ヘルプ]ボタン
+ヘルプが表示されます
+・[環境変数クリア]ボタン
+テキストエリアの文字は環境変数内に格納されています。
+このボタンで、スクリプトで設定されている環境変数をクリアします。
+
+*/
+
+global proc MS_pyLaunch_help(){
+	string $help;
+	$help=$help+"MS_pyLaunch\n";
+	$help=$help+"テキストボックスのパス内にある.pyファイルを検索して、ボタンリストを作成します。\n";
+	$help=$help+"作成されたボタンを押すと、インポート＆リロードコマンドを実行します。\n";
+	$help=$help+"※このとき、スクリプトウィンドウに実行コマンドがプリントされますので、これをpythonタイプでシェルフに登録すればpythonファイル実行のシェルフボタンが簡単に作成できます。\n";
+	$help=$help+"\n";
+	$help=$help+"～UIの説明～\n";
+	$help=$help+"■テキストエリア\n";
+	$help=$help+"検索するファイルパスを入力します。\n";
+	$help=$help+"■[Brouse]ボタン\n";
+	$help=$help+"パスをブラウジングして入力することも出来ます。\n";
+	$help=$help+"■[launch]ボタン\n";
+	$help=$help+"フォルダ内を検索してそのファイルが実行可能になるボタン群を作成します。\n";
+	$help=$help+"■[help]内\n";
+	$help=$help+"・[ヘルプ]ボタン\n";
+	$help=$help+"ヘルプが表示されます\n";
+	$help=$help+"・[環境変数クリア]ボタン\n";
+	$help=$help+"テキストエリアの文字は環境変数内に格納されています。\n";
+	$help=$help+"このボタンで、スクリプトで設定されている環境変数をクリアします。\n";
+	confirmDialog -t "MS_pyLaunch help" -m $help ;
+}
+
+global proc MS_pyLaunch(){
+	if (`window -exists "MS_pyLaunch"`){deleteUI"MS_pyLaunch";}
+	window -t MS_pyLaunch MS_pyLaunch;
+	columnLayout;
+	
+	rowLayout -nc 2 ;
+	textField -w 100 -cc "MS_pyLaunch_storeRecallUI store" -fi "" "filePath";
+	button -bgc 0.8 0.8 0.9 -w 40 -h 20 -l "Brouse" -c "MS_pyLaunch_fileBrowser";
+	setParent..;
+	button -bgc 0.8 0.9 0.8 -w 140 -h 20 -l "launch" -c "MS_pyLaunch";
+	frameLayout -bv 0 -lv 1 -l " pyButtons" -w 140 -h 200;
+	scrollLayout ;
+	columnLayout  "MS_pyLaunch_buttonList";
+	setParent..;
+	setParent..;
+	setParent..;
+	separator -w 140 -h 1;
+	frameLayout -bv 0 -lv 1 -w 140 -cl 1 -cll 1-l " help";
+	columnLayout;
+	button -bgc 0.9 0.9 0.8 -w 140 -l "ヘルプ" -c "MS_pyLaunch_help";
+	button -bgc 1.0 0.6 0.6 -w 140 -l "環境変数クリア" -c "MS_pyLaunch_storeRecallUI reset";
+	setParent..;
+	setParent..;
+	MS_pyLaunch_storeRecallUI recall;
+	window -e -w 150 "MS_pyLaunch";
+	MS_pyLaunch_button;
+	showWindow "MS_pyLaunch";
+}
+
+global proc MS_pyLaunch_button(){
+	string $files[];
+	string $filePath=`textField -q -tx "filePath"`;
+	$files=`getFileList -fs "*.py" -folder $filePath`;
+	string $new[];
+	for ($each in $files){
+		tokenize($each,".",$new);
+		button -w 115 -p "MS_pyLaunch_buttonList" -c ("MS_pyLaunch_Exec "+$new[0]) -l $new[0];
+	}
+	
+
+}
+
+global proc MS_pyLaunch_Exec(string $pyname){
+	string $split[];
+	string $filePath=`textField -q -fi "filePath"`;
+	string $command;
+	$command=("import sys\nsys.path.append( '"+startString($filePath,(size($filePath)-1))+"' )\n"+"import "+$pyname+"\n"+"reload("+$pyname+")\n");
+	print $command;
+	python $command;
+}
+
+global proc MS_pyLaunch_get_dir(string $exp_dir,string $dummy){
+	textField -e -fileName ($exp_dir+"/") "filePath";
+}
+
+global proc MS_pyLaunch_fileBrowser(){
+	global string $gDefaultFileBrowserDir;
+	string $orgpath=$gDefaultFileBrowserDir;
+	string $filePath=`textField -q -fileName "filePath"`;
+	eval("global string $gDefaultFileBrowserDir=\""+$filePath+"\"");
+	fileBrowser "MS_pyLaunch_get_dir" "Select Directory" "" 4 ;
+	MS_pyLaunch_storeRecallUI store;
+	eval("global string $gDefaultFileBrowserDir=\""+$orgpath+"\"");
+}
+
+global proc MS_pyLaunch_storeRecallUI( string $mode ){
+	string $prefix="MS_pyLaunch__";
+	
+	string $floatFieldList[] = {
+		};
+
+	string $intFieldList[] = {
+		};
+
+	string $floatSliderGrpList[] = {
+		};
+
+	string $intSliderGrpList[] = {
+		};
+
+	string $checkBoxList[] = {
+		};
+
+	string $radioButtonGrpList[] = {
+		};
+
+	string $frameLayoutList[] = {
+		};
+
+	string $textFieldList[] = {
+		};
+
+	string $textFieldList_file[] = {
+		"filePath"
+		};
+
+	int $cnt;
+
+	if ( $mode == "store" )
+	{
+		for ( $each in $floatFieldList)
+			optionVar -floatValue ($prefix+$each) `floatField -q -value $each`;
+
+		for ( $each in $intFieldList)
+			optionVar -intValue ($prefix+$each) `intField -q -value $each`;
+
+		for ( $each in $floatSliderGrpList)
+			optionVar -floatValue ($prefix+$each) `floatSliderGrp -q -value $each`;
+
+		for ( $each in $intSliderGrpList)
+			optionVar -intValue ($prefix+$each) `intSliderGrp -q -value $each`;
+
+		for ( $each in $checkBoxList)
+			optionVar -intValue ($prefix+$each) `checkBox -q -value $each`;
+
+		for ( $each in $radioButtonGrpList)
+			optionVar -intValue ($prefix+$each) `radioButtonGrp -q -select $each`;
+
+		for ( $each in $frameLayoutList)
+			optionVar -intValue ($prefix+$each) `frameLayout -q -collapse $each`;
+
+		for ( $each in $textFieldList)
+			optionVar -stringValue ($prefix+$each) `textField -q -tx $each`;
+
+		for ( $each in $textFieldList_file)
+			optionVar -stringValue ($prefix+$each) `textField -q -fileName $each`;
+	}
+
+	if ( $mode == "recall" )
+	{
+		for ( $each in $floatFieldList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				floatField -e -value `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $intFieldList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				intField -e -value `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $floatSliderGrpList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				floatSliderGrp -e -value `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $intSliderGrpList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				intSliderGrp -e -value `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $checkBoxList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				checkBox -e -value `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $radioButtonGrpList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				radioButtonGrp -e -select `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $frameLayoutList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				frameLayout -e -collapse `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $textFieldList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				textField -e -tx `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $textFieldList_file)
+			if ( `optionVar -exists ($prefix+$each)` )
+				textField -e -fileName `optionVar -q ($prefix+$each)` $each;
+
+	}
+
+	if ( $mode == "reset" )
+	{
+		for ( $each in $floatFieldList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $intFieldList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $floatSliderGrpList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $intSliderGrpList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $checkBoxList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $radioButtonGrpList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $frameLayoutList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $textFieldList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $textFieldList_file)
+			optionVar -remove ($prefix+$each);
+	}
+}
+
+MS_pyLaunch;
+
+

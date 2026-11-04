@@ -1,0 +1,10 @@
+global proc string MS_componentLastSelected(){
+	string $undo, $buffer[], $target;
+	$undo = `undoInfo -q -un`;
+	tokenize $undo " " $buffer;
+	$target = $buffer[size($buffer)-1];
+	return $target;
+}
+
+
+

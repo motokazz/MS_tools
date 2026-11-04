@@ -1,0 +1,63 @@
+global proc float[] MS_handlePosition(string $OBJ){
+	float $objPos[]=`xform -q -ws -t $OBJ`;
+	float $objPiv[]=`xform -q -piv $OBJ`;
+	
+	return {($objPos[0]+$objPiv[0]),($objPos[1]+$objPiv[1]),($objPos[2]+$objPiv[2])};
+}
+
+global proc MS_curveCreator_core(string $OBJ[]){
+	
+	if(size($OBJ)<2)
+	{
+		return;
+	}
+	
+	
+	float $obj0Pos[]=`MS_handlePosition($OBJ[0])`;
+	float $obj1Pos[]=`MS_handlePosition($OBJ[1])`;
+	
+	string $Curve=`curve -d 3 -p $obj0Pos[0] $obj0Pos[1] $obj0Pos[2] -p $obj1Pos[0] $obj1Pos[1] $obj1Pos[2] -k 0 -k 1`;
+	
+	for($i=2;$i<(size($OBJ));$i++){
+		float $objPos[] = `MS_handlePosition($OBJ[$i])`;
+		print $objPos;
+		print "\n";
+		extendCurve -cos 0 -ch 0 -em 2 -px $objPos[0] -py $objPos[1] -pz $objPos[2] -s 0 -jn true -rmk true -rpo on $Curve ;
+	}
+	
+	rename $Curve "particle2curve";
+	
+}
+
+global proc MS_curveCreator_core2(string $OBJ[]){
+		if(size($OBJ)<2)
+	{
+		return;
+	}
+	
+	string $COMMAND="curve -d 3 ";
+	
+	
+	for ($each in $OBJ)
+	{
+		float $POS[]=`MS_handlePosition($each)`;
+		$COMMAND=$COMMAND+"-ep "+$POS[0]+" "+$POS[1]+" "+$POS[2]+" ";
+	}
+	
+	$COMMAND+=";";
+	print ($COMMAND+"\n");
+	string $test=`eval $COMMAND`;
+	print $test;
+}
+
+
+global proc MS_curveCreator(){
+	string $OBJ[]=`ls -sl`;
+	print $OBJ;
+	MS_curveCreator_core2($OBJ);
+	select -r $OBJ;
+}
+
+MS_curveCreator;
+
+

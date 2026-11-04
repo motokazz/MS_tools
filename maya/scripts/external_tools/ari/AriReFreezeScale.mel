@@ -1,0 +1,130 @@
+//--------------------------------------------------------------------------
+//
+// ScriptName : AriReFreezeScale
+// Contents   : フリーズしてしまったスケール値をエッジや頂点情報から元に戻します。
+// Author     : A-RI
+// Since      : 2015/05
+// LastUpdate : 
+// Note         
+//
+//--------------------------------------------------------------------------
+
+
+
+global proc AriReFreezeScale(){
+global string $AriAngleReFreezeRadio[20];
+global string $AriReFreezeScaleUI[10];
+if((`window -ex AriReFreezeScale`)==true)deleteUI AriReFreezeScale;
+window -title "AriReFreezeScale"  -w 250 -h 100 -mxb 0  AriReFreezeScale;
+columnLayout;
+rowLayout -nc 3;
+$AriReFreezeScaleUI[0]=`textField -w 80 -ed false -text ""`;
+button -w 74 -l "スケール値1" -c "AriReFreezeScale_rotateAttrZero()";
+button -w 50 -l "Freeze" -c "AriReFreezeScale_Freeze()";
+setParent..;
+$AriReFreezeScaleUI[1]=`attrFieldGrp -pre 5 -cw4 0 60 60 60 -l "" `;
+rowLayout -nc 5;
+text -w 60 -l "選択距離";
+$AriReFreezeScaleUI[2]=`floatField -ed false -v 0`;
+$AriReFreezeScaleUI[4]=`checkBox -v 0 -l "ローカル" -cc "AriReFreezeScale_getObject()"`;
+setParent..;
+rowLayout -nc 5;
+text -w 60 -l "目標距離";
+$AriReFreezeScaleUI[3]=`floatField -v 1`;
+button -w 80 -l "ReFreeze" -c "AriReFreezeScale_go";
+setParent..;
+setParent..;
+showWindow;
+AriReFreezeScale_getObject();
+scriptJob -p "AriReFreezeScale" -event "SelectionChanged" "AriReFreezeScale_getObject()";
+}
+global proc AriReFreezeScale_rotateAttrZero(){
+global string $AriReFreezeScaleUI[10];
+string $object=`textField -q -text $AriReFreezeScaleUI[0]`;
+if($object!=""){	
+setAttr ($object+".scale") 1 1 1;
+}
+AriReFreezeScale_getObject();
+}
+global proc AriReFreezeScale_Freeze(){
+global string $AriReFreezeScaleUI[10];
+string $object=`textField -q -text $AriReFreezeScaleUI[0]`;
+if($object!=""){	
+makeIdentity -apply true -t 0 -r 0 -s 1 -n 0 $object;
+}
+}
+global proc AriReFreezeScale_getObject(){
+global string $AriReFreezeScaleUI[10];
+int $localtrue=`checkBox -q -v $AriReFreezeScaleUI[4]`;
+string $transformObj[]=`ls -sl -tr`;
+string $object=$transformObj[0];
+if($object==""){
+string $selectObj[]=`ls -sl`;
+string $vertex[] = `polyListComponentConversion -tv $selectObj`;	
+string $vertexs[] = `filterExpand -selectionMask 31 $vertex`;	
+if($vertexs[0]!=""){
+string $objects[] = `polyListComponentConversion $vertexs[0]`;	
+$objects = `listRelatives -p -pa -type "transform" $objects[0]`;
+$object=$objects[0];
+}
+}
+textField -e -text $object $AriReFreezeScaleUI[0];
+if($object!=""){
+attrFieldGrp -e -en 1 -attribute ($object+".scale") $AriReFreezeScaleUI[1];
+}
+else{
+attrFieldGrp -e -en 0  $AriReFreezeScaleUI[1];
+}
+string $selectCom[]=`ls -sl`;
+string $vertexWork[] = `polyListComponentConversion -tv $selectCom`;
+string $vertexs[] = `filterExpand -selectionMask 31 $vertexWork`;
+if(size($vertexs) == 2){
+float $pos1[];
+float $pos2[];
+if(!$localtrue){
+$pos1 =`pointPosition -w $vertexs[0]`;
+$pos2 =`pointPosition -w $vertexs[1]`;
+}
+else{
+$pos1 =`pointPosition -l $vertexs[0]`;
+$pos2 =`pointPosition -l $vertexs[1]`;
+}
+float $dis= sqrt(($pos2[0]-$pos1[0])*($pos2[0]-$pos1[0]) + ($pos2[1]-$pos1[1])*($pos2[1]-$pos1[1]) + ($pos2[2]-$pos1[2])*($pos2[2]-$pos1[2]));
+floatField -e -en 1 -v $dis $AriReFreezeScaleUI[2];
+}
+else{
+floatField -e -v 0 $AriReFreezeScaleUI[2];
+floatField -e -en 0 -v 0 $AriReFreezeScaleUI[2];
+}
+}
+global proc AriReFreezeScale_go(){
+global string $AriAngleReFreezeRadio[16];
+global string $AriReFreezeScaleUI[10];
+AriReFreezeScale_getObject();
+if(!`floatField -q -en $AriReFreezeScaleUI[2]`)return;
+string $object=`textField -q -text $AriReFreezeScaleUI[0]`;
+float $thisDis=`floatField -q -v $AriReFreezeScaleUI[2]`;
+float $targetDis=`floatField -q -v $AriReFreezeScaleUI[3]`;
+float $scaleVal = $targetDis/$thisDis;
+scale -r $scaleVal $scaleVal $scaleVal $object;
+makeIdentity -apply true -t 0 -r 0 -s 1 -n 0 $object;
+float $reScaleVal = (1.0/$scaleVal);
+scale -r $reScaleVal $reScaleVal $reScaleVal $object;
+AriReFreezeScale_getObject();
+}
+global proc int AriReFreezeScale_AriListNum (string $obj){
+int $num;
+string $parent[]=`listRelatives -p -pa $obj`;
+string $children[];
+if($parent[0]=="")	$children=`ls -as`;
+else $children=		`listRelatives -c -pa $parent[0]`;
+int $i=0;
+for($child in $children){
+if($child == $obj){
+$num=$i;
+break;
+}
+$i++;
+}
+return $num;
+}

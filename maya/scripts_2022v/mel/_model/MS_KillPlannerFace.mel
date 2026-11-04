@@ -1,0 +1,70 @@
+/*
+MS_KillPlannerFace.mel
+
+◆概要
+UVボーダーエッジだけが残って、他のは全部なくなるつもり。
+
+◆使い方
+オブジェクトを選んで実行
+
+◆詳細
+
+※注意事項
+
+*/
+
+global proc MS_KillPlannerFaceCore(){
+PolySelectConvert 4;
+//SelectUVBorder;
+PolySelectConvert 3;
+InvertSelection;
+polyDeleteVertex;
+}
+
+global proc MS_KillPlannerFace()
+{
+	
+	//Window Check
+	if(`window -exists MS_KillPlannerFace`){
+		deleteUI MS_KillPlannerFace;
+	}
+	
+	
+	//Create Window
+	
+	window -title "MS_KillPlannerFace" MS_KillPlannerFace;
+	
+	columnLayout ;
+	
+	//Contents	
+	
+	
+	//text
+	text -label "ThisWindowIsMS_KillPlannerFace";
+	separator -w 600 -h 40 -st "single";
+	
+	
+	
+	//---------------
+	//Execute Buttons
+	//---------------
+	separator -w 600 -h 40 -st "doubleDash";
+	
+	button -l "do" -command "MS_KillPlannerFaceCore" ;
+	
+	separator -w 600 -h 40 -st "double";
+	
+	button -l "undo" -command "Undo" ;
+	
+	button -l "exit" -command "deleteUI MS_KillPlannerFace" ;
+	
+	
+	//Footer
+	showWindow MS_KillPlannerFace;
+	
+}
+
+//MS_KillPlannerFace;
+
+
+

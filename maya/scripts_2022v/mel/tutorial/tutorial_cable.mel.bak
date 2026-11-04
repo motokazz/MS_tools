@@ -1,0 +1,290 @@
+curve -d 3 -p 0 0 0 -p 10 0 0 -p 20 0 0 -p 30 0 0 -p 40 0 0 -p 50 0 0 -k 0 -k 0 -k 0 -k 1 -k 2 -k 3 -k 3 -k 3 ;
+
+
+
+select -cl  ;
+select -r curve1.cv[1] ;
+newCluster " -envelope 1 -exclusive \"deformPartition#\"";
+// Result: cluster1 cluster1Handle //
+hilite -r curve1 ;
+select -cl  ;
+select -r curve1.cv[0] ;
+newCluster " -envelope 1 -exclusive \"deformPartition#\"";
+// Result: cluster2 cluster2Handle //
+hilite -r curve1 ;
+select -r curve1.cv[2] ;
+newCluster " -envelope 1 -exclusive \"deformPartition#\"";
+// Result: cluster3 cluster3Handle //
+hilite -r curve1 ;
+select -r curve1.cv[3] ;
+newCluster " -envelope 1 -exclusive \"deformPartition#\"";
+// Result: cluster4 cluster4Handle //
+hilite -r curve1 ;
+select -r curve1.cv[4] ;
+newCluster " -envelope 1 -exclusive \"deformPartition#\"";
+// Result: cluster5 cluster5Handle //
+hilite -r curve1 ;
+select -r curve1.cv[5] ;
+newCluster " -envelope 1 -exclusive \"deformPartition#\"";
+// Result: cluster6 cluster6Handle //
+//CreatePolygonCube;
+polyCube -w 1 -h 1 -d 1 -sx 1 -sy 1 -sz 1 -ax 0 1 0 -tx 1 -ch 1;
+move -rpr 10 0 0 ;
+
+duplicate -renameChildren -smartTransform;
+move -rpr 20 0 0 ;
+
+duplicate -renameChildren -smartTransform;
+move -rpr 30 0 0 ;
+duplicate -renameChildren -smartTransform;
+move -rpr 40 0 0 ;
+
+spaceLocator -p 0 0 0;
+
+spaceLocator -p 0 0 0;
+// Result: locator2 //
+move -rpr 50 0 0 ;
+
+
+select -r pCube1 ;
+select -add cluster1Handle ;
+pointConstraint -offset 0 0 0 -weight 1;
+
+select -r pCube2 ;
+select -add cluster2Handle ;
+pointConstraint -offset 0 0 0 -weight 1;
+// Result: cluster2Handle_pointConstraint1 //
+
+select -r pCube3 ;
+select -add cluster4Handle ;
+pointConstraint -offset 0 0 0 -weight 1;
+
+select -r pCube2 ;
+select -add cluster3Handle ;
+pointConstraint -offset 0 0 0 -skip y -weight 1;
+// Result: cluster3Handle_pointConstraint1 //
+select -r cluster5Handle ;
+select -r pCube4 ;
+select -add cluster5Handle ;
+pointConstraint -offset 0 0 0 -skip y -weight 1;
+// Result: cluster5Handle_pointConstraint1 //
+select -r pCube1 ;
+select -r pCube1 pCube2 pCube3 pCube4 ;
+rigidBody -active -m 0.1 -dp 0 -sf 0.2 -df 0 -b 0 -l 0 -tf 200 -iv 0 0 0 -iav 0 0 0 -c 0 -pc 0 -i 0 0 0 -imp 0 0 0 -si 0 0 0 -sio none ;
+// Result: rigidSolver //
+// Result: rigidBody1 rigidBody2 rigidBody3 rigidBody4 //
+gravity -pos 0 0 0 -m 9.8 -att 0 -dx 0 -dy -1 -dz 0  -mxd -1  -vsh none -vex 0 -vof 0 0 0 -vsw 360 -tsr 0.5 ;
+// Result: gravityField1 //
+connectDynamic -f gravityField1  pCube1 pCube2 pCube3 pCube4;
+// Result: rigidBody1 rigidBody2 rigidBody3 rigidBody4 //
+select -r locator1 ;
+select -add cluster2Handle ;
+pointConstraint -offset 0 0 0 -skip y -weight 1;
+// Result: cluster2Handle_pointConstraint1 //
+select -r locator2 ;
+select -add cluster6Handle ;
+pointConstraint -offset 0 0 0 -skip y -weight 1;
+// Result: cluster6Handle_pointConstraint1 //
+select -r pCube1 ;
+select -add pCube2 ;
+Help;
+select -r pCube1 ;
+constrain -nail  -name "asi_hinge#" ;
+// Result: asi_hinge1 //
+move -rpr 0 0 0 ;
+hilite -r pCube4 ;
+select -d  ;
+hilite -u pCube4 ;
+select -r pCube4 ;
+constrain -nail  -name "asi_hinge#" ;
+// Result: asi_hinge2 //
+move -rpr 50 0 0 ;
+select -r pCube1 ;
+select -tgl pCube2 ;
+constrain -spring  -name "asi_hinge#" -st 5 -d 0.1 -i 0 ;
+// Result: asi_hinge3 //
+select -r pCube2 ;
+select -tgl pCube3 ;
+constrain -spring  -name "asi_hinge#" -st 5 -d 0.1 -i 0 ;
+// Result: asi_hinge4 //
+select -r pCube3 ;
+select -tgl pCube4 ;
+constrain -spring  -name "asi_hinge#" -st 5 -d 0.1 -i 0 ;
+// Result: asi_hinge5 //
+
+
+select -r pCube1 ;
+select -tgl pCube2 ;
+select -tgl pCube3 ;
+select -tgl pCube4 ;
+setAttr "rigidBody4.damping" 2;
+setAttr "rigidBody1.damping" 2;
+setAttr "rigidBody2.damping" 2;
+setAttr "rigidBody3.damping" 2;
+select -cl  ;
+select -r asi_hinge3 ;
+select -r asi_hinge3 asi_hinge4 ;
+select -r asi_hinge3 asi_hinge4 asi_hinge5 ;
+setAttr "asi_hinge5.springStiffness" 70;
+setAttr "asi_hinge3.springStiffness" 70;
+setAttr "asi_hinge4.springStiffness" 70;
+select -addFirst rigidSolver ;
+select -d rigidSolver ;
+select -addFirst time1 ;
+select -d time1 ;
+select -addFirst rigidSolver ;
+select -cl  ;
+select -r asi_hinge1 ;
+
+
+
+
+select -r asi_hinge1 ;
+expression -s "tx = locator_1.tx;"  -o asi_hinge1 -ae 1 -uc all ;
+// Error: Attribute not found or variable missing '$':  locator_1.tx //
+expression -s "tx = locator1.tx;"  -o asi_hinge1 -ae 1 -uc all ;
+// Result: expression1 //
+select -cl  ;
+// Press the ESC key to stop playback
+currentTime 36 ;
+select -r asi_hinge3 ;
+select -r curve1 ;
+select -r cluster1Handle ;
+select -r asi_hinge1 ;
+select -r pCube1 ;
+select -tgl curve1 cluster1Handle ;
+select -cl  ;
+select -r cluster1Handle pCube1 asi_hinge1 asi_hinge3 ;
+select -cl  ;
+select -r cluster1Handle ;
+select -cl  ;
+select -r cluster1Handle ;
+select -cl  ;
+select -r pCube1 ;
+select -cl  ;
+select -r cluster1Handle pCube1 ;
+select -cl  ;
+select -r pCube1 ;
+select -r cluster1Handle pCube1 ;
+select -cl  ;
+select -r pCube1 ;
+select -d cluster1Handle ;
+select -r cluster1Handle ;
+select -cl  ;
+select -r cluster1Handle cluster3Handle cluster4Handle cluster5Handle pCube4 ;
+select -r cluster1Handle cluster3Handle cluster4Handle cluster5Handle ;
+select -r cluster2Handle ;
+select -r cluster2Handle cluster2Handle_pointConstraint1 cluster3Handle cluster4Handle cluster5Handle cluster6Handle ;
+// Error: file: C:/Documents and Settings/s002000/My Documents/maya/7.0/scripts/MS_constraintMasterUI.mel line 150: No object matches name: cluster2Handle_pointConstraint1 //
+select -cl  ;
+select -r cluster1Handle ;
+select -r pCube1 ;
+select -cl  ;
+select -r pCube1 ;
+// Undo: MS_constraintMasterUI_pipe
+select -cl  ;
+select -r pCube1 ;
+select -tgl cluster1Handle ;
+pointConstraint -offset 0 0 0 -weight 1;
+// Result: cluster1Handle_pointConstraint1 //
+select -r pCube2 ;
+select -tgl cluster3Handle ;
+performPointConstraint 0;
+pointConstraint -offset 0 0 0 -weight 1;
+// Result: cluster3Handle_pointConstraint1 //
+// Result: pointConstraint -offset 0 0 0 -weight 1 //
+select -r pCube3 ;
+select -tgl cluster4Handle ;
+performPointConstraint 0;
+pointConstraint -offset 0 0 0 -weight 1;
+// Result: cluster4Handle_pointConstraint1 //
+// Result: pointConstraint -offset 0 0 0 -weight 1 //
+select -r pCube4 ;
+select -tgl cluster5Handle ;
+performPointConstraint 0;
+pointConstraint -offset 0 0 0 -weight 1;
+// Result: cluster5Handle_pointConstraint1 //
+// Result: pointConstraint -offset 0 0 0 -weight 1 //
+select -cl  ;
+select -r cluster6Handle ;
+select -cl  ;
+select -r locator2 ;
+select -add cluster2Handle ;
+select -cl  ;
+select -r locator2 ;
+select -r cluster6Handle ;
+select -r cluster6Handle_pointConstraint1 ;
+select -r cluster2Handle ;
+select -r cluster6Handle ;
+select -r cluster6Handle_pointConstraint1 ;
+select -r locator2 ;
+select -add cluster6Handle ;
+performPointConstraint 0;
+pointConstraint -offset 0 0 0 -weight 1;
+// Result: cluster6Handle_pointConstraint1 //
+// Result: pointConstraint -offset 0 0 0 -weight 1 //
+select -r locator1 ;
+select -add cluster2Handle ;
+performPointConstraint 0;
+pointConstraint -offset 0 0 0 -weight 1;
+// Result: cluster2Handle_pointConstraint1 //
+// Result: pointConstraint -offset 0 0 0 -weight 1 //
+currentTime 0 ;
+select -r pCube1 ;
+setAttr "pCube1.translateX" 0;
+setAttr "pCube1.translateY" 0;
+setAttr "pCube1.translateZ" 0;
+setAttr "pCube1.rotateZ" -12.088;
+setAttr "pCube1.rotateZ" 0;
+setAttr "pCube1.translateX" 10;
+select -cl  ;
+currentTime 0 ;
+CreateNURBSCircle;
+circle -c 0 0 0 -nr 0 1 0 -sw 360 -r 700 -d 3 -ut 0 -tol 0.01 -s 8 -ch 0; objectMoveCommand;
+setAttr "nurbsCircle1.scaleX" 10;
+setAttr "nurbsCircle1.scaleY" 10;
+setAttr "nurbsCircle1.scaleZ" 10;
+setAttr "nurbsCircle1.scaleX" 0.1;
+setAttr "nurbsCircle1.scaleY" 0.1;
+setAttr "nurbsCircle1.scaleZ" 0.1;
+setAttr "nurbsCircle1.scaleX" 0.001;
+setAttr "nurbsCircle1.scaleY" 0.001;
+setAttr "nurbsCircle1.scaleZ" 0.001;
+setAttr "nurbsCircle1.scaleX" 0.0005;
+setAttr "nurbsCircle1.scaleY" 0.0005;
+setAttr "nurbsCircle1.scaleZ" 0.0005;
+select -r asi_hinge5 ;
+select -r nurbsCircle1 ;
+CreateNURBSCircle;
+circle -c 0 0 0 -nr 0 1 0 -sw 360 -r 700 -d 3 -ut 0 -tol 0.01 -s 8 -ch 1; objectMoveCommand;
+select -addFirst makeNurbCircle1 ;
+setAttr "makeNurbCircle1.radius" 5;
+setAttr "makeNurbCircle1.radius" 1;
+setAttr "makeNurbCircle1.radius" 0.1;
+setAttr "makeNurbCircle1.radius" 0.2;
+select -cl  ;
+select -r curve1 ;
+select -r nurbsCircle1 ;
+select -tgl curve1 ;
+extrude -ch true -rn true -po 0 -et 2 -ucp 1 -fpt 1 -upn 0 -rotation 0 -scale 1 -rsp 1 "nurbsCircle1" "curve1" ;
+// Result: extrudedSurface1 extrude1 //
+select -r nurbsCircle1 ;
+setAttr "nurbsCircle1.scaleZ" 90;
+// Undo: setAttr "nurbsCircle1.scaleZ" 90;
+
+setAttr "nurbsCircle1.rotateZ" 90;
+select -r extrudedSurface1 ;
+select -addFirst subCurve2 ;
+select -d subCurve2 ;
+select -addFirst subCurve1 ;
+select -d subCurve1 ;
+select -addFirst subCurve2 ;
+select -d subCurve2 ;
+select -addFirst extrude1 ;
+Help;
+select -cl  ;
+select -r extrudedSurface1 ;
+select -r curve1 ;
+wire -gw false -en 1.000000 -ce 0.000000 -li 0.000000 -w curve1 extrudedSurface1;
+// Result: wire1 curve1 //
+currentTime 0 ;

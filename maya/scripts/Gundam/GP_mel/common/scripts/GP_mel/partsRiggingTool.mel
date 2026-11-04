@@ -1,0 +1,701 @@
+//パーツリグ付け・モーションコピースクリプト
+//1、指定されたリグデータを平滑化(全リファレンスのインポート)
+//2、リグにリファレンスされていたキャラのファイル名と、プロジェクト指定を元にパーツデータを探知
+//3、パーツデータのリファレンスとコンストレイン、保存およびリファレンス破棄を繰り返す
+//4、別機能として、パーツ名に応じてモーションファイルをコピー・リネームし、振り分ける
+//
+//20120827
+//スケール対応(暫定)
+//
+//20120820
+//ゲルズゲー対応
+//
+//20120820
+//モビルアーマー対応
+//
+//20120810
+//モーションファイルコピー対称に.maも追加、てか.*指定なので何でも追加
+//
+//
+//20120518
+//リグ側でのデフォ角度調整(ストフリの羽など)に対応
+//
+//20120514
+//パーツへのモーションコピーを、新モーション名(motion_chr○○○○)へ対応
+//
+//20120508
+//5番系(下半身)がrootのアニメーションを消失させていたので修復
+//
+//20120507
+//モーションファイルコピーが、motion_ref_gmp100_×××.mbをリネーム対象にしたので
+//書き換え条件を数字3桁から[_c???_]に変更
+//[_expj]データの使用・不使用を切り分け
+//
+//
+//20120423
+//リファレンスチェック機能に進捗表示・キャンセル機能を追加
+//
+//20120419
+//新機能追加「コピー元リファレンスチェック」
+//パーツ用にモーションmbをコピーする前に、全モーションのリファレンスパスを確認するための機能。
+//任意で切断しやすいよう、相対パスや、仮想ドライブをルートとした設定が望ましい。
+//
+//20120406
+//パーツアタッチの際、回転値もアタッチする形式になる予定なので
+//対応するための処理を仕込み済み
+//普段は作動せず、対象パーツが「～_expj.mb」というファイルを持っていた時に活動する
+//(同ファイルの生成はpartsDivideにて行われる)
+//
+//20120309
+//第一版
+global proc string getPRTversion(){
+	string $PRTversion = "ver1.25_20120827";
+	return ($PRTversion);
+}
+
+//テキストフィールドのボタンから、データを指定された時の動作--------------------------------------------------------------------
+global proc setTextfData(string $textf , string $fileName, string $fileType){
+	print ($textf + " , " + $fileName + " , " + $fileType);
+	if ($textf == "partsPassTf"){
+		$fileName = ($fileName + "/");
+
+	}
+	textFieldButtonGrp -e -text $fileName $textf;
+
+	string $rigName = `textFieldButtonGrp -q -text rigPassTf`;
+	string $charaID;
+
+	string $sceneName[] = (`file -q -r -shn $rigName`);
+	if( $textf == "rigPassTf" && $sceneName[0] == ""){
+		confirmDialog -title "Parts rigging tool" -message ("指定したリグシーンにて、リファレンスが読み込めませんでした。\n")
+		-button "OK" -defaultButton "OK";
+	}
+
+
+	string $tempa[],$tempb[];
+	tokenize $sceneName[0] "/" $tempa;
+	tokenize $tempa[(`size($tempa)`-1)] "." $tempb;
+	$charaID = $tempb[0];
+	string $charaIDm = startString( $charaID,(`size($charaID)` -1 )) ;
+
+	tokenize $rigName "/" $tempa;
+	string $stRigName = $tempa[(`size($tempa)`-1)];
+	setTextLabels($stRigName , $charaIDm , `textFieldButtonGrp -q -text partsPassTf`);
+}
+
+//テキストフィールド更新時、下欄の内容を書き換える--------------------------------------------------------------------
+global proc setTextLabels(string $stRigName , string $charaIDm , string $partsDefPass){
+	string $tx1 = `text -e -label ($partsDefPass + $charaIDm + "2\\scenes\\" + $charaIDm + "2.mb  ->  " + $stRigName ) htex`;
+	string $tx2 = `text -e -label ($partsDefPass + $charaIDm + "3\\scenes\\" + $charaIDm + "3.mb  ->  " + $stRigName ) rtex`;
+	string $tx3 = `text -e -label ($partsDefPass + $charaIDm + "4\\scenes\\" + $charaIDm + "4.mb  ->  " + $stRigName ) ltex`;
+	string $tx4 = `text -e -label ($partsDefPass + $charaIDm + "5\\scenes\\" + $charaIDm + "5.mb  ->  " + $stRigName ) ftex`;
+	string $tx5 = `text -e -label ($partsDefPass + $charaIDm + "6\\scenes\\" + $charaIDm + "6.mb  ->  " + $stRigName ) btex`;
+	string $tx6 = `text -e -label ($partsDefPass + $charaIDm + "7\\scenes\\" + $charaIDm + "7.mb  ->  " + $stRigName ) otex`;
+}
+
+//インポートした全身からネームスペースを剥ぎ取り--------------------------------------------------------------------
+//かわりに"allbody_"をつける
+global proc string nsbreak(){
+	select -r  "*:root";
+	string $rtName[] = `ls -sl`;
+	string $temp[];
+	tokenize $rtName[0] ":" $temp;
+	select -r -hi ($temp[0] + ":root") ($temp[0] + ":parts");
+	string $allName[] = `ls -sl -tr`;
+	for( $objName in $allName ){
+		tokenize $objName ":" $temp;
+		rename $objName ("allbody_" + $temp[1]);
+	}
+	return($temp[0]);
+}
+
+
+//パーツリグシーン完成後の、--------------------------------------------------------------------
+//レイヤーの設定調整
+global proc partsLaySetup(){
+	
+	string $layName = `objectLayer "*:root"`;
+	if($layName != "")
+		setAttr ($layName + ".visibility") 0;
+
+	string $layName = `objectLayer "allbody_root"`;
+	if($layName != "")
+		setAttr ($layName + ".visibility") 0;
+
+	$layName = `objectLayer "*:parts"`;
+	if($layName != ""){
+		setAttr ($layName + ".visibility") 1;
+		setAttr ($layName + ".displayType") 2;
+	}
+
+	$layName = `objectLayer "allbody_parts"`;
+	if($layName != ""){
+		setAttr ($layName + ".visibility") 1;
+		setAttr ($layName + ".displayType") 1;
+	}
+
+	$layName = `objectLayer "dummy_root"`;
+	if($layName != "")
+		setAttr ($layName + ".visibility") 0;
+
+	$layName = `objectLayer "rig_origin"`;
+	if($layName != ""){
+		setAttr ($layName + ".visibility") 1;
+		setAttr ($layName + ".displayType") 0;
+	}
+}
+
+
+//モーションファイルのmbを--------------------------------------------------------------------
+//各パーツ用のフォルダへリネームおよびコピー
+global proc GPpartsMotionFileCopy(string $rigfile , string $partsPass , int $headFlag , int $rhanFlag , int $lhanFlag , int $undrFlag , int $backFlag , int $bodyFlag ){
+	int $modesw[] = {0,0,$headFlag , $rhanFlag , $lhanFlag , $undrFlag , $backFlag , $bodyFlag};
+	string $OrigPass;
+	string $temp[];
+
+	tokenize $rigfile "/" $temp;
+	string $mbName = $temp[`size($temp)`-1];
+	$OrigPass = startString($rigfile , (`size($rigfile)` - `size($mbName)`));
+
+	string $sceneName[] = `file -q -r -shn $rigfile`;
+	string $tempa[],$tempb[];
+	tokenize $sceneName[0] "/" $tempa;
+	tokenize $tempa[(`size($tempa)`-1)] "." $tempb;
+	$charaID = $tempb[0];
+	string $charaIDm = startString( $charaID,(`size($charaID)` -1 )) ;
+
+
+	string $safety = (`confirmDialog -title "parts Motion copy" -message ("「" + $OrigPass + "」内のモーションデータを、\n「" + $partsPass +  $charaIDm + "2～7/scenes/」へコピーします。\n（ファイルが既に存在していた場合、上書きされますのでご注意）")
+		-button "OK" -button "cansel" -cb "cansel" -defaultButton "OK"`);
+	if($safety == "OK" ){
+		for( $i=2 ; $i<8 ; $i++ ){
+			if($modesw[$i] == 1){
+				$partsPassSingle = ( $partsPass +  $charaIDm + $i + "/scenes/");
+				GPpartsMotionFileCopySingle($OrigPass , $partsPassSingle , $charaID , ($charaIDm + $i));
+			}
+		}
+
+		confirmDialog -title "parts rigging tool" -message ("作業が完了しました。\n")
+			-button "OK" -defaultButton "OK";
+	}
+}
+
+
+//--------------------------------------------------------------------
+//$OrigPassが元ファイルパス、$partsPassがコピー先。
+global proc GPpartsMotionFileCopySingle(string $OrigPass , string $partsPass , string $charaID , string $partsID){
+
+	string $fileList[] = `getFileList -folder $OrigPass -filespec "*.*"`;
+	string $convFileList[],$temp[];
+	//	string $oldNum = endString($charaID,3);
+	//	string $newNum = endString($partsID,3);
+	string $oldNum = `match "[0-9]+" $charaID`;
+	string $newNum = `match "[0-9]+" $partsID`;
+	string $oldID = ("_c" + $oldNum + "_");
+	string $newID = ("_c" + $newNum + "_");
+
+	int $i;
+	for( $i = 0 ; $i<size($fileList) ; $i++ ){
+		if(startsWith($fileList[$i],"motion_")||startsWith($fileList[$i],"ref_") || $fileList[$i] == "_basepose.mb"){
+			if(startsWith($fileList[$i],"motion_chr")){
+				$oldID = ("_chr" + $oldNum + "_");
+				$newID = ("_chr" + $newNum + "_");
+			}else{
+				$oldID = ("_c" + $oldNum + "_");
+				$newID = ("_c" + $newNum + "_");
+			}
+			$convFileList[$i] = `substitute $oldID $fileList[$i] $newID`;
+			print ("***Debug Message***\n" + ($OrigPass + $fileList[$i]) + "  [" + $oldID + "]  ->  " + ($partsPass + $convFileList[$i]) + "  [" + $newID + "]\n");
+			sysFile -copy ($partsPass + $convFileList[$i]) ($OrigPass + $fileList[$i]);
+		}
+	}
+}
+
+//--------------------------------------------------------------------------------
+//リファレンスパス確認ツール・作業確認
+//--------------------------------------------------------------------------------
+global proc pRT_checkSceneReference_Confirm(string $rigfile){
+		string $check = `confirmDialog -title "Confirm" -message ("「全身のrigbase.mb」と同階層に存在する全ての.mbファイルを、一回ずつ読み込みます。\r\nファイル数に応じた作業時間が発生するので、ご注意ください。")
+			-button "OK" -button "cansel" -dismissString "cansel" -cancelButton "cansel" -defaultButton "cansel"`;
+	if ($check == "OK"){
+		pRT_checkScenesReference_exec( $rigfile );
+	}else{
+		confirmDialog -title "" -message ("作業を中止しました。")
+			-button "OK" -defaultButton "OK";
+	}
+}
+
+
+//--------------------------------------------------------------------------------
+//リファレンスパス確認ツール・実行
+//--------------------------------------------------------------------------------
+global proc pRT_checkScenesReference_exec(string $rigfile){
+//指定フォルダからモーション一覧を取得
+	string $temp[];
+	tokenize $rigfile "/" $temp;
+	string $mbName = $temp[`size($temp)`-1];
+	string $mbPass = startString($rigfile , (`size($rigfile)` - `size($mbName)`));
+
+	string $mbFileList[] = `getFileList -filespec "*.mb" -folder $mbPass`;
+	int $i = `size($mbFileList)`;
+	if(catch (`getFileList -filespec "*_basepose.mb" -folder $mbPass`)){
+		$mbFileList[$i] = ($mbPass + "_basepose.mb");
+	}
+	$mbFileList = `sort $mbFileList`;
+
+	int $checkSw_unRefScene=0;
+	int $i=0;
+	int $j=0;
+	int $k=0;
+	int $refFileID=0;
+	string $lasttmp,$finalList;
+	string $tmp[];
+	string $ref_scene[];
+
+//中断用オプション
+	int $percent = 0;
+	float $calCount = 0;
+	progressWindow -title "リファレンスチェック中"
+		-progress $percent
+		-status "チェック作業: 0%"
+		-isInterruptable true;
+
+
+	while ( size( $mbFileList[$i] ) > 0 ){
+	//モーションmbファイルを開き、２重リファレンスチェック
+		file -f -options "v=0"  -ignoreVersion  -typ "mayaBinary" -lrd none -o ($mbPass + $mbFileList[$i]);
+		cleanPanels();
+		string $refFile[] = `file -q -r -un`;
+		$checkSw_unRefScene = 1;
+
+/*		$checkSw_unRefScene = 0;
+		for($j=0 ;   $j<size($refFile)   ; $j++){
+			if(endsWith($refFile[$j] , "rigbase.mb")){
+				$checkSw_unRefScene = 1;
+				break;
+			}
+		}
+*/
+		if($checkSw_unRefScene){
+			for($j=0 ;   $j<size($refFile)   ; $j++){
+				$ref_scene[$k] = ($refFile[$j] + "<-" + $mbFileList[$i]);
+				$k++;
+			}
+		}
+
+		if(`progressWindow -q -isCancelled`)
+			break;
+		if(`progressWindow -q -progress` >= 100)
+			break;
+		$calCount = ( ($i * 100) / size($mbFileList));
+		$percent = int( $calCount );
+		progressWindow -e -progress $percent
+			-status ("リファレンスのチェックをしています... : "+$percent+"%");
+
+		$i++;
+	//以上ループ
+	}
+
+	progressWindow -endProgress;
+
+	$ref_scene = `sort $ref_scene`;
+	for($listItem in $ref_scene){
+		tokenize $listItem "<-" $tmp;
+		if($tmp[0] != $lasttmp){
+			$lasttmp = $tmp[0];
+			$finalList = ($finalList + $tmp[0] + "\r\n");
+		}
+		$finalList = ($finalList + "	⇒" + $tmp[1] + "\r\n");
+	}
+	print $finalList;
+	confirmDialog -title "mission accomplished." -message ("チェック完了\n\rスクリプトエディタにチェック結果を出力しました。") -button "OK" -defaultButton "OK";
+}
+
+
+//--------------------------------------------------------------------
+//回転値アタッチを行う為の追加作業。既存の骨を退避させ、新規の骨セット読み込み・エクスプレッション
+//
+//$partsPass	パーツデータを保存するパス
+//$partsID		処理対象パーツのID
+//$mode			処理モード。0ならMS、1ならMA。
+//
+//--------------------------------------------------------------------
+global proc GPpartsRigging_loadExpj(string $partsPass , string $partsID , int $mode){
+	int $existcheck = `file -q -ex ( $partsPass + $partsID + "/scenes/" + $partsID + "_expj.mb")`;
+	print ( $partsPass + $partsID + "/scenes/" + $partsID + "_expj.mb existsflag : " + $existcheck );
+	if($existcheck){
+		select -r "*:root" ;
+		group -n "model_joint"; xform -os -piv 0 0 0;
+		file -r -type "mayaBinary" -gl -loadReferenceDepth "all" -namespace ($partsID + "_expj") -options "v=0" ( $partsPass + $partsID + "/scenes/" + $partsID + "_expj.mb");
+
+		if(endsWith($partsID,"5")){
+			select -r -hi ($partsID + ":root");
+			select -d -hi ($partsID + ":rot_y");
+		}else if(endsWith($partsID,"2") && $mode == 1 ){
+			select -r -hi ($partsID + ":root");
+			select -d -hi ($partsID + ":rot_y");
+		}else{
+			select -r -hi ($partsID + ":jointroot_000");
+		}
+		select -d "*:*Constraint*";
+		string $origjoints[] = `ls -sl`;
+
+		if(endsWith($partsID,"5")){
+			select -r -hi ($partsID + "_expj:root");
+			select -d -hi ($partsID + ":rot_y");
+		}else if(endsWith($partsID,"2") && $mode == 1 ){
+			select -r -hi ($partsID + "_expj:root");
+			select -d -hi ($partsID + ":rot_y");
+		}else{
+			select -r -hi ($partsID + "_expj:jointroot_000");
+		}
+		select -d "*:*Constraint*";
+		string $tgtjoints[] = `ls -sl`;
+
+		int $i;
+		for($i=0 ; $i < size($origjoints) ; $i++){
+			expression -s ($tgtjoints[$i] + ".tx = " + $origjoints[$i] + ".tx;\r\n" + $tgtjoints[$i] + ".ty = " + $origjoints[$i] + ".ty;\r\n" + $tgtjoints[$i] + ".tz = " + $origjoints[$i] + ".tz;\r\n" + $tgtjoints[$i] + ".rx = " + $origjoints[$i] + ".rx;\r\n" + $tgtjoints[$i] + ".ry = " + $origjoints[$i] + ".ry;\r\n" + $tgtjoints[$i] + ".rz = " + $origjoints[$i] + ".rz;\r\n" + $tgtjoints[$i] + ".sx = " + $origjoints[$i] + ".sx;\r\n" + $tgtjoints[$i] + ".sy = " + $origjoints[$i] + ".sy;\r\n" + $tgtjoints[$i] + ".sz = " + $origjoints[$i] + ".sz;\r")  -o $tgtjoints[$i] -ae 1 -uc all ;
+		}
+	}else{
+		confirmDialog -title "Caution" -message ( $partsPass + $partsID + "/scenes/" + $partsID + "_expj.mb が見つかりません。\n\rpartsDivideToolで再出力するか、「_expjデータを使用する」のチェックを外して下さい。" );
+	}
+}
+
+//--------------------------------------------------------------------
+//アウトライナ・グラフエディタ等を一掃
+global proc cleanPanels(){
+	if ( `window -exists hyperGraphPanel1Window` )
+	deleteUI -window hyperGraphPanel1Window;
+
+	if ( `window -exists polyTexturePlacementPanel1Window` )
+	deleteUI -window polyTexturePlacementPanel1Window;
+
+	if ( `window -exists outlinerPanel1Window` )
+	deleteUI -window outlinerPanel1Window;
+
+	if ( `window -exists graphEditor1Window` )
+	deleteUI -window graphEditor1Window;
+
+	if ( `window -exists componentEditorPanel1Window` )
+	deleteUI -window componentEditorPanel1Window;
+
+	if ( `window -exists hyperShadePanel1Window` )
+	deleteUI -window hyperShadePanel1Window;
+
+	if ( `window -exists dopeSheetPanel1Window` )
+	deleteUI -window dopeSheetPanel1Window;
+
+	if ( `window -exists referenceEditorPanel1Window` )
+	deleteUI -window referenceEditorPanel1Window;
+}
+
+
+//実作業前の診断機能--------------------------------------------------------------------
+global proc GPpartsRigging_checkTGT(string $rigPass , string $partsPass , int $headFlag , int $rhanFlag , int $lhanFlag , int $undrFlag , int $backFlag , int $bodyFlag ){
+	string $divTGT[] = `textScrollList -q -selectItem PRT_tsl_pdt`;
+	if($divTGT[0] == "通常モビルスーツ"){
+		print "通常モビルスーツとして処理を行います。\r\n";
+		GPpartsRiggingExec_MSClass( $rigPass , $partsPass , $headFlag , $rhanFlag , $lhanFlag , $undrFlag , $backFlag , $bodyFlag );
+	}else{
+		print "モビルアーマーとして処理を行います。\r\n";
+		GPpartsRiggingExec_MAClass( $rigPass , $partsPass , $headFlag , $rhanFlag , $lhanFlag , $undrFlag , $backFlag , $bodyFlag );
+	}
+}
+//実作業--------------------------------------------------------------------
+global proc GPpartsRiggingExec_MSClass(string $rigPass , string $partsPass , int $headFlag , int $rhanFlag , int $lhanFlag , int $undrFlag , int $backFlag , int $bodyFlag ){
+	file -o -f $rigPass;
+	string $sceneName[] = `file -q -r -shn`;
+	file -ir $sceneName[0];
+	string $rigScene[0] = `file -q -l -shn`;
+
+	string $charaID = nsbreak();
+	string $charaIDm = startString( $charaID,(`size($charaID)` -1 )) ;
+	string $temp[];
+
+	int $modesw[] = {0,0,$headFlag , $rhanFlag , $lhanFlag , $undrFlag , $backFlag , $bodyFlag};
+
+	int $i,$j;
+	for($i=2 ; $i<8 ; $i++){
+		print ("No." + $i + "_flag " + $modesw[$i]);
+		if ($modesw[$i] == 1){
+			file -r -f -ns "" ($partsPass + $charaIDm + $i + "\\scenes\\" + $charaIDm + $i + ".mb");
+			select -r -hi "*:root";
+			string $jointList[] = `ls -sl -type joint`;
+
+			for( $j = 0 ;  $j < size($jointList) ; $j++ ){
+				tokenize $jointList[$j] ":" $temp;
+				$jointList[$j] = $temp[1];
+			}
+
+			//root付近の骨調整・パーツ間でキャラとの角度差が異なるため、個別設定が必要
+			//下半身
+			if ($i == 5 ){
+				select -r ("allbody_" + $jointList[0]) ( "*:" + $jointList[0]);
+				pointConstraint -offset 0 0 0 -weight 1;orientConstraint -mo -weight 1;scaleConstraint -offset 1 1 1 -weight 1;
+				select -r ("allbody_" + $jointList[1]) ( "*:" + $jointList[1]);
+				pointConstraint -offset 0 0 0 -weight 1;orientConstraint -mo -weight 1;scaleConstraint -offset 1 1 1 -weight 1;
+				select -r ("allbody_" + $jointList[2]) ( "*:" + $jointList[2]);
+				pointConstraint -offset 0 0 0 -weight 1;orientConstraint -mo -weight 1;scaleConstraint -offset 1 1 1 -weight 1;
+
+			//上半身
+			}else if( $i==7 ){
+				select -r ("allbody_" + $jointList[1]) ( "*:" + $jointList[0]);		//root
+				pointConstraint -offset 0 0 0 -weight 1;orientConstraint -mo -weight 1;scaleConstraint -offset 1 1 1 -weight 1;
+				select -r ("allbody_" + $jointList[2]) ( "*:" + $jointList[2]);
+				pointConstraint -offset 0 0 0 -weight 1;orientConstraint -mo -weight 1;scaleConstraint -offset 1 1 1 -weight 1;
+
+			//その他
+			}else{
+				select -r ("allbody_" + $jointList[2]) ( "*:" + $jointList[0]);
+				pointConstraint -offset 0 0 0 -weight 1;
+				orientConstraint -mo -weight 1;		//-mo
+				scaleConstraint -offset 1 1 1 -weight 1;
+			}
+
+			for ($j = 3 ; $j < size($jointList) ; $j++){
+				select -r ("allbody_" + $jointList[$j]) ( "*:" + $jointList[$j]);
+				pointConstraint -offset 0 0 0 -weight 1;
+				//orientConstraint -mo -weight 1;	どっちが正解？
+				orientConstraint -offset 0 0 0 -weight 1;
+				scaleConstraint -offset 1 1 1 -weight 1;
+			}
+			select -cl;
+
+
+			//回転値アタッチ用新規処理
+			string $partsID = $charaIDm + $i ;
+			int $expjFlag = `checkBox -q -v expjFlag`;
+			if($expjFlag == 1){
+				GPpartsRigging_loadExpj($partsPass , $partsID , 0);
+			}
+
+			partsLaySetup();
+			file -rename ($partsPass + $charaIDm + $i + "\\scenes\\" + $rigScene[0] );
+			file -op "v=0" -typ "mayaBinary" -pr -s ;
+			select -hi "*:root";
+			select -d "*:*Constraint*";
+			select -tgl -hi "*:root";
+			doDelete;
+			file -rr -f ($partsPass + $charaIDm + $i + "\\scenes\\" + $charaIDm + $i + ".mb");
+			if($expjFlag == 1){
+			//	if( `file -q -r -ex ($partsPass + $charaIDm + $i + "/scenes/" + $charaIDm + $i + "_expj.mb")` ){
+					file -rr -f ($partsPass + $charaIDm + $i + "\\scenes\\" + $charaIDm + $i + "_expj.mb");
+					select -r model_joint;
+					doDelete;
+			//	}
+			}
+		}
+	}
+
+	confirmDialog -title "parts rigging tool" -message ("作業が完了しました。\n")
+		-button "OK" -defaultButton "OK";
+}
+
+//実作業--------------------------------------------------------------------
+global proc GPpartsRiggingExec_MAClass(string $rigPass , string $partsPass , int $headFlag , int $rhanFlag , int $lhanFlag , int $undrFlag , int $backFlag , int $bodyFlag ){
+	file -o -f $rigPass;
+	string $sceneName[] = `file -q -r -shn`;
+	file -ir $sceneName[0];
+	string $rigScene[0] = `file -q -l -shn`;
+
+	string $charaID = nsbreak();
+	string $charaIDm = startString( $charaID,(`size($charaID)` -1 )) ;
+	string $temp[];
+
+	int $modesw[] = {0,0,$headFlag , $rhanFlag , $lhanFlag , $undrFlag , $backFlag , $bodyFlag};
+
+	int $i,$j;
+	for($i=2 ; $i<8 ; $i++){
+		print ("No." + $i + "_flag " + $modesw[$i]);
+		if ($modesw[$i] == 1){
+			file -r -f -ns "" ($partsPass + $charaIDm + $i + "\\scenes\\" + $charaIDm + $i + ".mb");
+			select -r -hi "*:root";
+			string $jointList[] = `ls -sl -type joint`;
+
+			for( $j = 0 ;  $j < size($jointList) ; $j++ ){
+				tokenize $jointList[$j] ":" $temp;
+				$jointList[$j] = $temp[1];
+			}
+
+			//root付近の骨調整・パーツ間でキャラとの角度差が異なるため、個別設定が必要
+			//下半身
+			if ($i == 2 ){
+				select -r ("allbody_" + $jointList[0]) ( "*:" + $jointList[0]);
+				pointConstraint -offset 0 0 0 -weight 1;orientConstraint -mo -weight 1;
+				select -r ("allbody_" + $jointList[1]) ( "*:" + $jointList[1]);
+				pointConstraint -offset 0 0 0 -weight 1;orientConstraint -mo -weight 1;
+				select -r ("allbody_" + $jointList[2]) ( "*:" + $jointList[2]);
+				pointConstraint -offset 0 0 0 -weight 1;orientConstraint -mo -weight 1;
+
+			//上半身
+			}else if( $i==7 ){
+				select -r ("allbody_" + $jointList[1]) ( "*:" + $jointList[0]);		//root
+				pointConstraint -offset 0 0 0 -weight 1;orientConstraint -mo -weight 1;
+				select -r ("allbody_" + $jointList[2]) ( "*:" + $jointList[2]);
+				pointConstraint -offset 0 0 0 -weight 1;orientConstraint -mo -weight 1;
+
+			//その他
+			}else{
+				select -r ("allbody_" + $jointList[2]) ( "*:" + $jointList[0]);
+				pointConstraint -offset 0 0 0 -weight 1;
+				orientConstraint -mo -weight 1;		//-mo
+			}
+
+			for ($j = 3 ; $j < size($jointList) ; $j++){
+				select -r ("allbody_" + $jointList[$j]) ( "*:" + $jointList[$j]);
+				pointConstraint -offset 0 0 0 -weight 1;
+				//orientConstraint -mo -weight 1;	どっちが正解？
+				orientConstraint -offset 0 0 0 -weight 1;
+			}
+			select -cl;
+
+
+			//回転値アタッチ用新規処理
+			string $partsID = $charaIDm + $i ;
+			int $expjFlag = `checkBox -q -v expjFlag`;
+			if($expjFlag == 1){
+				GPpartsRigging_loadExpj($partsPass , $partsID , 1 );
+			}
+
+			partsLaySetup();
+			file -rename ($partsPass + $charaIDm + $i + "\\scenes\\" + $rigScene[0] );
+			file -op "v=0" -typ "mayaBinary" -pr -s ;
+			select -hi "*:root";
+			select -d "*:*Constraint*";
+			select -tgl -hi "*:root";
+			doDelete;
+			file -rr -f ($partsPass + $charaIDm + $i + "\\scenes\\" + $charaIDm + $i + ".mb");
+			if($expjFlag == 1){
+					file -rr -f ($partsPass + $charaIDm + $i + "\\scenes\\" + $charaIDm + $i + "_expj.mb");
+					select -r model_joint;
+					doDelete;
+			}
+		}
+	}
+
+	confirmDialog -title "parts rigging tool" -message ("作業が完了しました。\n")
+		-button "OK" -defaultButton "OK";
+}
+global proc PRT_resetUICheckbox(){
+	string $selected[] = `textScrollList -q -si PRT_tsl_pdt`;
+	if($selected[0] == "通常モビルスーツ"){
+		checkBox -e -label "頭　　" headFlag;
+		checkBox -e -label "右手　" rhanFlag;
+		checkBox -e -enable 1 lhanFlag;
+		checkBox -e -enable 1 undrFlag;
+		checkBox -e -enable 1 backFlag;
+		checkBox -e -enable 1 bodyFlag;
+	}else if($selected[0] == "chr4640_シャンブロ"){
+		checkBox -e -label "本体　" headFlag;
+		checkBox -e -label "右手　" rhanFlag;
+		checkBox -e -enable 1 -v 1 lhanFlag;
+		checkBox -e -enable 0 -v 0 undrFlag;
+		checkBox -e -enable 0 -v 0 backFlag;
+		checkBox -e -enable 0 -v 0 bodyFlag;
+	}else if($selected[0] == "chr4680_ゲルズゲー"){
+		checkBox -e -label "下半身" headFlag;
+		checkBox -e -label "上半身" rhanFlag;
+		checkBox -e -enable 0 -v 0 lhanFlag;
+		checkBox -e -enable 0 -v 0 undrFlag;
+		checkBox -e -enable 0 -v 0 backFlag;
+		checkBox -e -enable 0 -v 0 bodyFlag;
+	}
+}
+//UI--------------------------------------------------------------------------------
+//
+global proc partsRiggingTool(){
+
+	string $title = "PartsRiggingTool";
+	string $PRwindow = "PRtool";
+	string $partsDefPass = "L:\\";
+	string $PRTversion = getPRTversion();
+
+	if ( `window -exists $PRwindow` )
+	{
+		deleteUI	$PRwindow;
+	}
+	window  -t ($title + "   " + $PRTversion) -rtf 1 -wh 685 365 $PRwindow;
+
+	//キャラID取得
+	string $charaID;
+	string $sceneName[] = `file -q -r -shn`;
+	string $temp[];
+	tokenize $sceneName[0] "." $temp;
+	$charaID = $temp[0];
+	string $charaIDm = startString( $charaID,(`size($charaID)` -1 )) ;
+	string $fsceneName[] = `file -q -l`;
+	string $stSceneName[] = `file -q -l -shn`;
+
+	string $Numset = `columnLayout`;
+	string $t1 = `text -label ("「全身rigbase」のシーンデータを元に、")`;
+	string $t2 = `text -label ("パーツ単体のリグシーンやモーションデータの複製を、各パーツと同じ場所に生成します。")`;
+	string $s1 = `separator -w 675 -h 10`;
+	string $msmaSelectUILayout = `rowLayout -numberOfColumns 2 -columnWidth2 125 450 -adjustableColumn 2`;
+		string $t3 = `text -label ("処理対象キャラクター")`;
+		string $partsDivTgt = (`textScrollList -allowMultiSelection false -width 450 -height 70 -sc ("PRT_resetUICheckbox()")
+			-append "通常モビルスーツ"
+			-append "chr4640_シャンブロ"
+			-append "chr4660_グランドマスターガンダム(未対応)"
+			-append "chr4680_ゲルズゲー"
+			-append "chr4700_アプサラスII(未対応)"
+			-selectItem "通常モビルスーツ"
+			 PRT_tsl_pdt`);
+		setParent ..;
+	string $tf1 = (`textFieldButtonGrp -cl3 left both right -cw3 125 450 100 -label "全身のrigbase.mb" -text $fsceneName[0] -ann "全身ファイル(chr○○○.mb)のデータを指定して下さい。" -buttonLabel "Edit" rigPassTf`);
+	string $tf2 = (`textFieldButtonGrp -cl3 left both right -cw3 125 450 100 -label "パーツデータ保存場所" -text $partsDefPass -ann "パーツrigbase.mbファイルの保存先を指定して下さい。" -buttonLabel "Edit" partsPassTf`);
+	string $s2 = `separator -w 675 -h 10`;
+
+	string $indxset = `rowLayout -numberOfColumns 2 -columnWidth2 80 150 -adjustableColumn 2`;
+		string $txi1 = `text -label "■作業部位"`;
+	string $txi2 = `text -label "■リファレンスされるパーツファイル  ->  作成されるrigbaseファイル" itex`;
+		setParent ..;
+
+	string $headset = `rowLayout -numberOfColumns 2 -columnWidth2 80 150 -adjustableColumn 2`;
+		string $c1 = `checkBox -v 1 -label "頭　　" headFlag`;
+		string $tx1 = `text -label ($partsDefPass + $charaIDm + "2\\scenes\\" + $charaIDm + "2.mb  ->  " + $stSceneName[0] ) htex`;
+		setParent ..;
+
+	string $rhanset = `rowLayout -numberOfColumns 2 -columnWidth2 80 150 -adjustableColumn 2`;
+		string $c2 = `checkBox -v 1 -label "右手　" rhanFlag`;
+		string $tx2 = `text -label ($partsDefPass + $charaIDm + "3\\scenes\\" + $charaIDm + "3.mb  ->  " + $stSceneName[0] ) rtex`;
+		setParent ..;
+
+	string $lhanmset = `rowLayout -numberOfColumns 2 -columnWidth2 80 150 -adjustableColumn 2`;
+		string $c3 = `checkBox -v 1 -label "左手　" lhanFlag`;
+		string $tx3 = `text -label ($partsDefPass + $charaIDm + "4\\scenes\\" + $charaIDm + "4.mb  ->  " + $stSceneName[0] ) ltex`;
+		setParent ..;
+
+	string $undrset = `rowLayout -numberOfColumns 2 -columnWidth2 80 150 -adjustableColumn 2`;
+		string $c4 = `checkBox -v 1 -label "下半身" undrFlag`;
+		string $tx4 = `text -label ($partsDefPass + $charaIDm + "5\\scenes\\" + $charaIDm + "5.mb  ->  " + $stSceneName[0] ) ftex`;
+		setParent ..;
+
+	string $backset = `rowLayout -numberOfColumns 2 -columnWidth2 80 150 -adjustableColumn 2`;
+		string $c5 = `checkBox -v 1 -label "バックパック" backFlag`;
+		string $tx5 = `text -label ($partsDefPass + $charaIDm + "6\\scenes\\" + $charaIDm + "6.mb  ->  " + $stSceneName[0] ) btex`;
+		setParent ..;
+
+	string $bodyset = `rowLayout -numberOfColumns 2 -columnWidth2 80 150 -adjustableColumn 2`;
+		string $c6 = `checkBox -v 1 -label "胴体" bodyFlag`;
+		string $tx6 = `text -label ($partsDefPass + $charaIDm + "7\\scenes\\" + $charaIDm + "7.mb  ->  " + $stSceneName[0] ) otex`;
+		setParent ..;
+	
+	string $s3 = `separator -w 675 -h 10`;
+	string $c_expj = `checkBox -v 1 -label "_expjデータを使用する(生成されたrigが、rootの回転値を出力しない構造になります)" expjFlag`;
+	string $b0 = `button -w 675 -h 30 -l "パーツrigbase生成" partsRigBtn`;
+	string $b1 = `button -w 675 -h 30 -l "コピー元モーション.mbのリファレンスチェック" refCheckBtn`;
+	string $b1 = `button -w 675 -h 30 -l "モーションファイルコピー" partsMotBtn`;
+
+	string $tc = `textFieldButtonGrp -edit -bc ("fileBrowserDialog -mode 0 -fileType \"mayaBinary\" -actionName \"Load_rigbase.mb\" -fileCommand \"setTextfData(\\\"rigPassTf\\\")\" ") rigPassTf`;
+	string $tc2 = `textFieldButtonGrp -edit -bc ("fileBrowserDialog -mode 4 -fileType \"directory\" -actionName \"パーツのプロジェクトを格納したフォルダを指定して下さい。\" -fileCommand \"setTextfData(\\\"partsPassTf\\\")\" ") partsPassTf`;
+
+
+	button -edit -command "GPpartsRigging_checkTGT(`textFieldButtonGrp -q -text rigPassTf` , `textFieldButtonGrp -q -text partsPassTf`,`checkBox -q -v headFlag`,`checkBox -q -v rhanFlag`,`checkBox -q -v lhanFlag`,`checkBox -q -v undrFlag`,`checkBox -q -v backFlag`,`checkBox -q -v bodyFlag` );" -ann "パーツのリグ付けを行います。" partsRigBtn;
+//	button -edit -command "GPpartsRiggingExec(`textFieldButtonGrp -q -text rigPassTf` , `textFieldButtonGrp -q -text partsPassTf`,`checkBox -q -v headFlag`,`checkBox -q -v rhanFlag`,`checkBox -q -v lhanFlag`,`checkBox -q -v undrFlag`,`checkBox -q -v backFlag`,`checkBox -q -v bodyFlag` );" -ann "パーツのリグ付けを行います。" partsRigBtn;
+	button -edit -command "pRT_checkSceneReference_Confirm(`textFieldButtonGrp -q -text rigPassTf` );" -ann "コピー元モーションのリファレンス設定をリスト化します。" refCheckBtn;
+	button -edit -command "GPpartsMotionFileCopy(`textFieldButtonGrp -q -text rigPassTf` , `textFieldButtonGrp -q -text partsPassTf`,`checkBox -q -v headFlag`,`checkBox -q -v rhanFlag`,`checkBox -q -v lhanFlag`,`checkBox -q -v undrFlag`,`checkBox -q -v backFlag`,`checkBox -q -v bodyFlag` );" -ann "パーツのリグ付けを行います。" partsMotBtn;
+//流石にそろそろ要らないんじゃね	string $cautionText = `text -align "left" -l "※「全身のrigbase.mb」と同階層に存在する全ての.mbファイルを、一回ずつ読み込みます。\r\nファイル数に応じた作業時間が発生するので、ご注意ください。"`;
+	setParent ..;
+
+	showWindow $PRwindow;
+}

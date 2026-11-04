@@ -1,0 +1,117 @@
+//GPMobileSuitShiftUVShellForBake
+
+//選択している複数のUVバーテックスに対し、まずそれらの属するUVシェルを取得し、
+//それらのシェルのバウンディングボックスのサイズを比較して、最も大きい物
+//以外の物をUVエディタ上で左側に1.0移動させます。
+//-------------------------------------------------------------------------
+
+global proc GPResultWindow(string$line1,string$line2,string$line3,string$line4,string$line5)
+{
+//リザルトウィンドウ
+string $windowTitle = "GPResultWindow";
+string $windowObjName = $windowTitle + "WindowObj";
+
+	if(`window -ex  $windowObjName` == 1)
+	{
+	deleteUI  $windowObjName;
+	}
+
+window -t $windowTitle $windowObjName;
+columnLayout;
+//--------------------------
+text -l $line1;
+text -l $line2;
+text -l $line3;
+text -l $line4;
+text -l $line5;
+//--------------------------
+//ウィンドウサイズを指定
+window -e -w 200 -h 150 $windowObjName;
+showWindow $windowObjName;
+}
+//-------------------------------------------------------------------------
+
+//-------------------------------------
+global proc string[] toUVShell(string$UV)
+{
+//$UV is a UV vertex.
+//This returns a list of all UV vertices in a UV shell of $UV.
+
+string $UVList[] = {$UV};
+int $size = 1;
+int $sizeNew = 0;
+	while($size!=$sizeNew)
+	{
+	$size = `size $UVList`;
+	string $faceList[] = `polyListComponentConversion -tf $UVList`;
+	$UVList = `polyListComponentConversion -tuv $faceList`;
+	$UVList = `ls -fl $UVList`;
+	$sizeNew = `size $UVList`;
+	}
+return $UVList;
+}
+//-------------------------------------
+global proc int compareUVShellSize(string$UVList[])
+{
+//$UVListのUVが含まれるUVシェル全てのバウンディングボックスの面積を比較し、
+//最も広い物のUVを$UVList[]のアドレスで返します。
+int $result = 0;
+
+//--アドレス0のUVのUVシェルのバウンディングボックスの面積を取得
+select -cl;
+select `toUVShell $UVList[0]`;
+float $bb1[] = `polyEvaluate -bc2`;
+float $area1 = ($bb1[1] - $bb1[0]) * ($bb1[3] - $bb1[2]);
+
+//その他のUVのUVシェルのバウンディングボックスの面積を取得して比較する
+int $size = `size $UVList`;
+int $i;
+	for($i=1;$i<$size;$i++)
+	{
+	select -cl;
+	select `toUVShell $UVList[$i]`;
+	float $bb2[] = `polyEvaluate -bc2`;
+	float $area2 = ($bb2[1] - $bb2[0]) * ($bb2[3] - $bb2[2]);
+		if($area2 > $area1)
+		{
+		$result = $i;
+		$area1 = $area2;
+		}
+	}
+return $result;
+}
+//-------------------------------------
+global proc GPMobileSuitShiftUVShellForBake()
+{
+//選択しているUVバーテックスからUVシェルを取得し、最もバウンディングボックスの面積が大きい物以外を
+//左に1.0シフトさせます。
+
+string $list[] = `ls -sl -fl`;
+	if(`size $list` == 0)
+	{
+	GPResultWindow "Warning:" "Please select UV vertices in UV Editor" "befoer using this script." "" "";
+	}
+	else
+	{
+	//サイズの最も大きい物のアドレスを取得
+	int $largest = `compareUVShellSize $list`;
+	//シフト
+	int $size = `size $list`;
+	int $i;
+		for($i=0;$i<$size;$i++)
+		{
+			if($i != $largest)
+			{
+			string $shell[] = `toUVShell $list[$i]`;
+			select $shell;
+			polyEditUV -u -1.0;
+			}
+		}
+	select -cl;
+	}
+}
+//-------------------------------------
+GPMobileSuitShiftUVShellForBake;
+
+
+

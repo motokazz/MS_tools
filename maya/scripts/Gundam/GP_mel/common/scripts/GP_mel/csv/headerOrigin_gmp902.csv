@@ -1,0 +1,18 @@
+#ifdef GR_FILE_LINKED
+
+GR_FILE_LINKED( _basepose )
+GR_FILE_LINKED( motion_c100_gmp902_ex_piercingshot_00_start )
+GR_FILE_LINKED( motion_c100_gmp902_ex_piercingshot_01_loop )
+GR_FILE_LINKED( motion_c100_gmp902_ex_piercingshot_02_shoot )
+GR_FILE_LINKED( motion_c100_gmp902_ex_piercingshot_03_end )
+GR_FILE_LINKED( motion_c100_gmp902_ex_piercingshot_UP_00_start )
+GR_FILE_LINKED( motion_c100_gmp902_ex_piercingshot_UP_01_loop )
+GR_FILE_LINKED( motion_c100_gmp902_ex_piercingshot_UP_02_shoot )
+GR_FILE_LINKED( motion_c100_gmp902_ex_piercingshot_UP_03_end )
+GR_FILE_LINKED( motion_c100_gmp902_ex_piercingshot_DOWN_00_start )
+GR_FILE_LINKED( motion_c100_gmp902_ex_piercingshot_DOWN_01_loop )
+GR_FILE_LINKED( motion_c100_gmp902_ex_piercingshot_DOWN_02_shoot )
+GR_FILE_LINKED( motion_c100_gmp902_ex_piercingshot_DOWN_03_end )
+
+#undef GR_FILE_LINKED
+#endif // GR_FILE_LINKED

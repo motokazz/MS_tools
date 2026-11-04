@@ -1,0 +1,177 @@
+//#############################################################################
+//MS_krash
+//Created by Motokazz
+//2005/8/17
+//クラッシュする。
+//#############################################################################
+
+
+
+global proc MS_rndvtxsel(string $obj_b){
+	
+	int $rndvtx=`rand 57`;
+		string $newname=$obj_b+".vtx["+$rndvtx+"]";
+		select -r  $newname;
+}
+
+global proc MS_vtxcenter(string $obj_b){
+
+	vector $numberPoint = `pointPosition -w`; 
+	
+	string $spv=$obj_b+".scalePivot";
+	string $rpv=$obj_b+".rotatePivot";
+	
+	move -ws ($numberPoint.x)($numberPoint.y)($numberPoint.z) $spv $rpv ;
+
+}
+
+global proc MS_randomrotate(string $obj_b){
+	
+	$rndx=`rand 360`;
+	$rndy=`rand 360`;
+	$rndz=`rand 360`;
+	
+	rotate $rndx $rndy $rndz $obj_b;
+	
+	
+}
+
+
+
+
+global proc MS_CenterResetter(string $obj_a){
+
+
+string $obj_a_tx=$obj_a+".tx";
+string $obj_a_ty=$obj_a+".ty";
+string $obj_a_tz=$obj_a+".tz";
+
+string $obj_a_rpx=$obj_a+".rotatePivotX";
+string $obj_a_rpy=$obj_a+".rotatePivotY";
+string $obj_a_rpz=$obj_a+".rotatePivotZ";
+
+float $orgx=`getAttr $obj_a_tx`;
+float $orgy=`getAttr $obj_a_ty`;
+float $orgz=`getAttr $obj_a_tz`;
+float $flpx=`getAttr $obj_a_rpx`;
+float $flpy=`getAttr $obj_a_rpy`;
+float $flpz=`getAttr $obj_a_rpz`;
+
+setAttr $obj_a_tx (-$flpx);
+setAttr $obj_a_ty (-$flpy);
+setAttr $obj_a_tz (-$flpz);
+
+makeIdentity -apply true -t 1 -r 1 -s 0 -n 0 $obj_a;
+
+setAttr $obj_a_tx ($orgx+$flpx);
+setAttr $obj_a_ty ($orgy+$flpy);
+setAttr $obj_a_tz ($orgz+$flpz);
+
+}
+
+
+
+global proc MS_ctrfit(string $dist_obj,string $source_obj){
+	
+	xform -cp $dist_obj;
+	
+	$tx=getAttr ($dist_obj + ".tx");
+	$tx=$tx+getAttr ($dist_obj + ".rpx");
+	$ty=getAttr ($dist_obj + ".ty");
+	$ty=$ty+getAttr ($dist_obj + ".rpy");
+	$tz=getAttr ($dist_obj + ".tz");
+	$tz=$tz+getAttr ($dist_obj + ".rpz");
+
+	move -ws $tx $ty $tz $source_obj;
+
+}
+
+
+global proc MS_bools(string $obj_a,string $obj_b){
+	
+	duplicate -n "bla" $obj_a;
+	duplicate -n "blb" $obj_b;
+	polyBoolOp -n "pc_a" -op 2 -ch 0 bla blb;
+	
+	duplicate -n "bla" $obj_a;
+	duplicate -n "blb" $obj_b;
+	polyBoolOp -n "pc_b" -op 3 -ch 0 bla blb;
+
+	delete $obj_a;
+	
+}
+
+
+
+
+
+global proc MS_crash(string $obj_a,string $obj_b){
+	MS_rndvtxsel $obj_b;
+	MS_vtxcenter $obj_b;
+	MS_randomrotate $obj_b;
+	MS_CenterResetter $obj_b;
+	MS_ctrfit $obj_a $obj_b;
+	MS_bools $obj_a $obj_b;
+}
+
+
+global proc MS_krasher(string $objz_a,string $objz_b){
+	
+	MS_crash $objz_a $objz_b;
+	
+	$rep=(`intSliderGrp -q -v rep`-1);
+	
+	int $i;
+	for ($i=0;$i<$rep;$i++){
+		$name_a="pc_"+$i+"a";
+		$name_b="pc_"+$i+"b";
+		rename "pc_a" $name_a;
+		rename "pc_b" $name_b;
+		MS_crash $name_a $objz_b;
+		MS_crash $name_b $objz_b;
+	}
+	
+	
+	//rename
+	
+	select -r "pc_*";
+	$krashed=`ls -type transform -sl`;
+	int $j;
+	for($j=0;$j<size($krashed);$j++){
+		rename $krashed[$j] "MS_krashed";
+	}
+}
+
+global proc MS_krashez(){
+	$objzall=`ls - sl`;
+	
+	int $j;
+	for($j=1;$j<size($objzall);$j++){
+		MS_krasher $objzall[$j] $objzall[0];
+	}
+}
+
+
+
+
+global proc MS_krash()
+{
+	if(`window -exists MS_krash`){
+		deleteUI MS_krash;
+	}
+
+	window -title "MS_krash" MS_krash;
+	columnLayout ;
+
+	intSliderGrp -l "repeat" -field true -min 1 -max 10 -v 3 rep;
+
+	button -l "do" -command "MS_krashez" ;
+	button -l "undo" -command "Undo" ;
+	button -l "exit" -command "deleteUI MS_krash" ;
+
+	showWindow MS_krash;
+
+}
+
+
+//MS_krash;

@@ -1,0 +1,81 @@
+global proc MS_VFA_Step_V4(
+	int $strtm,
+	int $endtm,	
+	float $threshold,
+	float $ground,
+	string $target,
+	string $obj[],
+	string $tgtAttr[]
+	)
+{
+	float $len;
+	float $fflen;	
+	currentTime -u 1 ($strtm-1);
+	float $ff[]=`xform -q -ws -t $target`;
+	int $val,$fval;
+	
+	
+	int $flagx,$flagy,$flagz;
+	int $ffflagx,$ffflagy,$ffflagz;
+	
+	for($i=$strtm;$i<$endtm;$i++){
+		currentTime -u 1 $i;
+
+		float $cf[] = `xform -q -ws -t $target`;
+		
+		for($each in $obj){
+			
+			for($eachAttr in $tgtAttr){
+				
+				$len = sqrt(($ff[0]-$cf[0])*($ff[0]-$cf[0])+($ff[1]-$cf[1])*($ff[1]-$cf[1])+($ff[2]-$cf[2])*($ff[2]-$cf[2]));
+				
+				if ($cf[0]>($ff[0]+$threshold)){$flagx=1;}else if ($cf[0]<($ff[0]-$threshold)){$flagx=2;}else {$flagx=0;}
+				if ($cf[1]>($ff[1]+$threshold)){$flagy=1;}else if ($cf[1]<($ff[1]-$threshold)){$flagy=2;}else {$flagy=0;}
+				if ($cf[2]>($ff[2]+$threshold)){$flagz=1;}else if ($cf[2]<($ff[2]-$threshold)){$flagz=2;}else {$flagz=0;}
+				
+				
+				int $xxx=0;
+				if ($flagx!=$ffflagx){$xxx=$xxx+1;}
+				if ($flagy!=$ffflagy){$xxx=$xxx+1;}
+				if ($flagz!=$ffflagz){$xxx=$xxx+1;}
+				
+				$ffflagx=$flagx;
+				$ffflagy=$flagy;
+				$ffflagz=$flagz;
+				
+				
+				if($xxx>1 && $cf[1]<$ground){
+					$val=1;
+				}
+				else{
+					$val=0;
+				}
+				
+				if ($val!=$fval){
+					setKeyframe -at $eachAttr -t ($i-1) -v $fval $each;
+					setKeyframe -at $eachAttr -t $i -v $val $each;
+				}
+				
+				print ($i+" :: "+$xxx+" : "+($ff[1]+$cf[1])+"     ***     "+$val+"||"+$len+":"+$threshold+"||"+$cf[1]+":"+$ground+"\n");
+				
+			}
+		}
+
+		$fval=$val;
+		$ff= $cf;
+	}
+	
+	//•âŠ®•ÏX
+	for($each in $obj){
+		selectKey -add -k ($each+"_EmitterVolume") ;
+		keyTangent -ott step;
+	}
+
+	
+	
+	
+}
+
+
+
+

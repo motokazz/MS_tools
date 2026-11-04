@@ -1,0 +1,25 @@
+global proc string[] MS_duplicateFace(){
+	string $obj[]=`ls -o -sl` ;
+	string $polygons[]=`ls -sl` ;
+	string $duped[]=`duplicate -rr -renameChildren $obj`;
+	string $name[];
+	string $polys[];
+	
+	
+	int $i=0;
+	for($each in $polygons){
+		tokenize($each,"[]",$name);
+		$polys[$i]=($duped[0]+".f["+$name[1]+"]");
+		$i++;
+	}
+	
+	select -r $polys;
+	InvertSelection;
+	delete;
+	
+	return $duped;
+	
+}
+
+
+

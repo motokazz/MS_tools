@@ -1,0 +1,46 @@
+/*
+HRC_XFF_Export.mel
+
+◆概要
+選択したグループに、トップの名前をつけて、全てXFFファイル出力
+
+◆使用方法
+
+１・準備
+出力先となるディレクトリ、
+D:/DATA/xff/
+を作成する。
+
+２・実行
+出力したいオブジェクトを選択して、このMELを実行。
+
+
+◆詳細
+選択したグループの名前でラベルを作成して、グループごとにファイルを出力します。
+ファイル名もグループの名前で出力されます。
+
+出力先は、ファイルを直接いじっていただければ変更できます・・・
+
+
+*/
+
+
+global proc HRC_XFF_Export_Default(){
+	
+	$path="D:/DATA/xff/";//出力パス
+	
+	string $obj_name[]=`ls -as -sl`;
+	
+	$i=0;
+	for($i=0;$i<size($obj_name);$i++){
+		select -r $obj_name[$i];
+		
+		$full_p_name=($path+$obj_name[$i]);
+		$operation=("em=0;ea=0;ex=0;ip=1;name="+$obj_name[$i]+";obj="+$obj_name[$i]+";");
+		
+		file -op $operation -typ "XFFExport" -es $full_p_name;
+	}
+}
+
+
+HRC_XFF_Export_Default;

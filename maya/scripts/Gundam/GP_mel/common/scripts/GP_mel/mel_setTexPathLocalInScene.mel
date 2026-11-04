@@ -1,0 +1,57 @@
+//setTexPathLocalInScene
+
+//シーン中の全てのファイルノードのテクスチャーパスをsourceimages以下に書き換えます
+
+//-------------------------------------------------------------------------
+
+global proc setTexPathWindow(string$line1,string$line2,string$line3,string$line4,string$line5)
+{
+//リザルトウィンドウ
+string $windowTitle = "setTexPathWindow";
+string $windowObjName = $windowTitle + "WindowObj";
+
+	if(`window -ex  $windowObjName` == 1)
+	{
+	deleteUI  $windowObjName;
+	}
+
+window -t $windowTitle $windowObjName;
+columnLayout;
+//--------------------------
+text -l $line1;
+text -l $line2;
+text -l $line3;
+text -l $line4;
+text -l $line5;
+//--------------------------
+//ウィンドウサイズを指定
+window -e -w 200 -h 150 $windowObjName;
+showWindow $windowObjName;
+}
+//-------------------------------------------------------------------------
+
+
+global proc mel_setTexPathLocalInScene()
+{
+string $fileNodeList[] = `ls -type "file"`;
+string $item;
+string $fileName;
+	for($item in $fileNodeList)
+	{
+	string $attr = $item + ".fileTextureName";
+	string $path = `getAttr $attr`;
+
+	string $wordList[];
+	$wordsNum = `tokenize $path "/" $wordList`;
+	int $wordListSize = `size $wordList`;
+	$fileName = $wordList[$wordListSize-1];
+
+	string $newPath = "sourceimages/" + $fileName;
+	setAttr -type "string" $attr $newPath;
+	}
+
+	setTexPathWindow "setTexPathLocalInScene:" "シーン中の全てのファイルノードの" "テクスチャーパスを" "sourceimages以下に書き換えました。" "";
+
+}
+//-----------------------------
+mel_setTexPathLocalInScene;

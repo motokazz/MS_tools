@@ -1,0 +1,26 @@
+//selectionMaskRestoreOnce(); selectMode -root; select -clear;
+//select -r pSphere1.vtx[0] ;
+
+global proc MS_vtxcenter(){
+	
+	string $nameOfObjs[] = `ls -hl`;
+	
+	if ( size($nameOfObjs[0]) == 0 )
+	{
+		confirmDialog -t "Nothing Selected" -m "Please select an object." -b Continue;
+		return;
+	}
+	
+	
+	vector $numberPoint = `pointPosition -w`; 
+	
+	string $spv=$nameOfObjs[0]+".scalePivot";
+	string $rpv=$nameOfObjs[0]+".rotatePivot";
+	
+	move -ws ($numberPoint.x)($numberPoint.y)($numberPoint.z) $spv $rpv ;
+	confirmDialog -t "Success" -m "vtxpos ni center idou OK!" -b Continue;
+
+}
+
+MS_vtxcenter;
+

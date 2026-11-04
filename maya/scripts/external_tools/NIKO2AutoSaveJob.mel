@@ -1,0 +1,29 @@
+//NIKO2AutoSaveJob
+//04/1/29
+//
+//昨日:一定回数選択するとsaveダイアログがでる
+//
+//
+global proc NIKO2AutoSaveFileJob()
+	{
+	global int $NIKO2AutoSaveFileJobFlag;
+	$NIKO2AutoSaveFileJobFlag++;
+
+	// スクリプトエディタにSelectionChangedイベントが何回発生したかを表示
+	//print($NIKO2AutoSaveFileJobFlag+"\n"); 
+
+	if(`fmod $NIKO2AutoSaveFileJobFlag 100` == 0)
+		{
+		string $xx=`confirmDialog
+			 -m "Do  you  save  this  scene?"
+			 -b "save scene" -b "save scene as" -b "No"
+			 -db "save" -cb "No" -ds "No"`;
+
+		if ($xx=="save scene") SaveScene;
+		if ($xx=="save scene as")  SaveSceneAs;
+	}
+}
+
+// スクリプトジョブを起動
+global int $NIKO2AutoSaveFileJobFlag = 0;
+scriptJob -event "SelectionChanged" "NIKO2AutoSaveFileJob";

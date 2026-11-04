@@ -1,0 +1,1136 @@
+//				FACE STUDIO
+//
+//						version 3.0
+//						for Maya 6.x
+//
+//						(c) 2005 Guillaume ROCHERON
+//						contact : guils_r@hotmail.com
+//
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+global proc FaceStudio3InitConsole ()
+{
+	global string $FaceStudio3Console;
+	if (`window -exists $FaceStudio3Console` )
+		deleteUI $FaceStudio3Console;	
+
+	window -tlb on -s off  -width 258 -height 450  -title "FaceStudio v.3.0 Startup Console" $FaceStudio3Console; 
+		frameLayout -lv off -h 100;
+		columnLayout -adjustableColumn false;
+			image -w 250 -h 350 -i (`internalVar -upd` + "icons/FaceStudio3/FaceStudio3.bmp") FS3initPic;
+			textScrollList -w 250 -h 70 FaceStudio3StartStatus;
+	showWindow $FaceStudio3Console;
+}
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+global proc FaceStudio3ConsoleMessage ( string $message )
+{
+	
+	global string $FaceStudio3Console;
+	if (`window -exists $FaceStudio3Console` == 0)
+		FaceStudio3InitConsole;
+			
+	textScrollList -e -append $message FaceStudio3StartStatus;
+	textScrollList -e -si $message FaceStudio3StartStatus;
+	image -e -w 250 -h 350 -i (`internalVar -upd` + "icons/FaceStudio3/FaceStudio3.bmp") FS3initPic;
+}
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+global proc FaceStudio3MainUI (string $obj)
+{
+	global string $FaceStudio3MainWindow;
+	global string $FaceStudio3ShapeWindow;
+	global string $FaceStudio3GroupWindow;
+	global string $gMainWindow;
+
+	string $FS3node[] = `listConnections ($obj + ".FaceStudio3Node")`;
+	string $FS3ShapeNode = `getAttr ($FS3node[0]+".shape")`;
+	string $FS3Shapes[] = `listAnimatable $FS3ShapeNode`;
+
+	select -r -ne $obj;
+
+	if (`window -exists $FaceStudio3MainWindow` )
+		deleteUI $FaceStudio3MainWindow;
+
+	window -dtg $obj -tlb off  -mxb off -s off -tlc 100 300 -width 830 -height 870 -menuBar true -bgc 0.6 0.6 0.6 -title "FaceStudio v.3.0  -  Animation Editor" $FaceStudio3MainWindow;
+ 		menu -label "File" -tearOff true;
+ 			menuItem -label "Reset UI Layout" -c "FaceStudio3ResetUIDialog";
+ 			menuItem -divider true; 		 				
+ 			menuItem -label "Open UI Layout" -c "FaceStudio3LoadDialog";
+ 			menuItem -label "Save UI Layout" -c "FaceStudio3SaveDialog";
+ 			menuItem -divider true;
+ 			menuItem -label "Exit" -c ("FaceStudio3ExitDialog");
+
+		menu -label "Module" -tearOff true;
+ 			menuItem -label "Animation Editor" -c "FaceStudio3Module 1";
+ 			//menuItem -label "Shapes Manager"  -c "FaceStudio3Module 2";
+ 			menuItem -label "Groups Manager"  -c "FaceStudio3Module 3";
+ 			//menuItem -divider true;
+ 			menuItem -label "Video Synchro" -c "FaceStudio3VideoWindow"; 		
+ 									
+ 		menu -label "Animation" -tearOff true fs3_animationMenu;
+ 			menuItem -label "Key All" -c "FaceStudio3KeyAll";
+ 			menuItem -label "Reset All Shapes" -c "FaceStudio3ResetAll";
+ 			menuItem -label "Remove All Keys" -c "FaceStudio3DeleteAllKey";
+ 			menuItem -divider true; 		 			
+			menuItem -label "Create Playblast" -c "FaceStudio3Playblast"; 					
+ 			
+ 		menu -label "Shapes" -en off -vis off -tearOff true fs3_shapeMenu;
+
+ 		menu -label "Groups" -en off -vis off -tearOff true fs3_groupMenu;
+
+ 		menu -label "Options"  -tearOff true -pmc ( "if (\`objExists FaceStudio3Sound\`) { menuItem -e -en on FS3remSoundMenu; } else { menuItem -e -en off FS3remSoundMenu; }");
+
+ 			menuItem -divider true; 		
+ 			menuItem -label "Auto Iconize" -c "FaceStudio3AutoIconizeDialog"; 		
+ 			menuItem -divider true; 		
+ 			menuItem -label "Include/Exclude object(s)" -c ( "FaceStudio3ObjectsUI " + $obj ); 		
+ 			menuItem -divider true; 		
+ 			menuItem -label "Edit Custom Functions" -c ( "FaceStudio3CustomButtonUI " + $obj ); 		
+ 			menuItem -divider true; 				
+			menuItem -label "View Settings" -c "FaceStudio3CameraSettingUI"; 					
+ 			menuItem -divider true; 
+ 			radioMenuItemCollection;		
+ 			menuItem -label "View : Wireframe" -rb 0 -c 	(
+									"modelEditor -e -displayAppearance wireframe FaceStudio3Pane"						
+ 									)
+ 									FS3bt_W;
+ 			menuItem -label "View : Shaded" -rb 1 -c	(
+									"modelEditor -e -displayAppearance smoothShaded -dtx off FaceStudio3Pane"						
+ 									)
+ 									FS3bt_S;
+ 			menuItem -label "View : Textured" -rb 0 -c	(
+									"modelEditor -e -displayAppearance smoothShaded -dtx on FaceStudio3Pane"						
+ 									)
+ 									FS3bt_T;
+ 			menuItem -divider true; 		
+ 			radioMenuItemCollection;		
+			menuItem -label "DopeSheet Editor" -rb 1 -c 	(
+									"frameLayout -e -vis on FSdope; frameLayout -e -vis off FSgraph"
+ 									)
+ 									FS3bt_GE;
+ 			menuItem -label "GraphEditor Editor" -rb 0 -c	(
+									"frameLayout -e -vis off FSdope; frameLayout -e -vis on FSgraph"
+ 									)
+ 									FS3bt_DS;
+			menuItem -divider true;
+			menuItem -label "Sound" -sm true;	
+ 				menuItem -label "Sound Settings" -c "FaceStudio3SoundSettingsWindow";
+				menuItem -label "Remove Sound" -c ("delete FaceStudio3Sound; setAttr -type \"string\"" + $FS3node[0] + ".sound \"\";" ) FS3remSoundMenu;
+				setParent ..;
+				
+ 			
+		menu -label "Help" -helpMenu true;
+ 			menuItem -label "Help" -c ( "launch -web ( \`internalVar -usd`\ + \"FaceStudio3/Documentation/FaceStudio3Manual.html\")" );
+ 			menuItem -label "About..." -c "FaceStudio3About";
+ 			
+
+		columnLayout -adjustableColumn false -bgc 0.6 0.6 0.6 fs3_GLOBALLAYOUT;
+
+			rowLayout -nc 4 -cw4 35 110 110 110 -bgc 0.4 0.25 0.15;
+					separator -st none -bgc 0.4 0.25 0.15;		
+					iconTextButton -ann "switch to wireframe view" -i1 ( `internalVar -upd`+ "icons/FaceStudio3/fs3_wire.bmp") -w 110 -h 25
+							-c (	"modelEditor -e -displayAppearance wireframe FaceStudio3Pane;" +
+								"menuItem -e -rb 1 FS3bt_W;" 
+							);
+					iconTextButton -ann "switch to shaded view" -i1 ( `internalVar -upd`+ "icons/FaceStudio3/fs3_shaded.bmp") -w 110 -h 25
+							-c (	"modelEditor -e -displayAppearance smoothShaded -dtx off FaceStudio3Pane;" +				
+								"menuItem -e -rb 1 FS3bt_S;" 								
+							);
+
+					rowLayout -nc 4 -cw4 110 48 48 500 -bgc 0.6 0.6 0.6;
+						iconTextButton -ann "switch to textured view" -i1 ( `internalVar -upd`+ "icons/FaceStudio3/fs3_textured.bmp") -w 110 -h 25
+								-c (	"modelEditor -e -displayAppearance smoothShaded -dtx on FaceStudio3Pane;" +
+									"menuItem -e -rb 1 FS3bt_T;"									
+								);
+						iconTextButton -ann "custom function : empty" -i1 ( `internalVar -upd`+ "icons/FaceStudio3/fs3_custom1.bmp") -w 48 -h 25 fs3_custom1;
+						iconTextButton -ann "custom function : empty" -i1 ( `internalVar -upd`+ "icons/FaceStudio3/fs3_custom2.bmp") -w 48 -h 25 fs3_custom2;
+						rowLayout -nc 5 -cw5 48 48 48 110 110 -bgc 0.6 0.6 0.6;
+							iconTextButton -ann "custom function : empty" -i1 ( `internalVar -upd`+ "icons/FaceStudio3/fs3_custom3.bmp") -w 48 -h 25 fs3_custom3;
+							iconTextButton -ann "custom function : empty" -i1 ( `internalVar -upd`+ "icons/FaceStudio3/fs3_custom4.bmp") -w 48 -h 25 fs3_custom4;
+							iconTextButton -ann "custom function : empty"- i1 ( `internalVar -upd`+ "icons/FaceStudio3/fs3_custom5.bmp") -w 48 -h 25 fs3_custom5;
+							iconTextButton -ann "creates an icon for the current shape" -i1 ( `internalVar -upd`+ "icons/FaceStudio3/fs3_iconize.bmp") -c "FaceStudio3Iconize" -w 110 -h 25;
+							iconTextButton -ann "auto-create icons for all shapes" -i1 ( `internalVar -upd`+ "icons/FaceStudio3/fs3_autoiconize.bmp") -w 110 -h 25 -c "FaceStudio3AutoIconizeDialog";
+						setParent ..;
+					setParent ..;
+			setParent ..;
+
+			rowLayout -nc 3 -cw3 35 330 455 -bgc 0.4 0.25 0.15 fs3row;
+				columnLayout -bgc  0.4 0.25 0.15;
+					iconTextButton -bgc 0.13 0.13 0.13 -ann "selection manipulator" -i1 ( `internalVar -upd`+ "icons/FaceStudio3/fs3_select.bmp") -w 35 -h 32 -c "SelectTool";
+					iconTextButton -bgc 0.13 0.13 0.13 -ann "translate manipulator" -i1 ( `internalVar -upd`+ "icons/FaceStudio3/fs3_move.bmp") -w 35 -h 32 -c "MoveTool";
+					iconTextButton -bgc 0.13 0.13 0.13 -ann "rotate manipulator" -i1 ( `internalVar -upd`+ "icons/FaceStudio3/fs3_rotate.bmp") -w 35 -h 32 -c "RotateTool";
+					iconTextButton -bgc 0.13 0.13 0.13 -ann "scale manipulator" -i1 ( `internalVar -upd`+ "icons/FaceStudio3/fs3_scale.bmp") -w 35 -h 32 -c "ScaleTool";	
+					iconTextButton -bgc 0.13 0.13 0.13 -ann "sound on" -i1 ( `internalVar -upd`+ "icons/FaceStudio3/fs3_soundon.bmp") -c "FaceStudio3SoundOnOff" -w 35 -h 32 fs3_soundonoff;	
+					iconTextButton -bgc 0.13 0.13 0.13 -ann "key selection" -i1 ( `internalVar -upd`+ "icons/FaceStudio3/fs3_keyselected.bmp") -c ( "if ( size (\`ls -sl\`) != 0 ) { setKeyframe; } ") -w 35 -h 32;	
+					iconTextButton -bgc 0.13 0.13 0.13 -ann "outliner" -i1 ( `internalVar -upd`+ "icons/FaceStudio3/fs3_outliner.bmp") -c "OutlinerWindow" -w 35 -h 32;	
+					iconTextButton -bgc 0.13 0.13 0.13 -ann "connection ed." -i1 ( `internalVar -upd`+ "icons/FaceStudio3/fs3_cnx.bmp") -c "ConnectionEditor" -w 35 -h 32;	
+					iconTextButton -bgc 0.13 0.13 0.13 -ann "expression ed." -i1 ( `internalVar -upd`+ "icons/FaceStudio3/fs3_exp.bmp") -c "ExpressionEditor" -w 35 -h 32;	
+
+					iconTextButton -i1 ( `internalVar -upd`+ "icons/FaceStudio3/fs3_max.bmp") 
+							-w 35 -h 32 -bgc 0.13 0.13 0.13 
+							-c ( "window -e -tlc 0 0 " + $gMainWindow )
+							-ann "Show Maya main window"
+								;
+					iconTextButton -i1 ( `internalVar -upd`+ "icons/FaceStudio3/fs3_min.bmp") 
+							-w 35 -h 32 -bgc 0.13 0.13 0.13 
+							-c ( "window -e -tlc 0 10000 " + $gMainWindow )
+							-ann "Hide Maya main window"
+								;	
+			setParent ..;
+
+				if ( `paneLayout -exists FaceStudio3Pane`)
+					deleteUI FaceStudio3Pane;
+					
+				paneLayout -w 330 -h 434 FaceStudio3Pane;
+					modelEditor 	-cam "FaceStudio3View" 
+							-vs on
+							-grid 0
+							-cameras 0
+							-displayAppearance "smoothShaded"
+							-displayTextures off 
+							FaceStudio3Pane;
+ 					setParent ..;
+ 				columnLayout -bgc 0.6 0.6 0.6 ShapeLayout;
+					frameLayout -h 434 -p ShapeLayout -l "All Shapes List" ShapeLayout1;
+						scrollLayout -bgc 0.5 0.65 0.8  -cr true -w 455 -h 400 ScrollBlend;
+							columnLayout -p ScrollBlend ColBlend;
+								int $FS3nShapes = size ($FS3Shapes);
+								 $FS3nShapes = `max  $FS3nShapes 5`;
+								gridLayout -bgc 0.5 0.65 0.8 -nc 5 -nr ($FS3nShapes / 5) -cw 87 -ch 130 GridBlend;
+ 								for ($i=1;$i<size($FS3Shapes);$i++)
+								{
+				
+									columnLayout -bgc 0.5 0.65 0.8 -p GridBlend -h 40 -adjustableColumn false ( "ColNodes" + $i );
+										columnLayout -bgc 0.5 0.65 0.8 -adjustableColumn false ( "ColIcon" + $i );
+										string $FS3nomShape = `substitute ( $FS3ShapeNode + "." ) $FS3Shapes[$i] ""`;
+										iconTextButton 	-l $FS3nomShape
+											-c ( "setAttr -type \"string\" " + $FS3node[0] + ".CurrentBlend \"" + $i + "\";")
+											-dcc ("if (\`getAttr " + $FS3Shapes[$i] + "\` == 1 ) { setAttr " + $FS3Shapes[$i] + " 0; } else { setAttr " + $FS3Shapes[$i] + " 1;}")
+											-ann ( `substitute ( $FS3ShapeNode + "." )$FS3Shapes[$i] ""`)
+											-style "iconAndTextVertical" -w 87 -h 87
+											-image1 ( `internalVar -upd` + "icons/FaceStudio3/fs3_noIcon.bmp" )
+											("BlendButton" + $i);
+										setParent ..;
+																		
+										columnLayout -bgc 0.5 0.65 0.8 -adjustableColumn false ( "ColShapeTools" + $i );
+										attrFieldSliderGrp -bgc 0.5 0.65 0.8 -pre 2 -cw 1 1 -cw 2 30 -cw 3 55 -min 0 -max 1 -l "" -at $FS3Shapes[$i] -cc ("setAttr -type \"string\" " + $FS3node[0] + ".CurrentBlend \"" + $i +"\"") ("FSctrl" + $i);	
+										rowLayout -nc 5 -cw5 15 15 15 15 15 -bgc 0.5 0.65 0.8 -p ( "ColNodes" + $i );
+										separator -st none -w 10 -h 10 -bgc 0.5 0.65 0.8 ;
+										iconTextButton -w 15 -h 15 -bgc 1 0.3 0.3  -i1 ( `internalVar -upd`+ "icons/FaceStudio3/fs3_key.bmp") -ann "Add keyframe" -c ("setKeyframe " + $FS3Shapes[$i]) ( "fs3_keyshape" + $i );
+										iconTextButton -w 15 -h 15 -bgc 0.8 0.7 0.7 -i1 ( `internalVar -upd`+ "icons/FaceStudio3/fs3_autokeyoff.bmp") -ann "Auto Key : off" -c ("FaceStudio3AutoKey " + $i + " fs3_autokey" + $i )("fs3_autokey" + $i);
+										iconTextButton -w 15 -h 15 -bgc 0.8 0.5 0.5 -i1 ( `internalVar -upd`+ "icons/FaceStudio3/fs3_removekey.bmp") -ann "Remove all shape keys" -c ("FaceStudio3DeleteKey " + $i ) ("fs3_delkey" + $i);
+										iconTextButton -w 15 -h 15 -bgc 0.9 0.9 1 -i1 ( `internalVar -upd`+ "icons/FaceStudio3/fs3_customize.bmp") -ann "Customize shape icon" -c ( "FaceStudio3CustomizeIcons " + $i ) ("fs3_customkey" + $i);
+										setParent ..;
+
+								}
+ 								setParent ..;
+					setParent fs3row;
+					setParent ..;				
+
+			// ANIMATION ED. TOOLS
+			
+			columnLayout -bgc 0.6 0.6 0.6 -p fs3_GLOBALLAYOUT fs3_AETOOLS;
+			
+			rowLayout -nc 5 -cw5 35 110 110 110 110 -bgc 0.4 0.25 0.15;
+				separator -st none -bgc 0.4 0.25 0.15;		
+				iconTextButton -c ( "FaceStudio3ObjectsUI " + $obj ) -ann "Add/Remove objects to the FaceStudio view" -i1 ( `internalVar -upd`+ "icons/FaceStudio3/fs3_include.bmp") -w 110 -h 25;
+				iconTextButton -ann "Make a playblast of the face" -i1 ( `internalVar -upd`+ "icons/FaceStudio3/fs3_playblast.bmp") -c "FaceStudio3Playblast" -w 110 -h 25;
+				iconTextButton -ann "Adjust FaceStudio camera" -i1 ( `internalVar -upd`+ "icons/FaceStudio3/fs3_settings.bmp") -w 110 -h 25 -c "FaceStudio3CameraSettingUI";
+				rowLayout -nc 5 -cw5 67 67 110 110 110 -bgc 0.6 0.6 0.6;
+					iconTextButton -ann "Switch to graphEditor" -i1 ( `internalVar -upd`+ "icons/FaceStudio3/fs3_grapheditor.bmp") -w 67 -h 25
+							-c "frameLayout -e -vis off FSdope; frameLayout -e -vis on FSgraph";
+					iconTextButton -ann "Switch to dopeSheet" -i1 ( `internalVar -upd`+ "icons/FaceStudio3/fs3_dopesheet.bmp") -w 67 -h 25
+							-c "frameLayout -e -vis on FSdope; frameLayout -e -vis off FSgraph";
+					iconTextButton -ann "Key all shapes" -i1 ( `internalVar -upd`+ "icons/FaceStudio3/fs3_keyall.bmp") -w 110 -h 25 -c "FaceStudio3KeyAll";
+					iconTextButton -ann "Set all shapes to 0" -i1 ( `internalVar -upd`+ "icons/FaceStudio3/fs3_resetall.bmp") -w 110 -h 25 -c "FaceStudio3ResetAll";
+					iconTextButton -ann "Delete all shapes keys" -i1 ( `internalVar -upd`+ "icons/FaceStudio3/fs3_deleteall.bmp") -w 110 -h 25 -c "FaceStudio3DeleteAllKey";
+				setParent ..;
+			setParent ..;
+				
+			rowLayout -nc 2 -cw2 600 230;
+				columnLayout fs3time;
+					frameLayout -label " Time Attributes :"  -w 600 -h 310 FSdope;
+						if ( `scriptedPanel -ex fs3_dope` == 1 )
+							deleteUI fs3_dope;
+						
+						if ( `scriptedPanel -ex fs3_graph` == 1 )
+							deleteUI fs3_graph;
+						
+						select -r -ne $FS3ShapeNode;
+						string $DopeSheetPane = `scriptedPanel -typ dopeSheetPanel fs3_dope` ;
+
+						toggleAutoLoad ($DopeSheetPane + "OutlineEd") 0;
+						dopeSheetEditor -e -hb off ($DopeSheetPane + "DopeSheetEd");
+
+						setParent fs3time;
+					frameLayout -vis off -label " Time Attributes :"  -w 600 -h 310 FSgraph;
+						string $GraphEditorPane = `scriptedPanel -typ graphEditor fs3_graph` ; 
+						toggleAutoLoad ($GraphEditorPane + "OutlineEd") 0;
+						select -cl;
+						setParent fs3time; setParent ..;
+					
+					columnLayout -adjustableColumn true fs3groups;
+						frameLayout -p fs3groups -w 200 -h 115 -l "Eyes Control" EyeFrameLayout;
+							columnLayout -p EyeFrameLayout -h 140  -bgc 0.6 0.4 0.1 fs3colEye;
+								rowLayout -p fs3colEye -h 90  -bgc 0.6 0.4 0.1 -nc 2 -cw2 85 120 fs3eyerow1;
+									columnLayout -p fs3eyerow1  -bgc 0.6 0.4 0.1;
+										separator -st none -h 8 -bgc 0.6 0.4 0.1;
+										iconTextButton 	-l "Eyes Control"
+												-c ( "")
+												-ann "Eyes Control"
+												-style "iconAndTextVertical" -w 87 -h 87
+												-image1 ( `internalVar -upd` + "icons/FaceStudio3/fs3_eye.bmp" )
+												("EyeButton");								
+									setParent ..;
+									columnLayout -p fs3eyerow1 -bgc 0.6 0.4 0.1;
+										separator -st none -w 200 -h 8 -bgc 0.6 0.4 0.1;
+										iconTextButton 	-ann "switch to wireframe view" -i1 ( `internalVar -upd`+ "icons/FaceStudio3/fs3_linkeye.bmp") -w 136 -h 20
+												-c "FaceStudio3LinkEyeSliders";			
+
+										separator -st none -w 200 -h 8 -bgc 0.6 0.4 0.1;
+
+										rowLayout -h 50 -bgc 0.6 0.4 0.1 -nc 2 -cw2 90 120 fs3eyerow1;
+											attrFieldSliderGrp -l "" -bgc 0.6 0.4 0.1 -pre 2 -cw 1 1 -cw 2 33 -cw 3 55 -min 0 -max 1 ("FShorieye");	
+											columnLayout -p fs3eyerow1 -bgc 0.6 0.4 0.1;
+												rowLayout -bgc 0.6 0.4 0.1 -nc 3 -cw3 15 15 15;
+													iconTextButton -w 15 -h 15 -bgc 0.6 0.4 0.1  -i1 ( `internalVar -upd`+ "icons/FaceStudio3/fs3_key.bmp") -ann "Set Key" -c ("FaceStudioKeyEye hori");
+													iconTextButton -w 15 -h 15 -bgc 0.6 0.4 0.1  -i1 ( `internalVar -upd`+ "icons/FaceStudio3/fs3_autokeyoff.bmp") -ann "Auto Key : off" -c ("FaceStudioAutoKeyEye hori") FS3autokeyhori;
+													iconTextButton -w 15 -h 15 -bgc 0.6 0.4 0.1  -i1 ( `internalVar -upd`+ "icons/FaceStudio3/fs3_removekey.bmp") -ann "Remove Keys" -c ("FaceStudioRemoveKeyEye hori");	
+												setParent ..;
+											setParent ..;
+										setParent ..;
+										separator -st none -w 200 -h 8 -bgc 0.6 0.4 0.1;
+
+										rowLayout -h 50 -bgc 0.6 0.4 0.1 -nc 2 -cw2 90 120 fs3eyerow2;
+											attrFieldSliderGrp -l "" -bgc 0.6 0.4 0.1 -pre 2 -cw 1 1 -cw 2 33 -cw 3 55 -min 0 -max 1 ("FSvertieye");	
+											columnLayout -p fs3eyerow2 -bgc 0.6 0.4 0.1;
+												rowLayout -bgc 0.6 0.4 0.1 -nc 3 -cw3 15 15 15;
+													iconTextButton -w 15 -h 15 -bgc 0.6 0.6 0.6  -i1 ( `internalVar -upd`+ "icons/FaceStudio3/fs3_key.bmp") -ann "Set Key" -c ("FaceStudioKeyEye verti");
+													iconTextButton -w 15 -h 15 -bgc 0.6 0.6 0.6  -i1 ( `internalVar -upd`+ "icons/FaceStudio3/fs3_autokeyoff.bmp") -ann "Auto Key : off" -c ("FaceStudioAutoKeyEye verti") FS3autokeyverti;
+													iconTextButton -w 15 -h 15 -bgc 0.6 0.6 0.6  -i1 ( `internalVar -upd`+ "icons/FaceStudio3/fs3_removekey.bmp") -ann "Remove Keys" -c ("FaceStudioRemoveKeyEye verti");	
+												setParent ..;	
+											setParent ..;
+										setParent ..;
+									setParent ..;
+
+						frameLayout -p fs3groups -h 196 -l "Shapes Groups" GroupFrameLayout;
+							scrollLayout -bgc 0.4 0.7 0.5  -cr true -w 220 -h 310 ScrollGroup;
+							columnLayout -bgc 0.4 0.7 0.5 -p ScrollGroup fs3group;
+								gridLayout -bgc 0.4 0.7 0.5 -nc 3 -nr 5 -cw 65 -ch 80 GridGroup;
+									columnLayout -bgc 0.4 0.7 0.5 -p GridGroup -w 65 -h 50 -adjustableColumn true ( "ColGroup1");
+										iconTextButton 	-l ("All Shapes") -bgc 0.4 0.7 0.5
+												-style "iconAndTextVertical" -w 50 -h 50
+												-image1 ( `internalVar -upd` + "icons/FaceStudio3/fs3_selgroup.bmp" )
+												-c ("FaceStudio3ShowGroupLayout 1; frameLayout -e -vis on ShapeLayout1;iconTextButton -e -i1 ( \`internalVar -upd\` + \"icons/FaceStudio3/fs3_selgroup.bmp\" ) groupButton1" )
+												groupButton1; 
+
+										text -bgc 0.4 0.7 0.5 -l "All Shapes";
+									setParent ..;
+									
+						setParent fs3time;
+						setParent ..;
+				setParent ..;
+				rowLayout -nc 5 -cw5 50 663 50 30 30;
+					rowLayout -nc 2 -cw2 20 30;					
+						iconTextButton  -i1  ( `internalVar -upd`+ "icons/FaceStudio3/fs3_switchS.bmp")  -w 20 -h 30 -c "FaceStudio3SwitchPort" FS3switchPort;
+						intFieldGrp -w 30 -h 30 -v1 `playbackOptions -q -ast`  -cc ("playbackOptions -e -min \`intFieldGrp -q -v1 fs3_st\` -ast \`intFieldGrp -q -v1 fs3_st\`") fs3_st;
+						setParent ..;
+					columnLayout -adjustableColumn true FS3barLayout;
+							columnLayout -adjustableColumn true FS3timeLayout;
+							timePort -bgc 0.6 0.6 0.6 -w 663 -h 30 -gt true FS3timePort;
+							setParent ..;
+
+							columnLayout -adjustableColumn true -vis off FS3soundLayout;
+ 							soundControl -width 663 -height 30 -displaySound false -waveform both -pc "soundControl -e -beginScrub FS3scrubPort" -rc "soundControl -e -endScrub FS3scrubPort" FS3scrubPort;							
+ 							setParent ..;
+ 							
+						setParent ..;
+						
+					intFieldGrp -w 50 -h 30 -v1 `playbackOptions -q -aet` -cc ("playbackOptions -e -max \`intFieldGrp -q -v1 fs3_et\` -aet \`intFieldGrp -q -v1 fs3_et\`") fs3_et;
+
+					iconTextButton -ann "Play backward" -i1 ( `internalVar -upd`+ "icons/FaceStudio3/fs3_playback.bmp") -w 30 -h 30
+							-c "modelEditor -e -av FaceStudio3Pane;playButtonBackward";
+					iconTextButton -ann "Play foward" -i1 ( `internalVar -upd`+ "icons/FaceStudio3/fs3_playfoward.bmp") -w 30 -h 30
+							-c "modelEditor -e -av FaceStudio3Pane;playButtonForward";
+
+				setParent fs3_AETOOLS;
+		
+/*				
+			// SHAPE ED. TOOLS
+			
+				columnLayout -bgc 0.6 0.6 0.6 -p fs3_GLOBALLAYOUT fs3_SETOOLS;
+					separator -st none -h 40 -bgc 0.6 0.6 0.6;
+						rowLayout -nc 4 -cw4 180 130 180 300 -bgc 0.6 0.6 0.6;
+								rowLayout -nc 2 -cw2 50 100 -bgc 0.6 0.6 0.6;
+									separator -st none -h 40 -bgc 0.6 0.6 0.6;			
+									columnLayout -adjustableColumn true -bgc 0.6 0.6 0.6;
+										image -i (`internalVar -upd` + "icons/FaceStudio3/fs3_noIcon.bmp") -w 87 -h 87 FS3ShapeManagerCurrentPic;
+										text -l "none selected" -bgc 0.6 0.6 0.6 FS3ShapeManagerIndicCurrentShape;
+										setParent ..;
+									setParent ..;
+								columnLayout -bgc 0.6 0.6 0.6;
+										button -l "EDIT mode" -w 90 -h 30 -c ( "button -e -en on FS3objMode;  button -e -en on FS3vtxMode;  button -e -en on FS3faceMode");
+										button -l "VIEW mode" -w 90 -h 30 -c ( "button -e -en off FS3objMode;  button -e -en off FS3vtxMode;  button -e -en off FS3faceMode");
+										separator -st none -h 10 -bgc 0.6 0.6 0.6;
+										rowLayout -nc 3 -cw3 30 30 30 -bgc 0.6 0.6 0.6;
+											button -l "OBJ" -en off -w 30 -h 30 FS3objMode;
+											button -l "VTX" -en off -w 30 -h 30 FS3vtxMode;
+											button -l "FACE" -en off -w 30 -h 30 FS3faceMode;
+											setParent ..;
+										button -l "UNDO" -w 90 -h 25 -c "undo";
+									setParent ..;
+								columnLayout -bgc 0.6 0.6 0.6;
+									button -l "RESET TO NEUTRAL" -w 150 -h 30;
+									button -l "STORE CURRENT STATE" -w 150 -h 30;
+									button -l "SET STORED STATE" -w 150 -h 30;
+									setParent ..;
+								
+								frameLayout -lv off  -w 270 -h 300 -bgc 0.6 0.6 0.6;
+									columnLayout -adjustableColumn true -bgc 0.6 0.6 0.6;
+										text -l "SHAPE LIBRARY EDITION" -bgc 0.6 0.6 0.6;
+										separator -st none -h 10 -bgc 0.6 0.6 0.6;
+										button -l "CREATE NEW SHAPE" -w 260 -h 30;
+										button -l "UPDATE CURRENT SHAPE" -w 260 -h 30;
+										button -l "DELETE CURRENT SHAPE" -w 260 -h 30; 
+										setParent ..;
+									setParent ..;
+
+								
+				//setParent ..;
+*/			
+			// GROUP ED. TOOLS
+
+				columnLayout -bgc 0.6 0.6 0.6 -p fs3_GLOBALLAYOUT fs3_GETOOLS;
+					separator -st none -h 1 -bgc 0.6 0.6 0.6;
+					rowLayout -nc 3 -cw3 276 276 276 -p fs3_GETOOLS;
+						columnLayout -w 276 -bgc 0.6 0.6 0.6 -adjustableColumn false;
+							image -i ( `internalVar -upd` + "icons/FaceStudio3/fs3_groupmenu1.bmp") -w 276 -h 25;
+							separator -st none -h 1 -w 276 -bgc 0.6 0.6 0.6;
+							rowLayout -nc 2 -cw2 32 244  -bgc 0.6 0.6 0.6;
+								separator  -bgc 0.6 0.6 0.6 -st none -w 32;
+								columnLayout;
+									textScrollList -ams true -w 244 -h 310 fs3_shapeList;
+									iconTextButton -ann "Add to group" -i1 ( `internalVar -upd`+ "icons/FaceStudio3/fs3_groupadd.bmp") -w 244 -h 25
+											-c "FaceStudio3AddToGroup";
+									for ($i=1;$i<size($FS3Shapes);$i++)
+									{
+										textScrollList -e -append ( `substitute ( $FS3ShapeNode + "." )$FS3Shapes[$i] ""`) fs3_shapeList;	
+									}
+								setParent ..; setParent ..;
+						setParent ..;
+
+						columnLayout -w 276 -bgc 0.6 0.6 0.6 -adjustableColumn false;
+							image -i ( `internalVar -upd` + "icons/FaceStudio3/fs3_groupmenu2.bmp") -w 276 -h 25;
+							separator -st none -h 1 -w 276 -bgc 0.6 0.6 0.6;						
+							textScrollList -w 276 -h 310 -sc "FaceStudio3ShowGroupList" fs3_groupsList;
+							rowLayout -nc 3 -cw3 92 92 92;
+								iconTextButton -ann "Create a group" -i1 ( `internalVar -upd`+ "icons/FaceStudio3/fs3_groupcreate.bmp") -w 92 -h 25
+										-c "FaceStudio3GroupCreateUI";
+								iconTextButton -ann "Rename a group" -i1 ( `internalVar -upd`+ "icons/FaceStudio3/fs3_grouprename.bmp") -w 92 -h 25
+										-c "FaceStudio3GroupRenameUI";
+								iconTextButton -ann "Delete a group" -i1 ( `internalVar -upd`+ "icons/FaceStudio3/fs3_groupdelete.bmp") -w 92 -h 25
+										-c "FaceStudio3GroupDelete";
+								setParent ..;
+
+						setParent ..;
+
+						columnLayout -w 276 -bgc 0.6 0.6 0.6 -adjustableColumn false;
+							image -i ( `internalVar -upd` + "icons/FaceStudio3/fs3_groupmenu3.bmp") -w 276 -h 25;
+							separator -st none -h 1 -w 276 -bgc 0.6 0.6 0.6;						
+							textScrollList -w 276 -h 310 fs3_memberList;
+							rowLayout -nc 3 -cw3 194 39 39;
+								iconTextButton -ann "Rem from group" -i1 ( `internalVar -upd`+ "icons/FaceStudio3/fs3_grouprem.bmp") -w 194 -h 25
+										-c "FaceStudio3RemFromGroup";
+								iconTextButton -ann "Move up" -i1 ( `internalVar -upd`+ "icons/FaceStudio3/fs3_groupup.bmp") -w 39 -h 25
+										-c "";
+								iconTextButton -ann "Move down" -i1 ( `internalVar -upd`+ "icons/FaceStudio3/fs3_groupdown.bmp") -w 39 -h 25
+										-c "";
+								setParent ..;
+	
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+global proc FaceStudio3VideoWindow ()
+{
+	global string $FaceStudio3MainWindow;
+	global string $gAECurrentTab;
+
+	string $FaceStudio3VideoWindow = "FaceStudio3VideoWindow";
+	
+	string $obj = `window -q -dtg $FaceStudio3MainWindow`;
+	string $FS3node[] = `listConnections ($obj + ".FaceStudio3Node")`;
+	
+	string $defaultVideo = `getAttr ($FS3node[0] + ".video")`;
+	int $useFrameExt = `getAttr ($FS3node[0] + ".videoExt")`;
+	int $videoOffset = `getAttr ($FS3node[0] + ".videoOffset")`;
+
+	if (`window -exists $FaceStudio3VideoWindow` == 0 )
+	{
+		if (`objExists FaceStudio3VideoCam` == 0 )
+		{
+			camera;
+			rename FaceStudio3VideoCam;
+			createNode "imagePlane";
+			rename FaceStudio3VideoPlane;
+			connectAttr FaceStudio3VideoPlane.message FaceStudio3VideoCamShape.imagePlane[0];	
+			setAttr FaceStudio3VideoPlane.displayOnlyIfCurrent on;
+			setAttr FaceStudio3VideoPlane.displayMode 2;
+			setAttr -type "string" FaceStudio3VideoPlane.imageName $defaultVideo;
+			setAttr "FaceStudio3VideoCam.v" 0;
+			setAttr "FaceStudio3VideoPlane.useFrameExtension" $useFrameExt;
+			setAttr "FaceStudio3VideoPlane.frameOffset" $videoOffset;
+		}
+		
+		select -r -ne FaceStudio3VideoCam;
+		window -t "FaceStudio v.3.0  -  Video Reference View" -menuBar true -w 300 -h 250 $FaceStudio3VideoWindow;
+		menu -l "Video";
+			menuItem -l "Video Settings" -c "FaceStudio3VideoSettingsWindow";
+			menuItem -l "Close" -c ("window -e -vis off " + $FaceStudio3VideoWindow ) ;
+
+		frameLayout -labelVisible off;
+			modelEditor 	-cam "FaceStudio3VideoCam" -ca true
+					-grid 0
+					-vs 1;
+		select -cl;
+	}
+	showWindow $FaceStudio3VideoWindow;
+	select -r FaceStudio3VideoCam;
+	ShowAttributeEditorOrChannelBox;
+	commitAENotes($gAECurrentTab);window -e -vis 0 AEWindow;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+global proc FaceStudio3VideoSettingsWindow ()
+{	
+	global string $FaceStudio3MainWindow;
+
+	string $obj = `window -q -dtg $FaceStudio3MainWindow`;
+	string $FS3node[] = `listConnections ($obj + ".FaceStudio3Node")`;
+	
+	string $video = `getAttr ( $FS3node[0] + ".video" )`;
+	string $defaultVideo = ( `internalVar -upd` + "icons/FaceStudio3/fs3_video.bmp");
+
+	if ( $video == $defaultVideo )
+		{ $video = "none"; }
+	
+	string $FaceStudio3VideoSettingsWindow = "FaceStudio3VideoSettingsWindow";
+	if (`window -exists $FaceStudio3VideoSettingsWindow` )
+		deleteUI $FaceStudio3VideoSettingsWindow;	
+		
+	window -tlb off -s off  -width 550 -height 185 -bgc 0.6 0.6 0.6 -title "FaceStudio v.3.0  -  Video Settings" $FaceStudio3VideoSettingsWindow; 	
+		columnLayout -bgc 0.6 0.6 0.6 -adjustableColumn true;
+			separator -st none -h 30 -bgc 0.6 0.6 0.6;
+			rowLayout -nc 3 -cw3 55 435 50;
+				text -h 22 -bgc 0.6 0.6 0.6 -l "Sequence  ";
+				textField -tx $video -en off -w 435 fs3_video;
+				button -l "     ..." -w 52 -bgc 1 1 1.0 -c "FaceStudio3PickVideo";
+			setParent ..;
+			separator -st none -h 15 -bgc 0.6 0.6 0.6;
+			checkBoxGrp -cw2 170 100 -l "Use Frame Extension" -v1 (`getAttr "FaceStudio3VideoPlane.useFrameExtension"`) -bgc 0.6 0.6 0.6 fs3_frameExt;
+			separator -st none -h 8 -bgc 0.6 0.6 0.6;
+			intFieldGrp -cw2 97 50 -l "Offset" -v1 (`getAttr "FaceStudio3VideoPlane.frameOffset"`) -bgc 0.6 0.6 0.6 fs3_offset;
+			separator -st none -h 15 -bgc 0.6 0.6 0.6;
+			rowLayout -nc 2 -cw2 275 275;
+				columnLayout;
+					button -l "Apply" -w 275 -h 30 -bgc 1 1 1 -c ("FaceStudio3ApplyVideoSettings; window -e -vis off " + $FaceStudio3VideoSettingsWindow);
+				setParent ..;
+				columnLayout;
+					button -l "Cancel" -w 275 -h 30 -bgc 1 1 1 -c ("window -e -vis off " + $FaceStudio3VideoSettingsWindow);
+				setParent ..;
+	showWindow $FaceStudio3VideoSettingsWindow;
+	
+}
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+global proc FaceStudio3SoundSettingsWindow ()
+{	
+	global string $FaceStudio3MainWindow;
+
+	string $obj = `window -q -dtg $FaceStudio3MainWindow`;
+	string $FS3node[] = `listConnections ($obj + ".FaceStudio3Node")`;
+	
+	string $FS3sound = `getAttr ( $FS3node[0] + ".sound" )`;
+	int $FS3soundOffset = `getAttr ( $FS3node[0] + ".soundOffset" )`;
+	
+	if ( $FS3sound == "" )
+		{ $FS3sound = "none"; }
+	
+	string $FaceStudio3SoundSettingsWindow = "FaceStudio3SoundSettingWindow";
+	if (`window -exists $FaceStudio3SoundSettingsWindow` )
+		deleteUI $FaceStudio3SoundSettingsWindow;	
+		
+	window -tlb off -s off  -width 550 -height 165 -bgc 0.6 0.6 0.6 -title "FaceStudio v.3.0  -  Sound Settings" $FaceStudio3SoundSettingsWindow; 	
+		columnLayout -bgc 0.6 0.6 0.6 -adjustableColumn true;
+			separator -st none -h 30 -bgc 0.6 0.6 0.6;
+			rowLayout -nc 3 -cw3 55 435 50;
+				text -h 22 -bgc 0.6 0.6 0.6 -l "   Sound    ";
+				textField -tx $FS3sound -en off -w 435 fs3_sound;
+				button -l "     ..." -w 52 -bgc 1 1 1.0 -c "FaceStudio3PickSound";
+			setParent ..;
+			separator -st none -h 15 -bgc 0.6 0.6 0.6;
+			intFieldGrp -cw2 97 50 -l "Offset" -v1 $FS3soundOffset -bgc 0.6 0.6 0.6 fs3_soundOffset;
+			separator -st none -h 15 -bgc 0.6 0.6 0.6;
+			rowLayout -nc 2 -cw2 275 275;
+				columnLayout;
+					button -l "Apply" -w 275 -h 30 -bgc 1 1 1 -c ("FaceStudio3ApplySoundSettings; window -e -vis off " + $FaceStudio3SoundSettingsWindow);
+				setParent ..;
+				columnLayout;
+					button -l "Cancel" -w 275 -h 30 -bgc 1 1 1 -c ("window -e -vis off " + $FaceStudio3SoundSettingsWindow);
+				setParent ..;
+	showWindow $FaceStudio3SoundSettingsWindow;
+	
+}
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+global proc FaceStudio3ObjectsUI (string $obj)
+{
+	
+	string $FS3listObj[] = `ls -g`;
+	$FS3listObj = `sort $FS3listObj`;
+	
+	string $FaceStudio3ObjectsWindow = "FaceStudio3ObjectsWindow";
+	if (`window -exists $FaceStudio3ObjectsWindow` )
+		deleteUI $FaceStudio3ObjectsWindow;	
+	window -tlb off -s off  -width 550 -height 340 -bgc 0.6 0.6 0.6 -title "FaceStudio v.3.0  -  Viewed Objects" $FaceStudio3ObjectsWindow; 	
+		columnLayout -bgc 0.6 0.6 0.6 -adjustableColumn true;
+			separator -bgc 0.6 0.6 0.6 -st none -h 10;
+			rowLayout -bgc 0.6 0.6 0.6 -nc 3 -cw3 245 50 250;
+				columnLayout -w 245 -adjustableColumn true -bgc 0.6 0.6 0.6;
+					text -l "Scene Objects" -bgc 0.6 0.6 0.6;
+					textScrollList -ams true -w 245 -h 240 FS3listObj;
+					for ( $i=0;$i<size($FS3listObj);$i++ )
+					{
+						string $objShape[] = `listRelatives -p $FS3listObj[$i]`;
+						if ( $objShape[0] != "" )
+						{
+							textScrollList -e -w 245 -h 240 -append $objShape[0] FS3listObj;
+						}
+						else
+						{
+							textScrollList -e -w 245 -h 240 -append $FS3listObj[$i] FS3listObj;
+						}
+					}
+				setParent ..;
+				columnLayout  -bgc 0.6 0.6 0.6;
+					separator -st none -h 80  -bgc 0.6 0.6 0.6;
+					button 	-ann "add objects to view" -l ">>" -w 50 -h 50 -bgc 1 1 1
+						-c "FaceStudio3AddToList";
+					
+					button -ann "remove objects from view" -l "<<" -w 50 -h 50 -bgc 1 1 1
+						-c "FaceStudio3RemFromList";
+
+				setParent ..;					
+				columnLayout -adjustableColumn true -bgc 0.6 0.6 0.6;
+					text -l "Viewed Objects" -bgc 0.6 0.6 0.6;	
+					textScrollList -ams true -w 245 -h 240 FS3viewObj;
+				setParent ..;	
+			setParent ..;
+			separator -st none -h 5 -bgc 0.6 0.6 0.6;
+			rowLayout -nc 2 -cw2 274 274;
+				columnLayout -adjustableColumn true;
+					button -l "Apply" -w 274 -h 40 -bgc 1 1 1 -c ("FaceStudio3DisplayObjects;window -e -vis off " + $FaceStudio3ObjectsWindow) ;				
+				setParent ..;
+				columnLayout -adjustableColumn true;
+					button -l "Cancel" -w 274 -h 40 -bgc 1 1 1 -c ("window -e -vis off " + $FaceStudio3ObjectsWindow);				
+				setParent ..;
+	
+	FaceStudio3FilterObjectList;
+	showWindow $FaceStudio3ObjectsWindow;
+}
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+global proc FaceStudio3CustomParentUI ()
+{
+	string $FS3listObj[] = `ls -g`;
+	$FS3listObj = `sort $FS3listObj`;
+	
+	string $FS3listJoint[] = `ls -type "joint"`;
+	$FS3listJoint = `sort $FS3listJoint`;
+
+	string $FaceStudio3CustomParentWindow = "FaceStudio3CustomParentWin";
+	if (`window -exists $FaceStudio3CustomParentWindow` )
+		deleteUI $FaceStudio3CustomParentWindow;	
+	window -tlb off -s off  -width 280 -height 340 -bgc 0.6 0.6 0.6 -title "FaceStudio v.3.0  -  View parent" $FaceStudio3CustomParentWindow; 		
+		columnLayout -bgc 0.6 0.6 0.6 -adjustableColumn true;
+			separator -bgc 0.6 0.6 0.6 -st none -h 10;
+			textScrollList -ams false -w 247 -h 240 FS3parentObj;
+
+			for ( $i=0;$i<size($FS3listJoint);$i++ )
+			{
+				textScrollList -e -w 277 -h 240 -append $FS3listJoint[$i] FS3parentObj;
+			}
+
+			for ( $i=0;$i<size($FS3listObj);$i++ )
+			{
+				string $objShape[] = `listRelatives -p $FS3listObj[$i]`;
+				if ( $objShape[0] != "" )
+				{
+					textScrollList -e -w 277 -h 240 -append $objShape[0] FS3parentObj;
+				}
+			}
+		textScrollList -e -sii 1 FS3parentObj;
+		separator -st none -h 5 -bgc 0.6 0.6 0.6;
+		rowLayout -nc 3 -cw3 92 92 92;
+			columnLayout -adjustableColumn true;
+				button -l "Apply" -w 92 -h 40 -bgc 1 1 1 -c ("FaceStudio3CustomParent 1;window -e -vis off " + $FaceStudio3CustomParentWindow) ;				
+				setParent ..;
+			columnLayout -adjustableColumn true;
+				button -l "Auto" -w 92 -h 40 -bgc 1 1 1 -c ("FaceStudio3CustomParent 2;window -e -vis off " + $FaceStudio3CustomParentWindow) ;				
+				setParent ..;
+			columnLayout -adjustableColumn true;
+				button -l "Cancel" -w 92 -h 40 -bgc 1 1 1 -c ("window -e -vis off " + $FaceStudio3CustomParentWindow);				
+				setParent ..;
+				
+	showWindow $FaceStudio3CustomParentWindow;
+}
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+global proc FaceStudio3CustomButtonUI (string $obj)
+{
+	string $FaceStudio3CustomButtonWindow = "FaceStudio3CustomButton_window";
+	if (`window -exists $FaceStudio3CustomButtonWindow` )
+		deleteUI $FaceStudio3CustomButtonWindow;	
+
+	window -tlb off -s off  -width 550 -height 256 -bgc 0.6 0.6 0.6 -title "FaceStudio v.3.0  - Custom Functions Buttons" $FaceStudio3CustomButtonWindow; 	
+		columnLayout -bgc 0.6 0.6 0.6 -adjustableColumn true;
+			separator -bgc 0.6 0.6 0.6 -st none -h 20;
+			textFieldGrp -cw2 60 450 -l "Custom1" -text `iconTextButton -q -c fs3_custom1` -bgc 0.6 0.6 0.6  custom_txt1;
+			separator -bgc 0.6 0.6 0.6 -st none -h 10;
+			textFieldGrp -cw2 60 450 -l "Custom2" -text `iconTextButton -q -c fs3_custom2` -bgc 0.6 0.6 0.6  custom_txt2;
+			separator -bgc 0.6 0.6 0.6 -st none -h 10;
+			textFieldGrp -cw2 60 450 -l "Custom3" -text `iconTextButton -q -c fs3_custom3` -bgc 0.6 0.6 0.6  custom_txt3;
+			separator -bgc 0.6 0.6 0.6 -st none -h 10;
+			textFieldGrp -cw2 60 450 -l "Custom4" -text `iconTextButton -q -c fs3_custom4` -bgc 0.6 0.6 0.6  custom_txt4;
+			separator -bgc 0.6 0.6 0.6 -st none -h 10;
+			textFieldGrp -cw2 60 450 -l "Custom5" -text `iconTextButton -q -c fs3_custom5` -bgc 0.6 0.6 0.6  custom_txt5;
+			separator -bgc 0.6 0.6 0.6 -st none -h 20;
+			rowLayout -nc 2 -cw2 275 275 -bgc 0.6 0.6 0.6;
+				columnLayout -adjustableColumn true;
+					button -bgc 1 1 1 -l "Apply" -c ( "FaceStudio3AssignCustomFunctions; window -e -vis off " + $FaceStudio3CustomButtonWindow ) -w 275 -h 40;
+					setParent ..;
+				columnLayout -adjustableColumn true;
+					button -bgc 1 1 1 -l "Cancel" -c ( "window -e -vis off " + $FaceStudio3CustomButtonWindow ) -w 275 -h 40;
+					setParent ..;
+	showWindow $FaceStudio3CustomButtonWindow;
+
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+global proc FaceStudio3LinkEyeSliders ()
+{
+
+	global string $FaceStudio3MainWindow;	
+	string $obj = `window -q -dtg $FaceStudio3MainWindow`;
+	string $FS3node[] = `listConnections ($obj + ".FaceStudio3Node")`;	
+
+
+	string $FS3listObj[] = `ls -g`;
+	$FS3listObj = `sort $FS3listObj`;	
+
+	string $FaceStudio3LinkEyes = "FaceStudio3LinkEyesWindow";
+	if (`window -exists $FaceStudio3LinkEyes` )
+		deleteUI $FaceStudio3LinkEyes;	
+
+	window -tlb off -s off  -width 550 -height 340 -bgc 0.6 0.6 0.6 -title "FaceStudio v.3.0  -  Link Eyes Controls" $FaceStudio3LinkEyes; 	
+		columnLayout -bgc 0.6 0.6 0.6 -adjustableColumn true;
+			separator -bgc 0.6 0.6 0.6 -st none -h 20;
+			rowLayout -bgc 0.6 0.6 0.6 -nc 4 -cw4 245 30 160 100 ;
+				columnLayout -w 245 -adjustableColumn true -bgc 0.6 0.6 0.6;
+					text -l "1st Slider Link" -bgc 0.6 0.6 0.6;
+					textScrollList -ams false -w 245 -h 120 FS3listObjLink1;
+
+					text -l "2rd Slider Link" -bgc 0.6 0.6 0.6;
+					textScrollList -ams false -w 245 -h 120 FS3listObjLink2;
+
+					textScrollList -e -append "None" FS3listObjLink1;
+					textScrollList -e -append "None" FS3listObjLink2;
+
+					for ( $i=0;$i<size($FS3listObj);$i++ )
+					{
+						string $objShape[] = `listRelatives -p $FS3listObj[$i]`;						
+						textScrollList -e -w 245 -h 120 -append $objShape[0] FS3listObjLink1;
+						textScrollList -e -w 245 -h 120 -append $objShape[0] FS3listObjLink2;
+					}	
+
+					textScrollList -e -sii 1 FS3listObjLink1;
+					textScrollList -e -sii 1 FS3listObjLink2;
+
+				setParent ..;
+				separator -st none -bgc 0.6 0.6 0.6 -h 10;
+				columnLayout -w 245 -adjustableColumn true -bgc 0.6 0.6 0.6;
+					text -l "1st Link Attribute" -bgc 0.6 0.6 0.6;
+					textScrollList -ams false -w 140 -h 120 FS3listObjAttrib1;
+					text -l "2rd  Link Attribute" -bgc 0.6 0.6 0.6;
+					textScrollList -ams false -w 140 -h 120 FS3listObjAttrib2;
+
+					textScrollList -e -append "translateX" FS3listObjAttrib1;
+					textScrollList -e -append "translateY" FS3listObjAttrib1;
+					textScrollList -e -append "translateZ" FS3listObjAttrib1;
+					textScrollList -e -append "rotateX" FS3listObjAttrib1;
+					textScrollList -e -append "rotateY" FS3listObjAttrib1;
+					textScrollList -e -append "rotateZ" FS3listObjAttrib1;
+					textScrollList -e -append "scaleX" FS3listObjAttrib1;
+					textScrollList -e -append "scaleY" FS3listObjAttrib1;
+					textScrollList -e -append "scaleZ" FS3listObjAttrib1;
+
+					textScrollList -e -append "translateX" FS3listObjAttrib2;
+					textScrollList -e -append "translateY" FS3listObjAttrib2;
+					textScrollList -e -append "translateZ" FS3listObjAttrib2;
+					textScrollList -e -append "rotateX" FS3listObjAttrib2;
+					textScrollList -e -append "rotateY" FS3listObjAttrib2;
+					textScrollList -e -append "rotateZ" FS3listObjAttrib2;
+					textScrollList -e -append "scaleX" FS3listObjAttrib2;
+					textScrollList -e -append "scaleY" FS3listObjAttrib2;
+					textScrollList -e -append "scaleZ" FS3listObjAttrib2;
+
+					textScrollList -e -sii 1 FS3listObjAttrib1;
+					textScrollList -e -sii 1 FS3listObjAttrib2;
+
+				setParent ..;
+				columnLayout -w 245 -adjustableColumn true -bgc 0.6 0.6 0.6;
+					text -l "1st Slider Values" -bgc 0.6 0.6 0.6;
+					floatFieldGrp -v1 -1 -l "Min" -cw2 30 60 -bgc 0.6 0.6 0.6 fs3_eye_s1_min;
+					floatFieldGrp -v1 1 -l "Max" -cw2 30 60 -bgc 0.6 0.6 0.6 fs3_eye_s1_max;
+					separator -st none -h 75 -bgc 0.6 0.6 0.6;
+					text -l "2rd Slider Values" -bgc 0.6 0.6 0.6;
+					floatFieldGrp -v1 -1 -l "Min" -cw2 30 60 -bgc 0.6 0.6 0.6 fs3_eye_s2_min;
+					floatFieldGrp -v1 1 -l "Max" -cw2 30 60 -bgc 0.6 0.6 0.6 fs3_eye_s2_max;
+					separator -st none -h 25 -bgc 0.6 0.6 0.6;
+					button -l "Apply" -h 25 -bgc 1 1 1 -c ( "FaceStudio3ApplyEyeSliderLink;window -e -vis off " + $FaceStudio3LinkEyes );
+					button -l "Cancel" -h 25 -bgc 1 1 1 -c ( "window -e -vis off " + $FaceStudio3LinkEyes );
+
+
+	string $val = `getAttr ( $FS3node[0] + ".EyeControl1")`;
+	if ( $val != "" )
+	{
+		string $vals[] = stringToStringArray( $val, " ");
+		textScrollList -e -si $vals[0] FS3listObjLink1;
+		textScrollList -e -si $vals[1] FS3listObjAttrib1;
+		float $num = $vals[2];
+		floatFieldGrp -e -v1 $num fs3_eye_s1_min;
+		float $num = $vals[3];
+		floatFieldGrp -e -v1 $num fs3_eye_s1_max;
+	}
+
+	string $val = `getAttr ( $FS3node[0] + ".EyeControl2")`;
+	if ( $val != "" )
+	{
+		string $vals[] = stringToStringArray( $val, " ");	
+		textScrollList -e -si $vals[0] FS3listObjLink2;
+		textScrollList -e -si $vals[1] FS3listObjAttrib2;
+		float $num = $vals[2];		
+		floatFieldGrp -e -v1 $num fs3_eye_s2_min;
+		float $num = $vals[3];
+		floatFieldGrp -e -v1 $num fs3_eye_s2_max;
+	}
+
+	showWindow $FaceStudio3LinkEyes;	
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+global proc FaceStudio3CameraSettingUI ()
+{
+	global string $FaceStudio3MainWindow;
+
+	string $obj = `window -q -dtg $FaceStudio3MainWindow`;
+	string $FS3node[] = `listConnections ($obj + ".FaceStudio3Node")`;	
+	
+	string $FaceStudio3CamSettings = "FaceStudio3CamSettingWindow";
+	if (`window -exists $FaceStudio3CamSettings` )
+		deleteUI $FaceStudio3CamSettings;	
+
+	window -tlb off -s off  -width 350 -height 285  -title "FaceStudio v.3.0  -  View Settings" $FaceStudio3CamSettings;
+		columnLayout -bgc 0.6 0.6 0.6 -adjustableColumn true;
+			separator -bgc 0.6 0.6 0.6 -st none -h 20;
+			frameLayout -l "Parameters";
+				columnLayout -bgc 0.6 0.6 0.6 ;
+				separator -bgc 0.6 0.6 0.6 -st none -h 10;
+				floatSliderGrp -bgc 0.6 0.6 0.6 -fmn 10 -fmx 1000 -cw3 90 60 150 -field true -l "Camera Focal" -v ( `getAttr FaceStudio3ViewShape.focalLength`) fs3viewfocal;
+				separator -bgc 0.6 0.6 0.6 -st none -h 10;
+				int $dvalue = `modelEditor -q -vs FaceStudio3Pane`;
+				int $dcheckbox;
+				if ( $dvalue == 0 )
+				{
+					$dcheckbox = 1;	
+				}
+				checkBoxGrp -bgc 0.6 0.6 0.6 -cw2 135 100 -v1 $dcheckbox -l "Display all objects" fs3viewdisplay;
+				separator  -bgc 0.6 0.6 0.6 -w 350 -h 10;
+				string $lvalue = `modelEditor -q -dl FaceStudio3Pane`;
+				int $lcheckbox;
+				if ($lvalue=="all")
+				{
+					$lcheckbox = 1;	
+				}
+				
+				checkBoxGrp -bgc 0.6 0.6 0.6 -cw2 135 100 -v1 $lcheckbox -l "Ligthning" fs3viewligth;
+				checkBoxGrp -bgc 0.6 0.6 0.6 -cw2 135 100 -v1 `modelEditor -q -wos FaceStudio3Pane` -l "Wireframe on shaded" fs3viewwire;
+				checkBoxGrp -bgc 0.6 0.6 0.6 -cw2 135 100 -v1 `modelEditor -q -xr FaceStudio3Pane` -l "X-Ray" fs3viewxray;
+				checkBoxGrp -bgc 0.6 0.6 0.6 -cw2 135 100 -v1 `modelEditor -q -sdw FaceStudio3Pane` -l "Hardware shadows" fs3viewshadow;
+				setParent ..; setParent ..;
+				separator -bgc 0.6 0.6 0.6 -st none -h 10;
+
+				separator -bgc 0.6 0.6 0.6 -st none -h 5;
+				rowLayout -nc 2 -cw2 122 222;
+					text -bgc 0.6 0.6 0.6 -l "        View Parent             ";
+					columnLayout -adjustableColumn true;
+						button -bgc 1 1 1 -w 220 -h 30 -l "auto"  -c "FaceStudio3CustomParentUI" FS3parentBt;
+						setParent ..;
+					setParent ..;
+				separator -bgc 0.6 0.6 0.6 -st none -h 5;
+
+				rowLayout -nc 2 -cw2 172 172;
+					columnLayout -adjustableColumn true;
+						button -l "Apply" -bgc 1 1 1 -w 172 -h 40 -c ("FaceStudio3ApplyViewSettings;window -e -vis off " + $FaceStudio3CamSettings);
+					setParent ..;	
+					columnLayout -adjustableColumn true;
+						button -l "Cancel" -bgc 1 1 1 -w 172 -h 40 -c ("window -e -vis off " + $FaceStudio3CamSettings );
+					setParent ..;
+					
+				string $camParent = `getAttr ( $FS3node[0] + ".CustomParent")`;
+				if ( $camParent == "" )
+				{
+					$camParent = `getAttr ( $FS3node[0] + ".parent")`;
+				}
+				button -e -w 220 -h 30 -l $camParent FS3parentBt;
+					
+	showWindow $FaceStudio3CamSettings;	
+}
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+global proc FaceStudio3GroupCreateUI ()
+{
+	string $FaceStudio3GroupCreate = "FaceStudio3GroupCreateWin";
+	if (`window -exists $FaceStudio3GroupCreate` )
+		deleteUI $FaceStudio3GroupCreate;	
+
+	window -tlb off -s off  -width 300 -height 115  -title "FaceStudio v.3.0  -  Create a group" $FaceStudio3GroupCreate;
+		columnLayout -bgc 0.6 0.6 0.6 -adjustableColumn true;		
+			separator -st none -h 20 -bgc 0.6 0.6 0.6;
+			textFieldGrp -bgc 0.6 0.6 0.6 -l "Name" -cw2 50 250 -tx "noname" fs3_groupname;
+			separator -st none -h 10 -bgc 0.6 0.6 0.6;
+			rowLayout -nc 2 -cw2 148 150;
+				columnLayout;
+					button -l "Create" -w 148 -h 30 -bgc 1 1 1  -c ( "FaceStudio3GroupCreate;window -e -vis off " + $FaceStudio3GroupCreate);
+				setParent ..;
+				columnLayout;
+					button -l "Cancel" -w 150 -h 30 -bgc 1 1 1 -c ( "window -e -vis off " + $FaceStudio3GroupCreate);
+				setParent ..;
+
+	showWindow $FaceStudio3GroupCreate;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+global proc FaceStudio3GroupRenameUI ()
+{
+	string $FaceStudio3GroupRename = "FaceStudio3GroupRenameWin";
+	if (`window -exists $FaceStudio3GroupRename` )
+		deleteUI $FaceStudio3GroupRename;	
+
+	string $groupName[] = `textScrollList -q -si fs3_groupsList`;
+
+	window -tlb off -s off  -width 300 -height 115  -title "FaceStudio v.3.0  -  Rename group" $FaceStudio3GroupRename;
+		columnLayout -bgc 0.6 0.6 0.6 -adjustableColumn true;		
+			separator -st none -h 20 -bgc 0.6 0.6 0.6;
+			textFieldGrp -bgc 0.6 0.6 0.6 -l "Name" -cw2 50 250 -tx $groupName[0] fs3_groupnewname;
+			separator -st none -h 10 -bgc 0.6 0.6 0.6;
+			rowLayout -nc 2 -cw2 148 150;
+				columnLayout;
+					button -l "Rename" -w 148 -h 30 -bgc 1 1 1  -c ( "FaceStudio3GroupRename;window -e -vis off " + $FaceStudio3GroupRename);
+				setParent ..;
+				columnLayout;
+					button -l "Cancel" -w 150 -h 30 -bgc 1 1 1 -c ( "window -e -vis off " + $FaceStudio3GroupRename);
+				setParent ..;
+
+	showWindow $FaceStudio3GroupRename;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+global proc FaceStudio3About ()
+{
+	global string $FaceStudio3Console;
+	
+	FaceStudio3InitConsole;
+	FaceStudio3ConsoleMessage "- contact : guils_r@hotmail.com";
+	FaceStudio3ConsoleMessage "- web : http://www.cgguils.fr.st";
+	window -e -title "FaceStudio v.3.0  About..." $FaceStudio3Console;
+	FaceStudio3ConsoleMessage "                             -------------";
+	FaceStudio3ConsoleMessage "Please contact me to report any bug, send any";
+	FaceStudio3ConsoleMessage "comment or suggestion.";
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+global proc FaceStudio3LoadDialog ()
+{
+	string $fs3defaultPath = ( `internalVar -usd` + "FaceStudio3/UI_save/" );
+	string $fs3loadFile = `fileDialog -dm ($fs3defaultPath + "*.fs3")`;
+	if ( $fs3loadFile != "" )
+	{	
+		FaceStudio3ReadUIFile $fs3loadFile;
+	}
+}
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+global proc FaceStudio3SaveDialog ()
+{
+	string $fs3defaultPath = ( `internalVar -usd` + "FaceStudio3/UI_save/" );
+ 	fileBrowserDialog -tm "Save your UI as myUI.fs3 for example" -ds 2 -m 2 -fc "FaceStudio3WriteUIFile" -fl ("FaceStudio3UI (*.fs3), *.fs3") -wt "FaceStudio3  -  Save UI" -an "Save" -om "ExportActive";	
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+global proc FaceStudio3ResetUIDialog ()
+{
+	string $FaceStudio3Reset = "FaceStudio3ResetWin";
+	if (`window -exists $FaceStudio3Reset` )
+		deleteUI $FaceStudio3Reset;	
+
+	window -tlb on -s off  -width 258 -height 450  -title "FaceStudio v.3.0 - Reset UI" $FaceStudio3Reset; 
+		frameLayout -lv off -h 100;
+		columnLayout -adjustableColumn true;
+			image -w 250 -h 350 -i (`internalVar -upd` + "icons/FaceStudio3/FaceStudio3.bmp") FS3initPic;
+			separator -bgc 0.6 0.6 0.6 -st none -h 8;
+			text -bgc 0.6 0.6 0.6 -l "Do you want to reset UI ?";
+			separator -bgc 0.6 0.6 0.6 -st none -h 8;
+			rowLayout -nc 2 -cw2 125 125;
+				columnLayout;
+					button -bgc 1 1 1 -w 125 -h 36 -l "Yes" 
+							-c ( 
+							"window -e -vis off " + $FaceStudio3Reset + ";" +
+							"FaceStudio3ResetUI"					
+							);
+					setParent ..;
+				columnLayout;
+					button -bgc 1 1 1 -w 122 -h 36 -l "No" -c ( 	"window -e -vis off " + $FaceStudio3Reset );
+					setParent ..;
+
+	showWindow $FaceStudio3Reset;	
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+global proc FaceStudio3AutoIconizeDialog ()
+{
+	string $FaceStudio3AutoIconize = "FaceStudio3AutoIconizeWin";
+	if (`window -exists $FaceStudio3AutoIconize` )
+		deleteUI $FaceStudio3AutoIconize;	
+
+	window -tlb on -s off  -width 258 -height 450  -title "FaceStudio v.3.0 - Auto Iconize" $FaceStudio3AutoIconize; 
+		frameLayout -lv off -h 100;
+		columnLayout -adjustableColumn true;
+			image -w 250 -h 350 -i (`internalVar -upd` + "icons/FaceStudio3/FaceStudio3.bmp") FS3initPic;
+			separator -bgc 0.6 0.6 0.6 -st none -h 8;
+			text -bgc 0.6 0.6 0.6 -l "Do you want to iconize all shapes ?";
+			separator -bgc 0.6 0.6 0.6 -st none -h 8;
+			rowLayout -nc 3 -cw3 80 95 75;
+				columnLayout;
+					button -bgc 1 1 1 -w 80 -h 36 -l "All Shapes" 
+							-c ( 
+							"window -e -vis off " + $FaceStudio3AutoIconize + ";" +
+							"FaceStudio3AutoIconize 0"
+							);
+					setParent ..;
+				columnLayout;
+					button -bgc 1 1 1 -w 95 -h 36 -l "Only Undefined" 
+							-c ( 
+							"window -e -vis off " + $FaceStudio3AutoIconize + ";" +
+							"FaceStudio3AutoIconize 1"
+							);
+					setParent ..;
+				columnLayout;
+					button -bgc 1 1 1 -w 75 -h 36 -l "No" -c ( 	"window -e -vis off " + $FaceStudio3AutoIconize );
+					setParent ..;
+
+	showWindow $FaceStudio3AutoIconize;	
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+global proc FaceStudio3ExitDialog ()
+{
+	global string $FaceStudio3MainWindow;
+
+	string $FaceStudio3Exit = "FaceStudio3ExitWi";
+	if (`window -exists $FaceStudio3Exit` )
+		deleteUI $FaceStudio3Exit;	
+
+	window -tlb on -s off  -width 258 -height 450  -title "FaceStudio v.3.0 Exit" $FaceStudio3Exit; 
+		frameLayout -lv off -h 100;
+		columnLayout -adjustableColumn true;
+			image -w 250 -h 350 -i (`internalVar -upd` + "icons/FaceStudio3/FaceStudio3.bmp") FS3initPic;
+			separator -bgc 0.6 0.6 0.6 -st none -h 8;
+			text -bgc 0.6 0.6 0.6 -l "Do you want to quit ?";
+			separator -bgc 0.6 0.6 0.6 -st none -h 8;
+			rowLayout -nc 2 -cw2 125 125;
+				columnLayout;
+					button -bgc 1 1 1 -w 125 -h 36 -l "Yes" 
+							-c ( 
+							"window -e -vis off " + $FaceStudio3Exit + ";" +
+							"FaceStudio3Exit;"
+							);
+					setParent ..;
+				columnLayout;
+					button -bgc 1 1 1 -w 122 -h 36 -l "No" -c ( 	"window -e -vis off " + $FaceStudio3Exit );
+					setParent ..;
+
+	showWindow $FaceStudio3Exit;	
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+global proc FaceStudio3CleanDialog ()
+{
+	global string $FaceStudio3MainWindow;
+
+	string $FaceStudio3Clean = "FaceStudio3ExitWi";
+	if (`window -exists $FaceStudio3Clean` )
+		deleteUI $FaceStudio3Clean;	
+
+	window -tlb on -s off  -width 258 -height 450  -title "FaceStudio v.3.0 Clean" $FaceStudio3Clean; 
+		frameLayout -lv off -h 100;
+		columnLayout -adjustableColumn true;
+			image -w 250 -h 350 -i (`internalVar -upd` + "icons/FaceStudio3/FaceStudio3.bmp") FS3initPic;
+			separator -bgc 0.6 0.6 0.6 -st none -h 8;
+			text -bgc 0.6 0.6 0.6 -l "Do you want to delete all FaceStudio nodes ?";
+			separator -bgc 0.6 0.6 0.6 -st none -h 8;
+			rowLayout -nc 2 -cw2 125 125;
+				columnLayout;
+					button -bgc 1 1 1 -w 125 -h 36 -l "Yes" 
+							-c ( 
+							"window -e -vis off " + $FaceStudio3Clean + ";" +
+							"if (catchQuiet  (\`select -r \"FaceStudio3Attribute*\"\`)) { print \"//FaceStudio3 : no FaceStudio3 node\";  } else { delete; } if (\`objExists FaceStudio3Sound\`) delete FaceStudio3Sound"
+							);
+					setParent ..;
+				columnLayout;
+					button -bgc 1 1 1 -w 122 -h 36 -l "No" -c ( 	"window -e -vis off " + $FaceStudio3Clean );
+					setParent ..;
+
+	showWindow $FaceStudio3Clean;
+}

@@ -1,0 +1,769 @@
+global string $MS_poseList_poseList[];//ポーズリスト
+global string $MS_poseList_poseNameList[];//ポーズ名のリスト
+global string $MS_poseList_faceList[];//顔パーツのリスト
+global string $MS_poseList_attrList[];//設定アトリビュートのリスト
+$MS_poseList_attrList={"tx","ty","tz","rx","ry","rz","sx","sy","sz"};
+
+//全グローバル配列クリア
+global proc MS_poseList_clearAll(){
+	global string $MS_poseList_poseList[];//ポーズリスト
+	global string $MS_poseList_poseNameList[];//ポーズ名のリスト
+	global string $MS_poseList_faceList[];//顔パーツのリスト
+	global string $MS_poseList_attrList[];//設定アトリビュートのリスト
+	
+	clear $MS_poseList_poseList;//ポーズリスト
+	clear $MS_poseList_poseNameList;//ポーズ名のリスト
+	clear $MS_poseList_faceList;//顔パーツのリスト
+	clear $MS_poseList_attrList;//設定アトリビュートのリスト
+	
+	global string $MS_poseList_poseList[];//ポーズリスト
+	global string $MS_poseList_poseNameList[];//ポーズ名のリスト
+	global string $MS_poseList_faceList[];//顔パーツのリスト
+	global string $MS_poseList_attrList[];//設定アトリビュートのリスト
+}
+
+//■パーツリストがらみ
+	//顔パーツのリスト作成
+	global proc MS_poseList_setFaceList(){
+		global string $MS_poseList_faceList[];
+		$MS_poseList_faceList=`ls -sl`;
+		MS_poseList_faceList();
+	}
+	
+	//顔パーツのリスト選択
+	global proc MS_poseList_selectFaceList(){
+		global string $MS_poseList_faceList[];
+		select -cl;
+		select -r $MS_poseList_faceList;
+		/*
+		for($each in $MS_poseList_faceList){
+			if(`objExists($each)`){
+				select -add $each;
+			}
+		}
+		*/
+	}
+	
+	//顔パーツのリスト表示
+	global proc MS_poseList_faceList(){
+		global string $MS_poseList_faceList[];
+		global string $MS_poseList_poseNameList[];//ポーズ名のリスト
+		deleteUI "CL_faceList";
+		columnLayout -p "SCR_faceList" "CL_faceList";
+		int $i;
+		for($each in $MS_poseList_faceList){
+			rowLayout -nc 4 -cw4 100 30 30 100;
+			float $bgc[];
+			if (`objExists($each)`){
+				$bgc={1.0,1.0,1.0};
+			}else{
+				$bgc={0.5,0.5,0.5};
+			}
+				
+			button -l $each -w 100 -bgc $bgc[0] $bgc[1] $bgc[2] -c ("select -r "+$each+";MS_poseList_faceList;") ("BUTTON_FL_NAME_"+$each);
+			button -l "+" -bgc $bgc[0] $bgc[1] $bgc[2] -c ("select -add "+$each+";MS_poseList_faceList;") ("BUTTON_FL_ADD_"+$each);
+			button -l "++" -bgc ($bgc[0]-0.1) ($bgc[1]-0.1) $bgc[2] -c ("MS_poseList_faceList_flexSelector "+$each+";MS_poseList_faceList;") ("BUTTON_FL_FXS_"+$each);
+			button -l "rename" -c ("MS_poseList_rename(\""+$each+"\");");
+			setParent ..;
+		}		
+		
+		frameLayout -e -h 200 "poseList";
+		frameLayout -e -h 200 "faceList";
+		
+		string $SELOBJ[]=`ls -typ transform -sl`;
+		for($eachOBJ in $SELOBJ){
+			if(`button -ex ("BUTTON_FL_NAME_"+$eachOBJ)`){
+			button -e -bgc 1 0.5 0.5 ("BUTTON_FL_NAME_"+$eachOBJ);
+			button -e -bgc 1 0.5 0.5 ("BUTTON_FL_ADD_"+$eachOBJ);
+			}
+		}
+	
+		showWindow MS_poseList;
+		
+	
+		setParent ..;
+	}
+	
+	//リネームコマンド
+	global proc MS_poseList_rename(string $NEW){
+		string $obj[]=`ls -sl`;
+		rename $obj $NEW;
+	}
+	
+	global proc float MS_poseList_nearestObjectV3_distance(string $target_a,string $target_b){
+		float $a[] = `xform -q -ws -t $target_a`;
+		float $b[] = `xform -q -ws -t $target_b`;
+		//2点間の移動距離を計算
+		float $len = sqrt(($a[0]-$b[0])*($a[0]-$b[0])+($a[1]-$b[1])*($a[1]-$b[1])+($a[2]-$b[2])*($a[2]-$b[2]));
+		
+		return $len;
+		
+	}
+	
+	global proc string[] MS_poseList_nearestObjectV3(string $sourceObj[],string $distObj,string $OPTION){
+		//option
+		//"sort"=sort list by distance
+		//"value"=return sorted value
+		//"rate"=return sorted rate(0.0-1.0)
+		string $entryObj[]=stringArrayRemove ({$distObj,""},$sourceObj);
+		print $entryObj;
+		print "---\n";
+		string $dists[];
+		$i=0;
+		for($each in $entryObj){
+			float $ftemp=`MS_poseList_nearestObjectV3_distance $distObj $each`;
+			$dists[$i]=((1000000+$ftemp)+"<>"+$each);
+			$i++;
+		}
+		string $result[]=`sort $dists`;
+		
+		string $MAXVAR[];//MAX値保存
+		tokenize($result[size($result)-1],"<>",$MAXVAR);
+		
+		string $sort[];
+		string $value[];
+		string $rate[];
+		$j=0;
+		for($each in $result){
+			string $stemp[];
+			tokenize($each,"<>",$stemp);
+			$sort[$j]=$stemp[1];
+			
+			$value[$j]=(float($stemp[0])-1000000);
+			if($value[$j] && float($MAXVAR[0])){
+				$rate[$j]=(float($value[$j])/(float($MAXVAR[0])-1000000));
+			}else{
+				$rate[$j]="0";
+			}
+			$j++;
+		}
+		if($OPTION=="sort"){
+			return $sort;
+		}else if($OPTION=="value"){
+			return $value;
+		}else if($OPTION=="rate"){
+			return $rate;
+		}
+	}
+		
+	global proc MS_poseList_faceList_flexSelector(string $HANDLE_OBJ){
+		global string $MS_poseList_faceList[];
+		int $CNS;
+		string $NEAR[];
+		//オブジェクト選択時の処理
+		string $SELECTED_OBJ[]=`ls -typ transform -sl`;
+		if(size($SELECTED_OBJ)>1){
+			print "A";
+			$NEAR=MS_poseList_nearestObjectV3($SELECTED_OBJ,$HANDLE_OBJ,"sort");//オブジェクト距離ソート
+			$CNS=(size($NEAR)-1);
+		}else{
+			print "G";
+			$CNS=`intSliderGrp -q -v "MS_poseList_constQuintity"`;
+			$NEAR=MS_poseList_nearestObjectV3($MS_poseList_faceList,$HANDLE_OBJ,"sort");//オブジェクト距離ソート
+		}
+		string $NEARTMP[];
+		int $j;
+		for($j=0;$j<=$CNS;$j++){
+			$NEARTMP[$j]=$NEAR[$j];
+		}
+		string $RATE[]=MS_poseList_nearestObjectV3($NEARTMP,$HANDLE_OBJ,"rate");//オブジェクト距離レート
+		
+		MS_poseList_faceList_flexSelector_delete();
+		int $i;
+		for($i=0;$i<$CNS;$i++){
+			string $tmpcns[]=`parentConstraint -mo -n "MS_poseList_faceList_flexSelector" -w (1-float($RATE[$i])) $NEAR[$CNS] $HANDLE_OBJ $NEAR[$i]`;
+			parentConstraint -e -n $tmpcns[0] -w (float($RATE[$i])) $NEAR[$CNS] $NEAR[$i];
+		}
+		select -r $HANDLE_OBJ;
+	}
+	
+	global proc MS_poseList_faceList_flexSelector_delete(){
+		string $CONST[]=`ls -typ parentConstraint "*MS_poseList_faceList_flexSelector*"`;
+		if(size($CONST)){
+			delete $CONST;
+		}
+	}
+	
+	
+	
+	
+	
+//■ポーズリストがらみ
+	//表示されているポーズからアトリビュートを抜き出し。
+	global proc string MS_poseList_getAttr(){
+		string $ret;
+		global string $MS_poseList_attrList[];
+		global string $MS_poseList_faceList[];
+		int $i;
+		for ($each in $MS_poseList_faceList){
+			if(`objExists($each)`){
+				$ret+="<";
+				for($eachAttr in $MS_poseList_attrList){
+					float $var=`getAttr ($each+"."+$eachAttr)`;
+					$ret+=(","+$var);
+				}
+				$ret+=">";
+			}
+		}
+		return $ret;
+	}
+	
+	//ポーズリストに設定してあるポーズを表示
+	global proc MS_poseList_POSER(int $ID){
+		global string $MS_poseList_poseList[];
+		global string $MS_poseList_faceList[];
+		global string $MS_poseList_attrList[];
+		string $tmp[];//transform_node
+		string $tmpB[];//attribute_value
+		//modify
+		tokenize($MS_poseList_poseList[$ID],"<>",$tmp);
+		for($i=0;$i<size($MS_poseList_faceList);$i++){
+			tokenize($tmp[$i],",",$tmpB);
+			int $j=0;
+			for($eachAttr in $MS_poseList_attrList){
+				if(`objExists($MS_poseList_faceList[$i])`){
+					if(!`getAttr -l ($MS_poseList_faceList[$i]+"."+$eachAttr)`){
+						string $com= ("setAttr -clamp "+ $MS_poseList_faceList[$i]+"."+$eachAttr+" ("+$tmpB[$j]+")\n");
+						eval $com;
+					}
+				}
+				$j++;
+			}
+		}
+	}
+	
+	//表示されているポーズを指定ポーズIDにセット
+	global proc MS_poseList_setPose(int $PID){
+		global string $MS_poseList_poseList[];
+		$MS_poseList_poseList[$PID]=`MS_poseList_getAttr`;
+		MS_poseList_poseList;
+	}
+	
+	//表示されているポーズをポーズリストに追加
+	global proc MS_poseList_addPose(){
+		global string $MS_poseList_poseList[];
+		global string $MS_poseList_poseNameList[];
+		int $PID=size($MS_poseList_poseList);
+		$MS_poseList_poseList[$PID]=`MS_poseList_getAttr`;
+		$MS_poseList_poseNameList[$PID]=$PID;
+		MS_poseList_poseList;
+	}
+	
+	//ベースポーズ表示
+	global proc MS_poseList_setBasePose(){
+		global string $MS_poseList_poseList[];
+		$MS_poseList_poseList[0]=`MS_poseList_getAttr`;
+	}
+	
+	//ポーズに名前を設定
+	global proc MS_poseList_setPoseName(int $PID){
+		global string $MS_poseList_poseNameList[];
+		string $POSENAME=`textField -q -tx "MS_poseList_setPoseName"`;
+		if($POSENAME!=""){
+			$MS_poseList_poseNameList[$PID]=$POSENAME;
+		}
+		MS_poseList_poseList;
+	}
+	
+	//ポーズに名前を設定ウィンドウ
+	global proc MS_poseList_setPoseNameUI(int $PID){
+		if (`window -q -ex MS_poseList_setPoseNameUI`){
+			deleteUI MS_poseList_setPoseNameUI;
+		}
+		window MS_poseList_setPoseNameUI;
+		columnLayout ;
+		textField "MS_poseList_setPoseName";
+		button -l "rename" -c ("MS_poseList_setPoseName("+$PID+");deleteUI MS_poseList_setPoseNameUI;");
+		showWindow MS_poseList_setPoseNameUI;
+	}
+	
+	//ポーズリストを表示
+	global proc MS_poseList_poseList(){
+		global string $MS_poseList_poseList[];
+		global string $MS_poseList_poseNameList[];//ポーズ名のリスト
+		deleteUI "CL_poseList";
+		columnLayout -p "SCR" "CL_poseList";
+			//basePose
+			rowLayout -p "CL_poseList" -nc 5 -cw5 50 50 50 200 50;
+			button -w 50 -l $MS_poseList_poseNameList[0] -c ("MS_poseList_POSER (0)") ;
+			button -w 50 -l ("setbase") -c ("MS_poseList_setPose(0)") ;
+			button -w 50 -l ("DRV") -c ("MS_poseList_setDriver(0)") ;
+			text -l "this pose is base pose.";
+			button -w 50 -l ("rename") -c ("MS_poseList_setPoseNameUI(0)") ;
+		for($i=1;$i<size($MS_poseList_poseList);$i++){
+			//MS_poseList_setDriver($i);
+				rowLayout -p "CL_poseList" -nc 5 -cw5 50 50 50 200 50;
+					button -w 50 -l $MS_poseList_poseNameList[$i] -c ("MS_poseList_POSER ("+$i+")") ;
+					button -w 50 -l ("set"+$i) -c ("MS_poseList_setPose("+$i+")") ;
+					button -w 50 -l ("DRV"+$i) -c ("MS_poseList_setDriver("+$i+")") ;
+					floatSliderGrp 
+						-cw3 5 50 110
+						-w 217
+						//-p "CL_poseList"
+						-ct3 left left both
+						-value 0
+						-field true
+						-label ""
+						-dc ("MS_poseList_controlDriver("+$i+")")
+						-min 0 -max 1 
+						-fieldMinValue 0 -fieldMaxValue 1 
+						("MS_poseList_poseList_floatSliderGrp"+$i)
+						;
+					button -w 50 -l ("rename") -c ("MS_poseList_setPoseNameUI("+$i+")") ;
+					setParent ..;
+		}
+		frameLayout -e -w 500 -h 200 "poseList";
+		
+		showWindow MS_poseList;
+		setParent ..;
+	}
+	
+	//ポーズリストのクリア
+	global proc MS_poseList_clearPose(){
+		global string $MS_poseList_poseList[];
+		clear $MS_poseList_poseList;
+		global string $MS_poseList_poseList[];
+	}
+	
+	
+//■ドリブンキーがらみ
+	//floatSliderGrpとドリブンキーの関連付け
+	global proc MS_poseList_controlDriver(int $ID){
+		string $locatorName=("MS_poseList_pose"+$ID+"_handle");
+		float $var=`floatSliderGrp -q -v("MS_poseList_poseList_floatSliderGrp"+$ID)`;
+		setAttr ($locatorName+".translateY") $var;
+	}
+	
+	//ドリブンキー作成
+	global proc MS_poseList_setDriver(int $ID){
+		global string $MS_poseList_faceList[];
+		global string $MS_poseList_attrList[];
+		string $locatorName=("MS_poseList_pose"+$ID+"_handle");
+		if(`objExists $locatorName`){
+			delete $locatorName;
+		}
+		
+		string $handles[]=`ls -typ transform "MS_poseList_pose*_handle"`;
+		for($each in $handles){
+			setAttr ($each+".translateY") 0;
+		}
+		
+		string $driver[]=`spaceLocator`;
+		rename $driver[0] $locatorName;
+		MS_poseList_POSER(0);
+		for($each in $MS_poseList_faceList){
+			for($eachAttr in $MS_poseList_attrList){
+				setDrivenKeyframe -currentDriver ($locatorName+".translateY") ($each+"."+$eachAttr);
+			}
+		}
+		setAttr ($locatorName+".translateY") 1;
+		MS_poseList_POSER($ID);
+		for($each in $MS_poseList_faceList){
+			for($eachAttr in $MS_poseList_attrList){
+				setDrivenKeyframe -currentDriver ($locatorName+".translateY") ($each+"."+$eachAttr);
+			}
+		}
+	}
+
+
+//■ファイル入出力
+	global proc MS_poseList_arraySave(string $fileName,string $DATA[]){
+		//配列ファイル出力処理
+		int $fileId;
+		if(`filetest -f $fileName`){
+			$fileId=`fopen $fileName "w"`;
+		}else{
+			$fileId=`fopen $fileName`;
+		}
+		for ($each in $DATA){
+			fprint $fileId ($each+"\r");
+		}
+		fclose $fileId;
+		
+	}
+	
+	global proc string[] MS_poseList_arrayLoad(string $fileName){
+		//配列ファイル入力処理
+		int $fileId;
+		int $i;
+		string $nextLine;
+		string $DATA[];
+		if(`filetest -f $fileName`){
+			$fileId=`fopen $fileName "r"`;
+			
+			$i=0;
+			do{
+				$nextLine = `fgetline $fileId`;
+				$DATA[$i]=`substitute "\r" $nextLine ""`;
+				$i++;
+			}
+			while ( size( $nextLine ) > 1 ) ;
+			
+			fclose $fileId;
+		}
+		return $DATA;
+	}
+	
+	//ファイル出力
+	global proc MS_poseList_fileSave(){
+		//MS_poseList_clearAll;
+		global string $MS_poseList_poseList[];//ポーズリスト
+		global string $MS_poseList_poseNameList[];//ポーズ名のリスト
+		global string $MS_poseList_faceList[];//顔パーツのリスト
+		global string $MS_poseList_attrList[];//設定アトリビュートのリスト
+		string $filePath;
+		string $DATA[];
+		$filePath=`textField -q -fileName "MS_poseList_filePath"`;
+		$filePath+=`textField -q -tx "MS_poseList_fileName"`;
+		print $filePath;
+		//$DATA=$MS_poseList_poseList;
+		//stringArrayCatenate
+		MS_poseList_arraySave($filePath+".msfl.txt",$MS_poseList_faceList);
+		MS_poseList_arraySave($filePath+".mspnl.txt",$MS_poseList_poseNameList);
+		MS_poseList_arraySave($filePath+".mspl.txt",$MS_poseList_poseList);
+		MS_poseList_arraySave($filePath+".msat.txt",$MS_poseList_attrList);
+		
+	}
+	//ファイル入力
+	global proc MS_poseList_fileLoad(){
+		global string $MS_poseList_poseList[];//ポーズリスト
+		global string $MS_poseList_poseNameList[];//ポーズ名のリスト
+		global string $MS_poseList_faceList[];//顔パーツのリスト
+		global string $MS_poseList_attrList[];//設定アトリビュートのリスト
+		string $filePath;
+		string $DATA[];
+		$filePath=`textField -q -fileName "MS_poseList_filePath"`;
+		$filePath+=`textField -q -tx "MS_poseList_fileName"`;
+		$MS_poseList_faceList = `MS_poseList_arrayLoad($filePath+".msfl.txt")`;
+		stringArrayRemoveAtIndex(size($MS_poseList_faceList )-1,$MS_poseList_faceList );
+		$MS_poseList_poseNameList = `MS_poseList_arrayLoad($filePath+".mspnl.txt")`;
+		stringArrayRemoveAtIndex(size($MS_poseList_poseNameList )-1,$MS_poseList_poseNameList );
+		$MS_poseList_poseList = `MS_poseList_arrayLoad($filePath+".mspl.txt")`;
+		stringArrayRemoveAtIndex(size($MS_poseList_poseList )-1,$MS_poseList_poseList );
+		$MS_poseList_attrList = `MS_poseList_arrayLoad($filePath+".msat.txt")`;
+		stringArrayRemoveAtIndex(size($MS_poseList_attrList )-1,$MS_poseList_attrList );
+		MS_poseList_poseList;
+		MS_poseList_faceList;
+	}
+	
+//■エキスポートがらみ
+	global proc MS_poseList_objExport(){
+		global string $MS_poseList_poseList[];
+		global string $MS_poseList_poseNameList[];//ポーズ名のリスト
+		string $filePath;
+		string $DATA[];
+		string $obj[]=`ls -l -sl`;
+		MS_poseList_unlock($obj);
+		$filePath=`textField -q -fileName "MS_poseList_filePath"`;
+		$filePath+=`textField -q -tx "MS_poseList_fileName"`;
+		if(!size($obj)){
+			return;
+		}
+		int $i=0;
+		for($each in $MS_poseList_poseList){
+			MS_poseList_POSER($i);
+			select -r $obj;
+			delete -ch;
+			MS_poseList_colladaExport_Model(($filePath+$MS_poseList_poseNameList[$i]),1);
+			file -op "v=0" -typ "mayaAscii" -pr -es -ch 0 -chn 0 -con 0 -exp 0 -sh 1 ($filePath+$MS_poseList_poseNameList[$i]);
+			file -op "groups=1;ptgroups=1;materials=1;smoothing=1;normals=1;" -typ "OBJexport" -pr -es ($filePath+$MS_poseList_poseNameList[$i]);
+			undo ;
+			$i++;
+		}
+		undo;
+	}
+	
+	global proc MS_poseList_unlock(string $obj[]){
+		select -r $obj;
+		string $child[]=`listRelatives -f -typ transform -ad`;
+		for ($each in $child){
+			string $locked[]=`listAttr -l $each`;
+			for ($eachlocked in $locked){
+				setAttr -l 0 ($each+"."+$eachlocked);
+			}
+			makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 $each;
+		}
+		
+	}
+
+	global proc MS_poseList_colladaExport_Model( string $outName ,int $mode){
+		string $OPTION=("bakeTransforms=1;exportPolygonMeshes=1;bakeLighting=0;isSampling=1;"
+		+"curveConstrainSampling=0;removeStaticCurves=1;exportCameraAsLookat=0;"
+		+"exportLights=0;exportCameras=0;exportJointsAndSkin=1;"
+		+"exportAnimations=0;exportTriangles=1;exportInvisibleNodes=0;"
+		+"exportNormals=1;exportTexCoords=1;"
+		+"exportVertexColors=0;exportVertexColorsAnimation=0;exportTangents=0;"
+		+"exportTexTangents=1;exportConstraints=0;exportPhysics=0;exportXRefs=1;instanceDuplicateCurves=0;"
+		+"dereferenceXRefs=0;cameraXFov=0;cameraYFov=1");
+		
+		switch ($mode){
+			case 0:
+				file -op $OPTION -typ "COLLADA exporter" -pr -ea $outName;
+			break;
+			case 1:
+				file -op $OPTION -typ "COLLADA exporter" -pr -es -ch 0 -chn 0 -con 0 -exp 0 -sh 1 $outName;
+			break;
+		}
+	}
+
+//UI
+global proc MS_poseList_get_dir(string $exp_dir,string $dummy){
+	textField -e -fileName ($exp_dir+"/") "MS_poseList_filePath";
+}
+
+global proc MS_poseList_fileBrowser(){
+	global string $gDefaultFileBrowserDir;
+	string $orgpath=$gDefaultFileBrowserDir;
+	string $filePath=`textField -q -fileName "MS_poseList_filePath"`;
+	eval("global string $gDefaultFileBrowserDir=\""+$filePath+"\"");
+	fileBrowser "MS_poseList_get_dir" "Select Directory" "" 4 ;
+	MS_poseList_storeRecallUI store;
+	eval("global string $gDefaultFileBrowserDir=\""+$orgpath+"\"");
+}
+
+global proc MS_poseList_storeRecallUI( string $mode ){
+	string $prefix="MS_poseList__";
+	
+	string $floatFieldList[] = {
+		};
+
+	string $intFieldList[] = {
+		};
+
+	string $floatSliderGrpList[] = {
+		};
+
+	string $intSliderGrpList[] = {
+		};
+
+	string $checkBoxList[] = {
+		};
+
+	string $radioButtonGrpList[] = {
+		};
+
+	string $frameLayoutList[] = {
+		};
+
+	string $textFieldList[] = {
+		"MS_poseList_fileName"
+		};
+
+	string $textFieldList_file[] = {
+		"MS_poseList_filePath"
+		};
+
+	int $cnt;
+
+	if ( $mode == "store" )
+	{
+		for ( $each in $floatFieldList)
+			optionVar -floatValue ($prefix+$each) `floatField -q -value $each`;
+
+		for ( $each in $intFieldList)
+			optionVar -intValue ($prefix+$each) `intField -q -value $each`;
+
+		for ( $each in $floatSliderGrpList)
+			optionVar -floatValue ($prefix+$each) `floatSliderGrp -q -value $each`;
+
+		for ( $each in $intSliderGrpList)
+			optionVar -intValue ($prefix+$each) `intSliderGrp -q -value $each`;
+
+		for ( $each in $checkBoxList)
+			optionVar -intValue ($prefix+$each) `checkBox -q -value $each`;
+
+		for ( $each in $radioButtonGrpList)
+			optionVar -intValue ($prefix+$each) `radioButtonGrp -q -select $each`;
+
+		for ( $each in $frameLayoutList)
+			optionVar -intValue ($prefix+$each) `frameLayout -q -collapse $each`;
+
+		for ( $each in $textFieldList)
+			optionVar -stringValue ($prefix+$each) `textField -q -tx $each`;
+
+		for ( $each in $textFieldList_file)
+			optionVar -stringValue ($prefix+$each) `textField -q -fileName $each`;
+	}
+
+	if ( $mode == "recall" )
+	{
+		for ( $each in $floatFieldList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				floatField -e -value `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $intFieldList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				intField -e -value `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $floatSliderGrpList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				floatSliderGrp -e -value `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $intSliderGrpList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				intSliderGrp -e -value `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $checkBoxList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				checkBox -e -value `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $radioButtonGrpList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				radioButtonGrp -e -select `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $frameLayoutList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				frameLayout -e -collapse `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $textFieldList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				textField -e -tx `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $textFieldList_file)
+			if ( `optionVar -exists ($prefix+$each)` )
+				textField -e -fileName `optionVar -q ($prefix+$each)` $each;
+
+	}
+
+	if ( $mode == "reset" )
+	{
+		for ( $each in $floatFieldList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $intFieldList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $floatSliderGrpList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $intSliderGrpList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $checkBoxList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $radioButtonGrpList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $frameLayoutList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $textFieldList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $textFieldList_file)
+			optionVar -remove ($prefix+$each);
+	}
+}
+
+global proc MS_poseList(){
+	if (`window -q -ex MS_poseList`){
+		deleteUI MS_poseList;
+	}
+	window MS_poseList;
+	columnLayout;
+		rowLayout -nc 2 -cw2 240 350;
+			columnLayout;	
+				columnLayout ;
+					text -w 217 -bgc 0.9 0.9 0.9 -l "ファイルオプション";
+					//ファイルパス選択
+					rowLayout -nc 3 -cw3 50 110 50;
+						text -label "filePath";
+						textField -w 110 -cc "MS_poseList_storeRecallUI store" -fileName "D:/export/" "MS_poseList_filePath" ;
+						button -w 50 -label "Brouse" -c "MS_poseList_fileBrowser" "Brouse";
+					setParent..;
+					
+					//ファイル名入力
+					rowLayout -nc 2 -cw2 50 160;
+						text -label "fileName";
+						textField -w 160 -tx "default" -cc "MS_poseList_storeRecallUI store" "MS_poseList_fileName";
+					setParent..;
+					//ファイル入出力系ボタン
+					rowLayout -nc 2 -cw2 115 115;
+						frameLayout -l "save" -bgc 0.9 0.8 0.8 -w 110 -cl 1 -cll 1;
+							button -w 110 -bgc 0.9 0.8 0.8 -l "fileSave" -c "MS_poseList_fileSave";
+						setParent ..;
+						frameLayout -l "load" -bgc 0.8 0.9 0.8 -w 110 -cl 1 -cll 1;
+							button -w 110 -l "fileLoad" -bgc 0.8 0.9 0.8  -c "MS_poseList_fileLoad";
+						setParent ..;
+					setParent ..;
+					text -l " selectObjct & pushButton ";
+					button -w 210 -l "Export" -bgc 0.7 0.8 0.8  -c "MS_poseList_objExport";
+				setParent ..;
+				separator -w 200;
+				text -l "constraint quintity";
+				intSliderGrp -l "const" -f 1 -v 2 -min 2 -max 10 -cw3 50 30 50 "MS_poseList_constQuintity";
+			setParent ..;
+			columnLayout ;
+				columnLayout ;
+					text -w 217 -bgc 0.9 0.9 0.9 -l "フェースパーツリスト";
+					//BUTTON
+					rowLayout -nc 3 -cw3 80 80 80;
+						button -w 80 -l "SELECT" -bgc 0.7 0.8 0.8  -c "MS_poseList_selectFaceList";
+						button -w 80 -l "cleanConst" -bgc 0.7 0.8 0.8  -c "MS_poseList_faceList_flexSelector_delete()";
+						frameLayout -l "<=setFaceList(push collapse)" -w 110 -cl 1 -cll 1;
+							button -w 110 -l "SET" -bgc 0.7 0.8 0.8  -c "MS_poseList_setFaceList";
+						setParent..;
+					setParent..;
+					//faceList
+					frameLayout 
+						-l "faceList"
+						-borderVisible true 
+						-labelVisible true 
+						-labelAlign "center"
+						-cll 1
+						-w 250
+						-h 300
+						"faceList";
+						scrollLayout "SCR_faceList";
+							columnLayout "CL_faceList";
+							setParent ..;
+						setParent ..;
+					setParent ..;
+				setParent ..;
+			setParent ..;
+		setParent ..;
+	separator -w 200;
+	columnLayout ;
+		text -w 217 -bgc 0.9 0.9 0.9 -l "ポーズリスト";
+		rowLayout -nc 3 -cw3 100 100 100;
+			button -w 100 -l "addPose" -bgc 0.7 0.8 0.8  -c "MS_poseList_addPose";
+			button -w 100 -l "poseList" -bgc 0.7 0.8 0.8  -c "MS_poseList_poseList";
+			frameLayout -l "<=clearPoseList(push collapse)" -cl 1 -cll 1;
+				button -w 100 -l "clearPose" -bgc 0.7 0.8 0.8  -c "MS_poseList_clearPose";
+			setParent ..;
+		setParent ..;
+	setParent..;
+	columnLayout;
+		//poseList
+		frameLayout 
+			-l "poseList"
+			-borderVisible true 
+			-labelVisible true 
+			-labelAlign "center"
+			-cll 1
+			-w 340
+			-h 300
+			"poseList";
+			scrollLayout SCR;
+				columnLayout "CL_poseList";
+				setParent ..;
+			setParent ..;
+		setParent ..;
+	setParent ..;
+	columnLayout;
+		separator -w 217 -h 100;
+		button -w 210 -l "環境変数クリアボタン" -bgc 1.0 0.5 0.5  -c "MS_poseList_storeRecallUI reset";
+	setParent..;
+	
+	MS_poseList_storeRecallUI recall;
+
+	
+	window -e -wh 500 500 MS_poseList;
+	MS_poseList_faceList;
+	MS_poseList_poseList;
+
+	showWindow MS_poseList;
+}
+
+MS_poseList;

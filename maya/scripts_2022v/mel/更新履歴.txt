@@ -1,0 +1,9 @@
+更新履歴
+
+20080408
+MS_efxConfig
+・レイアウト大幅修正
+・各種パス転写ボタンを追加
+
+MS_effectMaster
+・flashWeaponがフラッシュしなかったので修正

@@ -1,0 +1,38 @@
+global proc MS_MFC_deleteFlatPoint(
+	int $strtm,
+	int $endtm,
+	string $obj
+	
+)
+{
+	int $i=0;
+	int $num=0;
+	int $allfr[];
+	
+	
+	for($i=$strtm;$i<$endtm;$i++){
+		int $check=0;
+		$a=`getAttr -t ($i-1) $obj`;
+		$b=`getAttr -t ($i) $obj`;
+		$c=`getAttr -t ($i+1) $obj`;
+		if($a==$b && $b==$c){
+			$check=0;
+		}else{
+			$check=1;
+		}
+		print $check;
+		if(!$check){
+			$allfr[$num]=$i;
+			$num++;
+		}
+	}
+	
+	for($each in $allfr){
+		cutKey -t ($each+":"+$each) -option keys $obj;
+	}
+	
+	print "\n";
+}
+
+
+

@@ -1,0 +1,127 @@
+//////////SegmentScale_OFF.mel////////////
+
+/*
+選んだjointのアトリビュート、"segmentScaleCompensate"を全てOFFにする
+joint以外が選ばれていたら無視する
+
+Ver1.0
+"segmentScaleCompensate"がOnでもOffであっても、
+選んだJointに強制実行（選ばれてない子には実行しない）
+
+Joint以外が選ばれていたら無視する
+referenceNodeはWarningを出す
+lockされていればWarningを出す
+*/
+
+
+//--------------------------------------------------------------------------------------------------------------------------------
+
+global proc SegmentScale_OFF()
+{
+	string $nkWin = "SegmentScale_OFFWindow";
+	string $nkMC = "SegmentScale_OFFMainColumn";
+	string $iconPic ="SegmentScale_OFF.bmp";
+
+//delete same name win
+	if (`window -ex $nkWin`) deleteUI $nkWin;
+
+//create main window
+
+	window
+		-title	"SegmentScale OFF ver.1.0" -s 0 -rtf 1
+		-menuBar true
+		-menuBarVisible true
+		$nkWin;
+		
+	menu
+		-label "Help"
+		-tearOff false;
+	menuItem
+    		-label "SegmentScale OFF Help"
+    		-c "SegmentScale_OFFHelp()" nk_help;
+
+	string $nk_form = `formLayout -numberOfDivisions 100`;
+		string $nk_mainCol=`columnLayout -adjustableColumn true -rowSpacing 2 $nkMC`;
+		
+		rowLayout -numberOfColumns 1;
+			picture 
+				-image $iconPic nkIconPic;
+		setParent..;
+
+
+		text -l "           Select  \"Joint Node\"";
+		text -l "           ScaleCompensate --> OFF";
+		text -l "";
+
+		rowLayout
+			-numberOfColumns 2
+			-cat 1 "left" 48
+			-cat 2 "left" 0;
+
+		string $nk_button = `button
+			-label "        Execute"
+			-w 100
+			-al "left"
+			-bgc 0.95 0.85 0.85
+			-command "SegmentScale_OFFExe()"
+			nk_buttonExe`;
+
+			setParent..;
+		setParent..;
+	setParent..;
+
+	//create script exit scriptJob (delete help window)
+	scriptJob
+		-parent $nkWin
+		-uiDeleted $nkWin nk_exit;
+
+	//show main window
+	showWindow $nkWin;
+	window -edit -widthHeight 200 180 $nkWin;
+}
+
+//----------------------------------------
+// quit script
+//
+global proc nk_exit()
+{
+	if (`window -exists nk_help`)
+		deleteUI nk_help;
+}
+//---------------------------------------------------------
+global proc SegmentScale_OFFExe()
+{
+	print ("/////SegmentScale OFF START/////\n");
+
+	string $nowSel[]=`ls -sl`;
+	
+	//いま選択しているもの全てについて
+	int $joNum=0;
+	
+	for($i=0;$i<size($nowSel);$i++){
+		if(`referenceQuery -inr $nowSel[$i]`) warning($nowSel[$i]+" is reference");//referenceのとき
+		else{
+			if(`objectType -i "joint" $nowSel[$i]`){
+
+				int $lo=`getAttr -l ($nowSel[$i]+".segmentScaleCompensate")`;
+				if($lo==1) warning($nowSel[$i]+"\"segmentScaleCompensate\" is locked. Cannot Change Attr.");//lockされているとき
+				else{
+					setAttr ($nowSel[$i]+".segmentScaleCompensate") 0;
+					print ("    \""+$nowSel[$i]+"\" segmentScaleCompensate OFF\n");
+					$joNum++;
+				}
+			}
+			else print ("\""+$nowSel[$i]+"\" is not jointNode\n");
+		}
+	}
+	print("***execute "+$joNum+" joints***\n");
+	print ("/////SegmentScale OFF END/////\n");
+}
+
+//---------------------------------------------------------
+global proc SegmentScale_OFFHelp()
+{
+	system("load C:/game/root/tool/mayaMC/7.0/docs/SegmentScale_OFF.html");
+}
+
+

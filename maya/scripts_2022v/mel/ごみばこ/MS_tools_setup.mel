@@ -1,0 +1,351 @@
+//MS_mel
+global proc MS_tools_setup(){
+global string $gMainWindow;
+global string $MS_tools_menu = "MS_tools_menu";
+string $MS_mel_path="C:/Documents and Settings/s002000/My Documents/maya/7.0/scripts/";
+if ( $gMainWindow != "" ){
+	menu -p $gMainWindow -l "MS_tools" -tearOff true $MS_tools_menu; 
+}
+//Anim
+menuItem -p $MS_tools_menu -subMenu true -tearOff true -label "Anim" "MS_tools_menu_Anim";
+//MS_VFAUI
+menuItem -p "MS_tools_menu_Anim" 
+	-label "MS_VFAUI"
+	-annotation "MS_tools_Item"
+	-c ("source \""+$MS_mel_path+"MS_VFAUI.mel\";MS_VFAUI;");
+//MS_constraintMasterUI
+menuItem -p "MS_tools_menu_Anim" 
+	-label "MS_constraintMasterUI"
+	-annotation "MS_tools_Item"
+	-c ("source \""+$MS_mel_path+"MS_constraintMasterUI.mel\";MS_constraintMasterUI;");
+//MS_MFCUI
+menuItem -p "MS_tools_menu_Anim" 
+	-label "MS_MFCUI"
+	-annotation "MS_tools_Item"
+	-c ("source \""+$MS_mel_path+"MS_MFCUI.mel\";MS_MFCUI;");
+//MS_bakeAnimUI
+menuItem -p "MS_tools_menu_Anim" 
+	-label "MS_bakeAnimUI"
+	-annotation "MS_tools_Item"
+	-c ("source \""+$MS_mel_path+"MS_bakeAnimUI.mel\";MS_bakeAnimUI;");
+//MS_funcsionCurveSliderUI
+menuItem -p "MS_tools_menu_Anim" 
+	-label "MS_funcsionCurveSliderUI"
+	-annotation "MS_tools_Item"
+	-c ("source \""+$MS_mel_path+"MS_funcsionCurveSliderUI.mel\";MS_functionCurveSliderUI;");
+//UV
+menuItem -p $MS_tools_menu -subMenu true -tearOff true -label "UV" "MS_tools_menu_UV";
+//MS_UVsets
+menuItem -p "MS_tools_menu_UV" 
+	-label "MS_UVsets"
+	-annotation "MS_tools_Item"
+	-c ("source \""+$MS_mel_path+"MS_UVsets.mel\";MS_UVsets;");
+//MS_UVToolsUI
+menuItem -p "MS_tools_menu_UV" 
+	-label "MS_UVToolsUI"
+	-annotation "MS_tools_Item"
+	-c ("source \""+$MS_mel_path+"MS_UVToolsUI.mel\";MS_UVToolsUI;");
+//MS_createUVPanel
+menuItem -p "MS_tools_menu_UV" 
+	-label "MS_createUVPanel"
+	-annotation "MS_tools_Item"
+	-c ("source \""+$MS_mel_path+"MS_createUVPanel.mel\";MS_createUVPanel;");
+//Effect
+menuItem -p $MS_tools_menu -subMenu true -tearOff true -label "Effect" "MS_tools_menu_Effect";
+//MS_effectMasterUI
+menuItem -p "MS_tools_menu_Effect" 
+	-label "MS_effectMasterUI"
+	-annotation "MS_tools_Item"
+	-c ("source \""+$MS_mel_path+"MS_effectMasterUI.mel\";MS_effectMasterUI;");
+//MS_setEmitterUI
+menuItem -p "MS_tools_menu_Effect" 
+	-label "MS_setEmitterUI"
+	-annotation "MS_tools_Item"
+	-c ("source \""+$MS_mel_path+"MS_setEmitterUI.mel\";MS_setEmitterUI;");
+//MS_trailUI
+menuItem -p "MS_tools_menu_Effect" 
+	-label "MS_trailUI"
+	-annotation "MS_tools_Item"
+	-c ("source \""+$MS_mel_path+"MS_trailUI.mel\";MS_trailUI;");
+//Camera
+menuItem -p $MS_tools_menu -subMenu true -tearOff true -label "Camera" "MS_tools_menu_Camera";
+//MS_cameraNormalize
+menuItem -p "MS_tools_menu_Camera" 
+	-label "MS_cameraNormalize"
+	-annotation "MS_tools_Item"
+	-c ("source \""+$MS_mel_path+"MS_cameraNormalize.mel\";MS_cameraNormalize;");
+//CGFX
+menuItem -p $MS_tools_menu -subMenu true -tearOff true -label "CGFX" "MS_tools_menu_CGFX";
+//MS_connectHardwareShader
+menuItem -p "MS_tools_menu_CGFX" 
+	-label "MS_connectHardwareShader"
+	-annotation "MS_tools_Item"
+	-c ("source \""+$MS_mel_path+"MS_connectHardwareShader.mel\";MS_connectHardwareShader;");
+//MS_cubemap
+menuItem -p "MS_tools_menu_CGFX" 
+	-label "MS_cubemap"
+	-annotation "MS_tools_Item"
+	-c ("source \""+$MS_mel_path+"MS_cubemap.mel\";MS_cubemap;");
+//Common
+menuItem -p $MS_tools_menu -subMenu true -tearOff true -label "Common" "MS_tools_menu_Common";
+//MS_locatorToCurveUI
+menuItem -p "MS_tools_menu_Common" 
+	-label "MS_locatorToCurveUI"
+	-annotation "MS_tools_Item"
+	-c ("source \""+$MS_mel_path+"MS_locatorToCurveUI.mel\";MS_locatorToCurveUI;");
+//MS_vertexcountFiltering
+menuItem -p "MS_tools_menu_Common" 
+	-label "MS_vertexcountFiltering"
+	-annotation "MS_tools_Item"
+	-c ("source \""+$MS_mel_path+"MS_vertexcountFiltering.mel\";MS_vertexcountFiltering;");
+//MS_Reverse
+menuItem -p "MS_tools_menu_Common" 
+	-label "MS_Reverse"
+	-annotation "MS_tools_Item"
+	-c ("source \""+$MS_mel_path+"MS_Reverse.mel\";MS_Reverse;");
+//MS_locaterUI
+menuItem -p "MS_tools_menu_Common" 
+	-label "MS_locaterUI"
+	-annotation "MS_tools_Item"
+	-c ("source \""+$MS_mel_path+"MS_locaterUI.mel\";MS_locaterUI;");
+//MS_copyAttr
+menuItem -p "MS_tools_menu_Common" 
+	-label "MS_copyAttr"
+	-annotation "MS_attrCopy"
+	-c ("source \""+$MS_mel_path+"MS_copyAttr.mel\";MS_copyAttr;");
+//MS_spaceLocatorBySceneNameUI
+menuItem -p "MS_tools_menu_Common" 
+	-label "MS_spaceLocatorBySceneNameUI"
+	-annotation "MS_attrCopy"
+	-c ("source \""+$MS_mel_path+"MS_spaceLocatorBySceneNameUI.mel\";MS_spaceLocatorBySceneNameUI;");
+//MS_functionalRenamer
+menuItem -p "MS_tools_menu_Common" 
+	-label "MS_functionalRenamer"
+	-annotation "MS_tools_Item"
+	-c ("source \""+$MS_mel_path+"MS_functionalRenamer.mel\";MS_functionalRenamer;");
+//EOJ
+menuItem -p $MS_tools_menu -subMenu true -tearOff true -label "EOJ" "MS_tools_menu_EOJ";
+//EOJcamConv
+menuItem -p "MS_tools_menu_EOJ" 
+	-label "EOJcamConv"
+	-annotation "MS_tools_Item"
+	-c ("source \""+$MS_mel_path+"EOJcamConv.mel\";EOJcamConvntMasterUI;");
+//File
+menuItem -p $MS_tools_menu -subMenu true -tearOff true -label "File" "MS_tools_menu_File";
+//MS_HRC_XFF_ExportUI
+menuItem -p "MS_tools_menu_File" 
+	-label "MS_HRC_XFF_ExportUI"
+	-annotation "MS_tools_Item"
+	-c ("source \""+$MS_mel_path+"MS_HRC_XFF_ExportUI.mel\";MS_HRC_XFF_ExportUI;");
+//MS_BatchRefference
+menuItem -p "MS_tools_menu_File" 
+	-label "MS_BatchRefference"
+	-annotation "MS_tools_Item"
+	-c ("source \""+$MS_mel_path+"MS_BatchRefference.mel\";MS_BatchRefference;");
+//MS_mayaAscii_ExportUI
+menuItem -p "MS_tools_menu_File" 
+	-label "MS_mayaAscii_ExportUI"
+	-annotation "MS_tools_Item"
+	-c ("source \""+$MS_mel_path+"MS_mayaAscii_ExportUI.mel\";MS_mayaAscii_ExportUI;");
+//MS_publishEffectDBUI
+menuItem -p "MS_tools_menu_File" 
+	-label "MS_publishEffectDBUI"
+	-annotation "MS_tools_Item"
+	-c ("source \""+$MS_mel_path+"MS_publishEffectDBUI.mel\";MS_publishEffectDBUI;");
+//Light
+menuItem -p $MS_tools_menu -subMenu true -tearOff true -label "Light" "MS_tools_menu_Light";
+//MS_DirectionalLight
+menuItem -p "MS_tools_menu_Light" 
+	-label "MS_DirectionalLight"
+	-annotation "MS_tools_Item"
+	-c ("source \""+$MS_mel_path+"MS_DirectionalLight.mel\";MS_DirectionalLight;");
+//Matter
+menuItem -p $MS_tools_menu -subMenu true -tearOff true -label "Matter" "MS_tools_menu_Matter";
+//MS_vtxtool
+menuItem -p "MS_tools_menu_Matter" 
+	-label "MS_vtxtool"
+	-annotation "MS_tools_Item"
+	-c ("source \""+$MS_mel_path+"MS_vtxtool.mel\";MS_vtxtool;");
+//MS_groupVcolorUI
+menuItem -p "MS_tools_menu_Matter" 
+	-label "MS_groupVcolorUI"
+	-annotation "MS_tools_Item"
+	-c ("source \""+$MS_mel_path+"MS_groupVcolorUI.mel\";MS_groupVcolorUI;");
+//Model
+menuItem -p $MS_tools_menu -subMenu true -tearOff true -label "Model" "MS_tools_menu_Model";
+//MS_tunagime_v2
+menuItem -p "MS_tools_menu_Model" 
+	-label "MS_tunagime_v2"
+	-annotation "MS_tools_Item"
+	-c ("source \""+$MS_mel_path+"MS_tunagime_v2.mel\";MS_tunagime_v2;");
+//MS_reduce
+menuItem -p "MS_tools_menu_Model" 
+	-label "MS_reduce"
+	-annotation "MS_tools_Item"
+	-c ("source \""+$MS_mel_path+"MS_reduce.mel\";MS_reduce;");
+//MS_polyUnite
+menuItem -p "MS_tools_menu_Model" 
+	-label "MS_polyUnite"
+	-annotation "MS_tools_Item"
+	-c ("source \""+$MS_mel_path+"MS_polyUnite.mel\";MS_polyUnite;");
+//MS_KillPlannerFace
+menuItem -p "MS_tools_menu_Model" 
+	-label "MS_KillPlannerFace"
+	-annotation "MS_tools_Item"
+	-c ("source \""+$MS_mel_path+"MS_KillPlannerFace.mel\";MS_KillPlannerFace;");
+//MS_boolset
+menuItem -p "MS_tools_menu_Model" 
+	-label "MS_boolset"
+	-annotation "MS_tools_Item"
+	-c ("source \""+$MS_mel_path+"MS_boolset.mel\";MS_boolset;");
+//System
+menuItem -p $MS_tools_menu -subMenu true -tearOff true -label "System" "MS_tools_menu_System";
+//MS_shelfMasterUI
+menuItem -p "MS_tools_menu_System" 
+	-label "MS_shelfMasterUI"
+	-annotation "MS_tools_Item"
+	-c ("source \""+$MS_mel_path+"MS_shelfMasterUI.mel\";MS_shelfMasterUI;");
+//MS_commandCollection
+menuItem -p "MS_tools_menu_System" 
+	-label "MS_commandCollection"
+	-annotation "MS_tools_Item"
+	-c ("source \""+$MS_mel_path+"MS_commandCollection.mel\";MS_commandCollection;");
+//Texture
+menuItem -p $MS_tools_menu -subMenu true -tearOff true -label "Texture" "MS_tools_menu_Texture";
+//MS_TexRepTools
+menuItem -p "MS_tools_menu_Texture" 
+	-label "MS_TexRepTools"
+	-annotation "MS_tools_Item"
+	-c ("source \""+$MS_mel_path+"MS_TexRepTools.mel\";MS_TexRepTools;");
+//MS_texCleanUI
+menuItem -p "MS_tools_menu_Texture" 
+	-label "MS_texCleanUI"
+	-annotation "MS_tools_Item"
+	-c ("source \""+$MS_mel_path+"MS_texCleanUI.mel\";MS_texCleanUI;");
+//Extra
+menuItem -p $MS_tools_menu -subMenu true -tearOff true -label "Extra" "MS_tools_menu_Extra";
+//MS_Particle2Tube
+menuItem -p "MS_tools_menu_Extra" 
+	-label "MS_Particle2Tube"
+	-annotation "MS_tools_Item"
+	-c ("source \""+$MS_mel_path+"MS_Particle2Tube.mel\";MS_Particle2Tube;");
+//MS_cubemap
+menuItem -p "MS_tools_menu_Extra" 
+	-label "MS_cubemap"
+	-annotation "MS_tools_Item"
+	-c ("source \""+$MS_mel_path+"MS_cubemap.mel\";MS_cubemap;");
+//MS_Particle2Curve
+menuItem -p "MS_tools_menu_Extra" 
+	-label "MS_Particle2Curve"
+	-annotation "MS_tools_Item"
+	-c ("source \""+$MS_mel_path+"MS_Particle2Curve.mel\";MS_Particle2Curve;");
+//MS_dynagareki
+menuItem -p "MS_tools_menu_Extra" 
+	-label "MS_dynagareki"
+	-annotation "MS_tools_Item"
+	-c ("source \""+$MS_mel_path+"MS_dynagareki.mel\";MS_dynagareki;");
+//MS_krash
+menuItem -p "MS_tools_menu_Extra" 
+	-label "MS_krash"
+	-annotation "MS_tools_Item"
+	-c ("source \""+$MS_mel_path+"MS_krash.mel\";MS_krash;");
+/*ñ¢êÆóù
+
+//MS_skinWeight
+menuItem -p "MS_tools_menu_Anim" 
+	-label "MS_constraintMasterUI"
+	-annotation "MS_tools_Item"
+	-c ("source \""+$MS_mel_path+"MS_constraintMasterUI.mel\";MS_constraintMasterUI;");
+//MS_skinWeightV2
+menuItem -p "MS_tools_menu_Anim" 
+	-label "MS_constraintMasterUI"
+	-annotation "MS_tools_Item"
+	-c ("source \""+$MS_mel_path+"MS_constraintMasterUI.mel\";MS_constraintMasterUI;");
+//MS_Batch
+menuItem -p "MS_tools_menu_Anim" 
+	-label "MS_constraintMasterUI"
+	-annotation "MS_tools_Item"
+	-c ("source \""+$MS_mel_path+"MS_constraintMasterUI.mel\";MS_constraintMasterUI;");
+//MS_BakeShadowSetting_all
+menuItem -p "MS_tools_menu_Anim" 
+	-label "MS_constraintMasterUI"
+	-annotation "MS_tools_Item"
+	-c ("source \""+$MS_mel_path+"MS_constraintMasterUI.mel\";MS_constraintMasterUI;");
+//MS_BakeShadowSetting
+menuItem -p "MS_tools_menu_Anim" 
+	-label "MS_constraintMasterUI"
+	-annotation "MS_tools_Item"
+	-c ("source \""+$MS_mel_path+"MS_constraintMasterUI.mel\";MS_constraintMasterUI;");
+//MS_visibleChecker
+menuItem -p "MS_tools_menu_Anim" 
+	-label "MS_constraintMasterUI"
+	-annotation "MS_tools_Item"
+	-c ("source \""+$MS_mel_path+"MS_constraintMasterUI.mel\";MS_constraintMasterUI;");
+//MS_install
+menuItem -p "MS_tools_menu_Anim" 
+	-label "MS_constraintMasterUI"
+	-annotation "MS_tools_Item"
+	-c ("source \""+$MS_mel_path+"MS_constraintMasterUI.mel\";MS_constraintMasterUI;");
+//MS_createIcon
+menuItem -p "MS_tools_menu_Anim" 
+	-label "MS_constraintMasterUI"
+	-annotation "MS_tools_Item"
+	-c ("source \""+$MS_mel_path+"MS_constraintMasterUI.mel\";MS_constraintMasterUI;");
+//MS_SelVtxCol
+menuItem -p "MS_tools_menu_Anim" 
+	-label "MS_constraintMasterUI"
+	-annotation "MS_tools_Item"
+	-c ("source \""+$MS_mel_path+"MS_constraintMasterUI.mel\";MS_constraintMasterUI;");
+//MS_selectSG
+menuItem -p "MS_tools_menu_Anim" 
+	-label "MS_constraintMasterUI"
+	-annotation "MS_tools_Item"
+	-c ("source \""+$MS_mel_path+"MS_constraintMasterUI.mel\";MS_constraintMasterUI;");
+//MS_SelByPolyCount
+menuItem -p "MS_tools_menu_Anim" 
+	-label "MS_constraintMasterUI"
+	-annotation "MS_tools_Item"
+	-c ("source \""+$MS_mel_path+"MS_constraintMasterUI.mel\";MS_constraintMasterUI;");
+//MS_rotator
+menuItem -p "MS_tools_menu_Anim" 
+	-label "MS_constraintMasterUI"
+	-annotation "MS_tools_Item"
+	-c ("source \""+$MS_mel_path+"MS_constraintMasterUI.mel\";MS_constraintMasterUI;");
+//MS_RenzokuMergeVertex
+menuItem -p "MS_tools_menu_Anim" 
+	-label "MS_constraintMasterUI"
+	-annotation "MS_tools_Item"
+	-c ("source \""+$MS_mel_path+"MS_constraintMasterUI.mel\";MS_constraintMasterUI;");
+//MS_PolyAngleCheck
+menuItem -p "MS_tools_menu_Anim" 
+	-label "MS_constraintMasterUI"
+	-annotation "MS_tools_Item"
+	-c ("source \""+$MS_mel_path+"MS_constraintMasterUI.mel\";MS_constraintMasterUI;");
+//MS_locater_dupVER
+menuItem -p "MS_tools_menu_Anim" 
+	-label "MS_constraintMasterUI"
+	-annotation "MS_tools_Item"
+	-c ("source \""+$MS_mel_path+"MS_constraintMasterUI.mel\";MS_constraintMasterUI;");
+//MS_copyTransform
+menuItem -p "MS_tools_menu_Anim" 
+	-label "MS_constraintMasterUI"
+	-annotation "MS_tools_Item"
+	-c ("source \""+$MS_mel_path+"MS_constraintMasterUI.mel\";MS_constraintMasterUI;");
+//MS_AttachCurves
+menuItem -p "MS_tools_menu_Anim" 
+	-label "MS_constraintMasterUI"
+	-annotation "MS_tools_Item"
+	-c ("source \""+$MS_mel_path+"MS_constraintMasterUI.mel\";MS_constraintMasterUI;");
+//MS_AngleCheck
+menuItem -p "MS_tools_menu_Anim" 
+	-label "MS_constraintMasterUI"
+	-annotation "MS_tools_Item"
+	-c ("source \""+$MS_mel_path+"MS_constraintMasterUI.mel\";MS_constraintMasterUI;");
+//MS_Batchtexclean
+menuItem -p "MS_tools_menu_Anim" 
+	-label "MS_constraintMasterUI"
+	-annotation "MS_tools_Item"
+	-c ("source \""+$MS_mel_path+"MS_constraintMasterUI.mel\";MS_constraintMasterUI;");
+*/
+}
+MS_tools_setup;

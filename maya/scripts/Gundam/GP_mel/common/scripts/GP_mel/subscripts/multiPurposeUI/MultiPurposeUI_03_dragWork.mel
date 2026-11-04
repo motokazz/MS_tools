@@ -1,0 +1,450 @@
+//---------------------------------------------------------------------------------------------------------
+//ドラッグ&ドロップ時の挙動制御
+//---------------------------------------------------------------------------------------------------------
+
+//ツールの状態取得
+
+global proc string dMPU_getCondition(){
+	string $mode[] = {"addCtrlSelector_Window" , "editCtrlSort_Window"};
+	string $res;
+	for($windowName in $mode){
+		if(`window -q -exists $windowName`){
+			$res = $windowName;
+		}
+	}
+	return $res;
+}
+
+
+//選択モードにおける追加挙動
+//選択されているリグに対応するコントローラを色変更
+global proc dMPU_rePaintBySelection(){
+	string $activeTab = `tabLayout -q -st dMPU_globalTab`;
+	string $ctrlList[] = `layout -q -ca $activeTab`;
+	string $slted[] = `ls -sl`;
+	string $pickerName;
+	int $selFlag , $i;
+	
+	//クリーンアップ
+	for($i=2 ; $i<size($ctrlList) ; $i++){
+		$selFlag = `checkBox -q -v ($ctrlList[$i] + "_selected")`;
+		if($selFlag == 1){
+			dMPU_reColor($ctrlList[$i] , 1 , "1,1,1");
+			checkBox -e -v 0 ($ctrlList[$i] + "_selected");
+		}
+	}
+	string $temp[];
+	//選択物色変更
+	for($i=0 ; $i<size($slted) ; $i++){
+		tokenize $slted[$i] ":" $temp;
+		$pickerName = "iconTextButton_" + $activeTab + "_" + $temp[size($temp)-1] + "0";
+		if(`control -q -exists $pickerName`){
+			dMPU_reColor($pickerName , 0 , "1,1,1");
+			checkBox -e -v 1 ($pickerName + "_selected");
+		}
+	}
+}
+
+//BGからのドラッグ
+//通常時：リグ選択ボタン範囲実行(済)
+//追加機能時：ボタン追加処理(済)
+//編集機能時：範囲選択処理(済)
+
+global proc string[] GP2_dMPU_DragCB( string $dragControl, int $x, int $y, int $mods ){
+	string $temp[];
+	tokenize $dragControl "|" $temp;
+   	intField -e -v $x ($temp[size($temp)-1] + "_aPXIF");
+	intField -e -v $y ($temp[size($temp)-1] + "_aPYIF");
+	return { $dragControl };
+}
+
+//UIパーツからのドラッグ
+//通常時：リグ選択ボタンなら範囲発動させる？
+//追加機能時：コピー作成とか
+//編集機能時：移動・伸縮準備開始(選択処理)
+
+global proc string[] GP2_dMPU_DragFromUICB( string $dragControl, int $x, int $y, int $mods ){
+
+	string $mode = dMPU_getCondition();
+	string $activeTab = `tabLayout -q -st dMPU_globalTab`;
+	string $ctrls[] = `layout -q -ca $activeTab`;
+	$ctrls = `layout -q -ca ($ctrls[0] + "pMRow_00")`;
+
+	string $temp[];
+	tokenize $dragControl "|" $temp;
+
+	intField -e -v $x ($ctrls[0]);
+	intField -e -v $y ($ctrls[1]);
+
+	if($mode == "editCtrlSort_Window"){
+
+		int $selCheck = `checkBox -q -v ($temp[size($temp)-1] + "_selected")`;
+		if($selCheck == 0){
+			textScrollList -e -si $temp[size($temp)-1] editCtrlSrtList;
+			dMPU_reColor($temp[size($temp)-1] , 0 , "0.7325,0.7325,0.7325");
+			checkBox -e -v 1 ($temp[size($temp)-1] + "_selected");
+		}
+	}
+
+	return { $dragControl };
+
+}
+
+
+//ダストボックスへのドロップ
+//UI⇒DB
+//通常時、追加機能時：単体削除
+//編集機能時：まとめて削除
+
+//$drag:ドラッグ元、$drop:ドロップ先、$msgs[]:drag側のreturn(暫定的に$dragと同じ)、$x$y:座標、$typeってなんだろう
+
+global proc GP2_dMPU_DropToDustBoxCB( string $drag, string $drop, string $msgs[], int $x, int $y, int $type ){
+
+
+	string $temp[];
+	tokenize $drag "|" $temp;
+	$drag = $temp[size($temp)-1];
+
+	checkBox -e -v 0 ($drag + "_selected");
+	checkBox -e -v 1 ($drag + "_deleted");
+	control -e -vis 0 $drag;
+
+
+	string $mode = dMPU_getCondition();
+
+	if($mode == "editCtrlSort_Window"){
+		string $multiDelTgt[] = `textScrollList -q -si editCtrlSrtList`;
+		for($item in $multiDelTgt){
+			checkBox -e -v 0 ($item + "_selected");
+			checkBox -e -v 1 ($item + "_deleted");
+			control -e -vis 0 $item;
+		}
+		dMPU_setupECS_tSL("editCtrlSrtList");
+	}
+
+
+}
+
+
+//UIパーツへのドロップ
+//BG⇒UI
+//通常時：リグ選択ボタン範囲発動(たぶん済)
+//追加機能時：重なるのを承知でUI追加？(未)
+//編集機能時：範囲選択したい(済)
+
+//UI⇒UI
+//通常時：リグ選択ボタン範囲発動？(未)
+//追加機能時：重なるのを承知でUI追加？(未) 何もしなくていい気がする
+//編集機能時：移動・伸縮処理？(未)
+
+//$drag:ドラッグ元、$drop:ドロップ先、$msgs[]:drag側のreturn(暫定的に$dragと同じ)、$x$y:座標、$typeってなんだろう
+
+global proc GP2_dMPU_DroprToUICB( string $drag, string $drop, string $msgs[], int $x, int $y, int $type ){
+
+	string $activeTab = `tabLayout -q -st dMPU_globalTab`;
+	string $ctrls[] = `layout -q -ca $activeTab`;
+	int $AttX[] , $AttY[];
+
+	$AttX[0] = `intField -q -v ($ctrls[0] + "_aPXIF")`;
+	$AttX[1] = $x;
+	$AttX = `sort $AttX`;
+	$AttY[0] = `intField -q -v ($ctrls[0] + "_aPYIF")`;
+	$AttY[1] = $y;
+	$AttY = `sort $AttY`;
+
+	string $mode = dMPU_getCondition();
+
+//	print($mode + "\r\n");
+
+	string $temp[];
+	tokenize $drop "|" $temp;
+
+	switch($mode){
+		case "" :
+			//MultiSelectionへ変更予定
+			$AttX[0] = `intField -q -v ($ctrls[0] + "_aPXIF")`;
+			$AttX[1] = ($x + `intField -q -v ($temp[size($temp)-1] + "_posX")`);
+			$AttX = `sort $AttX`;
+			$AttY[0] = `intField -q -v ($ctrls[0] + "_aPYIF")`;
+			$AttY[1] = ($y + `intField -q -v ($temp[size($temp)-1] + "_posY")`);
+			$AttY = `sort $AttY`;
+			dMPU_actModeOrder($AttX, $AttY, $ctrls,  $activeTab);
+			break;
+		case "addCtrlSelector_Window" :
+			dMPU_addModeOrder($mode, $AttX, $AttY, $activeTab);
+			break;
+		case "editCtrlSort_Window" :
+			$AttX[0] = `intField -q -v ($ctrls[0] + "_aPXIF")`;
+			$AttX[1] = ($x + `intField -q -v ($temp[size($temp)-1] + "_posX")`);
+			$AttX = `sort $AttX`;
+			$AttY[0] = `intField -q -v ($ctrls[0] + "_aPYIF")`;
+			$AttY[1] = ($y + `intField -q -v ($temp[size($temp)-1] + "_posY")`);
+			$AttY = `sort $AttY`;
+			dMPU_editModeOrder_selection($AttX, $AttY, $ctrls, $activeTab);
+			break;
+	}
+}
+
+
+//BGへのドロップ
+//BG⇒BG
+//	通常時：範囲発動(済)
+//	追加機能時：ボタン追加(済)
+//	編集機能時：範囲選択(済)
+
+//UI⇒BG
+//通常時：範囲発動(未)
+//追加機能時：伸縮orコピー？(未)
+//編集機能時：移動(済)・伸縮処理(未)
+
+//$drag:ドラッグ元、$drop:ドロップ先、$msgs[]:drag側のreturn、$x$y:座標、$typeってなんだろう
+
+global proc GP2_dMPU_DropCB( string $drag, string $drop, string $msgs[], int $x, int $y, int $type ){
+	string $activeTab = `tabLayout -q -st dMPU_globalTab`;
+	string $ctrls[] = `layout -q -ca $activeTab`;
+
+	int $dragFromBG;
+	string $temp[];
+	tokenize $drag "|" $temp;
+	$drag = $temp[size($temp)-1];
+	if($drag == $ctrls[0]){
+		$dragFromBG = 1;
+	}
+
+	string $mode = dMPU_getCondition();
+
+	int $AttX[] , $AttY[];
+
+	$AttX[0] = `intField -q -v ($ctrls[0] + "_aPXIF")`;
+	$AttX[1] = $x;
+	$AttX = `sort $AttX`;
+
+	$AttY[0] = `intField -q -v ($ctrls[0] + "_aPYIF")`;
+	$AttY[1] = $y;
+	$AttY = `sort $AttY`;
+
+	if($dragFromBG){
+		switch($mode){
+			case "" :
+				dMPU_actModeOrder($AttX, $AttY, $ctrls,  $activeTab);
+				break;
+			case "addCtrlSelector_Window" :
+				dMPU_addModeOrder($mode, $AttX, $AttY, $activeTab);
+				break;
+			case "editCtrlSort_Window" :
+				dMPU_editModeOrder_selection($AttX, $AttY, $ctrls, $activeTab);
+				break;
+		}
+	}else{
+		switch($mode){
+			case "" :
+				$AttX[0] = (`intField -q -v ($ctrls[0] + "_aPXIF")` + `intField -q -v ($drag + "_posX")`);
+				$AttX[1] = $x;
+				$AttX = `sort $AttX`;
+				$AttY[0] = (`intField -q -v ($ctrls[0] + "_aPYIF")` + `intField -q -v ($drag + "_posY")`);
+				$AttY[1] = $y;
+				$AttY = `sort $AttY`;
+
+				dMPU_actModeOrder($AttX, $AttY, $ctrls,  $activeTab);
+				break;
+			case "addCtrlSelector_Window" :
+				//伸縮orコピー
+				dMPU_addModeOrder($mode, $AttX, $AttY, $activeTab);
+				break;
+			case "editCtrlSort_Window" :
+				//移動、伸縮
+				dMPU_editModeOrder_translate($drag, $AttX, $AttY, $ctrls, $activeTab);
+				break;
+		}
+	}
+}
+
+
+//ドラッグ&ドロップ時の範囲判定チェック
+//渡したUIから、ドラッグ範囲にかかっているか検出し返答する。
+
+global proc int dMPU_dragCollisionCheck(string $ctrl, int $dragX[], int $dragY[], string $activeTab){
+	int $ctrlX[],$ctrlY[];
+	int $res;
+	$ctrlX[0] = `intField -q -v ($ctrl + "_posX")`;	//`formLayout -q -attachForm $ctrl "left" $activeTab`;
+	$ctrlY[0] = `intField -q -v ($ctrl + "_posY")`;	//`formLayout -q -attachForm $ctrl "top" $activeTab`;
+	$ctrlX[1] = $ctrlX[0] + `control -q -w $ctrl`;
+	$ctrlY[1] = $ctrlY[0] + `control -q -h $ctrl`;
+
+	if(`checkBox -q -v dMPU_debugFlag`){
+		print("dragX : " + $dragX[0] + " - " + $dragX[1] + "\tdragY : " + $dragY[0] + " - " + $dragY[1] + "\r\n");
+		print("ctrlX : " + $ctrlX[0] + " - " + $ctrlX[1] + "\tctrlY : " + $ctrlY[0] + " - " + $ctrlY[1] + "\r\n");
+	}
+
+	if($ctrlX[0] > $dragX[1] || $ctrlX[1] < $dragX[0] || $ctrlY[0] > $dragY[1] || $ctrlY[1] < $dragY[0] ){	//	判定記述
+		$res = 1;		if(`checkBox -q -v dMPU_debugFlag`){print ($ctrl + " is unselected.\r\n");}
+	}else{
+		$res = 0;		if(`checkBox -q -v dMPU_debugFlag`){print ($ctrl + " is selected.\r\n");}
+	}
+	return $res;
+}
+
+//mode 0 で新しい色へ、現色ストック。 mode 1 でストック色へ戻す
+
+global proc dMPU_reColor(string $tgtObj , int $mode , string $color){
+	string $type = dMPU_getUIObjectType($tgtObj);
+
+	if($mode){
+		$color = `textField -q -tx ($tgtObj + "_color")`;
+		if(`checkBox -q -v dMPU_debugFlag`) print("backColor to " + $color + ".\r\n");
+	}else{
+		float $oldCol[];
+		$oldCol = `eval $type -q -bgc $tgtObj`;
+		textField -e -tx ($oldCol[0] + "," + $oldCol[1] + "," + $oldCol[2]) ($tgtObj + "_color");
+		if(`checkBox -q -v dMPU_debugFlag`) print("reColor to " + $color + ".\r\n");
+	}
+	string $temp[];
+	tokenize $color "," $temp;
+	float $col[];
+	$col[0] = float($temp[0]);
+	$col[1] = float($temp[1]);
+	$col[2] = float($temp[2]);
+
+	eval $type -e -bgc $col[0] $col[1] $col[2] $tgtObj;
+	if(`checkBox -q -v dMPU_debugFlag`) print("object :\t" + $tgtObj + " type :\t" + $type + "\tcol :\t" + $col[0] + " " + $col[1] + " " + $col[2] + "\r\n");
+}
+
+
+//編集機能時の処理・範囲選択
+global proc dMPU_editModeOrder_selection(int $AttX[], int $AttY[], string $ctrls[], string $activeTab){
+	int $flag , $selCheck;
+	for($i=2 ; $i<size($ctrls) ; $i++){
+		$flag = dMPU_dragCollisionCheck($ctrls[$i], $AttX, $AttY, $activeTab);
+		$selCheck = `checkBox -q -v ($ctrls[$i] + "_selected")`;
+		if($flag == 0 && `checkBox -q -v ($ctrls[$i] + "_deleted")` == 0){
+			if($selCheck == 0){
+				textScrollList -e -si $ctrls[$i] editCtrlSrtList;
+				dMPU_reColor($ctrls[$i] , 0 , "0.7325,0.7325,0.7325");
+				checkBox -e -v 1 ($ctrls[$i] + "_selected");
+			}else{
+				textScrollList -e -di $ctrls[$i] editCtrlSrtList;
+				dMPU_reColor($ctrls[$i] , 1 , "0,0,0");
+				checkBox -e -v 0 ($ctrls[$i] + "_selected");
+			}
+		}
+	}
+}
+
+
+//編集機能時の処理・移動処理(類似で拡縮を追加予定)
+global proc dMPU_editModeOrder_translate(string $target, int $AttX[], int $AttY[], string $ctrls[], string $activeTab){
+
+	int $pPosX = `intField -q -v ($target + "_posX")`;
+	int $pPosY = `intField -q -v ($target + "_posY")`;
+
+	int $movX = ($AttX[1] - $AttX[0]) - $pPosX;
+	int $movY = ($AttY[1] - $AttY[0]) - $pPosY;
+
+	int $selCheck , $tempPosX , $tempPosY;
+	for($i=2 ; $i<size($ctrls) ; $i++){
+		$selCheck = `checkBox -q -v ($ctrls[$i] + "_selected")`;
+
+		if($selCheck == 1){
+			$tempPosX = `intField -q -v ($ctrls[$i] + "_posX")`;
+			$tempPosY = `intField -q -v ($ctrls[$i] + "_posY")`;
+
+			formLayout -e
+				-attachForm $ctrls[$i] "top"  ($tempPosY + $movY)
+				-attachForm $ctrls[$i] "left" ($tempPosX + $movX)
+				$activeTab;
+
+			intField -e -v ($tempPosX + $movX) ($ctrls[$i] + "_posX");
+			intField -e -v ($tempPosY + $movY) ($ctrls[$i] + "_posY");
+
+		}
+	}
+}
+
+
+global proc string GP2_dMPU_getAddButtonName(string $parentLay , string $type){
+
+	int $i=0;
+	string $addName = ($type + "_" + $parentLay + "_");
+
+	$addName = $addName + `textField -q -tx dMPU_addNameTf`;
+	string $broLi[] = `layout -q -childArray $parentLay`;
+	$broLi = `sort $broLi`;
+	for($item in $broLi){
+		if(`control -ex ($addName + $i)`){
+			$i++;
+		}
+	}
+
+	$addName = $addName + $i;
+	return($addName);
+}
+
+//追加機能時の処理・UIを作成する
+global proc dMPU_addModeOrder(string $mode, int $AttX[], int $AttY[], string $activeTab){
+
+	string $type , $name , $image , $command , $filePath;
+
+	string $filePath = GP2_dMPU_queFilePath();
+	string $ctrls[];
+	$ctrls = `textScrollList -q -si addCtrlSelList`;
+	$type = $ctrls[0];
+
+	string $name = GP2_dMPU_getAddButtonName($activeTab,$type);
+
+	string $command = ("GP2_dMPU_stockActionToButton(\\\"" + $name + "\\\")");
+	string $image = ($filePath + "\\icon\\pickerTrial_000.bmp");
+	float $col[] = { 0.2656 , 0.2656 , 0.2656};
+
+	int $posX = $AttX[0];
+	int $sizeX = ($AttX[1] - $AttX[0]);
+	int $posY = $AttY[0];
+	int $sizeY = ($AttY[1] - $AttY[0]);
+	if(`checkBox -q -v dMPU_addSizeLk`){
+		$sizeX = `floatField -q -v dMPU_addSizeX`;
+		$sizeY = `floatField -q -v dMPU_addSizeY`;
+	}
+
+	setParent $activeTab;
+	GP2_dMPU_makeNewUI_2($name , $type , $posX , $posY , $sizeX , $sizeY , $command , $image , $col , $name);
+
+//	GP2_dMPU_makeNewUI($name , $posX , $posY , $sizeX , $sizeY , $command , $image , $col);
+
+}
+
+
+//使用機能時の処理・選択処理一括実行
+global proc dMPU_actModeOrder(int $AttX[], int $AttY[], string $ctrls[], string $activeTab){
+    int $mod = getModifiers();
+	if($mod == 0){
+		select -cl;
+	}
+
+	int $flag ;
+	string $temp , $type;
+	string $selSet[],$selSetTemp[];
+	for($i=2 ; $i<size($ctrls) ; $i++){
+
+		$flag = dMPU_dragCollisionCheck($ctrls[$i], $AttX, $AttY, $activeTab);
+		if($flag == 0 ){	//選択範囲内で
+
+			$type = dMPU_getUIObjectType($ctrls[$i]);
+			if(dMPU_checkOptUseable($type , "-c")){	//押したときにコマンドが出て
+
+				$temp = `eval( $type + " -q -c " + $ctrls[$i])`;
+				if(startsWith($temp,"dMPU_defaultSelection")){	//それがオブジェクト選択系なら
+
+					eval $temp;
+					if($mod == 0){
+						$selSetTemp = `ls -sl`;
+						$selSet = stringArrayCatenate( $selSet , $selSetTemp );
+					}
+				}
+			}
+		}
+	}
+	if($mod == 0){
+		$selSet = `sort $selSet`;
+		$selSet = `stringArrayRemoveDuplicates($selSet)`;
+		select -r $selSet;
+	}
+}

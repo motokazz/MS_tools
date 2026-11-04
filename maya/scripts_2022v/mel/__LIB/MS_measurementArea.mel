@@ -1,0 +1,25 @@
+global proc float MS_measurementArea(string $orgComp[]){
+	//ƒ|ƒŠƒSƒ“–ÊÏŒv‘ª
+	polyTriangulate -ch 1 $orgComp;
+	string $triangle[]=`filterExpand -sm 34`;
+	undo;
+	float $total=0;
+	for($each in $triangle){
+		string $comp[]=`polyListComponentConversion -fe -fuv -ff -fvf -tv $each`;
+		string $vertex[]=`filterExpand -sm 31 $comp`;
+		float $s=0;
+		float $a=0;
+		float $dist[];
+		
+		$dist[0]=`MS_distance $vertex[0] $vertex[1]`;
+		$dist[1]=`MS_distance $vertex[1] $vertex[2]`;
+		$dist[2]=`MS_distance $vertex[2] $vertex[0]`;
+		if (($dist[0]+$dist[1]+$dist[2])>0){
+			$s=(($dist[0]+$dist[1]+$dist[2])/2);
+			$a=sqrt($s*($s-$dist[0])*($s-$dist[1])*($s-$dist[2]));
+		}
+		$total+=$a;
+	}
+	return $total;
+}
+

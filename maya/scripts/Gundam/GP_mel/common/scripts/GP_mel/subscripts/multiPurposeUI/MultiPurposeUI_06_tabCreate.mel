@@ -1,0 +1,90 @@
+//---------------------------------------------------------------------------------------------------------
+//タブファイルの新規作成
+//---------------------------------------------------------------------------------------------------------
+global proc GP2_dMPU_execMakeNewTab(){
+	string $filePath = GP2_dMPU_queFilePath();
+	string $name = `textField -q -tx dMPU_newTabNameFld`;
+	string $BG = `textField -q -tx dMPU_newTabBGNameFld`;
+
+	if(gmatch($name,"?:*")){
+		copyfile();		//外フォルダの画像を指定した場合、コピーを行う
+	}
+
+	setParent dMPU_globalTab;
+	formLayout ($name + ".csv");
+	GP2_dMPU_makeBG($filePath , $name , ($BG + ":640:640"));
+
+	string $saveData[];
+	$saveData[0] = ("title," + $name);
+	$saveData[1] = ("use_BGImage," + $BG + ":640:640,end");	//別サイズ対応が必要
+	$saveData[2] = ("addAction");
+	$saveData[3] = ("end of addAction");
+	string $fullFileName = ($filePath + "/" + $name + ".csv");
+	$fileId = `fopen $fullFileName "w"`;
+	int $i;
+	for($i=0 ; $i<size($saveData) ; $i++){
+		fprint $fileId ($saveData[$i] + "\r\n");
+	}
+	fclose $fileId;
+
+	string $windowName = "makeNewTabSetting_Window";
+	if(`window -q -exists $windowName`){
+		deleteUI -window $windowName;
+	}
+}
+
+//0なら新規作成、1なら既存張替
+global proc GP2_dMPU_getNewBGPath(int $mode){
+	string $filePath = GP2_dMPU_queFilePath();
+	$filePath = (`fromNativePath($filePath)` + "/");
+	string $basicFilter = "*.*";
+	string $result[] = `fileDialog2 -dir ($filePath + "BG") -fileFilter $basicFilter -fm 1 -dialogStyle 2`;
+	if($result[0] != ""){
+		if($mode){
+			string $tgtName = `tabLayout -q -st dMPU_globalTab`;
+			$tgtName = substitute( ".csv" , $tgtName , "");
+			image -e -i $result[0] ("BG_" + $tgtName);
+		}else{
+			$result[0] = substitute( $filePath , $result[0] , "");
+			textField -e -tx $result[0] dMPU_newTabBGNameFld;
+		}
+	}
+}
+
+global proc GP2_dMPU_makeNewTabWindow(){
+	string $filePath = GP2_dMPU_queFilePath();
+	string $windowName = "makeNewTabSetting_Window";
+	if(`window -q -exists $windowName`){
+		deleteUI -window $windowName;
+	}
+	window -h 200 -w 150 -tlb 1  $windowName;
+
+	string $form = `formLayout`;
+		string $lay = `columnLayout -adj 1 `;
+			string $t1 = `text -label "Tab title" -align left`;
+			string $row1 = `rowLayout -nc 2 -ad2 1 -cw2 160 30`;
+				string $tf1 = `textField -tx "untitled" -w 160 dMPU_newTabNameFld`;
+				string $tf2 = `textField -en 0 -tx ".csv" -w 30`;
+				setParent ..;
+			string $t2 = `text -label "BG_imageFile" -align left`;
+			string $row2 = `rowLayout -nc 2 -ad2 1 -cw2 160 30`;
+				string $tf2 = `textField -tx "BG/UIbg.bmp" -w 160 dMPU_newTabBGNameFld`;
+				string $b1 = `button -h 20 -l "load" -c "GP2_dMPU_getNewBGPath(0)" dMPU_getNewBGBtn`;
+				setParent ..;
+			setParent ..;
+
+		string $b0 = `button -h 40 -l "Accept" -c "GP2_dMPU_execMakeNewTab()" dMPU_makeNTExecBtn`;
+
+		formLayout -e
+			-attachForm $lay top 0
+			-attachForm $lay left 0
+			-attachForm $lay right 0
+
+			-attachControl $b0 top 0 $lay
+			-attachForm $b0 bottom 0
+			-attachForm $b0 left 0
+			-attachForm $b0 right 0
+			$form;
+		
+	showWindow $windowName;
+}

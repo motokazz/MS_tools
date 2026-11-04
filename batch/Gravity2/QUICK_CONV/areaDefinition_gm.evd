@@ -1,0 +1,43 @@
+#----------------------------------------------------------------------------------
+#UTF-8形式で保存してください
+#boolean(真偽値)のデフォルトはfalseです
+#記述者の名前が無いテスト用らしき記述は最適化の為削除する事があります
+#----------------------------------------------------------------------------------
+
+#----------------------------------------------------------------------------------
+#亡霊都市　茂木
+gm_b_root:                      #実際にはこのエリアは使用しなくて各パーツのmerged.hkxとLODを作るために存在
+  root:     true
+gm_bodyarea_b:                  #胴体部分
+  occluder: "gm_bodyarea_b_occ"
+  low:      "gm_bodyarea_b_low"
+gm_move_a_01:                   #可動ビル1
+  occluder: "gm_move_a_01_occ"
+  low:      "gm_move_a_01_low"
+gm_move_a_02:                   #可動ビル2
+  occluder: "gm_move_a_02_occ"
+  low:      "gm_move_a_02_low"
+gm_move_a_03:                   #可動ビル3
+  occluder: "gm_move_a_03_occ"
+  low:      "gm_move_a_03_low"
+gm_move_a_04:                   #可動ビル4
+  occluder: "gm_move_a_04_occ"
+  low:      "gm_move_a_04_low"
+gm_move_a_05:                   #可動ビル5
+  occluder: "gm_move_a_05_occ"
+  low:      "gm_move_a_05_low"
+gm_move_a_06:                   #可動ビル6
+  occluder: "gm_move_a_06_occ"
+  low:      "gm_move_a_06_low"
+gm_armarea_a:                   #腕A
+  occluder: "gm_armarea_a_occ"
+  low:      "gm_armarea_a_low"
+gm_armarea_b:                   #腕B
+  occluder: "gm_armarea_b_occ"
+  low:      "gm_armarea_b_low"
+
+#----------------------------------------------------------------------------------
+#ヘキサビル・ノワハイラレオン　gm_a 茂木   az2_a_rootで配置されているので子エリアとして定義しています　工藤
+gm_a_root:
+  low:      "gm_a_root_low"
+  occluder: "gm_a_root_occ"

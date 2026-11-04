@@ -1,0 +1,47 @@
+//--------------------------------------------------------------------------
+//
+// ScriptName : AriParentUp
+// Contents   : オブジェクトをグループからひとつ上の階層に取り出します。
+// Author     : A-RI
+// Since      : 2015/04
+// LastUpdate : 2015/06/24 複数選択で実行した後も選択状態を複数のままにするようにしました。
+//              2015/06/24 コマンドラインに表示される親をフルパス表示にしました。
+// 
+//--------------------------------------------------------------------------
+proc int AriUnparentOne_ListNum (string $obj){
+int $num;
+string $parent[]=`listRelatives -p -pa $obj`;
+string $children[];
+if($parent[0]=="")	$children=`ls -as `;
+else $children=	`listRelatives -c -pa $parent[0]`;
+int $i=0;
+for($child in $children){
+if($child == $obj){
+$num=$i;
+break;
+}
+$i++;
+}
+return $num;
+}
+global proc AriUnparentOne(){
+string $selectObj[] = `ls -sl -tr`;
+string $newObjName[];
+int $i=0;
+for($obj in $selectObj){
+string $parent[]=`listRelatives -pa -p $obj`;
+if($parent[0]=="")return;
+string $paparent[]=`listRelatives -f -p $parent[0]`;
+string $outObj[];
+if($paparent[0]!="")	$outObj=`parent $obj $paparent[0]`;
+else					$outObj=`parent -w $obj `;
+int $objNum = AriUnparentOne_ListNum($outObj[0]);
+int $parentNum = AriUnparentOne_ListNum($parent[0]);
+if($paparent[0]!="")print ($paparent[0]+"\n");
+else print ("Root\n");
+reorder -relative (($objNum-$parentNum-1)*-1) $outObj[0];
+$newObjName[$i]=$outObj[0];
+$i++;
+}
+select $newObjName;
+}

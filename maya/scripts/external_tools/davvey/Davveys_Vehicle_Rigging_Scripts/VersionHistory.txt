@@ -1,0 +1,40 @@
+
+Version 1.5.2
+Added a Damping control attribute to Main Rig Controller to
+reduce or dampen suspension travel sensitivty of operation
+when constrained to a Ground Plane.
+ 
+
+Version 1.5.1
+Fixed bug in main script that stopped call to load Front Wheels
+
+
+Version 1.5.0
+Main work to this revision is cleaning up of coding in scripts.
+Also fixed a bug in Door rigging scripts which errored out on some
+occasions. Revised script install abck to using a zip file download
+and removal of Web Page based help files to reduced download.
+
+Help file is now a PDF file which can be called from Main GUI menu
+or opened indepenadantly of Maya
+
+Version 1.4.1
+
+Minor revision to ver 1.4.0 to correct error in Motion Patch Script
+which caused erratic Behaviour when attaching to motion Path
+
+Verion 1.4.0
+The main revision now includes the option to set Front and Rear
+Passenger Doors (inc. Window Opening). Also Front Hood (Bonnet)
+and Rear Trunk (Boot) or Tailgate, Split Tailgate or Left and
+Right Rear Doors.
+
+Also a revised GUI (Graphical User Interface) is now used which
+includes an "Outliner" panel to aid selection of each section as
+required and selectable help sections for each section.
+
+Also an off-line copy of Help files now included as a PDF file which
+can be printed out if required.
+
+Version 1.0.0
+First Release

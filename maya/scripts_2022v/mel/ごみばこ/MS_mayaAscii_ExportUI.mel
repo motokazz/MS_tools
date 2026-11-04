@@ -1,0 +1,188 @@
+/*
+mayaAscii_Export.mel
+v1.1
+◆概要
+選択したトップLOCATERの名前をつけて、その子供を全てXFFファイル出力
+
+◆使用方法
+
+１・準備
+出力先の基本となるディレクトリ、
+D:/DATA/xff/
+を作成するとよい。
+
+２・オプション設定
+---チェックボックス---
+ExportModel
+ExportAnim
+ExportMatanim
+IgnoreBindpose
+IgnoreRefferencenode
+※上記チェックボックスは、onで各項目有効
+
+AnimNameIsMotion
+※このチェックボックスがONになっていると、出力されるアニメーション名が「motion」になる。（BG用）
+　OFFのときは、親locaterの名前＋「additionalAnimationName」が有効になる。
+
+---名前入力---
+additionalModelName
+additionalAnimationName
+ここに入力した名前が、親locaterの名前にプラスされて出力される。
+
+---出力パス設定---
+filePath
+ここに入力したPATHに出力される。「Brouse」ボタンでブラウザによるディレクトリ選択が可能。
+
+---各種ボタン---
+Camera
+カメラ出力が出来る。出力ファイル名は「additionalAnimationName」＋”.camera.pcxff”になる。
+
+Export
+オブジェクトのエキスポートが出来る。
+出力ファイル名は、親locater名＋「additionalAnimationName」＋”.pcxff”になる。
+出力アニメーション名は、親locater名＋「additionalAnimationName」になる。（AnimNameIsMotionにチェック無しの場合）
+
+Exit
+ウインドウを閉じる。
+
+３・実行
+出力したいオブジェクトを選択して、ボタンを押す。
+
+
+◆詳細
+選択したグループの名前でラベルを作成して、グループごとにファイルを出力します。
+ファイル名もグループの名前で出力されます。
+
+出力前に、テクスチャーファイルを全て.ddsファイルに張り替えます。（fileノードの拡張子記述を強制的に.ddsに書き換えています。）
+
+基本出力先は、このスクリプトを直接いじっていただければ変更できます・・・
+
+
+*/
+
+
+global proc mayaAscii_Export_core(){
+	$path=`textField -q -fileName "filePath"`;
+	//$path="D:/DATA/xff/";//出力パス
+	
+	string $AnimationName=`textField -q -tx "AnimationName"` ;//Data//
+	string $ModelName=`textField -q -tx "ModelName"`;//Data//
+	string $newAnimName;
+	
+	//if(`radioButtonGrp -q -sl smp_radio`){
+	
+	int $ch=`checkBox -q -v "History"` ;//Data//
+	int $chn=`checkBox -q -v "Channels"` ;//Data//
+	int $con=`checkBox -q -v "Expressions"` ;//Data//
+	int $exp=`checkBox -q -v "Constraints" `;//Data//
+	int $sh=`checkBox -q -v "TextureInfo"` ;//Data//
+	
+	string $obj_name[]=`ls -as -sl`;
+	
+	$i=0;
+	for($i=0;$i<size($obj_name);$i++){
+		select -r $obj_name[$i];
+		
+		$full_p_name=($path+$obj_name[$i]+$ModelName);
+		$operation=(
+			"ch="+$ch+
+			";chn="+$chn+
+			";con="+$con+
+			";exp="+$exp+
+			";sh="+$sh+";"
+		);
+		
+		print $operation;
+		print $full_p_name;
+		print "\n";
+		$operation="v=0";
+		file -op $operation -typ "mayaAscii" -pr -es $full_p_name;
+	}
+}
+
+
+
+global proc MS_mayaAscii_Export(){
+
+	mayaAscii_Export_core;
+//	MS_mayaAscii_Export_TexExtRep_All 2;
+
+}
+
+
+global proc mayaAscii_Export_get_dir(string $exp_dir,string $dummy){
+
+	textField -e -fileName ($exp_dir+"/") "filePath";
+
+}
+
+
+//  Name: uiDesigner2006
+//Modify: Leson lai
+//   Msn: TNTII1981@hotmail.com
+//Thanks for original uiDesigner.
+global proc MS_mayaAscii_ExportUI()
+{
+if(`window -q -ex MyTools_mayaAscii_Export`)deleteUI MyTools_mayaAscii_Export;
+window MyTools_mayaAscii_Export;
+formLayout myUIFormLayout;
+//--DataPart--//
+text -label "filePath" "tex10" ;//Data//
+textField -fileName `workspace -q -rd` -width 200 "filePath" ;//Data//
+button -label "Brouse" -c "fileBrowser \"mayaAscii_Export_get_dir\" \"Select Directory\" \"\" 4" "Brouse";
+text -label "additional ModelName" "text7" ;//Data//
+text -label "additional AnimationName" "text6" ;//Data//
+separator -width 300 "separator9" ;//Data//
+button -backgroundColor 0.9411966801 1 0.7639999986 -label "exit" -width 48 -recomputeSize 0 -command "deleteUI MyTools_mayaAscii_Export" "exit" ;//Data//
+button -width 80 -backgroundColor 0.8368660212 1 0.7720000148 -label "Export" -recomputeSize 0 -command "MS_mayaAscii_Export" "Export" ;//Data//
+button -width 48 -backgroundColor 0.7720000148 0.8368660212 1 -label "Camera" -recomputeSize 0 -command "mayaAscii_Camera_Export" "CameraExport" ;//Data//
+separator -width 300 -height 2 "separator8" ;//Data//
+textField -width 100 "AnimationName" ;//Data//
+textField -width 100 "ModelName";//Data//
+checkBox -recomputeSize 0 -v 1 -label "History" -width 128 "History" ;//Data//
+checkBox -recomputeSize 0 -v 1 -label "Channels" -width 128 "Channels" ;//Data//
+checkBox -recomputeSize 0 -v 1 -label "Expressions" -width 128 "Expressions" ;//Data//
+checkBox -recomputeSize 0 -v 1 -label "Constraints" -width 128 "Constraints" ;//Data//
+checkBox -recomputeSize 0 -v 1 -label "TextureInfo" -width 128 "TextureInfo" ;//Data//
+
+formLayout -e
+	-af "History" "left" 16//Data//
+	-af "History" "top" 16//Data//
+	-af "Channels" "left" 16//Data//
+	-af "Channels" "top" 32//Data//
+	-af "Expressions" "left" 16//Data//
+	-af "Expressions" "top" 48//Data//
+	-af "Constraints" "left" 16//Data//
+	-af "Constraints" "top" 64//Data//
+	-af "TextureInfo" "left" 16//Data//
+	-af "TextureInfo" "top" 80//Data//
+	-af "text7" "left" 176//Data//
+	-af "text7" "top" 16//Data//
+	-af "ModelName" "left" 176//Data//
+	-af "ModelName" "top" 32//Data//
+	-af "text6" "left" 176//Data//
+	-af "text6" "top" 64//Data//
+	-af "AnimationName" "left" 176//Data//
+	-af "AnimationName" "top" 80//Data//
+	-af "separator9" "left" 0//Data//
+	-af "separator9" "top" 136//Data//
+	-af "tex10" "left" 0//Data//
+	-af "tex10" "top" 144//Data//
+	-af "filePath" "left" 0//Data//
+	-af "filePath" "top" 160//Data//
+	-af "Brouse" "left" 224//Data//
+	-af "Brouse" "top" 160//Data//
+	-af "separator8" "left" 0//Data//
+	-af "separator8" "top" 184//Data//
+	-af "CameraExport" "left" 16//Data//
+	-af "CameraExport" "top" 192//Data//
+	-af "Export" "left" 160//Data//
+	-af "Export" "top" 192//Data//
+	-af "exit" "left" 256//Data//
+	-af "exit" "top" 192//Data//
+	
+//--DataPart--//
+myUIFormLayout;
+showWindow MyTools_mayaAscii_Export;
+}
+//mayaAscii_Export;

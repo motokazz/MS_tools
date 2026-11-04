@@ -1,0 +1,20 @@
+global proc MS_UVmove()
+{
+
+	float $trnx=`floatSliderGrp -q -v trnx`;
+	float $trny=`floatSliderGrp -q -v trny`;
+
+	float $sclx=`floatSliderGrp -q -v sclx`;
+	float $scly=`floatSliderGrp -q -v scly`;
+
+	float $cntx=`floatSliderGrp -q -v cntx`;
+	float $cnty=`floatSliderGrp -q -v cnty`;
+	
+	float $angl=`floatSliderGrp -q -v angl`;
+
+	PolySelectConvert 4;
+	polyEditUV -r 1 -u $trnx -v $trny;
+	polyEditUV -pu $cntx -pv $cnty -su $sclx -sv $scly -a $angl;
+
+}
+

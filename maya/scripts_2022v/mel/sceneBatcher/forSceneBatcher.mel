@@ -1,0 +1,49 @@
+
+{
+
+file -i "D:/DATA/EOJ2EFFECT/z112_greenpriest/base.ma";
+$newname=`file -q -ns`;
+delete $newname;
+rename base $newname;
+
+
+//MS_bakeAnim
+source "D:/MS_tools/MS_bakeAnimUI.mel";
+
+string $source_base[]=`ls -typ transform "*:bn_z112_rear"`;
+string $dist_base[]=`ls -typ transform "*Dummy_bn_z112_rear"`;
+
+int $tm[]=`MS_bakeAnim_selectTime`;
+
+MS_bakeAnim $tm[0] $tm[1] $source_base $dist_base;
+
+//MS_footstep
+source "D:/MS_tools/MS_VFAUI.mel";
+
+//constrain
+string $temp[];
+$temp = `ls "*:bn_z112_l_finger01"`;
+delete `listConnections -t pointConstraint foot_L`;
+pointConstraint -offset 0 0 0 -skip y -weight 1 $temp[0] foot_L;
+MS_VFA_Step_V2 $tm[0] $tm[1] 0.1 2.0 $temp[0] {"foot_L"} {"EmitterVolume"};
+
+$temp = `ls "*:bn_z112_r_finger01"`;
+delete `listConnections -t pointConstraint foot_R`;
+pointConstraint -offset 0 0 0 -skip y -weight 1 $temp[0] foot_R;
+MS_VFA_Step_V2 $tm[0] $tm[1] 0.1 2.0 $temp[0] {"foot_R"} {"EmitterVolume"};
+
+$temp = `ls "*:bn_z112_frog_chest"`;
+delete `listConnections -t pointConstraint body`;
+pointConstraint -offset 0 0 0 -skip y -weight 1 $temp[0] body;
+MS_VFA_Step_V2 $tm[0] $tm[1] 0.1 15.0 $temp[0] {"body"} {"EmitterVolume"};
+
+
+
+//XFF_Export
+
+
+
+file -f -op ("em=0;ea=0;ex=0;ip=1;le=0;pi=0;name=motion;obj="+$newname+";") -typ "XFFExport" -pr -ea ("D:/effects/particle/z112_greenpries/"+$newname);
+
+}
+

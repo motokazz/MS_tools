@@ -1,0 +1,70 @@
+/* This file downloaded from Highend3d.com
+''  
+''  Highend3d.com File Information:
+''  
+''    Script Name: Batch File Maker
+''    Author: zin 
+''    Last Updated: Feb 28, 2007
+''    Update/Change this file at:
+''    http://Highend3d.com/maya/downloads/mel_scripts/rendering/misc/1171.html
+''  
+''  Please do not alter any information above this line
+''  it is generated dynamically by Highend3d.com and will
+''  be changed automatically on any updates.
+*/
+//this script will generate a batch file in your current scenes directory
+//this script will not work if there is a reference object in any of the render layers
+
+global proc zinStartBatch()
+{
+	string $batchLoc = `textField -q -tx batchFileField`;
+	string $projDir = `workspace -fullName`;
+	string $saveLoc = $projDir + "/scenes/" + $batchLoc;
+
+	$fileId=`fopen $saveLoc "w"`;
+	
+	string $renLyr[] = `ls -type "renderLayer"`;
+	for($i = 0; $i < (size($renLyr)-1); $i++)
+	{
+		editRenderLayerGlobals -currentRenderLayer $renLyr[$i];
+		string $imageName = `getAttr defaultRenderGlobals.imageFilePrefix`;
+		string $frameStart = `getAttr defaultRenderGlobals.startFrame`;
+		string $frameEnd = `getAttr defaultRenderGlobals.endFrame`;
+		string $Renderer = `getAttr defaultRenderGlobals.currentRenderer`;
+
+		string $fileName = `file -q -shn -sn`;
+
+
+		if($Renderer == "mentalRay")
+		{
+			$Renderer = "mr";
+		}
+		else if ($Renderer == "mayaSoftware")
+		{
+			$Renderer = "sw";
+		}
+		fprint $fileId ("render -r " + $Renderer + " -rl " + $renLyr[$i] +  " -s " + $frameStart + " -e " +  $frameEnd + " " + $fileName + "\n");
+	}
+	
+	fclose $fileId;
+
+}
+
+global proc zinBatchMaker ()
+{ 
+	string $winName = "zinBatchMaker";
+	
+	if(`window -exists $winName`)
+	{
+		deleteUI $winName;
+	}
+
+	window -t "Zin Batch Maker" -height 80 -width 130 $winName;
+	
+	columnLayout -columnWidth 122 -height 61 -width 122;
+		textField -height 23 -insertText "RenderProject.bat" -width 120 batchFileField;
+		button -height 28 -label "Create Batch File" -width 120 -c "zinStartBatch";
+
+	
+	showWindow $winName;
+}

@@ -1,0 +1,59 @@
+//stringInsertWordMatch, by Julian Love, julian@lightmail.com. Part of the StringTools set.
+//
+//description:	inserts a word (any text) into the supplied string in front of the 
+//				match word based on the word character. The entire word must be a match.
+//
+//usage:		stringInsertWordMatch string[source string] string[string to insert] string[match string] string[character that separates words];
+//
+//examples:		stringInsertWordMatch "wrist_controller" "left" "wrist" "_";
+///				// Result: left_wrist_controller //
+//
+//				stringInsertWordMatch "wrist_controller" "left" "controller" "_";
+//				// Result: wrist_left_controller //
+//
+//				stringInsertWordMatch "wrist_controller" "left" "key" "_";
+//				// result: //	-the result is an empty string because the word
+//				 "key" doesn't appear in the source string. No match, no insertion.
+//				Test for an empty string if you need to make sure the insertion worked
+
+
+proc int itemNthString (string $item, string $array[]){
+	int $x;
+	int $theIndex = -1;
+
+	for ($x=0; $x<size($array); $x++){
+		if ($array[$x] == $item){
+			$theIndex = $x;
+			break;
+		}
+	}
+
+	return ($theIndex);
+}
+
+
+global proc string stringInsertWordMatch (string $item, string $insert, string $matchString, string $wordChar){
+	string	$tokenList[];
+	string	$returnString;
+	int		$x, $y, $position;
+	
+	tokenize $item $wordChar $tokenList;
+	$y = size($tokenList);
+	
+	$position = (`itemNthString $matchString $tokenList` + 1);
+	
+	if ($position <= $y){
+		if ($position > 0){
+			for ($x=0; $x<$y; $x++){
+				if ($x == ($position - 1))
+					{$returnString += ($insert + $wordChar);}
+				if ($x != ($y-1))
+					{$returnString += ($tokenList[$x] + $wordChar);}
+				else
+					{$returnString += $tokenList[$x];}	
+			}	
+		}
+	}
+	
+	return $returnString;
+}

@@ -1,0 +1,49 @@
+global string $gShelfTopLevel;
+
+string $newName="chunkTools";
+
+int $fileExists = false;
+string $shelfDirs = `internalVar -userShelfDir`;
+string $shelfArray[];
+string $PATH_SEPARATOR = `about -win`? ";" : ":";
+tokenize($shelfDirs, $PATH_SEPARATOR, $shelfArray);
+
+for( $i = 0; $i < size($shelfArray); $i++ ) {
+	string $fileName = ($shelfArray[$i] + "shelf_" + $newName + ".mel");
+	if (`file -q -exists $fileName`) {
+		$fileExists = true;
+		break;
+	}
+}
+
+if ($fileExists == 0) {		 
+		string $name=`addNewShelfTab $newName`;
+}
+setParent ($gShelfTopLevel+"|"+$newName);
+iconTextButton -style "iconOnly" -image1 "NIKO2rigControl.bmp" -label "rigContro;" -c "NIKO2chunkToolCommand(0)" -ann "rigControl v2011_0302";
+iconTextButton -style "iconOnly" -image1 "NIKO2rigControl.bmp" -label "rigContro;" -c "NIKO2chunkToolCommand(1)" -ann "rigControl v2011_0419";
+iconTextButton -style "iconOnly" -image1 "NIKO2rigControl.bmp" -label "rigContro;" -c "NIKO2chunkToolCommand(6)" -ann "rigControl v2011_0518";
+iconTextButton -style "iconOnly" -image1 "NIKO2motionEditor.bmp" -label "motionManager" -c "NIKO2chunkToolCommand(2)" -ann "motionEditor";
+iconTextButton -style "iconOnly" -image1 "NIKO2chunkTools.bmp" -label "charUtil" -c "NIKO2chunkToolCommand(3)" -ann "chunkTools";
+iconTextButton -style "iconOnly" -image1 "NIKO2partsRename.bmp" -label "charUtil" -c "NIKO2chunkToolCommand(4)" -ann "partsRename";
+iconTextButton -style "iconOnly" -image1 "NIKO2toroExporter.bmp" -label "charUtil" -c "NIKO2chunkToolCommand(5)" -ann "toroExport";
+iconTextButton -style "iconOnly"  -label "rename" -c "NIKO2chunkToolCommand(7)" -ann "名前修正";
+iconTextButton -style "iconOnly" -image1 "NIKO2manual.bmp" -label "charUtil" -c "system \"load Z:/z_tsuchiya/scripts/doc/NIKO2chunkToolmanual.html\"" -ann "manual";
+
+global proc  NIKO2chunkToolCommand(int $n){
+
+		string $s[] = {
+			"import NIKO2rigControlPanel2011_0302/nreload(NIKO2rigControlPanel2011_0302)/nNIKO2rigControlPanel2011_0302.NIKO2rigControlPanel().UI()",
+			"import NIKO2rigControlPanel2011_0419/nreload(NIKO2rigControlPanel2011_0419)/nNIKO2rigControlPanel2011_0419.NIKO2rigControlPanel().UI()",
+			"import NIKO2motionEditor2011_0302/nreload(NIKO2motionEditor2011_0302)/nNIKO2motionEditor2011_0302.MotionEditor().UI()",
+			"import NIKO2chunkTools/nreload(NIKO2chunkTools)/nNIKO2chunkTools.NIKO2chunkTools().UI()",
+			"import NIKO2partsRenameTool/nreload(NIKO2partsRenameTool)/nNIKO2partsRenameTool.partsRenameTool().UI()",
+			"import NIKO2toroFileExport/nreload(NIKO2toroFileExport)/nNIKO2toroFileExport.Exporter().UI()",
+			"import NIKO2rigControlPanel2011_0518/nreload(NIKO2rigControlPanel2011_0518)/nNIKO2rigControlPanel2011_0518.NIKO2rigControlPanel().UI()",
+			"import NIKO2renameTool/nreload(NIKO2renameTool)/nNIKO2renameTool.NIKO2renameTool().UI()"
+		};
+		python($s[$n]);
+
+}
+
+

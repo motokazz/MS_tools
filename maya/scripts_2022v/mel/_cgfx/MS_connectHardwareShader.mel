@@ -1,0 +1,228 @@
+/*
+MS_connectHardwareShader
+20060912
+
+MAYAでのハードウェアシェーダーのコネクションをする。
+
+ノードを選択して、コマンド実行。
+
+*/
+global proc MS_texClean(){
+	string $commands;
+	
+	string $tex[]=`ls -typ file -sl`;
+	string $p2d[]=`listConnections -t place2dTexture $tex[0]`;
+	
+	for($i=1;$i<size($tex);$i++){
+		string $connectORG_d[]=`listConnections -d 1 -s 0 -c 1 -p 1 $tex[$i]`;
+		
+		for($j=0;$j<(size($connectORG_d)/2);$j++){
+			string $attrName[];
+			tokenize ($connectORG_d[$j*2],".",$attrName);
+			if(`isConnected ($tex[0] + "." + $attrName[1]) $connectORG_d[$j*2+1]`){
+				disconnectAttr ($tex[0] + "." + $attrName[1]) $connectORG_d[$j*2+1];
+			}
+			connectAttr -f ($tex[0] + "." + $attrName[1]) $connectORG_d[$j*2+1];
+			//$commands+=("connectAttr -f "+$tex[0] + "." + $attrName[1]+" "+ $connectORG_d[$j*2+1]+";\n");
+		}
+		
+		/*
+		string $connectORG_s[]=`listConnections -d 0 -s 1 -c 1 -p 1 $tex[$i]`;
+		for($j=0;$j<(size($connectORG_s)/2);$j++){
+			string $attrName[];
+			tokenize ($connectORG_s[$j*2],".",$attrName);
+			$commands+=("connectAttr -f "+$connectORG_s[$j*2+1]+" "+ $tex[0] + "." + $attrName[1]+";\n");
+		}
+		*/
+		string $p2d2[]=`listConnections -t place2dTexture $tex[$i]`;
+		string $connectORG_p2d[]=`listConnections -s 0 -d 1 -c 1 -p 1 -t cgfxShader $p2d2[0]`;
+		
+		for($k=0;$k<(size($connectORG_p2d)/2);$k++){
+			string $attrName[];
+			tokenize ($connectORG_p2d[$k*2],".",$attrName);
+			if(`isConnected ($p2d[0] + "." + $attrName[1]) $connectORG_p2d[$k*2+1]`){
+				disconnectAttr ($p2d[0] + "." + $attrName[1]) $connectORG_p2d[$k*2+1];
+			}
+			connectAttr -f ($p2d[0] + "." + $attrName[1]) $connectORG_p2d[$k*2+1];
+			//$commands+=("connectAttr -f "+$p2d[0] + "." + $attrName[1]+" "+ $connectORG_p2d[$k*2+1]+";\n");
+		}
+	}
+	
+	//print $commands;
+	//eval $commands;
+}
+
+global proc MS_connect_p2d_cgfx(int $num){
+	string $tex[]=`ls -typ file -sl`;
+	string $p2d[]=`listConnections -t place2dTexture $tex[0]`;
+	string $cgfx[]=`ls -typ cgfxShader -sl`;
+	
+	for($each in $cgfx){
+	
+		string $lambt[]=`listConnections -d 1 -t lambert $each`;
+		print $lambt;
+		
+		if($num==0){
+			if(`isConnected ($tex[0] + ".outColor") ($lambt[0] + ".color")`){
+				disconnectAttr ($tex[0] + ".outColor") ($lambt[0] + ".color");
+			}
+			connectAttr -f ($tex[0] + ".outColor") ($lambt[0] + ".color");
+		}
+		if($num<10){
+			if(`isConnected ($tex[0] + ".outColor") ($each + ".ColorSampler"+$num)`){
+				disconnectAttr ($tex[0] + ".outColor") ($each + ".ColorSampler"+$num);
+			}
+			if(`isConnected ($p2d[0] + ".offsetU") ($each + ".texOffset"+$num+"X")`){
+				disconnectAttr ($p2d[0] + ".offsetU") ($each + ".texOffset"+$num+"X");
+			}
+			if(`isConnected ($p2d[0] + ".offsetV") ($each + ".texOffset"+$num+"Y")`){
+				disconnectAttr ($p2d[0] + ".offsetV") ($each + ".texOffset"+$num+"Y");
+			}
+			if(`isConnected ($p2d[0] + ".repeatU") ($each + ".texScale"+$num+"X")`){
+				disconnectAttr ($p2d[0] + ".repeatU") ($each + ".texScale"+$num+"X");
+			}
+			if(`isConnected ($p2d[0] + ".repeatV") ($each + ".texScale"+$num+"Y")`){
+				disconnectAttr ($p2d[0] + ".repeatV") ($each + ".texScale"+$num+"Y"); 
+			}
+			
+			connectAttr -f ($tex[0] + ".outColor") ($each + ".ColorSampler"+$num);
+			connectAttr -f ($p2d[0] + ".offsetU") ($each + ".texOffset"+$num+"X"); 
+			connectAttr -f ($p2d[0] + ".offsetV") ($each + ".texOffset"+$num+"Y"); 
+			connectAttr -f ($p2d[0] + ".repeatU") ($each + ".texScale"+$num+"X"); 
+			connectAttr -f ($p2d[0] + ".repeatV") ($each + ".texScale"+$num+"Y"); 
+		}
+		
+		if($num==101){
+			if(`isConnected ($tex[0] + ".outColor") ($each + ".ShadowSampler0")`){
+				disconnectAttr ($tex[0] + ".outColor") ($each + ".ShadowSampler0");
+			}
+			if(`isConnected ($p2d[0] + ".offsetU") ($each + ".texOffset1X")`){
+				disconnectAttr ($p2d[0] + ".offsetU") ($each + ".texOffset1X"); 
+			}
+			if(`isConnected ($p2d[0] + ".offsetV") ($each + ".texOffset1Y")`){
+				disconnectAttr ($p2d[0] + ".offsetV") ($each + ".texOffset1Y"); 
+			}
+			if(`isConnected ($p2d[0] + ".repeatU") ($each + ".texScale1X")`){
+				disconnectAttr ($p2d[0] + ".repeatU") ($each + ".texScale1X"); 
+			}
+			if(`isConnected ($p2d[0] + ".repeatV") ($each + ".texScale1Y")`){
+				disconnectAttr ($p2d[0] + ".repeatV") ($each + ".texScale1Y"); 
+			}
+			connectAttr -f ($tex[0] + ".outColor") ($each + ".ShadowSampler0");
+			connectAttr -f ($p2d[0] + ".offsetU") ($each + ".texOffset1X"); 
+			connectAttr -f ($p2d[0] + ".offsetV") ($each + ".texOffset1Y"); 
+			connectAttr -f ($p2d[0] + ".repeatU") ($each + ".texScale1X"); 
+			connectAttr -f ($p2d[0] + ".repeatV") ($each + ".texScale1Y"); 
+
+		}
+		if($num==102){
+			if(`isConnected ($tex[0] + ".outColor") ($each + ".LightSampler0")`){
+				disconnectAttr ($tex[0] + ".outColor") ($each + ".LightSampler0");
+			}
+			if(`isConnected ($p2d[0] + ".offsetU") ($each + ".texOffset1X")`){
+				disconnectAttr ($p2d[0] + ".offsetU") ($each + ".texOffset1X"); 
+			}
+			if(`isConnected ($p2d[0] + ".offsetV") ($each + ".texOffset1Y")`){
+				disconnectAttr ($p2d[0] + ".offsetV") ($each + ".texOffset1Y"); 
+			}
+			if(`isConnected ($p2d[0] + ".repeatU") ($each + ".texScale1X")`){
+				disconnectAttr ($p2d[0] + ".repeatU") ($each + ".texScale1X"); 
+			}
+			if(`isConnected ($p2d[0] + ".repeatV") ($each + ".texScale1Y")`){
+				disconnectAttr ($p2d[0] + ".repeatV") ($each + ".texScale1Y"); 
+			}
+			connectAttr -f ($tex[0] + ".outColor") ($each + ".LightSampler0");
+			connectAttr -f ($p2d[0] + ".offsetU") ($each + ".texOffset1X"); 
+			connectAttr -f ($p2d[0] + ".offsetV") ($each + ".texOffset1Y"); 
+			connectAttr -f ($p2d[0] + ".repeatU") ($each + ".texScale1X"); 
+			connectAttr -f ($p2d[0] + ".repeatV") ($each + ".texScale1Y"); 
+
+		}
+
+		if($num==103){
+			if(`isConnected ($tex[0] + ".outColor") ($each + ".LightSampler0")`){
+				disconnectAttr ($tex[0] + ".outColor") ($each + ".LightSampler0");
+			}
+			if(`isConnected ($p2d[0] + ".offsetU") ($each + ".texOffset2X")`){
+				disconnectAttr ($p2d[0] + ".offsetU") ($each + ".texOffset2X"); 
+			}
+			if(`isConnected ($p2d[0] + ".offsetV") ($each + ".texOffset2Y")`){
+				disconnectAttr ($p2d[0] + ".offsetV") ($each + ".texOffset2Y"); 
+			}
+			if(`isConnected ($p2d[0] + ".repeatU") ($each + ".texScale2X")`){
+				disconnectAttr ($p2d[0] + ".repeatU") ($each + ".texScale2X"); 
+			}
+			if(`isConnected ($p2d[0] + ".repeatV") ($each + ".texScale2Y")`){
+				disconnectAttr ($p2d[0] + ".repeatV") ($each + ".texScale2Y"); 
+			}
+			connectAttr -f ($tex[0] + ".outColor") ($each + ".LightSampler0");
+			connectAttr -f ($p2d[0] + ".offsetU") ($each + ".texOffset2X"); 
+			connectAttr -f ($p2d[0] + ".offsetV") ($each + ".texOffset2Y"); 
+			connectAttr -f ($p2d[0] + ".repeatU") ($each + ".texScale2X"); 
+			connectAttr -f ($p2d[0] + ".repeatV") ($each + ".texScale2Y"); 
+
+		}
+
+	}
+}
+
+global proc MS_connectHardwareShader(){
+
+	//Window Check
+	if(`window -exists MS_connectHardwareShader`){
+		deleteUI MS_connectHardwareShader;
+	}
+	
+	
+	//Create Window
+	
+	window -title "MS_WindowSample" MS_connectHardwareShader;
+	columnLayout;
+		frameLayout 
+		-l "cgfx_Lambt"
+		-borderVisible true 
+		-labelVisible true 
+		-labelAlign "center"
+		-cll 1
+		-w 200
+		-h 150;
+		columnLayout ;
+	
+
+	text -label "MS_connectHardwareShader\n------------------------\n - 1st Select CGFXShader \n - 2nd Select LambtMaterial\n - and click this button!";
+	button -w 170 -bgc 1.0 0.5 0.5 -l "connect!" -command 
+		"$obj=`ls -sl`;connectAttr -f ($obj[0]+\".outColor\") ($obj[1]+\".hardwareShader\");"
+	;
+	button -w 170 -bgc 0.5 0.5 1.0 -l "texClaen!" -command "MS_texClean;";
+	
+		setParent ..;
+	setParent ..;
+	frameLayout 
+		-l "p2d_cgfx"
+		-borderVisible true 
+		-labelVisible true 
+		-labelAlign "center"
+		-cll 1
+		-w 200
+		-h 300;
+		columnLayout ;
+	
+	text -label "MS_connectHardwareShader\n------------------------\n - 1st Select place2dTexture node \n - 2nd Select CGFXShader\n - and click this button!";
+
+	button -w 170 -bgc 0.8 0.8 0.5 -l "p2d-ColorSampler0" -command "MS_connect_p2d_cgfx 0";
+	button -w 170 -bgc 0.5 1.0 0.5 -l "p2d-ColorSampler1" -command "MS_connect_p2d_cgfx 1";
+	button -w 170 -bgc 0.5 0.8 0.8 -l "p2d-ColorSampler2" -command "MS_connect_p2d_cgfx 2";
+	button -w 170 -bgc 0.5 0.5 1.0 -l "p2d-ColorSampler3" -command "MS_connect_p2d_cgfx 3";
+	separator -w 600;
+	button -w 170 -bgc 0.8 0.5 0.8 -l "for SHADOW1" -command "MS_connect_p2d_cgfx 101";
+	button -w 170 -bgc 0.8 0.5 0.8 -l "for SHADOW2" -command "MS_connect_p2d_cgfx 102";
+	button -w 170 -bgc 0.8 0.5 0.8 -l "for SHADOW3" -command "MS_connect_p2d_cgfx 103";
+			setParent ..;
+	setParent ..;
+	//Footer
+	showWindow MS_connectHardwareShader;
+}
+
+//MS_connectHardwareShader;
+
+

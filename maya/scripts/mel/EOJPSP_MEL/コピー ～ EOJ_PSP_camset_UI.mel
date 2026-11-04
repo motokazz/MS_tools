@@ -1,0 +1,97 @@
+global proc EOJ_camera_Set(){//EOJPSPゲーム画面カメラ（出力用）
+	setAttr "perspShape.nearClipPlane" 10;
+	setAttr "perspShape.farClipPlane" 1000000;
+	
+	setAttr -lock false "persp.tx";
+	setAttr -lock false "persp.ty";
+	setAttr -lock false "persp.tz";
+	setAttr -lock false "persp.rx";
+	setAttr -lock false "persp.ry";
+	setAttr -lock false "persp.rz";
+	setAttr -lock false "persp.sx";
+	setAttr -lock false "persp.sy";
+	setAttr -lock false "persp.sz";
+	setAttr -lock false "persp.v";
+	setAttr -lock false "perspShape.hfa";
+	setAttr -lock false "perspShape.vfa";
+	setAttr -lock false "perspShape.fl";
+	setAttr -lock false "perspShape.lsr";
+	setAttr -lock false "perspShape.fs";
+	setAttr -lock false "perspShape.fd";
+	setAttr -lock false "perspShape.sa";
+	setAttr -lock false "perspShape.coi";
+	
+	setAttr "persp.tx" 0;
+	setAttr "persp.ty" 273.514;
+	setAttr "persp.tz" 0;
+	setAttr "persp.rx" -90;
+	setAttr "persp.ry" 0;
+	setAttr "persp.rz" 0;
+	setAttr "persp.sx" 1;
+	setAttr "persp.sy" 1;
+	setAttr "persp.sz" 1;
+	setAttr "persp.v" 1;
+	setAttr "perspShape.hfa" 1.417;
+	setAttr "perspShape.vfa" 0.945;
+	setAttr "perspShape.fl" 20.5;
+	setAttr "perspShape.lsr" 1;
+	setAttr "perspShape.fs" 5.6;
+	setAttr "perspShape.fd" 5;
+	setAttr "perspShape.sa" 144;
+	setAttr "perspShape.coi" 8.038;
+	
+	setAttr -lock true "persp.tx";
+	setAttr -lock true "persp.ty";
+	setAttr -lock true "persp.tz";
+	setAttr -lock true "persp.rx";
+	setAttr -lock true "persp.ry";
+	setAttr -lock true "persp.rz";
+	setAttr -lock true "persp.sx";
+	setAttr -lock true "persp.sy";
+	setAttr -lock true "persp.sz";
+	setAttr -lock true "persp.v";
+	setAttr -lock true "perspShape.hfa";
+	setAttr -lock true "perspShape.vfa";
+	setAttr -lock true "perspShape.fl";
+	setAttr -lock true "perspShape.lsr";
+	setAttr -lock true "perspShape.fs";
+	setAttr -lock true "perspShape.fd";
+	setAttr -lock true "perspShape.sa";
+	setAttr -lock true "perspShape.coi";
+}
+
+global proc EOJ_camera_unlock(){//EOJPSPゲーム画面カメラ（出力用）
+	setAttr -lock false "persp.tx";
+	setAttr -lock false "persp.ty";
+	setAttr -lock false "persp.tz";
+	setAttr -lock false "persp.rx";
+	setAttr -lock false "persp.ry";
+	setAttr -lock false "persp.rz";
+	setAttr -lock false "persp.sx";
+	setAttr -lock false "persp.sy";
+	setAttr -lock false "persp.sz";
+	setAttr -lock false "persp.v";
+	setAttr -lock false "perspShape.hfa";
+	setAttr -lock false "perspShape.vfa";
+	setAttr -lock false "perspShape.fl";
+	setAttr -lock false "perspShape.lsr";
+	setAttr -lock false "perspShape.fs";
+	setAttr -lock false "perspShape.fd";
+	setAttr -lock false "perspShape.sa";
+	setAttr -lock false "perspShape.coi";
+}
+
+global proc EOJ_PSP_camset_UI(){
+	if(`window -q -ex EOJ_PSP_camset_UI`)deleteUI EOJ_PSP_camset_UI;
+	window EOJ_PSP_camset_UI;
+	columnLayout ;
+	button -l "camera Set" -c "EOJ_camera_Set";
+	button -l "camera unlock" -c "EOJ_camera_unlock";
+	showWindow EOJ_PSP_camset_UI;
+}
+
+
+
+
+
+

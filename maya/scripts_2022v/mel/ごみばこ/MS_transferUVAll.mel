@@ -1,0 +1,11 @@
+{
+//transferUV all
+//1st select sourceobject
+//2nd~ distination object 
+string $obj[]=`ls -sl`;
+for($i=1;$i<size($obj);$i++){
+select $obj[0] $obj[$i];
+performPolyTransfer 0;
+}
+}
+

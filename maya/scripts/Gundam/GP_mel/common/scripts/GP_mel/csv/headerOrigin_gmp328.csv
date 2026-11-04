@@ -1,0 +1,7 @@
+#ifdef GR_FILE_LINKED
+
+GR_FILE_LINKED( _basepose )
+GR_FILE_LINKED( motion_c100_gmp328_hyper_jammer_start )
+
+#undef GR_FILE_LINKED
+#endif // GR_FILE_LINKED

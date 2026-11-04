@@ -1,0 +1,12 @@
+global proc string createPathAnimetedLocator(string $cname,int $sframe,int $eflame){
+	
+	string $obj[]=`spaceLocator -p 0 0 0`;
+	
+	pathAnimation -fractionMode true -follow false -startTimeU $sframe -endTimeU $eflame -c $cname $obj[0];
+	
+	return $obj[0];
+	
+}
+
+
+

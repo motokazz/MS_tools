@@ -1,0 +1,337 @@
+
+
+global proc MS_storeRecallUI ( string $mode ){
+
+	string $prefix="MS_HRC_XFF_ExportUI__";
+	
+	string $floatFieldList[] = {
+		};
+
+	string $intFieldList[] = {
+		};
+
+	string $floatSliderGrpList[] = {
+		};
+
+	string $intSliderGrpList[] = {
+		};
+
+	string $checkBoxList[] = {
+		"IgnoreReferencenode",
+		"IgnoreBindpose",
+		"ExportMatAnim",
+		"ExportAnim",
+		"ExportModel",
+		"ExportLight",
+		"PlacementInfo"
+		};
+
+	string $radioButtonGrpList[] = {
+		};
+
+	string $frameLayoutList[] = {
+		};
+
+	string $textFieldList[] = {
+		"AnimationName",
+		"ModelName"
+		};
+
+	string $textFieldList_file[] = {
+		"filePath"
+		};
+
+	int $cnt;
+
+	if ( $mode == "store" )
+	{
+		for ( $each in $floatFieldList)
+			optionVar -floatValue ($prefix+$each) `floatField -q -value $each`;
+
+		for ( $each in $intFieldList)
+			optionVar -intValue ($prefix+$each) `intField -q -value $each`;
+
+		for ( $each in $floatSliderGrpList)
+			optionVar -floatValue ($prefix+$each) `floatSliderGrp -q -value $each`;
+
+		for ( $each in $intSliderGrpList)
+			optionVar -intValue ($prefix+$each) `intSliderGrp -q -value $each`;
+
+		for ( $each in $checkBoxList)
+			optionVar -intValue ($prefix+$each) `checkBox -q -value $each`;
+
+		for ( $each in $radioButtonGrpList)
+			optionVar -intValue ($prefix+$each) `radioButtonGrp -q -select $each`;
+
+		for ( $each in $frameLayoutList)
+			optionVar -intValue ($prefix+$each) `frameLayout -q -collapse $each`;
+
+		for ( $each in $textFieldList)
+			optionVar -stringValue ($prefix+$each) `textField -q -tx $each`;
+
+		for ( $each in $textFieldList_file)
+			optionVar -stringValue ($prefix+$each) `textField -q -fileName $each`;
+	}
+
+	if ( $mode == "recall" )
+	{
+		for ( $each in $floatFieldList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				floatField -e -value `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $intFieldList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				intField -e -value `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $floatSliderGrpList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				floatSliderGrp -e -value `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $intSliderGrpList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				intSliderGrp -e -value `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $checkBoxList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				checkBox -e -value `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $radioButtonGrpList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				radioButtonGrp -e -select `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $frameLayoutList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				frameLayout -e -collapse `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $textFieldList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				textField -e -tx `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $textFieldList_file)
+			if ( `optionVar -exists ($prefix+$each)` )
+				textField -e -fileName `optionVar -q ($prefix+$each)` $each;
+
+	}
+
+	if ( $mode == "reset" )
+	{
+		for ( $each in $floatFieldList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $intFieldList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $floatSliderGrpList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $intSliderGrpList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $checkBoxList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $radioButtonGrpList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $frameLayoutList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $textFieldList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $textFieldList_file)
+			optionVar -remove ($prefix+$each);
+	}
+}
+
+
+
+
+
+
+
+global proc MS_HRC_XFF_Export_pipe(int $mode){
+	MS_HRC_XFF_Export_TexExtRep_All 1;
+	MS_HRC_XFF_Export_core $mode;
+//	MS_HRC_XFF_Export_TexExtRep_All 2;
+
+}
+
+
+global proc HRC_XFF_ExportUI_get_dir(string $exp_dir,string $dummy){
+
+	textField -e -fileName ($exp_dir+"/") "filePath";
+
+}
+
+global proc HRC_XFF_ExportUI_fileBrowser(){
+global string $gDefaultFileBrowserDir;
+string $orgpath=$gDefaultFileBrowserDir;
+string $path=`textField -q -fileName "filePath"`;
+eval("global string $gDefaultFileBrowserDir=\""+$path+"\"");
+fileBrowser "HRC_XFF_ExportUI_get_dir" "Select Directory" "" 4 ;
+MS_storeRecallUI store;
+eval("global string $gDefaultFileBrowserDir=\""+$orgpath+"\"");
+}
+
+
+
+
+global proc MS_HRC_XFF_ExportUI()
+{
+if(`window -q -ex MS_HRC_XFF_Export`)deleteUI MS_HRC_XFF_Export;
+window MS_HRC_XFF_Export;
+$form=`formLayout`;
+
+//--DataPart--//
+
+
+
+checkBox -recomputeSize 0 -v 0 -cc "MS_storeRecallUI store" -label "IgnoreReferencenode" -width 128 "IgnoreReferencenode" ;//Data//
+checkBox -recomputeSize 0 -v 1 -cc "MS_storeRecallUI store" -label "IgnoreBindpose" -width 128 "IgnoreBindpose" ;//Data//
+checkBox -recomputeSize 0 -v 1 -cc "MS_storeRecallUI store" -label "ExportMatAnim" -width 128 "ExportMatAnim" ;//Data//
+checkBox -recomputeSize 0 -v 1 -cc "MS_storeRecallUI store" -label "ExportAnim" -width 128 "ExportAnim" ;//Data//
+checkBox -recomputeSize 0 -v 1 -cc "MS_storeRecallUI store" -label "ExportModel" -width 128 "ExportModel" ;//Data//
+checkBox -recomputeSize 0 -v 0 -cc "MS_storeRecallUI store" -label "ExportLight" -width 128 "ExportLight" ;//Data//
+checkBox -recomputeSize 0 -v 0 -cc "MS_storeRecallUI store" -label "PlacementInfo" -width 128 "PlacementInfo" ;//Data//
+
+text -label "ModelName" "text7" ;//Data//
+textField -cc "MS_storeRecallUI store" -width 100 "ModelName";//Data//
+text -label "AnimationName" "text6" ;//Data//
+textField -cc "MS_storeRecallUI store" -width 100 "AnimationName" ;//Data//
+//checkBox -recomputeSize 0 -v 1 -label "AnimNameIsMotion" -width 128 "AnimNameIsMotion" ;//Data//
+
+separator -width 300 "separator9" ;//Data//
+
+text -label "filePath" "tex10" ;//Data//
+textField -fileName "D:/DATA/xff/" -width 200 "filePath" ;//Data//
+button -label "Brouse" -c "HRC_XFF_ExportUI_fileBrowser" "Brouse";
+
+separator -width 300 -height 2 "separator8" ;//Data//
+
+
+button
+	-width 80
+	-backgroundColor 1 0.8 0.8
+	-label "Export"
+	-recomputeSize 0
+	-command "MS_HRC_XFF_Export_pipe 1"
+	"Export" ;
+button
+	-width 60
+	-backgroundColor 1 0.8 0.8
+	-label "setSetting"
+	-recomputeSize 0
+	-command "MS_set_XFF_Export_Seting"
+	"setSetting" ;
+button
+	-width 100
+	-backgroundColor 1 0.8 0.8
+	-label "Get Setting from Obj"
+	-recomputeSize 0
+	-command "MS_ditect_XFF_Export_Seting 1;MS_storeRecallUI store;"
+	"GetSettingfromObj";
+button
+	-width 80
+	-backgroundColor 0.8 1 1
+	-label "ExportAll"
+	-recomputeSize 0
+	-command "MS_HRC_XFF_Export_pipe 0"
+	"ExportAll" ;
+button
+	-width 60
+	-backgroundColor 0.8 0.8 1
+	-label "setSetting"
+	-recomputeSize 0
+	-command "MS_XFF_CreateExportSetting"
+	"setSettingAll" ;
+button
+	-width 100
+	-backgroundColor 0.8 1 1
+	-label "Get Setting from Scene"
+	-recomputeSize 0
+	-command "MS_ditect_XFF_Export_Seting 0;MS_storeRecallUI store;"
+	"GetSettingfromScene";
+button
+	-width 48
+	-backgroundColor 0.8 0.8 1
+	-label "Camera"
+	-recomputeSize 0
+	-command "HRC_XFF_Camera_Export"
+	"CameraExport" ;
+button 
+	-width 48
+	-backgroundColor 0.9 1 0.8
+	-label "exit"
+	-recomputeSize 0
+	-command "deleteUI MS_HRC_XFF_Export"
+	"exit" ;
+
+
+formLayout -e
+	-af "ExportModel" "left" 16//Data//
+	-af "ExportModel" "top" 16//Data//
+	-af "ExportAnim" "left" 16//Data//
+	-af "ExportAnim" "top" 32//Data//
+	-af "ExportMatAnim" "left" 16//Data//
+	-af "ExportMatAnim" "top" 48//Data//
+	-af "IgnoreBindpose" "left" 16//Data//
+	-af "IgnoreBindpose" "top" 64//Data//
+	-af "IgnoreReferencenode" "left" 16//Data//
+	-af "IgnoreReferencenode" "top" 80//Data//
+	-af "ExportLight" "left" 16//Data//
+	-af "ExportLight" "top" 96//Data//
+	-af "PlacementInfo" "left" 16//Data//
+	-af "PlacementInfo" "top" 112//Data//
+	
+	-af "text7" "left" 176//Data//
+	-af "text7" "top" 16//Data//
+	-af "ModelName" "left" 176//Data//
+	-af "ModelName" "top" 32//Data//
+	-af "text6" "left" 176//Data//
+	-af "text6" "top" 64//Data//
+	-af "AnimationName" "left" 176//Data//
+	-af "AnimationName" "top" 80//Data//
+
+	-af "separator9" "left" 0//Data//
+	-af "separator9" "top" 136//Data//
+	
+	-af "tex10" "left" 0//Data//
+	-af "tex10" "top" 144//Data//
+	-af "filePath" "left" 0//Data//
+	-af "filePath" "top" 160//Data//
+	-af "Brouse" "left" 224//Data//
+	-af "Brouse" "top" 160//Data//
+	
+	-af "separator8" "left" 0//Data//
+	-af "separator8" "top" 184//Data//
+	
+	-af "Export" "left" 16//Data//
+	-af "Export" "top" 192//Data//
+	-af "setSetting" "left" 100//Data//
+	-af "setSetting" "top" 192//Data//
+	-af "GetSettingfromObj" "left" 180//Data//
+	-af "GetSettingfromObj" "top" 192//Data//
+	
+	-af "ExportAll" "left" 16//Data//
+	-af "ExportAll" "top" 224//Data//
+	-af "setSettingAll" "left" 100//Data//
+	-af "setSettingAll" "top" 224//Data//
+	-af "GetSettingfromScene" "left" 180//Data//
+	-af "GetSettingfromScene" "top" 224//Data//
+	
+	-af "CameraExport" "left" 16//Data//
+	-af "CameraExport" "top" 256//Data//
+	-af "exit" "left" 256//Data//
+	-af "exit" "top" 256//Data//
+	
+//--DataPart--//
+
+$form;
+
+MS_storeRecallUI recall;
+
+showWindow MS_HRC_XFF_Export;
+}
+
+//MS_HRC_XFF_ExportUI;

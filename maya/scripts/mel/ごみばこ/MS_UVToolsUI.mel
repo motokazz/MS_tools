@@ -1,0 +1,232 @@
+global proc MS_UVEXP()
+{
+
+	PolySelectConvert 4;
+	string $uvsuvs[]=`filterExpand -ex true -sm 35`;
+	
+	
+	float $uvvalA[] =`polyEditUV -q -u $uvsuvs[0]`;
+	float $uvvalB[] =`polyEditUV -q -u $uvsuvs[1]`;
+	float $uvvalC[] =`polyEditUV -q -u $uvsuvs[2]`;
+	float $uvvalD[] =`polyEditUV -q -u $uvsuvs[3]`;
+	float $uvvalU = ($uvvalA[0]+$uvvalB[0]+$uvvalC[0]+$uvvalD[0])/4;
+	float $uvvalV = ($uvvalA[1]+$uvvalB[1]+$uvvalC[1]+$uvvalD[1])/4;
+	
+	$i=0;
+	for ($i=0;$i<4;$i++){
+	
+		float $UVval[]=`polyEditUV -q -u $uvsuvs[$i]`;
+		
+		if( $UVval[0]<$uvvalU &&  $UVval[1]<$uvvalV){
+			polyEditUV -r 0 -u 0 -v 0 $uvsuvs[$i];
+		}else if( $UVval[0]>$uvvalU && $UVval[1]>$uvvalV ){
+			polyEditUV -r 0 -u 1 -v 1 $uvsuvs[$i];
+		}else if( $UVval[0]<$uvvalU && $UVval[1]>$uvvalV ){
+			polyEditUV -r 0 -u 0 -v 1 $uvsuvs[$i];
+//		}else if( $UVval[0]>$uvvalU && $UVval[1]<$uvvalV ){
+		}else{
+			polyEditUV -r 0 -u 1 -v 0 $uvsuvs[$i];
+		}
+	}
+	
+	
+	//‚±‚±‚©‚çStrainUVBorder
+	
+	string $num[];
+	int $luv[];
+	string $bname[];
+	string $SUVName;
+	string $SUVNend;
+	
+	string $obj[]=`ls -o -sl`;
+	int $aaa[]=`polyEvaluate -uv $obj[0]`;
+	
+	
+	tokenize ($uvsuvs[0],"[]",$bname);
+	
+	for ($i=0;$i<4;$i++){
+		tokenize ($uvsuvs[$i],"[]",$num);
+		$luv[$i]=int($num[size($num)-1]);
+	}
+	
+	int $nuv[]=`sort $luv`;
+	
+	for ($i=0;$i<3;$i++){
+		$SUVName=($bname[0]+"["+$nuv[$i]+":"+$nuv[$i+1]+"]");
+		polyStraightenUVBorder -bo 0 -pl 0 -c 0 -gt 0 -ch 0 $SUVName;
+		
+	}
+	
+	
+	
+	
+	$SUVName=($bname[0]+"["+"0"+":"+$nuv[0]+"]");
+	$SUVNend=($bname[0]+"["+$nuv[3]+":"+($aaa[0]-1)+"]");
+	polyStraightenUVBorder -bo 0 -pl 0 -c 0 -gt 0 -ch 0 $SUVName $SUVNend;
+
+}
+
+global proc MS_UVmove()
+{
+
+	float $trnx=`floatSliderGrp -q -v trnx`;
+	float $trny=`floatSliderGrp -q -v trny`;
+
+	float $sclx=`floatSliderGrp -q -v sclx`;
+	float $scly=`floatSliderGrp -q -v scly`;
+
+	float $cntx=`floatSliderGrp -q -v cntx`;
+	float $cnty=`floatSliderGrp -q -v cnty`;
+	
+	float $angl=`floatSliderGrp -q -v angl`;
+
+	PolySelectConvert 4;
+	polyEditUV -r 1 -u $trnx -v $trny;
+	polyEditUV -pu $cntx -pv $cnty -su $sclx -sv $scly -a $angl;
+
+}
+
+global proc MS_UVToolsUI()
+{
+	if(`window -exists MS_UVToolsUI`){
+		deleteUI MS_UVToolsUI;
+	}
+	
+	window -title "MS_UVToolsUI" MS_UVToolsUI;	
+	
+	$form = `formLayout`;
+
+	setParent $form;
+	$sep=`separator`;
+
+
+	$com_trnx=`floatSliderGrp -l "trnx" -field true -min -1 -max 100 -v 0 trnx`;
+	$com_trny=`floatSliderGrp -l "trny" -field true -min -1 -max 100 -v 0 trny`;
+
+	$com_sclx=`floatSliderGrp -l "sclx" -field true -min -1 -max 100 -v 1 sclx`;
+	$com_scly=`floatSliderGrp -l "scly" -field true -min -1 -max 100 -v 1 scly`;
+
+	$com_center_x=`floatSliderGrp -l "cntx" -field true -min 0 -max 1 -v .5 cntx`;
+	$com_center_y=`floatSliderGrp -l "cnty" -field true -min 0 -max 1 -v .5 cnty`;
+
+
+	$com_angl=`floatSliderGrp -l "angle" -field true -min -180 -max 180 -v 0 angl`;
+
+	$com_exe=`button -l "execute" -command "MS_UVmove" `;
+	$com_fouruv=`button -l "4UVExpand" -command "MS_UVEXP" `;
+
+
+	$com_und=`button -l "undo" -command "Undo" `;
+	$com_ext=`button -l "exit" -command "deleteUI MS_UVToolsUI" `;
+
+
+	formLayout -e
+//----------------------------------
+	-af $com_trnx "top" 10
+        -af $com_trnx "left" 5
+        -an $com_trnx "right"
+        -an $com_trnx "bottom"
+
+	-af $com_trny "top" 30
+        -af $com_trny "left" 5
+        -an $com_trny "right"
+        -an $com_trny "bottom"
+
+	-af $sep "top" 50
+	-af $sep "left" 5
+	-af $sep "right" 5
+	-an $sep "bottom"
+//------------------------------------
+
+	-af $com_angl "top" 70
+        -af $com_angl "left" 5
+        -an $com_angl "right"
+        -an $com_angl "bottom"
+
+	-af $sep "top" 90
+	-af $sep "left" 5
+	-af $sep "right" 5
+	-an $sep "bottom"
+//------------------------------------
+
+	-af $com_sclx "top" 110
+        -af $com_sclx "left" 5
+        -an $com_sclx "right"
+        -an $com_sclx "bottom"
+
+	-af $com_scly "top" 130
+        -af $com_scly "left" 5
+        -an $com_scly "right"
+        -an $com_scly "bottom"
+
+	-af $sep "top" 150
+	-af $sep "left" 5
+	-af $sep "right" 5
+	-an $sep "bottom"
+//------------------------------------
+
+	-af $com_center_x "top" 170
+        -af $com_center_x "left" 5
+        -an $com_center_x "right"
+        -an $com_center_x "bottom"
+
+	-af $com_center_y "top" 190
+        -af $com_center_y "left" 5
+        -an $com_center_y "right"
+        -an $com_center_y "bottom"
+
+	-af $sep "top" 210
+	-af $sep "left" 5
+	-af $sep "right" 5
+	-an $sep "bottom"
+//------------------------------------
+/*
+	-af $com_roty "top" 290
+        -af $com_roty "left" 5
+        -an $com_roty "right"
+        -an $com_roty "bottom"
+
+	-af $sep "top" 310
+	-af $sep "left" 5
+	-af $sep "right" 5
+	-an $sep "bottom"
+*/
+//------------------------------------
+
+	-af $com_exe "top" 350
+        -af $com_exe "left" 5
+        -ap $com_exe "right" 0 24
+        -an $com_exe "bottom"
+
+        -af $com_fouruv "top" 350
+        -ap $com_fouruv "left" 0 26
+        -ap $com_fouruv "right" 0 49
+        -an $com_fouruv "bottom"
+
+	-af $sep "top" 380
+	-af $sep "left" 5
+	-af $sep "right" 5
+	-an $sep "bottom"
+
+//------------------------------------
+
+        -af $com_und "top" 400
+        -ap $com_und "left" 0 50
+        -ap $com_und "right" 0 75
+        -an $com_und "bottom"
+
+        -af $com_ext "top" 400
+        -ap $com_ext "left" 0 75
+        -af $com_ext "right" 5
+        -an $com_ext "bottom"
+        
+	$form;
+	
+	
+	showWindow MS_UVToolsUI;
+	
+
+}
+
+
+

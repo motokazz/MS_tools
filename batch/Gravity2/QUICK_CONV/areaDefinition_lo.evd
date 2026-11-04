@@ -1,0 +1,52 @@
+#----------------------------------------------------------------------------------
+#UTF-8形式で保存してください
+#boolean(真偽値)のデフォルトはfalseです
+#記述者の名前が無いテスト用らしき記述は最適化の為削除する事があります
+#----------------------------------------------------------------------------------
+
+#----------------------------------------------------------------------------------
+#貧困層 lo_a 茂木
+lo_a_root:
+  root:     true
+  low:      "lo_a_root_low"
+
+lo_a_01:
+  occluder: "lo_a_01_occ"
+lo_a_01a:
+  low:      "lo_a_01a_low"
+  part:     true
+lo_a_01b:
+  low:      "lo_a_01b_low"
+  part:     true
+lo_a_01c:
+  low:      "lo_a_01c_low"
+  part:     true
+lo_a_01d:
+  low:      "lo_a_01d_low"
+  part:     true
+
+lo_a_02:
+  occluder: "lo_a_02_occ"
+  low:      "lo_a_02_low"
+lo_a_03:
+  occluder: "lo_a_03_occ"
+  low:      "lo_a_03_low"
+lo_a_04:
+  occluder: "lo_a_04_occ"
+  low:      "lo_a_04_low"
+lo_a_05:
+  occluder: "lo_a_05_occ"
+  low:      "lo_a_05_low"
+lo_a_06:
+  occluder: "lo_a_06_occ"
+  low:      "lo_a_06_low"
+lo_a_07:
+  occluder: "lo_a_07_occ"
+  low:      "lo_a_07_low"
+lo_a_09:
+  occluder: "lo_a_09_occ"
+  low:      "lo_a_09_low"
+lo_a_10:
+  occluder: "lo_a_10_occ"
+  low:      "lo_a_10_low"
+

@@ -1,0 +1,22 @@
+global proc MS_copyAttr(){
+	$obj=`ls -sl`;
+	string $sma[]=`channelBox -q -sma mainChannelBox`;
+	string $ssa[]=`channelBox -q -ssa mainChannelBox`;
+	int $i;
+	
+	for($eachAttr in $sma){
+		for($i=1;$i<size($obj);$i++){
+			$value=`getAttr ($obj[0]+"."+$eachAttr)`;
+			setAttr ($obj[$i]+"."+$eachAttr) $value;
+		}
+	}
+	
+	for($eachAttr in $ssa){
+		for($i=1;$i<size($obj);$i++){
+			$value=`getAttr ($obj[0]+"."+$eachAttr)`;
+			setAttr ($obj[$i]+"."+$eachAttr) $value;
+		}
+	}
+	
+	
+}

@@ -1,0 +1,12 @@
+global proc float MS_distance(string $target_a,string $target_b){
+	
+	float $a[] = `xform -q -ws -t $target_a`;
+	float $b[] = `xform -q -ws -t $target_b`;
+	//2“_ŠÔ‚ÌˆÚ“®‹——£‚ðŒvŽZ
+	float $len = sqrt(($a[0]-$b[0])*($a[0]-$b[0])+($a[1]-$b[1])*($a[1]-$b[1])+($a[2]-$b[2])*($a[2]-$b[2]));
+	
+	return $len;
+	
+}
+
+

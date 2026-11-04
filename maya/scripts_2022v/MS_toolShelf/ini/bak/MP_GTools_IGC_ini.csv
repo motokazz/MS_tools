@@ -1,0 +1,16 @@
+cathegory,exec,label,annotation,image,command
+beta,mel,mpToroExport4IGC,IGC用のエクスポートUI,mpToroExport4IGCIcon,mpToroExport4IGC_UI
+beta,mel,mpCamInfoImport,レイアウトロからのカメラ等のインポーター,mpCamInfoImportIcon,mpCamInfoImportUI
+beta,py,mpAddPrefix,指定したノード以下全ての名前にprefixを追加,mpAddPrefix,import mpAddPrefix\nmpAddPrefix.addPrefixUI()
+beta,mel,IGC_PlusBeta,IGC用追加ツールTest版,iPlus,IGC_Plus
+beta,mel,IGC_CamCreateBeta,IGC用カメラツールTest版,iCam,IGC_CamCreate1
+beta,mel,IGC_ToolsBeta,IGC用ツールTest版,iTools,IGC_Tools
+util,py,m1_UnknownChecker,シーン内のunknownノードをリスト化、削除等,m1_UnknownChecker,import m1_UnknownChecker\nm1_UnknownChecker.m1_launchUnknownChecker()
+camera,mel,JFtCamSwitcher,ナックのフリーリグにパーツをつける,JFtCamSwitcher,JFtCamSwitcher
+beta,py,m1_chunkSetupTool,フリーリグにパーツとフェイシャルをつける,m1_setupForFreeRig,import m1_chunkSetupTool\nm1_chunkSetupTool.m1_chunkSetupTool()
+beta,py,m1_PartsAnimationTool,パーツアニメーション関連のツール群,m1_partsAnimationTool,import m1_PartsAnimationTool\nm1_PartsAnimationTool.m1_launchPartsAnimationTool()
+util,py,m1_RepairKnackFacial,ナックフェイシャルの不具合修正ツール,m1_RepairKnackFacial,import m1_RepairKnackFacial\nm1_RepairKnackFacial.m1_launchRepairKnackFacial()
+util,py,m1_BGMoveSetup,BGシーンからBGオブジェクトをIGC用に切り出す支援ツール,m1_BGMoveSetup,import m1_BGMoveSetup\nm1_BGMoveSetup.launch_BGMoveSetup()
+beta,py,m1_EntityEditor,Entity/db用csv/cutsheet作成等レジスタ自動化ツール,m1_EntityEditor,import m1_EntityEditor\nreload(m1_EntityEditor)\nm1_EntityEditor.m1_launchEntityEditor()
+beta,py,m1_hideMesh,シェイプノードのvisibilityを切るツール,m1_hideMesh,import m1_hideMesh\nm1_hideMesh.m1_hideMeshWindow()
+util,py,m1_DuplicateConstraint,複製したオブジェクトをコンストレインする,m1_DuplicateConstraint,import m1_DuplicateConstraint\nm1_DuplicateConstraint.m1_launchDuplicateConstraint()

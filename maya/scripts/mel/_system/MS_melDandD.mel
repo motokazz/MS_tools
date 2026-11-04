@@ -1,0 +1,57 @@
+global proc testestes(string $dragControl, string $dropControl, string $msgs[], int $x, int $y, int $type) {
+	
+	print $dragControl;
+	print $dropControl;
+	print $msgs;
+	print $x;
+	print $y;
+	print $type;
+	
+	
+}
+
+
+
+global proc MS_melDandD()
+{
+	
+	//Window Check
+	if(`window -exists MS_melDandD`){
+		deleteUI MS_melDandD;
+	}
+	
+	
+	//Create Window
+	
+	window -title "MS_melDandD" MS_melDandD;
+
+	scrollLayout scrollLayout;
+//		columnLayout -adjustableColumn true;
+	columnLayout;
+	frameLayout 
+		-l test
+		-borderVisible true 
+		-labelVisible true 
+		-labelAlign "center"
+		-cll 1
+		-w 200
+		-h 100;
+
+
+		columnLayout ;
+	
+	//Contents
+			//text
+			text -label "ThisWindowIsWindowFormatSample";
+			//separator -w 600 -h 40 -st "single";
+	
+		setParent ..;
+	setParent ..;
+	
+	button -w 100 -h 100 -dpc testestes ;
+	//Footer
+	showWindow MS_melDandD;
+	
+}
+
+MS_melDandD;

@@ -1,0 +1,27 @@
+global proc MS_checkCGFXColorAndCreateSetCommand(){
+string $cgfxs[]=`ls -typ cgfxShader`;
+for($each in $cgfxs){
+$colorScale=`getAttr ($each+".colorScale")`;
+$baseColorR=`getAttr ($each+".baseColorR")`;
+$baseColorG=`getAttr ($each+".baseColorG")`;
+$baseColorB=`getAttr ($each+".baseColorB")`;
+
+print ("//rename "+$each+";\n");
+print ("if(`objExists "+$each+"`){\n");
+print ("setAttr "+($each+".colorScale")+" "+$colorScale+";");
+print "\n";
+print ("setAttr "+($each+".baseColorR")+" "+$baseColorR+";");
+print "\n";
+print ("setAttr "+($each+".baseColorG")+" "+$baseColorG+";");
+print "\n";
+print ("setAttr "+($each+".baseColorB")+" "+$baseColorB+";");
+print "\n";
+print "}\n\n";
+}
+
+}
+
+MS_checkCGFXColorAndCreateSetCommand;
+
+
+

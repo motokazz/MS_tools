@@ -1,0 +1,383 @@
+/****************************************************************************
+Name: Duplicate Along
+Version: 3.0
+Purpose: Dulplicates object around curves, CVs or u parameter of a curve. 
+(Curved may have to be rebuilt for proper dulpication.) If multiple objects 
+are selected the results are random or cycled. Random translate, rotate, 
+and scale based off percentage/distance so you are no longer bound to 
+living on the curve.
+Last Update: 3.0 June 2005
+Question, comments, bugs and other strange things E-mail me
+Created by: Brian Escribano
+Contact: brian@meljunky.com
+Visit: meljunky.com
+Version:
+3.0 June 2005 Added random translate
+2.0 June 2005 Added random scale and rotate
+1.2 April 5,2005 Added cycle through selection feature
+1.1 March 2005 added u parameter dulpication
+Created: July 2004
+*****************************************************************************/
+
+
+//declared variables
+string $dupObjs[] = {};
+string $dupAlong[] = {};
+
+
+
+if(`window -exists "duplicateAlong"`) deleteUI "duplicateAlong";
+window -title "Dulpicate Along" duplicateAlong;
+
+columnLayout -w 210 -columnAttach "both" 8 -cw 230;
+
+	textField -ed 0 -tx $dupObjs dupObjs;
+	button -l "Select Object(s) to be Duplicated" -c "dupObjsProc;";
+	frameLayout -cll 1 -cl 1 -l " TSR Randomization" -la "center" -bs "etchedIn" -cc "windowDA;" -ec "windowDA;" tsrDA;
+	columnLayout;
+	//
+        radioButtonGrp -numberOfRadioButtons 2 -cw3 85 55 55  -cal 1 left -cal 2 left -sl 2 -en 0
+ 		-label "Random Scale:" -labelArray2 "Enable" "Disable"
+		-on1 "frameLayout -e -en 1 -cl 0 -h 200 scaleFlDA; randomAttrDA scale; windowDA"
+		-on2 "frameLayout -e -en 0 -cl 1 scaleFlDA; windowDA"
+		scaleRandomBE;
+	frameLayout -l "Scale" -cll 1 -cl 0 -h 200 -en 0 -cc "windowDA" -ec "windowDA" scaleFlDA;
+        frameLayout -e -cl 1 scaleFlDA;
+		scrollLayout -h 200 -w 200 -hst 0 DAscroll;
+			columnLayout -h 200 -w 200 -cw 200 scaleClDA;
+        		setParent..;
+		setParent..;
+	setParent..;
+
+        radioButtonGrp -numberOfRadioButtons 2 -cw3 85 55 55  -cal 1 left -cal 2 left -sl 2 -en 0
+ 		-label "Random Rotate:" -labelArray2 "Enable" "Disable"
+		-cc1 "frameLayout -e -en 1 -cl 0 -h 200 rotateFlDA; windowDA; randomAttrDA rotate;"
+		-cc2 "frameLayout -e -en 0 -cl 1 rotateFlDA; windowDA;"
+		rotateRandomBE;
+	frameLayout -l "Rotate" -cll 1 -cl 0 -h 200 -en 0 -cc "windowDA;" -ec "frameLayout -e -h 200 rotateFlDA; windowDA;" rotateFlDA;
+        frameLayout -e -cl 1 rotateFlDA;
+		scrollLayout -h 200 -w 200 -hst 0 DAscroll2;
+			columnLayout -h 200 -w 200 -cw 200 rotateClDA;
+        		setParent..;
+		setParent..;
+	setParent..;
+
+	radioButtonGrp -numberOfRadioButtons 2 -cw3 85 55 55  -cal 1 left -cal 2 left -sl 2 -en 0
+ 		-label "Random Trans:" -labelArray2 "Enable" "Disable"
+		-cc1 "frameLayout -e -en 1 -cl 0 -h 200 translateFlDA; windowDA; randomAttrDA translate;"
+		-cc2 "frameLayout -e -en 0 -cl 1 translateFlDA; windowDA;"
+		translateRandomBE;
+	frameLayout -l "Translate" -cll 1 -cl 0 -h 200 -en 0 -cc "windowDA;" -ec "frameLayout -e -h 200 translateFlDA; windowDA;" translateFlDA;
+        frameLayout -e -cl 1 translateFlDA;
+		scrollLayout -h 200 -w 200 -hst 0 DAscroll3;
+			columnLayout -h 200 -w 200 -cw 200 translateClDA;
+        		setParent..;
+		setParent..;
+	setParent..;
+	//
+	setParent..;
+        setParent..;
+
+	radioButtonGrp -nrb 2 -l "Duplicate:" -labelArray2 "Randomly" "Cycle" -cl3 "left" "left" "left" -cw3 60 75 75 -sl 1 dArandCycle;
+	text -l "Dulpicate Along Type:";
+	radioButtonGrp -numberOfRadioButtons 3
+        	-cw3 40 75 75 -sl 1
+    	 	-labelArray3 "CVs" "Curves(CV)" "Curves(UP)"
+         	-cc1 "button -e -l \"Select CV(s) for Duplication\" dupAlongButton; textField -e -tx \"\" dupAlong; button -e -c \"errorChkDA 1\" errorChkDA; intSliderGrp -e -en 0 uObjDA"
+         	-cc2 "button -e -l \"Select Curves(s) for Duplication\" dupAlongButton; textField -e -tx \"\" dupAlong; button -e -c \"errorChkDA 2\" errorChkDA; intSliderGrp -e -en 0 uObjDA"
+	 	-cc3 "button -e -l \"Select Curves(s) for Duplication\" dupAlongButton; textField -e -tx \"\" dupAlong; button -e -c \"errorChkDA 3\" errorChkDA; intSliderGrp -e -en 1 uObjDA"
+		 cvCurve;
+
+
+	intSliderGrp -label "U Objs:" -field true -cl3 left left left -ct3 left left left -co3 0 0 0 -cw 1 35 -cw 2 47 -adj 3 -min 2 -max 50 -fmx 500 -v 2 -en 0 uObjDA;
+
+
+	textField -ed 0 -tx $dupAlong dupAlong;
+	button -l "Select CV(s) for Duplication" -c "dupAlongProc" dupAlongButton;
+	button -l "Preform Dulpication" -c "errorChkDA 1" errorChkDA;
+
+setParent..;
+window -e -wh 240 245 duplicateAlong;
+showWindow;
+
+global proc dupObjsProc (){
+radioButtonGrp -e -sl 2 scaleRandomBE;
+frameLayout -e -cl 1 scaleFlDA;
+radioButtonGrp -e -sl 2 rotateRandomBE;
+frameLayout -e -cl 1 rotateFlDA;
+radioButtonGrp -e -sl 2 translateRandomBE;
+frameLayout -e -cl 1 translateFlDA;
+
+
+string $dupObjs[] = {};
+string $fieldTxt = {};
+$dupObjs = `ls -sl`;
+$fieldTxt = $dupObjs[0];
+for ($i=1; $i < size($dupObjs); $i++){
+$fieldTxt = $fieldTxt + " " + $dupObjs[$i] ;}
+textField -e -tx $fieldTxt dupObjs;
+radioButtonGrp -e -en 1 scaleRandomBE;
+radioButtonGrp -e -en 1 rotateRandomBE;
+radioButtonGrp -e -en 1 translateRandomBE;
+}
+
+global proc dupAlongProc (){
+
+if(`radioButtonGrp -q -sl cvCurve` == 1){
+string $dupAlong[] = {};
+string $dupAlong[] = `filterExpand -sm 28`;
+$fieldTxt = $dupAlong[0];
+for ($i=1; $i < size($dupAlong); $i++){
+$fieldTxt = $fieldTxt + " " + $dupAlong[$i] ;}
+textField -e -tx $fieldTxt dupAlong;
+
+}else{
+
+string $dupAlong[] = {};
+string $fieldTxt = {};
+$dupAlong = `ls -sl`;
+$dupAlong = `filterExpand -sm 9 -sm 28`;
+if (`gmatch $dupAlong[0] "*.*"` == 0){
+$fieldTxt = $dupAlong[0];
+for ($i=1; $i < size($dupAlong); $i++){
+$fieldTxt = $fieldTxt + " " + $dupAlong[$i] ;}
+textField -e -tx $fieldTxt dupAlong;
+}}
+}
+
+global proc errorChkDA(int $error){
+string $dupObjs[];
+string $dupAlong[];
+tokenizeList(`textField -q -tx dupObjs`, $dupObjs);
+tokenizeList(`textField -q -tx dupAlong`, $dupAlong);
+
+if ($dupObjs[0] == "" && $dupAlong[0] != "")
+warning "Missing Objects to be Duplicated";
+
+if ($dupAlong[0] == "" && $dupObjs[0] != "")
+warning "Missing CVs or Curves";
+
+if ($dupObjs[0] == "" && $dupAlong[0] == "")
+warning "Input needed";
+
+if ($dupObjs[0] != "" && $dupAlong[0] != "")
+duplicateMe $error;
+
+}
+
+
+global proc duplicateMe (int $value){
+string $dupObjs[];
+string $dupAlong[];
+string $bjeCV[] = {};
+string $curves[] = {};
+int $randDup;
+tokenizeList(`textField -q -tx dupObjs`, $dupObjs);
+tokenizeList(`textField -q -tx dupAlong`, $dupAlong);
+int $jval = 0;
+int $jsel = `radioButtonGrp -q -sl dArandCycle`;
+if($value == 2){
+string $curves[] = $dupAlong;
+select -cl;
+for($i=0; $i < size($curves); $i++){
+  int $numSpans = `getAttr ( $curves[$i] + ".spans" )`;
+  int $degree   = `getAttr ( $curves[$i] + ".degree" )`;
+  int $form     = `getAttr ( $curves[$i] + ".form" )`;
+  int $numCVs   = $numSpans + $degree;
+  if ( $form == 2 ) $numCVs -= $degree;
+  select -tgl ( $curves[$i] + ".cv[0:" + ($numCVs-1) + "]" );
+}//end for
+}
+
+if ($value == 1 ){
+select -r $dupAlong[0];
+for ($i=1; $i<size($dupAlong); $i++){
+select -tgl $dupAlong[$i];}
+}
+
+if($value == 1 || $value == 2)  {
+string $bjeCV[] = `filterExpand -sm 28`;
+for ($i=0; $i<size($bjeCV); $i++){
+    $moveMe = `xform -worldSpace -query -translation $bjeCV[$i]`;
+
+if ($jsel == 1){//random
+    int $randDupMax = size($dupObjs);
+    $randDup = `rand 0 $randDupMax`;
+}else{//cycle
+	int $jmax = size($dupObjs) -1 ;
+	$randDup = $jval;
+	if ($jval != $jmax )
+		$jval++;
+	else
+		$jval = 0;
+}
+
+    string $nameObj[0] = `duplicate -rr $dupObjs[$randDup]`;
+    if (`radioButtonGrp -q -sl scaleRandomBE` == 1) attrObjDA $dupObjs[$randDup] $nameObj[0] "scale";
+    if (`radioButtonGrp -q -sl rotateRandomBE` == 1) attrObjDA $dupObjs[$randDup] $nameObj[0] "rotate";
+    
+    move -rpr $moveMe[0] $moveMe[1] $moveMe[2] $nameObj;
+    if (`radioButtonGrp -q -sl translateRandomBE` == 1) attrObjDA $dupObjs[$randDup] $nameObj[0] "translate";
+}
+}
+
+if ($value == 3){
+for ($j=0; $j<size($dupAlong);$j++){
+float $cord[] = {};
+int $i= 0;
+float $uObjs = `intSliderGrp -q -v uObjDA`;
+float $maxU = `getAttr ( $dupAlong[$j] + ".maxValue" )`;
+float $uObjsTmp = $uObjs -1;
+for ( ; $i <= $uObjsTmp; $i++){
+$cord[$i]= ($i/$uObjsTmp)*$maxU;
+
+if ($jsel == 1){//random
+    int $randDupMax = size($dupObjs);
+    $randDup = `rand 0 $randDupMax`;
+}else{//cycle
+int $jmax = size($dupObjs) -1 ;
+$randDup = $jval;
+if ($jval != $jmax )
+$jval++;
+else
+$jval = 0;
+}
+
+float $xyz[3] = `pointOnCurve -pr $cord[$i] -p $dupAlong[$j]`;
+string $nameObj[0] = `duplicate -rr $dupObjs[$randDup]`;
+if (`radioButtonGrp -q -sl scaleRandomBE` == 1) attrObjDA $dupObjs[$randDup] $nameObj[0] "scale";
+if (`radioButtonGrp -q -sl rotateRandomBE` == 1) attrObjDA $dupObjs[$randDup] $nameObj[0] "rotate";
+
+move -rpr $xyz[0] $xyz[1] $xyz[2] $nameObj;
+if (`radioButtonGrp -q -sl translateRandomBE` == 1) attrObjDA $dupObjs[$randDup] $nameObj[0] "translate";
+}//end for
+}//end extra curves along U
+}//end 3
+
+}//end global proc
+
+global proc randomAttrDA (string $attr){
+//set as proc variable for changing from scale rotate and translate
+//string $attr = "scale";
+float $minV = 0.9;
+float $maxV = 1.1;
+float $def = 0;
+if ($attr == "rotate" || $attr == "translate"){
+$minV = 0.0;
+$maxV = 0.0;
+$def = 10;
+}
+
+string $del[] = `columnLayout -q -ca ($attr + "ClDA")`;
+for ($delt in $del){
+deleteUI $delt;}
+string $objs = `textField -q -tx dupObjs`;
+string $selectionBE[];
+tokenize $objs $selectionBE;
+
+float $value[]={};
+setParent ($attr + "ClDA");
+for ($i=0; $i<size($selectionBE); $i++){
+
+rowColumnLayout -nc 3 -cw 1 100 -cw 2 40 -cw 3 30;
+	text -l (" " + $selectionBE[$i]);
+	floatField -min 0 -max 100 -pre 2 -v 10 -ec ("plusMinusDA " + $selectionBE[$i] + " " + $attr) ($selectionBE[$i] + "PlusMinus" + $attr);
+	button -l "+-%" -c ("plusMinusDA " + $selectionBE[$i] + " " + $attr);
+setParent..;
+
+rowColumnLayout -nc 4 -w 150 -cw 1 20 -cw 2 50 -cw 3 50 -cw 4 50;
+$value = `getAttr ($selectionBE[$i] + "." + $attr)`;
+
+text -l "";
+text -l "    Min";
+text -l "";
+text -l "    Max";
+
+text -l "  X";
+floatField -v ($value[0]* $minV - $def) ($selectionBE[$i] + "minX" + $attr);
+floatField -ed 0 -v $value[0]  ($selectionBE[$i] + "defX" + $attr);
+floatField -v ($value[0]* $maxV + $def) ($selectionBE[$i] + "maxX" + $attr);
+
+text -l "  Y";
+floatField -v ($value[1]* $minV - $def) ($selectionBE[$i] + "minY" + $attr);
+floatField -ed 0 -v $value[1]  ($selectionBE[$i] + "defY" + $attr);
+floatField -v ($value[1]* $maxV + $def) ($selectionBE[$i] + "maxY" + $attr);
+
+text -l "  Z";
+floatField -v ($value[2]* $minV - $def) ($selectionBE[$i] + "minZ" + $attr);
+floatField -ed 0 -v $value[2]  ($selectionBE[$i] + "defZ" + $attr);
+floatField -v ($value[2]* $maxV + $def) ($selectionBE[$i] + "maxZ" + $attr);
+setParent..;
+}//end for
+setParent ($attr + "ClDA");
+}
+
+global proc attrObjDA (string $dupOrg, string $dupObj, string $attr){
+float $minX = `floatField -q -v ($dupOrg + "minX" + $attr)`;
+float $minY = `floatField -q -v ($dupOrg + "minY" + $attr)`;
+float $minZ = `floatField -q -v ($dupOrg + "minZ" + $attr)`;
+float $maxX = `floatField -q -v ($dupOrg + "maxX" + $attr)`;
+float $maxY = `floatField -q -v ($dupOrg + "maxY" + $attr)`;
+float $maxZ = `floatField -q -v ($dupOrg + "maxZ" + $attr)`;
+
+float $scaleX = rand($minX, $maxX);
+float $scaleY = rand($minY, $maxY);
+float $scaleZ = rand($minZ, $maxZ);
+
+if ($attr == "translate"){
+move -r $scaleX $scaleY $scaleZ $dupObj;
+print ($scaleX + " " + $scaleY + " " + $scaleZ + " " + $dupObj + "\n");
+//	makeIdentity -apply true -t 1 -r 0 -s 0 -n 0 $dupObj;
+}else{
+setAttr ($dupObj + "." + $attr + "X") $scaleX;
+setAttr ($dupObj + "." + $attr + "Y") $scaleY;
+setAttr ($dupObj + "." + $attr + "Z") $scaleZ;
+}
+
+}
+
+global proc plusMinusDA(string $obj, string $attr){
+float $plusMinus;
+if ($attr == "rotate" || $attr == "translate")
+$plusMinus =`floatField -q -v ($obj + "PlusMinus" + $attr)`;
+else{
+int $value = 100;
+$plusMinus =`floatField -q -v ($obj + "PlusMinus" + $attr)`/ $value;
+}
+float $defX = `floatField -q -v ($obj + "defX" + $attr)`;
+float $defY = `floatField -q -v ($obj + "defY" + $attr)`;
+float $defZ = `floatField -q -v ($obj + "defZ" + $attr)`;
+
+
+
+floatField -e -v ($defX - $plusMinus) ($obj + "minX" + $attr);
+floatField -e -v ($defX + $plusMinus) ($obj + "maxX" + $attr);
+floatField -e -v ($defY - $plusMinus) ($obj + "minY" + $attr);
+floatField -e -v ($defY + $plusMinus) ($obj + "maxY" + $attr);
+floatField -e -v ($defZ - $plusMinus) ($obj + "minZ" + $attr);
+floatField -e -v ($defZ + $plusMinus) ($obj + "maxZ" + $attr);
+}
+global proc windowDA(){
+int $tsrDA = `frameLayout -q -cl tsrDA`;
+int $scaleRBG = `radioButtonGrp -q -sl scaleRandomBE`;
+int $rotateRBG = `radioButtonGrp -q -sl rotateRandomBE`;
+int $translateRBG = `radioButtonGrp -q -sl translateRandomBE`;
+
+int $scaleFL = `frameLayout -q -cl scaleFlDA`;
+int $rotateFL = `frameLayout -q -cl rotateFlDA`;
+int $translateFL = `frameLayout -q -cl translateFlDA`;
+
+int $value = 245;
+
+if ($tsrDA == 0){
+$value = 355;
+if ($scaleRBG == 1 && $scaleFL == 0)
+	$value = $value + 180;
+if ($rotateRBG == 1 && $rotateFL == 0)
+	$value = $value + 180;
+if ($translateRBG == 1 && $translateFL == 0)
+	$value = $value + 180;
+}
+window -e  -h $value duplicateAlong;
+}
+

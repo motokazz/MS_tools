@@ -1,0 +1,221 @@
+/* This file downloaded from Highend3d.com
+''  
+''  Highend3d.com File Information:
+''  
+''    Script Name: Davveys Vehicle Rigging Scripts
+''    Author:  
+''    Last Updated: Jul 21, 2007
+''    Update/Change this file at:
+''    http://Highend3d.com/maya/downloads/mel_scripts/animation/4109.html
+''  
+''  Please do not alter any information above this line
+''  it is generated dynamically by Highend3d.com and will
+''  be changed automatically on any updates.
+*/
+
+///////////////////////////////////////////////////////////////////////////////
+/*			
+				
+	Copyright © 2006 DVY_WheelSpin. All rights reserved davvey@ntlworld.com
+					
+						- DVY_WheelSpin -
+					
+///////////////////////////////////////////////////////////////////////////////
+						  
+	This script is called by DVY_RigVehicle to set up each wheel to have
+	autospin which is activated for all wheels. Then each wheel is set to
+	spin on a time based curve and the all wheels speed can be increased
+	or set in reverse.
+	
+	Also each individual wheel can be set on or off and its speed can be
+	increased or decreased compared to the "Master" speed setting. Each
+	wheel can also be set in reverse and again speed can be set individually.
+
+*/
+//////////////////////////////////////////////////////////////////////////
+//					DVY_WheelSpin Procedure
+//////////////////////////////////////////////////////////////////////////
+
+//============================================================================
+//	GLOBAL VARIABLES
+//============================================================================
+	global int $DVYDebug;
+
+// Integer Flag that allows print statements to be output to
+// message field for tracking purposes.
+	
+//============================================================================
+	
+global proc DVY_WheelSpin()
+
+ {
+	 
+// *******************************************************************************//	
+//	Global Variables
+	 
+	global string $GroupV_A[], $RigControlsA[];
+	global string $DVY_VehName;
+	global float $DVYdata[];
+	
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+//	Local Variables
+
+	float $DTime[], $DRotate[];	
+	string $SpinA[], $WheelRotA[], $SpinWheelA[], $SpinWheelOn[], $DTimeAtt[], $SpinAddA[]; 
+	
+	string $DRotGrpA[] = {"LfFr_Wheel_GrpR_1", "RtFr_Wheel_GrpR_1", "LfRr_Wheel_GrpR_1", "RtRr_Wheel_GrpR_1", "Dummy_GrpN_1"};	
+	$r = 0; 
+	for ($each in $DRotGrpA) {$DRotGrpA[$r++] = ($DVY_VehName + $each);}
+	string $DPrefix[] = {"LfFr", "RtFr", "LfRr", "RtRr"};	
+
+	int $a, $b, $c, $i, $o, $q, $t, $r, $Rx;
+	
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+
+	setAttr -lock false -keyable true ($DVY_VehName + "Dummy_GrpN_1.rotateX");
+	setAttr ($DVY_VehName + "Dummy_GrpN_1.rotateX") 0;
+	currentTime -edit 0;
+	setKeyframe -attribute "rotateX" -t (`currentTime -query`) ($DVY_VehName + "Dummy_GrpN_1");
+	
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+		
+	 for ($o=4; $o<5; $o++)
+		{
+		  for ($i=0; $i<9; $i++)
+			{
+			  $r = ($i * 45);
+			  select -r $DRotGrpA[$o];
+			  setAttr ($DRotGrpA[$o] + ".rotateX") $r;
+			  setKeyframe -attribute "rotateX" -t ($i*5) $DRotGrpA[$o];
+//			  print ( "Rotation is " + `getAttr ($DRotGrpA[$o] + ".rotateX")` + "..\n");
+			}
+			setAttr ($DRotGrpA[$o] + "_rotateX. preInfinity") 3;
+			setAttr ($DRotGrpA[$o] + "_rotateX.postInfinity") 3;
+			currentTime -edit 0;
+			setAttr ($DRotGrpA[$o] + ".rotateX") 0;
+		}
+	
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+//	WheelSpin Generator Nodes.		
+			
+	$SpinA[0] = `shadingNode -asUtility multDoubleLinear -name ($DVY_VehName + "WheelSpin_ControlSpinN_1")`;
+		connectAttr -f ($DRotGrpA[4] + ".rotateX") ($SpinA[0] + ".input1");
+		connectAttr -f ($RigControlsA[0] + ".AutoSpin") ($SpinA[0] + ".input2");
+		connectAttr -f  ($SpinA[0] + ".output") ($RigControlsA[0] + ".WheelSpinCalc");
+		
+	$SpinA[1] = `shadingNode -asUtility multDoubleLinear -name ($DVY_VehName + "WheelSpin_MultiplyN_1")`;
+		connectAttr -f ($SpinA[0] + ".output") ($SpinA[1] + ".input1");
+		setAttr ($RigControlsA[0] + ".WheelSpin_") 1;
+		connectAttr -f ($RigControlsA[0] + ".WheelSpin_") ($SpinA[1] + ".input2");
+		connectAttr -f  ($SpinA[1] + ".output") ($RigControlsA[0] + ".WheelSpinMultiply");
+	
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+//	Front Wheel spin section.
+			
+	$a = 0; $j = 0;	
+	
+ 	for ($a=0; $a<2; $a++)
+	 {$q = 1;
+		for ($q=1; $q<$DVYdata[1]+1; $q++)
+		{
+		$SpinWheelA[$q+$j] = `shadingNode -asUtility multDoubleLinear -name ($DVY_VehName + "WheelSpin_" + $DPrefix[$a] + "_SpinInN_" + $q)`;
+			
+			connectAttr -f ($SpinA[1] + ".output") ($SpinWheelA[$q+$j] + ".input1");
+			connectAttr -f ($RigControlsA[0] + ".WheelSpin_") ($SpinWheelA[$q+$j] + ".input2");
+			connectAttr -f ($SpinWheelA[$q+$j] + ".output") ($RigControlsA[0] + ".SpinWheelInValue");
+			
+		$SpinWheelOn[$q+$j] = `shadingNode -asUtility multDoubleLinear -name ($DVY_VehName + "WheelSpin_" + $DPrefix[$a] + "_SpinOnN_" + $q)`;
+			connectAttr -f ($SpinWheelA[$q+$j] + ".output") ($SpinWheelOn[$q+$j] + ".input1");
+			connectAttr -f ($RigControlsA[0] + "." + $DPrefix[$a] + "WheelSpin_" + $q) ($SpinWheelOn[$q+$j] + ".input2");
+			
+		$SpinAddA[$q+$j] = `createNode addDoubleLinear -name ($DVY_VehName + "WheelSpin_" + $DPrefix[$a] + "_SpinAddN_" + $q)`;	
+			setAttr  ($SpinAddA[$q+$j] + ".input1") 1;
+			connectAttr -f ($SpinWheelOn[$q+$j] + ".output") ($SpinAddA[$q+$j] + ".input2");
+	
+		$WheelRotA[$q+$j] = `createNode blendTwoAttr -name ($DVY_VehName + "WheelSpin_" + $DPrefix[$a] + "_RotatorN_" + $q)`;
+			setAttr ($WheelRotA[$q+$j] + ".attributesBlender") 0.5;
+			connectAttr -f ($SpinAddA[$q+$j] + ".output") ($WheelRotA[$q+$j] + ".input[0]");		
+			connectAttr -f ($WheelRotA[$q+$j] + ".output") ($DVY_VehName + $DPrefix[$a] + "_Wheel_JnTA_" + $q + ".rotateX");
+//			connectAttr -f ($WheelRotA[$a] + ".output")	("WheelSpin_" + $DPrefix[$a] + "_RotatorN_1.input[1]");
+		 }
+		 $j = $DVYdata[1];
+	}
+	
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+
+	$j = $j + $DVYdata[1];
+//	print ("$j is " + $j + "\n");
+	
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+//	Rear Wheel spin section.
+	 
+ 	for ($a=2; $a<4; $a++)
+	 {$q = 1;
+		for ($q=1; $q<$DVYdata[2]+1; $q++)
+		{
+		$SpinWheelA[$q+$j] = `shadingNode -asUtility multDoubleLinear -name ($DVY_VehName + "WheelSpin_" + $DPrefix[$a] + "_SpinInN_" + $q)`;
+			
+			connectAttr -f ($SpinA[1] + ".output") ($SpinWheelA[$q+$j] + ".input1");
+			connectAttr -f ($RigControlsA[0] + ".WheelSpin_") ($SpinWheelA[$q+$j] + ".input2");
+			connectAttr -f ($SpinWheelA[$q+$j] + ".output") ($RigControlsA[0] + ".SpinWheelInValue");
+			
+		$SpinWheelOn[$q+$j] = `shadingNode -asUtility multDoubleLinear -name ($DVY_VehName + "WheelSpin_" + $DPrefix[$a] + "_SpinOnN_" + $q)`;
+			connectAttr -f ($SpinWheelA[$q+$j] + ".output") ($SpinWheelOn[$q+$j] + ".input1");
+			connectAttr -f ($RigControlsA[0] + "." + $DPrefix[$a] + "WheelSpin_" + $q) ($SpinWheelOn[$q+$j] + ".input2");
+			
+		$SpinAddA[$q+$j] = `createNode addDoubleLinear -name ($DVY_VehName + "WheelSpin_" + $DPrefix[$a] + "_SpinAddN_" + $q)`;	
+			setAttr  ($SpinAddA[$q+$j] + ".input1") 1;
+			connectAttr -f ($SpinWheelOn[$q+$j] + ".output") ($SpinAddA[$q+$j] + ".input2");
+	
+		$WheelRotA[$q+$j] = `createNode blendTwoAttr -name ($DVY_VehName + "WheelSpin_" + $DPrefix[$a] + "_RotatorN_" + $q)`;
+			setAttr ($WheelRotA[$q+$j] + ".attributesBlender") 0.5;
+			connectAttr -f ($SpinAddA[$q+$j] + ".output") ($WheelRotA[$q+$j] + ".input[0]");		
+			connectAttr -f ($WheelRotA[$q+$j] + ".output") ($DVY_VehName + $DPrefix[$a] + "_Wheel_JnTA_" + $q + ".rotateX");
+//			connectAttr -f ($WheelRotA[$a] + ".output")	("WheelSpin_" + $DPrefix[$a] + "_RotatorN_1.input[1]");
+		 }
+		 $j = $j + $DVYdata[2];
+	}
+	
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+/*	 
+
+	 	print "\n Vehicle WheelSpin $SpinA Nodes are..\n";
+		print $SpinA;
+		print "\n Davvey © 2006..\n";
+		
+		print "\n Vehicle WheelSpin $SpinWheelA Nodes are..\n";
+		print $SpinWheelA;
+		print "\n Davvey © 2006..\n";
+		
+		print "\n Vehicle WheelSpin $SpinWheelOn Nodes are..\n";
+		print $SpinWheelOn;
+		print "\n Davvey © 2006..\n";
+		
+		print "\n Vehicle WheelSpin $SpinAddA Nodes are..\n";
+		print $SpinAddA;
+		print "\n Davvey © 2006..\n";
+		
+		print "\n Vehicle WheelSpin $WheelRotA Nodes are..\n";
+		print $WheelRotA;
+		print "\n Davvey © 2006..\n";
+*/
+
+	print "\n DVY_WheelSpin has set up Nodes for auto spin and extra spin for each wheel. See help file for more details Davvey © 2006..\n\n";
+
+ }	//	End of DVY_WheelSpin procedure.

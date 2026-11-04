@@ -1,0 +1,71 @@
+/*
+MS_colorSet1
+
+◆概要
+MAYA上で表示されているカラーセット（currentcolorset）を、エキスポート時に参照される「colorSet1」の名前にする。
+
+◆使い方
+出力したいカラーセットつきポリゴンオブジェクトを選択してMELを実行すると、選択したオブジェクト全てにMS_colorSet1が適用されます。
+
+◆詳細
+カレントカラーセットを「colorSet1」の名前にする。
+「colorSet1」がカレント以外で存在する場合、「MStempColorXXX」という名前にリネームする。
+次回「MStempColorXXX」が存在した場合、それは消去して新しい「MStempColorXXX」を作成します。
+
+
+※注意事項
+・次回、このコマンドを実行すると、「MStempColorXXX」は必ず消してしまうので、消されたくないカラーだった場合はリネームしておきましょう。
+・コンストラクションヒストリー全けしという、危険極まりない荒業も使っておりますので、くれぐれも作業途中のファイルに使ってセーブしたりしないでください。
+・カラーセットが無いものや、ポリゴンオブジェクト以外は選択しないでください・・・・何がおきるか分かりません
+・CGFXシェーダー適用後のオブジェクトにやったら、凄いことになった・・・何でだか分かりません・・・
+
+ログがごちゃごちゃ出ますが、デバッグ中なのでお気になさらずに。
+
+
+*/
+
+//ここを変更すると、設定する名前が変わります。
+string $csset_name="coloSet1";
+string $csren_name="MStempColorSetXXX";
+
+
+
+
+string $obj_name[]=`ls -sl`;
+
+$j=0;
+for($j=0;$j<size($obj_name);$j++){
+
+select $obj_name[$j];
+
+delete -ch;
+
+string $all_name[]=`polyColorSet -q -acs`;
+print $all_name;
+
+$i=0;
+for($i=0;$i<size($all_name);$i++){
+	if($all_name[$i]==$csren_name){
+		print"match\n";
+		polyColorSet -d -cs $csren_name;
+	}
+}
+
+$i=0;
+for($i=0;$i<size($all_name);$i++){
+	if($all_name[$i]==$csset_name){
+		print"match\n";
+		polyColorSet -rn -cs $csset_name -nc $csren_name;
+		//polyColorSet -d -cs $csset_name;
+	}
+}
+
+print"xxx\n";
+
+string $current_name[]=`polyColorSet -q -ccs`;
+polyColorSet -rn -cs $current_name[0] -nc $csset_name;
+
+print"xxx\n";
+
+}
+

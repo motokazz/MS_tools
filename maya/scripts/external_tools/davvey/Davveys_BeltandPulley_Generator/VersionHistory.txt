@@ -1,0 +1,7 @@
+
+Version 1.0.1
+Coorected error in scripts where Mac OSX does not like carriage return inside 
+UI Field commands.
+
+Version 1.0
+First Release

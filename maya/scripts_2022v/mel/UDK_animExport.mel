@@ -1,0 +1,26 @@
+global proc int[] MS_selectTime(){
+	/*
+	タイムスライダーから時間を取得
+	
+	スライダーで範囲選択がある場合はその範囲内を
+	そうでない場合は現在のタイムスライダーの範囲を返す
+	
+	*/
+	//グローバル宣言しないとプロシージャ内でタイムスライダーを特定できない。
+	global string $gPlayBackSlider;
+	
+	string $buf[];
+	
+	string $tc=`timeControl -q -rng -gt $gPlayBackSlider`;
+	
+	tokenize $tc ":\"" $buf;
+	
+	int $st=$buf[0];
+	int $ed=$buf[1];
+	if(($ed-$st)<=1){
+		$st=`playbackOptions -q -min`;
+		$ed=`playbackOptions -q -max`;
+	}
+	return {$st,$ed};
+}
+

@@ -1,0 +1,109 @@
+//--------------------------------------------------------------------------
+// ScriptName : AriUVRatioOptions
+// Contents   : AriUVRatioのオプション
+// Since      : 2016/08/07 オプション新規作成
+// LastUpdate : 2021/11/07 UnfoldUVチェックボックス追加
+//              2018/10/28 選択無実行でオプション起動機能追加
+//--------------------------------------------------------------------------
+
+global proc AriUVRatioOptions_Save(){
+	
+	global string $AriUVRatioOp_UI_offsetCb;
+	global string $AriUVRatioOp_UI_unfoldCb;
+	
+	int $straightTrue = true;
+	int $unfoldTrue = false;
+	$straightTrue = `checkBox -q -v $AriUVRatioOp_UI_offsetCb`;
+	$unfoldTrue = `checkBox -q -v $AriUVRatioOp_UI_unfoldCb`;
+	optionVar -intValue   "AriUVRatio_straight" $straightTrue;
+	optionVar -intValue   "AriUVRatio_unfold" $unfoldTrue;
+}
+global proc AriUVRatioOptions_GO(){
+	AriUVRatioOptions_Save();
+	AriUVRatio;
+}
+global proc AriUnfoldUV(int $psTrue){
+	float $mul = 20;
+	string $selectUVs[] = `ls -sl`;
+	polySelectBorderShell 0;
+	polyEditUV -pu 0.5 -pv 0.5-su $mul -sv $mul ;
+	select $selectUVs;
+	unfold -i 5000 -ss 0.001 -gb 0 -gmb 0.5 -pub 0 -ps $psTrue -oa  0 -us off; 
+	polySelectBorderShell 0;
+	polyEditUV -pu 0.5 -pv 0.5-su (1.0/$mul) -sv (1.0/$mul) ;
+	select $selectUVs;
+}
+global proc AriUVRatioOptions(){
+	global string $AriUVRatioOp_UI_offsetCb;
+	global string $AriUVRatioOp_UI_unfoldCb;
+	string $JPTrue;
+	if(`about -uil`=="ja_JP")$JPTrue = true;
+	else $JPTrue = false;
+	string $label_Straight    = "Straight (recommend)";
+	string $label_Contiguous  = "Contiguous";
+	if($JPTrue==true){
+		$label_Straight    = "直線化 (推奨)";
+		$label_Contiguous  = "隣接選択";
+	}
+	int $straightTrue = true;
+	int $unfoldTrue = false;
+	if(`optionVar -exists "AriUVRatio_straight"`)	$straightTrue = `optionVar -q "AriUVRatio_straight"`;
+	if(`optionVar -exists "AriUVRatio_unfold"`)		$unfoldTrue   = `optionVar -q "AriUVRatio_unfold"`;
+	if((`window -ex  AriUVRatioOptions`)==true)deleteUI AriUVRatioOptions;
+	window -title "AriUVRatioOptions" -tlb true -w 300 -h 50 AriUVRatioOptions;
+	string $form = `formLayout`;
+	string $column = `columnLayout -adj true`;
+	$AriUVRatioOp_UI_offsetCb = `checkBox -l $label_Straight -v $straightTrue `;
+	$AriUVRatioOp_UI_unfoldCb = `checkBox -l "Unfold UV" -v $unfoldTrue `;
+	separator -h 4 -st "in";
+	string $buttonform = `formLayout`;
+	string $ContiguousButton =`button -w 80 -l $label_Contiguous -c "SelectContiguousEdges"`;
+	popupMenu -pmc "SelectContiguousEdgesOptions";
+	string $UnfoldButton = `columnLayout -adj true`;
+	button -l "UnfoldUV (UnSel)" -c "AriUnfoldUV(1)";
+	button -l "UnfoldUV (Sel)" -c "AriUnfoldUV(0)";
+	setParent..;
+	setParent..;
+	formLayout -e 
+	-af $ContiguousButton "top"  4
+	-af $ContiguousButton "bottom"  4
+	-ap $ContiguousButton "right"   0 50
+	-af $ContiguousButton "left"  0
+	-ac $UnfoldButton	"left"  0 $ContiguousButton
+	-af $UnfoldButton	"right" 0 
+	$buttonform;
+	separator -h 8 -st "in";
+	setParent..;
+	$buttonform = `formLayout`;
+	string $buttonSave       = `button       -l "Save"       -c "AriUVRatioOptions_Save();"`;
+	string $buttonSaveClose  = `button       -l "Save Close" -c "AriUVRatioOptions_Save(); deleteUI AriUVRatioOptions;"`;
+	string $buttonApply      = `button -h 38 -l "Apply"      -c "AriUVRatioOptions_GO();" -bgc 0.5 0.5 1`;
+	setParent..;
+	formLayout -e 
+	-af $buttonApply "bottom" 0  
+	-ap $buttonApply "left"   0 50
+	-af $buttonApply "right"  0
+	-af $buttonApply "top"    0 
+	-af $buttonSave	"top"    0
+	-ap $buttonSave	"bottom" 0 50
+	-af $buttonSave	"left"   0 
+	-ac $buttonSave	"right"  0 $buttonApply
+	-ac $buttonSaveClose	"top"    0 $buttonSave
+	-af $buttonSaveClose	"bottom" 0
+	-af $buttonSaveClose	"left"   0
+	-ac $buttonSaveClose	"right"  0 $buttonApply
+	$buttonform;
+	setParent..;
+	formLayout -e 
+	-af $column "top"    0
+	-af $column "left"   0
+	-af $column "right"  0
+	-ac $buttonform "top"    0 $column
+	-af $buttonform "bottom" 0
+	-af $buttonform "left"   0
+	-af $buttonform "right"  0
+	$form;
+	showWindow;
+}
+
+

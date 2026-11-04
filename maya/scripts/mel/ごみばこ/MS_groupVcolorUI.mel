@@ -1,0 +1,53 @@
+global proc MS_groupVcolor(){
+	
+	float $startRGB[]=`colorSliderGrp -q -rgb "startRGB"`;
+	float $startAlpha[]=`colorSliderGrp -q -rgb "startAlpha"`;
+	
+	float $endRGB[]=`colorSliderGrp -q -rgb "endRGB"`;
+	float $endAlpha[]=`colorSliderGrp -q -rgb "endAlpha"`;
+	
+	int $i=0;
+	string $obj[]= `ls -sl`;
+	
+	for($eachobj in $obj){
+		float $r=$endRGB[0]+((size($obj)-$i)*(($startRGB[0]-$endRGB[0])/size($obj)));
+		float $g=$endRGB[1]+((size($obj)-$i)*(($startRGB[1]-$endRGB[1])/size($obj)));
+		float $b=$endRGB[2]+((size($obj)-$i)*(($startRGB[2]-$endRGB[2])/size($obj)));
+		float $a=$endAlpha[0]+((size($obj)-$i)*(($startAlpha[0]-$endAlpha[0])/size($obj)));
+		polyColorPerVertex -r $r -g $g -b $b -a $a $eachobj;
+		$i++;
+	}
+}
+
+
+global proc MS_groupVcolorUI(){
+if(`window -exists MS_groupVcolor`){deleteUI "MS_groupVcolor";}
+window -t MS_groupVcolor MS_groupVcolor;
+
+columnLayout;
+
+text -w 1000 -al "left" -fn "boldLabelFont" -l "1.select animated object.";
+text -w 1000 -al "left" -fn "boldLabelFont" -l "2.select animating attribute from channelBox.";
+text -w 1000 -al "left" -fn "boldLabelFont" -l "3.go";
+separator -w 1000 ;
+
+
+
+
+colorSliderGrp -rgb 1.0 1.0 1.0 -l "startRGB" "startRGB";
+colorSliderGrp -rgb 1.0 1.0 1.0 -l "startAlpha" "startAlpha";
+
+separator -w 1000;
+
+colorSliderGrp -rgb 0 0 0 -l "endRGB" "endRGB";
+colorSliderGrp -rgb 0 0 0 -l "endAlpha" "endAlpha";
+
+separator -w 1000;
+
+button -w 100-l "groupSlide" -c "MS_groupVcolor" "groupslide";
+setParent ..;
+
+showWindow MS_groupVcolor;
+}
+
+

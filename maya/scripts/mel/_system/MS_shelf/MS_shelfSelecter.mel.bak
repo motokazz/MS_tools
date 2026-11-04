@@ -1,0 +1,35 @@
+
+global proc MS_shelfSelecter(){
+	string $command;
+	int $nShelves = `optionVar -q numShelves`;
+	
+	if ((`window -ex MS_shelfSelecter`) == true	) {deleteUI MS_shelfSelecter;};
+	window -mb true -t "MS_shelfSelecter" -iconName "MS_shelfSelecter" MS_shelfSelecter;
+	
+	columnLayout;
+	
+	$command="int $val[];int $j=0;\n";
+	for ($i=1;$i<=$nShelves;$i++){
+		string $shelfName = `optionVar -q ("shelfName" + $i)`;
+		string $shelfFile = `optionVar -q ("shelfFile" + $i)`;
+		checkBox -l $shelfName ("chk"+$i);
+		$command=$command+"if (`checkBox -q -v "+("chk"+$i)+"`){$val[$j]="+$i+";$j++;}\n";
+		
+	}
+	//$command=$command+"MS_shelfWin $val;\n";
+	//$command=$command+"MS_shelf $val;clear $val;\n";
+	
+	separator -w 200;
+	//print $command;
+	button -l "MS_shelfWindow" -c ($command+"MS_shelf $val;clear $val;\n") ;
+	
+	separator -w 200;
+	
+	textFieldGrp shelfName;
+	button -l "MS_createShelfButton" -c ($command+"MS_createShelfButton $val `textFieldGrp -q -tx shelfName`;clear $val;\n");
+	setParent ..;
+	showWindow MS_shelfSelecter;
+	
+}
+
+MS_shelfSelecter;

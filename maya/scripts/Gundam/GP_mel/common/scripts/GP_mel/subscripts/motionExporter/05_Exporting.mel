@@ -1,0 +1,528 @@
+//GP2モーションエクスポータ
+//5,出力作業
+
+
+global proc ImportReference(string $nameSpace){
+    string $temp[];
+    tokenize $nameSpace ":" $temp;
+    string $loadNS;
+    for($item in $temp){
+        if($loadNS == ""){
+            $loadNS = $item;
+        }else{
+            $loadNS = $loadNS + ":" + $item;
+        }
+    	string $selRefNode = `referenceQuery -filename ( $loadNS + "RN")`;
+    	file -importReference $selRefNode;
+	}
+}
+
+global proc ImportAllReference(){
+	while ( true ){
+		string $_refs[] = `ls -type reference`;
+		string $refs[];
+		clear $refs;
+		for ( $ref in $_refs ){
+			if ( 0 == catchQuiet(`referenceQuery -referenceNode -topReference $ref`) ){
+				if ( 0 == `file -referenceNode $ref -q -deferReference` ){
+					$refs[`size $refs`] = $ref;
+				}
+			}
+		}
+		if ( 0 == `size $refs` ) break;
+		$refs[0] = `referenceQuery -referenceNode -topReference $refs[0]`;
+		file -importReference `referenceQuery -filename $refs[0]`;
+		//	同名ファイルへのリファレンスが複数存在する場合への対応
+		//	リファレンスノード指定でインポートする場合はこういう書き方をする
+		//file -importReference -referenceNode $refs[0];
+		flushUndo;
+	}
+}
+
+
+//指定したネームスペース・オブジェクトからNS削除処理
+global proc nameSpacePeel(string $NameSpace , string $rootName ){
+	int $spaceLength = size($NameSpace);
+	$NameSpace = startString($NameSpace , (size($NameSpace) - 1));
+	select -r -hi ($NameSpace + ":" + $rootName);
+	string $renameTgt[] = `ls -sl -tr`;
+	int $i , $nameLength;
+	string $newName;
+//応急処置
+	string $temp[];
+	for($i = (size($renameTgt)-1) ; $i >= 0 ; $i-- ){
+		if( `tokenize $renameTgt[$i] ":" $temp` > 1){
+			$nameLength = size( $renameTgt[$i] );
+			$newName = endString($renameTgt[$i] , ($nameLength - $spaceLength));
+			print ("rename " + $renameTgt[$i] + " to " + $newName + "\r\n");
+			rename $renameTgt[$i] $newName;
+		}
+	}
+}
+
+
+
+global proc exportFBX(string $rootName , string $iptChrNS ){
+	// create a confirm dialog with a yes and no button. Specif
+	$response = `confirmDialog -title "FBX_export" 
+	 -message "保存してからエクスポートします。"
+	 -button "Yes" 
+	 -button "No"
+	 -button "Export Only"
+	 -defaultButton "Yes"
+	 -cancelButton "No"
+	 -dismissString "No"`;
+
+	// check response	  
+	if( $response == "Yes" ) {
+		print("User says yes\n");
+		file -f -save;
+
+		radioCollection -q -sl eFT_divModeRadCol;
+		if(`radioCollection -q -sl eFT_divModeRadCol` == "eFT_divModeRad2"){
+			multiExptMode($rootName , $iptChrNS );
+		}else{
+			singleExptMode($rootName ,$iptChrNS );
+		}
+	} else if( $response == "No" ) {
+		print("User says no\n");
+	} else if( $response == "Export Only" ) {
+		print("User says Export Only\n");
+		radioCollection -q -sl eFT_divModeRadCol;
+		if(`radioCollection -q -sl eFT_divModeRadCol` == "eFT_divModeRad2"){
+			multiExptMode($rootName , $iptChrNS );
+		}else{
+			singleExptMode($rootName ,$iptChrNS );
+		}
+	}
+}
+
+//root位置初期化
+//仕込み
+global proc fbx_setupRootResetSystem(string $iptChrNS){
+	spaceLocator -p 0 0 0 -n rootKey;
+	spaceLocator -p 0 0 0 -n waistKey;
+	parent waistKey rootKey ;
+	string $rootName = `textField -q -tx eFT_jointRootNameFld`;
+	string $waistList[] = `listRelatives -c -type joint ($iptChrNS + $rootName)`;
+
+	select -r $waistList[0] rootKey;
+
+	if(`objExists "*:rig_another_root_Ctrl"`){
+		if(`getAttr ("*:rig_another_root_Ctrl.use_anotherRootPos")`){
+			select -r "*:another_root" rootKey;
+		}
+	}
+
+	pointConstraint -offset 0 0 0 -skip y -weight 1;
+	select -r $waistList[0] waistKey;
+	pointConstraint -offset 0 0 0 -weight 1;
+}
+
+//実行
+global proc fbx_resetRootPos(string $nameSpace , string $rootName){
+	string $attr[] = {"translateX","translateY","translateZ"};
+	string $waistList[] = `listRelatives -c -type joint $rootName`;
+
+	bufferCurve -animation "keys" -overwrite false;
+	copyKey -time ":" -float ":" -hierarchy below -controlPoints 0 -shape 1 { ( "waistKey." + $attr[0] ) , ( "waistKey." + $attr[1] ) , ( "waistKey." + $attr[2] )};
+	bufferCurve -animation "keys" -overwrite false;
+	pasteKey -option replace -copies 1 -connect 0 -timeOffset 0 -floatOffset 0 -valueOffset 0 { ( $waistList[0] + "_" + $attr[0] ) , ( $waistList[0] + "_" + $attr[1] ), ( $waistList[0] + "_" + $attr[2] )};
+
+	bufferCurve -animation "keys" -overwrite false;
+	copyKey -time ":" -float ":" -hierarchy below -controlPoints 0 -shape 1 {("rootKey." + $attr[0] ) , ("rootKey." + $attr[1] ) , ("rootKey." + $attr[2] )};
+	bufferCurve -animation "keys" -overwrite false;
+	pasteKey -option replace -copies 1 -connect 0 -timeOffset 0 -floatOffset 0 -valueOffset 0 {( $rootName + "_" + $attr[0]) , ( $rootName + "_" + $attr[1]) , ( $rootName + "_" + $attr[2]) };
+
+	for($item in $attr){
+		selectKey -add -k ( $rootName + "_" + $item );
+		float $tmp = `getAttr ( $rootName + "." + $item )`;
+		keyframe -animation keys -relative -valueChange (0 - $tmp) ;
+		selectKey -clear ;
+	}
+}
+
+//必要なもの
+//rootの名前、インポートするネームスペース、開始フレーム、終了フレーム、出力シーン名
+global proc FBX_FileExport(string $rootName , string $iptChrNS , int $min , int $max , string $e_nme){
+
+	//計測用タイマー
+	$startTime = `timerX`;
+
+	string $exptName = basenameEx( $e_nme );
+//	trace( $exptName + ".fbx\t" + $exptName + "\t\t\t\t\t" + $min + "\t" + $max );
+	currentTime $min ;
+	string $bakeTgt[] = {( $iptChrNS + $rootName )};
+	
+	// 不明なノードがあるデータ対策
+	select -cl;
+	if(catch(`select -r ("*UNKNOWN_REF_NODE*")`) == 0){
+		print ( "[*UNKNOWN_REF_NODE*] 不明なノード、UNKNOWN_REF_NODE が 見つかったので消します"  + "\n"  );
+		delete;
+	}
+	select -cl;
+	if(catch(`select -r ("*:*UNKNOWN_REF_NODE*")`) == 0){
+		print ( "[*:*UNKNOWN_REF_NODE*] 不明なノード、UNKNOWN_REF_NODE が 見つかったので消します"  + "\n"  );
+		delete;
+	}
+	select -cl;
+	if(catch(`select -r ("*:*:*UNKNOWN_REF_NODE*")`) == 0){
+		print ( "[*:*:*UNKNOWN_REF_NODE*] 不明なノード、UNKNOWN_REF_NODE が 見つかったので消します"  + "\n"  );
+		delete;
+	}
+	select -cl;
+	if(catch(`select -r ("*:*:*:*UNKNOWN_REF_NODE*")`) == 0){
+		print ( "[*:*:*:*UNKNOWN_REF_NODE*] 不明なノード、UNKNOWN_REF_NODE が 見つかったので消します"  + "\n"  );
+		delete;
+	}
+	select -cl;
+	if(catch(`select -r ("*:*:*:*:*UNKNOWN_REF_NODE*")`) == 0){
+		print ( "[*:*:*:*:*UNKNOWN_REF_NODE*] 不明なノード、UNKNOWN_REF_NODE が 見つかったので消します"  + "\n"  );
+		delete;
+	}
+	
+	// リファレンスがロードされてないシーンデータもあるとのことでロードされてなければロードするように
+	if (size(`ls -references`) == 0)
+	{
+		confirmDialog -message "リファレンスが一つもありませんでした。" -button "OK";
+	}
+	else
+	{
+		for($ref in `ls -references`)
+		{
+			// ロードされてないリファレンスだけロードするように（時間かかるので）
+			if (`referenceQuery -il $ref` == 0){
+				print ( $ref + " が ロードされていないのでロードします"  + "\n"  );
+				file -loadReferenceDepth "asPrefs" -loadReference $ref;
+			}
+		}
+	}
+	
+	// 無駄な「RightAnkkle」「LeftAnkkle」をチェック、あれば消す
+	select -cl;	// 念のため先に全選択解除
+	if(catch(`select -r "*RightAnkle"`) == 0){
+		print ( "RightAnkle が 見つかったので消します"  + "\n"  );
+	}
+	if(catch(`select -add "*LeftAnkle"`) == 0){
+		print ( "LeftAnkle が 見つかったので消します"  + "\n"  );
+	}
+	delete;
+
+	if(catch(`select -r $bakeTgt[0]`) == 1){
+		string $temp[] = `ls ("*:" + $rootName ) ("*:*:" + $rootName ) ("*:*:*:" + $rootName ) ("*:*:*:*:" + $rootName ) ("*:*:*:*:*:" + $rootName )`;	//5重を超えるリファレンスは保留
+		if( size($temp) != 0 ){
+			string $piece[];
+			tokenize $temp[0] ":" $piece;		//最初の物を処理。0以外も対応したい
+			int $i;
+			$iptChrNS = "";
+			for($i=0 ; $i < size($piece)-1 ; $i++){
+				$iptChrNS = ($iptChrNS + $piece[$i] + ":");
+			}
+			$bakeTgt[0] = ( $iptChrNS + $rootName );
+		}else{
+			GP2_MessageDialog("error",{"rootNode" + $rootName + "が見つかりませんでした。","5重リファレンスまで探していますが、より深い物を出す場合は要ツール調整。","sysError : 05Exp._FBX_FileExport().L17くらい"});
+		}
+	}
+
+	if(`checkBox -q -v eFT_resetPosChk`){
+		fbx_setupRootResetSystem($iptChrNS);
+		$bakeTgt[1] = "rootKey";
+	}
+
+
+	catch(`select -r $bakeTgt`);
+		bakeResults -simulation true -t($min + ":" + $max) -hi below -sampleBy 1.0 -disableImplicitControl true -preserveOutsideKeys false -sparseAnimCurveBake false -controlPoints false -shape true -attribute translate -attribute rotate -attribute scale $bakeTgt;
+
+	// オイラーフィルタ
+	{
+		string $anmCvs[] = `ls -type animCurve`;
+		filterCurve -filter euler $anmCvs;
+	}
+
+
+	//リファレンスインポート
+//		ImportReference($iptChrNS);
+		ImportAllReference();
+
+	//ネームスペース剥ぎ取り
+		nameSpacePeel($iptChrNS , $rootName );
+
+		if(`checkBox -q -v eFT_resetPosChk`){
+			fbx_resetRootPos($iptChrNS , $rootName);
+		}
+
+		//playbackOptions -ast $min -aet $max ;
+		playbackOptions -min $min -max $max ;
+		select -r $rootName ;//$modelNode;
+
+		string $exptPathList[];
+		if(`radioCollection -q -sl eFT_exptPathRadCol` == "eFT_exptPathRad2"){
+			$exptPathList = fbxExport_getExportPath_ver2();
+			makeFolderForExpt($exptPathList);
+			$e_nme = ($exptPathList[0] + $exptName + ".fbx");
+			//update_motionCSV($exptName);
+		}
+
+		string $previousVersion = `FBXExportFileVersion -q`;
+		FBXExportFileVersion -v "FBX201600";
+
+		file -f -options "" -typ "FBX export" -pr -es $e_nme;
+
+		FBXExportFileVersion -v $previousVersion;
+
+		if(`radioCollection -q -sl eFT_exptPathRadCol` == "eFT_exptPathRad2" && size($exptPathList) > 1){
+			//出力したfbxのコピー処理
+			eFT_copyFBXFile($exptPathList,$exptName);
+		}
+
+	//処理時間計測
+	$totalTime = `timerX -startTime $startTime`;
+	print("FBX Export Total: "+$totalTime+"\n");
+
+	//ログ残し
+	fbxExport_makeLog($iptChrNS , $e_nme , $max , $min, $totalTime);
+}
+
+global proc makeFolderForExpt(string $exptPathList[]){
+	for($item in $exptPathList){
+		if(`filetest -e $item` == 0){
+			sysFile -md $item;
+		}
+	}
+}
+
+//複数mopにまたがって使用されるfbxへの対応。出力済みの$exptPathList[0]を二つ目以降にコピーを行う
+global proc eFT_copyFBXFile(string $exptPathList[] , string $fbxFileName){
+	string $originPath = ($exptPathList[0] + $fbxFileName + ".fbx");
+	int $i;
+	string $tempPath;
+	for($i=1 ; $i <= size($exptPathList) ; $i++){
+		$tempPath = $exptPathList[$i] + $fbxFileName + ".fbx";
+		sysFile -copy $tempPath $originPath;         // Windows
+	}
+}
+
+
+//UIにモーションフレーム数の記述が無い場合。ファイル名を手掛かりに、シーン設定を開始・終了フレームに。
+global proc singleExptMode(string $rootName , string $iptChrNS ){
+//	int $min =`playbackOptions -q -min`;
+//	int $max =`playbackOptions -q -max`;
+	int $min = 0;
+	int $max =`playbackOptions -q -aet`;
+
+	//ループモーション用処理
+	//if(`checkBox -q -v eFT_loopModeChk`){
+	//	$max-- ;
+	//	playbackOptions -max $max ;
+	//}
+
+	string $f_path = `file -q -sceneName`;
+	string $f_nme = basenameEx($f_path);
+	string $dir = `textFieldButtonGrp -q -text eFT_exportTgtTf`;
+	if( $dir == "" ){ $dir = match( "^.*/", $f_path); }
+	string $e_nme =($dir + $f_nme + ".fbx");
+
+	FBX_FileExport( $rootName , $iptChrNS , $min , $max , $e_nme);
+	//開きなおし処理。スイッチ式にしたい
+	//file -f -o $f_path;
+}
+
+
+//UIにモーションフレーム数の記述がある場合。ファイル名のまま出力、開始・終了フレームからシーン設定を変更。
+global proc multiExptMode(string $rootName , string $iptChrNS ){
+
+	int $i;
+	string $exportName[];
+	int $exportFlag[];
+
+	string $f_path = `file -q -sceneName`;
+	string $f_nme = basenameEx($f_path);
+
+	string $dir = `textFieldButtonGrp -q -text eFT_exportTgtTf`;
+	if( $dir == "" ){ $dir = match( "^.*/", $f_path); }
+	string $e_nme =($dir + $f_nme + ".fbx");
+/*
+	int $min,$max,$temp;
+
+	for($i=0 ; $i<16 ; $i++){
+		if(`textField -q -tx ("eFT_divExpNameTF" + $i)` != ""){
+			$temp = int(`floatField -q -v ("eFT_divExpStTF" + $i)`);
+			$min = min($temp,$min);
+			$temp = int(`floatField -q -v ("eFT_divExpEnTF" + $i)`);
+			$max = max($temp,$max);
+		}
+	}
+
+	playbackOptions -min $min ;
+	playbackOptions -max $max ;
+*/
+//	int $min =`playbackOptions -q -min`;
+//	int $max =`playbackOptions -q -max`;
+	int $min = 0;
+	int $max =`playbackOptions -q -aet`;
+	FBX_FileExport( $rootName , $iptChrNS , $min , $max , $e_nme);
+}
+
+
+//UIにモーションフレーム数の記述がある場合。ファイル名のまま出力、開始・終了フレームからシーン設定を変更。
+global proc multiExptMode_old(string $rootName , string $iptChrNS ){
+	int $i;
+	string $exportName[];
+	int $exportFlag[];
+
+	string $f_path = `file -q -sceneName`;
+
+	string $dir = `textFieldButtonGrp -q -text eFT_exportTgtTf`;
+	if( $dir == "" ){ $dir = match( "^.*/", $f_path); }
+
+	for($i=0 ; $i<16 ; $i++){
+		$exportName[$i] = `textField -q -tx ("eFT_divExpNameTF" + $i)`;
+		$exportFlag[$i] = `checkBox -q -v ("eFT_divExpFlgChk" + $i)`;
+		if($exportName[$i] != "" && $exportFlag[$i] == 1){
+
+			int $min = int(`floatField -q -v ("eFT_divExpStTF" + $i)`);
+			int $max = int(`floatField -q -v ("eFT_divExpEnTF" + $i)`);
+				checkBox -q -v ("eFT_divExpLpChk" + $i);
+
+			//ループモーション用処理
+			if(`checkBox -q -v ("eFT_divExpLpChk" + $i)`){
+				$max-- ;
+			}
+			playbackOptions -min $min ;
+			playbackOptions -max $max ;
+
+			string $e_nme =($dir + $exportName[$i] + ".fbx");
+
+			FBX_FileExport( $rootName , $iptChrNS , $min , $max , $e_nme);
+
+			//開きなおし処理。スイッチ式にしたい
+			//			file -f -o $f_path;
+		}
+	}
+}
+
+
+
+
+//処理前の不具合チェック
+global proc exportFBXWork(string $rootName , string $multiChrNS[] ){
+	string $iptChrNS = $multiChrNS[0];
+	int $breakFlag = 0;
+
+	//rootノードが既に存在していないか確認
+	int $check = catch(`select -r ("|" + $rootName)`);
+	if( $check ){
+		print "root無し、インポート・リネーム問題なし\r\n";
+	}else{
+		print "rootあり、要掃除";
+		//告知ダイアログ
+		confirmDialog -title "FBX_export_error" -message ("シーン中に既に" + $rootName + "が存在します。\r\n出力対象選択のエラーになるため、調整してください。") -button "Yes" -defaultButton "Yes";
+		$breakFlag = 1;
+	}
+	
+	if($breakFlag != 1){
+		exportFBX( $rootName , $iptChrNS );
+	}
+}
+
+
+//複数ファイルの出力
+global proc eFT_MultiFileExport(){
+	string $exportItem[] = `textScrollList -q -si eFT_ExportFileList_tsl`;
+	int $tempMultiExpFlag = 0;
+	string $rootName;
+	string $iptChrNS;
+	string $tmp[];
+
+	
+//中断用オプション
+	int $percent = 0;
+	float $calCount = 0;
+	progressWindow -title "モーション出力中"
+		-progress $percent
+		-status "出力作業: 0%"
+		-isInterruptable true;
+
+	//計測用タイマー
+	$startTime = `timerX`;
+
+	// エクスポート
+//	string $saExportScenes[] = `textScrollList -q -selectItem ( "ExportDestSceneSelectScrollList" + $sForm )`;
+	$cnt = 0;
+	for( $sPath in $exportItem ){
+		//trace ( "--------------------------\n" + ($cnt+1) + "個目のエクスポート\n--------------------------" );
+
+		// エクスポート対象のシーン
+		file -force -ignoreVersion -loadReferenceDepth "all" -open $sPath;
+
+		// エクスポートファイル名
+//		string	$sExportPath = `textFieldButtonGrp -q -text ( "exportDaeDirTextField" + $sForm )`;
+//				$sExportPath = `fromNativePath $sExportPath`;
+//		string	$sExportPath =  $sExportPath + "/" + `basenameEx $sPath` + ".mot.dae";
+
+
+		//シーン固有の出力設定をロード
+
+		string $saveNode = "exportFBXWorkTool_saveData";
+		if((`objExists $saveNode`) == 1){
+			eFT_loadSettings();
+			setExpChrList();
+			$tempMultiExpFlag = 1;
+		}else{
+			divExpNameClear();
+			$tempMultiExpFlag = 0;
+		}
+		$rootName = `textField -q -tx eFT_jointRootNameFld` ;
+		$tmp = `textScrollList -q -si eFT_expChrTsl`;
+		$iptChrNS = $tmp[0];
+
+		// エクスポート実行
+		if( $tempMultiExpFlag ){
+			multiExptMode($rootName , $iptChrNS );
+		}else{
+			singleExptMode($rootName ,$iptChrNS );
+		}
+		$cnt++;
+
+
+		if(`progressWindow -q -isCancelled`)
+			break;
+		$calCount = ( ($cnt * 100) / size($exportItem));
+		$percent = int( $calCount );
+		progressWindow -e -progress $percent -status ("モーションデータを出力しています... : "+$percent+"%");
+	}
+	string $accessMode = `radioCollection -q -sl eFT_csvModeRadCol`;
+	if($accessMode == "eFT_csvModeRad3"){
+		eFT_shiftCSV();
+	}
+	textScrollList -e -ra eFT_tmpWorkedMopLst;
+
+	//処理計測
+	$outputTime = `timerX -startTime $startTime`;
+	print("MultiFileExport Total: "+$outputTime+"\n");
+
+	file -f -new;	//出力関係でトラブルがあった場合は、ここを外して検証
+
+	GP2_MessageDialog( "GP2_MotionExporter", {"出力が完了しました。","（誤セーブ防止の為、シーンを閉じます。）"} );
+	progressWindow -endProgress;
+}
+
+
+//UI-Part--------------------------------------------------------------------
+//出力先指定周り
+
+
+global proc eFT_switchExportMode(){
+	string $mode = `tabLayout -q -st eFT_modeSetTab`;
+	switch($mode){
+	case "eFT_baseRowLayout" :
+		exportFBXWork( `textField -q -tx eFT_jointRootNameFld` , `textScrollList -q -si eFT_expChrTsl`);
+		break;
+	case "eFT_multiFileColumnLayout" :
+		eFT_MultiFileExport();
+		break;
+	}
+}
+
+
+

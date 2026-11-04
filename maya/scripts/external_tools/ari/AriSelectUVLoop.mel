@@ -1,0 +1,171 @@
+//--------------------------------------------------------------------------
+//
+// ScriptName : AriSelectUVLoop
+// Contents   : UVループ
+// Author     : Ari
+// Since      : 2015/11
+// LastUpdate : 
+// Note       : ループが50程度でとまってしまっていたので修正
+//              1点または2点選択してから実行でループ選択。
+//
+//--------------------------------------------------------------------------
+
+
+proc string[] surroundingsUV(string $inputUV){
+
+string $uvToEdge[] = `polyListComponentConversion -te $inputUV`;//edgeに
+$uvToEdge = `filterExpand -selectionMask 32 $uvToEdge`;
+string $edgeToUV[] = `polyListComponentConversion -tuv  $uvToEdge`;//uvに
+$edgeToUV = `filterExpand -selectionMask 35 $edgeToUV`;
+string $uvToFace[] = `polyListComponentConversion -tf $inputUV`;
+$uvToFace = `filterExpand -selectionMask 34 $uvToFace`;
+string $faceToUV[] = `polyListComponentConversion -tuv  $uvToFace`;
+$faceToUV = `filterExpand -selectionMask 35 $faceToUV`;
+string $surroundingsUvList[];
+int $i=0;
+for($uv in $edgeToUV){
+if($uv != $inputUV){
+if(stringArrayContains($uv, $faceToUV)){
+$surroundingsUvList[$i] = $uv;
+$i++;
+}
+}
+}
+return $surroundingsUvList;
+}
+proc string nextUV(string $uv_base,string $uv_before){
+string $uv_after;
+string $surroundingsUvList[]=(surroundingsUV($uv_base));
+if(!stringArrayContains($uv_before,$surroundingsUvList))return "";
+if(size($surroundingsUvList)!=3 && size($surroundingsUvList)!=4)return "";
+string $uvToFase[] = `polyListComponentConversion -tf $uv_base`;
+$uvToFase = `filterExpand -selectionMask 34 $uvToFase`;
+if(size($surroundingsUvList)==4 && size($uvToFase)!=4)return "";
+string $removeUVList[]=$surroundingsUvList;
+for($face in $uvToFase){
+string $faceToUV[] = `polyListComponentConversion -tuv  $face`;
+$faceToUV = `filterExpand -selectionMask 35 $faceToUV`;
+if(stringArrayContains($uv_before,$faceToUV)){					
+$removeUVList=stringArrayRemove($faceToUV, $removeUVList);	
+}
+}
+$uv_after=$removeUVList[0];
+return $uv_after;
+}
+proc string[] AriGetLoopUV(string $uv1,string $uv2){
+int $limmiter=10000;
+string $loopUVList[];
+int $i=0;
+string $loopUVList1[];
+string $baseUV   = $uv1;
+string $beforeUV = $uv2;
+string $afterUV;
+int $infiniteLoop = 0;
+$loopUVList1[0]=$uv2;	
+$loopUVList1[1]=$uv1;	
+$i=2;
+while($i<$limmiter){
+$afterUV = nextUV($baseUV,$beforeUV);
+if($afterUV=="")break;
+if($infiniteLoop==1){
+if($afterUV==$uv1){
+$infiniteLoop=2;
+stringArrayRemoveAtIndex(($i-1), $loopUVList1);
+break;
+}
+else{
+$infiniteLoop=0;
+}
+}
+if($infiniteLoop==0){
+if($afterUV==$uv2){
+$infiniteLoop=1;
+}
+}
+$loopUVList1[$i]=$afterUV;
+$i++;
+$beforeUV = $baseUV;
+$baseUV   = $afterUV;
+}
+string $loopUVList2[];
+if($infiniteLoop==0){
+$baseUV   = $uv2;
+$beforeUV = $uv1;
+$afterUV  = "";
+$i=0;
+while($i<$limmiter){
+$afterUV = nextUV($baseUV,$beforeUV);
+if($afterUV=="")break;
+if($afterUV==$loopUVList2[0])break;
+$loopUVList2[$i]=$afterUV;
+$i++;
+$beforeUV = $baseUV;
+$baseUV   = $afterUV;	
+}
+}
+for($i=0;$i<size($loopUVList2);$i++){
+$loopUVList[$i]=$loopUVList2[size($loopUVList2)-1-$i];
+}
+for($i=0;$i<size($loopUVList1);$i++){
+$loopUVList[size($loopUVList2)+$i]=$loopUVList1[$i];
+}
+return $loopUVList;
+}
+proc string[] AriGetLoopUV_Single(string $inputUV){
+string $loopUVList[];
+int $i=0;
+string $surroundingsUvList[]=(surroundingsUV($inputUV));
+for($surroundingsUv in $surroundingsUvList){
+if(!stringArrayContains($surroundingsUv,$loopUVList)){
+string $workloopUVList[] = AriGetLoopUV($inputUV,$surroundingsUv);
+$loopUVList=stringArrayCatenate($loopUVList, $workloopUVList );
+}
+}
+return $loopUVList;
+}
+global proc AriSelectUVLoop(){
+string $loopUVList[];
+string $selectUVList[]=`ls -sl`;
+$selectUVList = `filterExpand -selectionMask 35 $selectUVList`;
+if(size($selectUVList)==1){
+$loopUVList = AriGetLoopUV_Single($selectUVList[0]);
+}
+if(size($selectUVList)==2){
+string $surroundingsUvList[]=(surroundingsUV($selectUVList[0]));
+if(stringArrayContains($selectUVList[1],$surroundingsUvList)){		
+$loopUVList = AriGetLoopUV($selectUVList[0],$selectUVList[1]);
+}
+else{																
+for($surroundingsUv in $surroundingsUvList){					
+string $workloopUVList[] = AriGetLoopUV($selectUVList[0],$surroundingsUv);
+if(stringArrayContains($selectUVList[1],$workloopUVList)){
+int $i=0;
+int $startTrue=false;
+int $endTrue=false;
+string $workloopUVList2[];
+clear $workloopUVList2;
+for($loopUV in $workloopUVList){	
+if($loopUV==$selectUVList[0] || $loopUV==$selectUVList[1]){
+if($startTrue){
+$workloopUVList2[$i] = $loopUV;
+$startTrue=false;
+}
+else{
+$startTrue=true;
+}
+}
+if($startTrue){
+$workloopUVList2[$i] = $loopUV;
+$i++;
+}
+}
+if(size($loopUVList)==0 || size($loopUVList)>size($workloopUVList2)){
+$loopUVList=$workloopUVList2;
+}
+}
+}
+}
+}
+print (size($loopUVList));
+if(size($loopUVList)!=0)select $loopUVList;
+}

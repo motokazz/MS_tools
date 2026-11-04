@@ -1,0 +1,663 @@
+//ビジビリティーを強制OFF
+global proc MS_forceVisibilityOff(int $mode){
+	string $sel[]=`ls -sl`;
+	if($mode==1){
+		//選択オブジェクト以外のMESHビジビリティーを強制OFF
+		select -all;
+		select -d $sel;
+	}
+	//$mode==0なら選択オブジェクト内のMESHビジビリティーを強制OFF
+	
+	string $mesh[]=`listRelatives -f -ad -typ mesh`;
+	string $obj[]=`listRelatives -f -p $mesh`;
+	select -r $obj;
+	setAttr -k on .visibility;
+	for($each in $obj){
+		setAttr ($each+".visibility") 0;
+	}
+	if($mode==1){
+		select -r $sel;
+	}
+}
+
+
+//ロケータ作成
+global proc MS_COLLADAExportUI_transform2locator(){
+	string $obj[]=`ls -tr -sl`;
+	
+	for ($each in $obj){
+	
+		float $tx=`getAttr($each+".tx")`;
+		float $ty=`getAttr($each+".ty")`;
+		float $tz=`getAttr($each+".tz")`;
+		float $rx=`getAttr($each+".rx")`;
+		float $ry=`getAttr($each+".ry")`;
+		float $rz=`getAttr($each+".rz")`;
+		float $sx=`getAttr($each+".sx")`;
+		float $sy=`getAttr($each+".sy")`;
+		float $sz=`getAttr($each+".sz")`;
+		
+		string $loc[]=`spaceLocator`;
+		
+		setAttr ($loc[0]+".tx") $tx;
+		setAttr ($loc[0]+".ty") $ty;
+		setAttr ($loc[0]+".tz") $tz;
+		setAttr ($loc[0]+".rx") $rx;
+		setAttr ($loc[0]+".ry") $ry;
+		setAttr ($loc[0]+".rz") $rz;
+		setAttr ($loc[0]+".sx") $sx;
+		setAttr ($loc[0]+".sy") $sy;
+		setAttr ($loc[0]+".sz") $sz;
+		
+		rename $loc[0] ("loc_"+$each);
+		
+	}
+
+
+}
+
+//重複オブジェクト名処理
+global proc string[] MS_COLLADAExportUI_uniqueRename(string $mode){
+	//シーン内のオブジェクトを、重複チェックや被らない名前にリネームする
+	//オプション
+	//check 重複チェックモード
+	//rename リネームモード
+	
+	string $longName[]=`ls -l `;
+	string $shortName[];
+	
+	int $i=0,$j=0;
+	string $tmp[];
+	string $renamed[];//リネーム前後の名前をセットにした配列<MS_NO_DABURI>という記号で区切られてる。
+	string $kaburi[];//被り名前リスト
+	int $found;//被りチェック
+	
+	//ショートネームのリスト作成
+	for($each in $longName){
+		tokenize($each,"|",$tmp);
+		$shortName[$i]=$tmp[size($tmp)-1];
+		
+		$found =stringArrayCount($shortName[$i],$shortName);
+		if($found>1){
+			//チェック処理
+			if($mode=="check"){
+				string $kabutteru[]=`ls -l $shortName[$i]`;
+				stringArrayToString($kabutteru,"&\n");
+				$kaburi[$j]=("==================================================\n"+stringArrayToString($kabutteru,"\n")+"\n以上"+size($kabutteru)+"オブジェクトが重複\n==================================================\n");
+				$j++;
+				
+			}
+			//リネーム処理
+			if($mode=="rename"){
+				$renamed[$j]=`rename $each ($shortName[$i]+"_#")`+"<MS_NO_DABURI>"+$shortName[$i];
+				$j++;
+				print $each;
+			}
+		}
+		$found=0;
+		$i++;
+		
+	}
+	
+	print ("rename "+size($renamed));
+	
+	//リネーム後に元に戻す処理
+	/*
+	for($each in $renamed){
+		tokenize($each,"<MS_NO_DABURI>",$tmp);
+		rename $tmp[0] $tmp[1];
+	}
+	*/
+	return $kaburi;
+}
+
+
+global proc string MS_exportAttr_createSet(string $attrList[]){
+	string $obj[]=`ls -sl`;
+	string $ex;
+	
+	$i=0;
+	for($each in $obj){
+		string $command;
+		//objName
+		$ex=$ex+$each+"(transform(";
+		//setID
+		//$ex=$ex+",ID="+$i;
+		//eachAttr
+		for($eachAttr in $attrList){
+				//$ex=($ex+","+$eachAttr+"="+`getAttr ($each+"."+$eachAttr)`); 
+				$ex=($ex+","+`getAttr ($each+"."+$eachAttr)`); 
+		}
+		
+		$ex=$ex+"))\n";
+		$i++;
+	}
+	return $ex;
+}
+
+//COLLADA出力
+
+proc MS_colladaExport(string $outName, string $triangles ){
+	//file -f -o $inName;
+	file -f -op ("bakeTransforms=1;relativePaths=1;bakeLighting=0;exportCameraAsLookat=0;" 
+		+ $triangles
+		+ "isSampling=1;curveConstrainSampling=0;exportLights=0;exportCameras=0;exportJointsAndSkin=1;"
+		+"exportInvisibleNodes=0;exportNormals=1;exportTexCoords=1;exportVertexColors=0;"
+		+"exportTangents=0;exportTexTangents=1;exportMaterialsOnly=0;exportConstraints=0;"
+		+"exportPhysics=0;exclusionSetMode=0;exclusionSets=;exportXRefs=1;dereferenceXRefs=0;"
+		+"cameraXFov=0;cameraYFov=1;")
+		-typ "COLLADA exporter"
+		-pr 
+		-ea ($outName + ".dae");
+}
+
+proc MS_colladaExport_All( string $outName ,int $mode ){
+	string $OPTION=("bakeTransforms=1;exportPolygonMeshes=1;bakeLighting=0;isSampling=1;"
+	+"curveConstrainSampling=0;removeStaticCurves=1;exportCameraAsLookat=0;"
+	+"exportLights=0;exportCameras=0;exportJointsAndSkin=1;"
+	+"exportAnimations=1;exportTriangles=1;exportInvisibleNodes=0;"
+	+"exportNormals=1;exportTexCoords=1;"
+	+"exportVertexColors=0;exportVertexColorsAnimation=0;exportTangents=0;"
+	+"exportTexTangents=1;exportConstraints=0;exportPhysics=0;exportXRefs=1;instanceDuplicateCurves=0;"
+	+"dereferenceXRefs=0;cameraXFov=0;cameraYFov=1");
+	
+	switch ($mode){
+		case 0:
+			file -op $OPTION -typ "COLLADA exporter" -pr -ea $outName;
+		break;
+		case 1:
+			file -op $OPTION -typ "COLLADA exporter" -pr -es $outName;
+		break;
+	}
+}
+
+proc MS_colladaExport_Model( string $outName ,int $mode){
+	string $OPTION=("bakeTransforms=1;exportPolygonMeshes=1;bakeLighting=0;isSampling=1;"
+	+"curveConstrainSampling=0;removeStaticCurves=1;exportCameraAsLookat=0;"
+	+"exportLights=0;exportCameras=0;exportJointsAndSkin=1;"
+	+"exportAnimations=0;exportTriangles=1;exportInvisibleNodes=0;"
+	+"exportNormals=1;exportTexCoords=1;"
+	+"exportVertexColors=0;exportVertexColorsAnimation=0;exportTangents=0;"
+	+"exportTexTangents=1;exportConstraints=0;exportPhysics=0;exportXRefs=1;instanceDuplicateCurves=0;"
+	+"dereferenceXRefs=0;cameraXFov=0;cameraYFov=1");
+	
+	switch ($mode){
+		case 0:
+			file -op $OPTION -typ "COLLADA exporter" -pr -ea $outName;
+		break;
+		case 1:
+			file -op $OPTION -typ "COLLADA exporter" -pr -es $outName;
+		break;
+	}
+}
+
+proc MS_colladaExport_NAGATA( string $outName,int $mode){
+	string $OPTION=("bakeTransforms=1;exportPolygonMeshes=1;bakeLighting=0;isSampling=1;"
+	+"curveConstrainSampling=0;removeStaticCurves=1;exportCameraAsLookat=0;"
+	+"exportLights=0;exportCameras=0;exportJointsAndSkin=1;"
+	+"exportAnimations=1;exportTriangles=1;exportInvisibleNodes=0;"
+	+"exportNormals=1;exportTexCoords=1;"
+	+"exportVertexColors=1;exportVertexColorsAnimation=0;exportTangents=0;"
+	+"exportTexTangents=0;exportConstraints=0;exportPhysics=0;exportXRefs=1;"
+	+"dereferenceXRefs=0;cameraXFov=0;cameraYFov=1");
+	
+	switch ($mode){
+		case 0:
+			file -op $OPTION -typ "COLLADA exporter" -pr -ea $outName;
+		break;
+		case 1:
+			file -op $OPTION -typ "COLLADA exporter" -pr -es $outName;
+		break;
+	}
+}
+
+proc MS_colladaExport_Anim( string $outName ,int $mode ){
+	string $OPTION=("bakeTransforms=1;exportPolygonMeshes=0;bakeLighting=0;isSampling=1;"
+	+"curveConstrainSampling=0;removeStaticCurves=1;exportCameraAsLookat=0;"
+	+"exportLights=0;exportCameras=0;exportJointsAndSkin=1;"
+	+"exportAnimations=1;exportTriangles=0;exportInvisibleNodes=0;"
+	+"exportNormals=1;exportTexCoords=1;"
+	+"exportVertexColors=0;exportVertexColorsAnimation=0;exportTangents=0;"
+	+"exportTexTangents=1;exportConstraints=0;exportPhysics=0;exportXRefs=1;instanceDuplicateCurves=0;"
+	+"dereferenceXRefs=0;cameraXFov=0;cameraYFov=1");
+	
+	switch ($mode){
+		case 0:
+			file -op $OPTION -typ "COLLADA exporter" -pr -ea $outName;
+		break;
+		case 1:
+			file -op $OPTION -typ "COLLADA exporter" -pr -es $outName;
+		break;
+	}
+}
+
+global proc MS_COLLADAExportUI_exportSelect(string $fileName,int $mode){
+	int $CHECK_EXPORT=`radioButtonGrp -q -sl "CHECK_EXPORT"`;
+	string $filePath=`textField -q -fileName "filePath"`;
+	switch ($CHECK_EXPORT){
+		case 1:
+			MS_colladaExport_All($filePath+"/"+$fileName,$mode);
+		break;
+		
+		case 2:
+			MS_colladaExport_Model($filePath+"/"+$fileName,$mode);
+		break;
+		
+		case 3:
+			MS_colladaExport_Anim($filePath+"/"+$fileName,$mode);
+		break;
+		case 4:
+			MS_colladaExport_NAGATA($filePath+"/"+$fileName,$mode);
+		break;
+		
+	}
+	
+}
+
+//スクリプト出力コア
+global proc MS_COLLADAExportUI_exportScript(string $filePath,string $fileName,string $obj_name[],int $mode){
+	string $commandSet[]={"tx","ty","tz","rx","ry","rz","sx","sy","sz"};
+	string $finalCommand=`MS_exportAttr_createSet $commandSet`;
+	//PEdit用スクリプト出力
+	int $priorityOffset=`intField -q -v "priorityOffset"`;
+	
+	//スクリプトファイル出力処理
+	int $fileId;
+	if(`filetest -f ($filePath+$fileName+".txt")`){
+		$fileId=`fopen ($filePath+$fileName+".txt") "w"`;
+	}else{
+		$fileId=`fopen ($filePath+$fileName+".txt")`;
+	}
+	print $fileId;
+ 	fprint $fileId $finalCommand;
+ 	fclose $fileId;
+	
+}
+
+//エキスポーターコア
+global proc MS_COLLADAExportUI_core(int $mode){
+	string $command;//エキスポートコマンド生成用ストリング
+	string $obj_name[]=`ls -as -sl`;//トップオブジェクト選択
+	string $tmp[];//テンポラリー配列
+	
+	//ダイアログから出力オプションの取得
+	string $filePath=`textField -q -fileName "filePath"`;
+	string $fileName=`textField -q -tx "fileName"`;
+	int $useObjectNameCheck=`checkBox -q -v "useObjectNameCheck"`;//オブジェクト名を利用してExportSelection
+	int $nameCheckRename=`checkBox -q -v "nameCheckRename"`;
+	int $exportPEditScript=`checkBox -q -v "exportPEditScript"`;
+	/*
+	//重複オブジェクトチェック＆リネーム
+	$tmp=`MS_COLLADAExportUI_uniqueRename check`;
+	if(size($tmp)){
+		if($nameCheckRename){
+			MS_COLLADAExportUI_uniqueRename rename;
+		}else{
+			confirmDialog -bgc 1.0 0.8 0.6 -t "error" -m ("重複オブジェクトがあります\n\n"+stringArrayToString($tmp,"\n"));
+			return;
+		}
+	}
+	*/
+	//シーン名取得
+	if ($useObjectNameCheck){
+		string $arrey[];
+		string $sn=`file -sn -q`;
+		tokenize $sn "/." $arrey ;
+		if($sn!=""){
+			$fileName=$arrey[size($arrey)-2];
+		}else{
+			$fileName="NewScene";
+		}
+	}
+	
+	//エキスポートコマンド
+	if ($useObjectNameCheck && $mode ){
+		//オブジェクト名を利用してExportSelection
+		if(size ($obj_name)){
+			for($each in $obj_name){
+				//パス表記
+				int $headcheck=startsWith($each,"|");
+				if ($headcheck){$each=endString($each, (size($each)-1));}
+				select -r $each;
+				MS_COLLADAExportUI_exportSelect($each,$mode);
+			}
+		}else{
+			confirmDialog -bgc 1.0 0.8 0.6 -t "error" -m "オブジェクトを選んでね\n";
+			return;
+		}
+	}else{
+		MS_COLLADAExportUI_exportSelect($fileName,$mode);
+	}
+	
+	
+	//出力時にいろいろいじったシーン情報を元に戻す
+	//currentTime $currentTime;
+	select -r $obj_name;
+	
+	//スクリプト出力用
+	if($exportPEditScript){
+		if ($useObjectNameCheck && $mode ){
+			MS_COLLADAExportUI_exportScript($filePath,$fileName,$obj_name,$mode);
+		}
+		if (!$useObjectNameCheck && $mode ){
+			MS_COLLADAExportUI_exportScript($filePath,$fileName,$obj_name,$mode);
+		}
+		
+		if($useObjectNameCheck && !$mode ){
+			string $all_shape[]=`ls -as -tr`;
+			MS_COLLADAExportUI_exportScript($filePath,$fileName,$obj_name,$mode);
+		}
+		if(!$useObjectNameCheck && !$mode ){
+			string $all_shape[]=`ls -as -tr`;
+			MS_COLLADAExportUI_exportScript($filePath,$fileName,$obj_name,$mode);
+		}
+		
+	}
+	
+}
+
+//UI
+global proc MS_COLLADAExportUI_get_dir(string $exp_dir,string $dummy){
+	textField -e -fileName ($exp_dir+"/") "filePath";
+}
+
+global proc MS_COLLADAExportUI_fileBrowser(){
+	global string $gDefaultFileBrowserDir;
+	string $orgpath=$gDefaultFileBrowserDir;
+	string $filePath=`textField -q -fileName "filePath"`;
+	eval("global string $gDefaultFileBrowserDir=\""+$filePath+"\"");
+	fileBrowser "MS_COLLADAExportUI_get_dir" "Select Directory" "" 4 ;
+	MS_COLLADAExportUI_storeRecallUI store;
+	eval("global string $gDefaultFileBrowserDir=\""+$orgpath+"\"");
+}
+
+global proc MS_COLLADAExportUI_storeRecallUI( string $mode ){
+	string $prefix="MS_COLLADAExportUI__";
+	
+	string $floatFieldList[] = {
+		};
+
+	string $intFieldList[] = {
+		"priorityOffset"
+		};
+
+	string $floatSliderGrpList[] = {
+		};
+
+	string $intSliderGrpList[] = {
+		};
+
+	string $checkBoxList[] = {
+		"useObjectNameCheck",
+		"nameCheckRename",
+		//"showViewer",
+		//"exportFrameSet",
+		//"optimize",
+		//"save",
+		"getPriority",
+		"exportPEditScript"
+		//"exit"
+		};
+
+	string $radioButtonGrpList[] = {
+		"CHECK_EXPORT"
+		};
+
+	string $frameLayoutList[] = {
+		};
+
+	string $textFieldList[] = {
+		"fileName"
+		};
+
+	string $textFieldList_file[] = {
+		"filePath"
+		};
+
+	int $cnt;
+
+	if ( $mode == "store" )
+	{
+		for ( $each in $floatFieldList)
+			optionVar -floatValue ($prefix+$each) `floatField -q -value $each`;
+
+		for ( $each in $intFieldList)
+			optionVar -intValue ($prefix+$each) `intField -q -value $each`;
+
+		for ( $each in $floatSliderGrpList)
+			optionVar -floatValue ($prefix+$each) `floatSliderGrp -q -value $each`;
+
+		for ( $each in $intSliderGrpList)
+			optionVar -intValue ($prefix+$each) `intSliderGrp -q -value $each`;
+
+		for ( $each in $checkBoxList)
+			optionVar -intValue ($prefix+$each) `checkBox -q -value $each`;
+
+		for ( $each in $radioButtonGrpList)
+			optionVar -intValue ($prefix+$each) `radioButtonGrp -q -select $each`;
+
+		for ( $each in $frameLayoutList)
+			optionVar -intValue ($prefix+$each) `frameLayout -q -collapse $each`;
+
+		for ( $each in $textFieldList)
+			optionVar -stringValue ($prefix+$each) `textField -q -tx $each`;
+
+		for ( $each in $textFieldList_file)
+			optionVar -stringValue ($prefix+$each) `textField -q -fileName $each`;
+	}
+
+	if ( $mode == "recall" )
+	{
+		for ( $each in $floatFieldList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				floatField -e -value `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $intFieldList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				intField -e -value `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $floatSliderGrpList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				floatSliderGrp -e -value `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $intSliderGrpList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				intSliderGrp -e -value `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $checkBoxList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				checkBox -e -value `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $radioButtonGrpList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				radioButtonGrp -e -select `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $frameLayoutList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				frameLayout -e -collapse `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $textFieldList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				textField -e -tx `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $textFieldList_file)
+			if ( `optionVar -exists ($prefix+$each)` )
+				textField -e -fileName `optionVar -q ($prefix+$each)` $each;
+
+	}
+
+	if ( $mode == "reset" )
+	{
+		for ( $each in $floatFieldList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $intFieldList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $floatSliderGrpList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $intSliderGrpList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $checkBoxList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $radioButtonGrpList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $frameLayoutList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $textFieldList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $textFieldList_file)
+			optionVar -remove ($prefix+$each);
+	}
+}
+
+global proc MS_COLLADAExportUI(){
+	if (`window -q -ex MS_COLLADAExportUI`){
+		deleteUI MS_COLLADAExportUI;
+	}
+	window MS_COLLADAExportUI;
+	
+	columnLayout;
+	text -w 217 -bgc 0.9 0.9 0.9 -l "ファイルオプション";
+		rowLayout -nc 3 -cw3 50 110 50;
+		//ファイルパス選択
+			text -label "filePath";
+			textField -w 110 -fileName "D:/export/" "filePath" ;
+			button -w 50 -label "Brouse" -c "MS_COLLADAExportUI_fileBrowser" "Brouse";
+		setParent..;
+		//ファイル名入力
+		rowLayout -nc 2 -cw2 50 160;
+			text -label "fileName";
+			textField -w 160 -tx "default" -cc "MS_COLLADAExportUI_storeRecallUI store" "fileName";
+		setParent..;
+		//オブジェクト名をファイル名に使用するオプション
+		checkBox 
+			-l "オブジェクト名をファイル名に使用する" 
+			-v 0 
+			-onc "textField -e -en 0 \"fileName\";MS_COLLADAExportUI_storeRecallUI store;" 
+			-ofc "textField -e -en 1 \"fileName\";MS_COLLADAExportUI_storeRecallUI store;" 
+			"useObjectNameCheck";
+		text -l "※expoerAllするとシーン名が出力されます。";
+		text -l "※複数のオブジェクト選択時、それぞれ出力されます";
+		separator -w 217;
+		
+		
+		
+	//COLLADA出力メソッド選択
+	radioButtonGrp
+        -numberOfRadioButtons 4
+		-onc "MS_COLLADAExportUI_storeRecallUI store;" 
+		-ofc "MS_COLLADAExportUI_storeRecallUI store;" 
+		-cw5 10 40 40 40 40
+        -label ""
+        -labelArray4 "all" "model" "anim" "NAGATA"
+		-sl 1
+		"CHECK_EXPORT";
+	//名前重複に関するオプション
+	text -w 217 -bgc 0.9 0.9 0.9 -l "名前重複に関するオプション";
+		checkBox 
+			-l "重複オブジェクトをリネームして出力" 
+			-v 0
+			-onc "MS_COLLADAExportUI_storeRecallUI store;" 
+			-ofc "MS_COLLADAExportUI_storeRecallUI store;" 	
+			"nameCheckRename";
+			
+		separator -w 217;
+	//スクリプト出力用
+	text -w 217 -bgc 0.9 0.9 0.9 -l "スクリプト出力用";
+		checkBox
+			-l "座標テキスト出力"
+			-v 1
+			-onc "MS_COLLADAExportUI_storeRecallUI store;" 
+			-ofc "MS_COLLADAExportUI_storeRecallUI store;" 	
+			"exportPEditScript";
+		/*
+		checkBox
+			-l "最適化コマンド出力"
+			-v 1
+			-onc "MS_COLLADAExportUI_storeRecallUI store;" 
+			-ofc "MS_COLLADAExportUI_storeRecallUI store;" 	
+			"optimize";		
+		checkBox
+			-l "スクリプトにセーブコマンド出力"
+			-v 0
+			-onc "MS_COLLADAExportUI_storeRecallUI store;" 
+			-ofc "MS_COLLADAExportUI_storeRecallUI store;" 	
+			"save";		
+		checkBox
+			-l "ビューワーを起動（tscrを実行）"
+			-v 0
+			-onc "MS_COLLADAExportUI_storeRecallUI store;" 
+			-ofc "MS_COLLADAExportUI_storeRecallUI store;" 
+			"showViewer";
+		checkBox
+			-l "セーブしたらPEditを終了"
+			-v 0
+			-onc "MS_COLLADAExportUI_storeRecallUI store;" 
+			-ofc "MS_COLLADAExportUI_storeRecallUI store;" 
+			"exit";
+			
+		*/
+		separator -w 217;
+		//出力実行ボタン
+		button -w 210 -l "exportAll" -bgc 0.7 0.8 0.8  -c "MS_COLLADAExportUI_core 0";
+		button -w 210 -l "exportSelection" -bgc 0.8 0.8 0.7  -c "MS_COLLADAExportUI_core 1";
+		setParent..;
+	text -w 217 -bgc 0.9 0.9 0.9 -l "その他の出力用";
+		/*
+		checkBox
+			-l "アニメーション出力"
+			-v 1
+			-onc "MS_COLLADAExportUI_storeRecallUI store;" 
+			-ofc "MS_COLLADAExportUI_storeRecallUI store;" 	
+			"exportFrameSet";
+		*/
+		separator -w 217;
+		checkBox
+			-l "プライオリティー変換（未実装）"
+			-v 0
+			-onc "MS_COLLADAExportUI_storeRecallUI store;" 
+			-ofc "MS_COLLADAExportUI_storeRecallUI store;" 	
+			"getPriority";
+		separator -w 217;
+		rowLayout -nc 2 -cw2 160 50;
+		text -l "プライオリティー開始値";
+		intField -min -255 -max 255 "priorityOffset";
+		setParent..;
+		
+		button -w 210 -l "選択メッシュ強制ビジビリティーオフ！" -bgc 1.0 1.0 0.8  -c "MS_forceVisibilityOff(0)";
+		button -w 210 -l "MS_COLLADAExportUI_transform2locator" -bgc 0.8 0.8 1.0  -c "MS_COLLADAExportUI_transform2locator";
+		//button -w 210 -l "EOJ_PSP_matterSetup" -bgc 1.0 0.8 1.0  -c "source \"D:/MS_tools/EOJPSP_MEL/EOJ_PSP_matterSetup.mel\";EOJ_PSP_matterSetupUI;";
+
+		setParent..;
+	
+	
+		separator -w 217 -h 100;
+		button -w 210 -l "環境変数クリアボタン" -bgc 1.0 0.5 0.5  -c "MS_COLLADAExportUI_storeRecallUI reset";
+
+	MS_COLLADAExportUI_storeRecallUI recall;
+	
+	//useObjectNameCheckが入ってたら
+	if(`checkBox -q -v "useObjectNameCheck"`){
+		textField -e -en 0 "fileName";
+	}else{
+		textField -e -en 1 "fileName";
+	}
+	/*
+	if(!`checkBox -q -v "exportPEditScript"`){
+		checkBox -e -en 0 "showViewer";
+	}
+	*/
+	window -e -wh 217 400 MS_COLLADAExportUI;
+	
+	showWindow MS_COLLADAExportUI;
+}
+
+
+MS_COLLADAExportUI;

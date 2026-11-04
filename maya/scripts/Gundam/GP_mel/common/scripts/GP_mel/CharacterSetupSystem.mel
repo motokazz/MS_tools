@@ -1,0 +1,261 @@
+//CharacterSetupSystem
+//AutoRigging + MultiMotTrans * n
+//
+//10/10/17	rigを上階層に作ってしまうとんでもねぇバグ
+//10/10/12	プロシージャ名衝突調整
+//12/10/02	初版
+
+//--------------------------------------------------------------------------------
+global proc string getCSSVersion(){
+	string $CSSversion = "ver0.04_20121017";
+	return ($CSSversion);
+}
+
+//--------------------------------------------------------------------------------
+global proc CSS_autoRigging(string $mayaPass , string $charaID){
+	source "AutoRigging.mel";
+	string $CSSPass = (`getenv "GP_MAYA_ROOT"` + "\\common\\scripts\\GP_mel\\CSS\\");
+
+	file -f -new;
+	workspace -o ($mayaPass + $charaID);
+	file -i -type "mayaBinary" -ignoreVersion -gl -loadReferenceDepth "all" -options "v=0" ( $CSSPass + "baserig.mb");
+	catch (`file -r -type "mayaBinary" -ignoreVersion  -gl -loadReferenceDepth "all" -namespace $charaID -options "v=0" ($mayaPass + $charaID + "\\scenes\\" + $charaID + ".mb")`);
+	rigAttach();
+	if(size(`ls ($charaID + ":J_RteA_106")`) ==1){
+		HandTypeSysSetup();
+	}
+
+	file -rename ( $mayaPass + $charaID + "\\scenes\\" + $charaID + "_rigbase.mb" );
+	file -f -s -options "v=0" -type "mayaBinary";
+}
+
+
+global proc CSS_motTransfer(string $mayaPass , string $animPass , string $charaID){
+	source "Multi_Motion_Transfer.mel";
+	string $charaPassBase = ($mayaPass + $charaID + "\\scenes\\" );
+	execMotionTransfer( "rb3" , "" , $animPass , $charaPassBase , ($charaPassBase + $charaID + "_rigbase.mb" ) , $charaID );
+}
+
+
+
+//--------------------------------------------------------------------------------
+global proc execCharacterSetupSystem( string $mayaPass , string $animPass , string $charaList , string $settingFile ){
+	CSS_setMelSaveData( $settingFile , "CCS_mayaPJ" , $mayaPass );
+	CSS_setMelSaveData( $settingFile , "CCS_anim" , $animPass );
+	CSS_setMelSaveData( $settingFile , "CCS_chara" , $charaList );
+	
+	int $riggingFlag = `checkBox -q -v CSS_Rig_c01`;
+	int $motTransFlag = `checkBox -q -v CSS_MMT_c01`;
+	int $ovWrFlag = `checkBox -q -v overWriteFlag`;
+	if($ovWrFlag){
+		radioButton -e -select rb4;
+	}else{
+		radioButton -e -select rb3;
+	}
+	string $CharaIDArray[];
+	$charaList = `strip $charaList`;
+	tokenize $charaList "," $CharaIDArray;
+	$CharaIDArray = `stringArrayRemoveDuplicates($CharaIDArray)`;
+	$CharaIDArray = `sort $CharaIDArray`;
+	int $i;
+	for($i = 0 ; $i<size($CharaIDArray) ; $i++ ){
+		$CharaIDArray[$i] = `strip $CharaIDArray[$i]`;
+	}
+
+	for($charaID in $CharaIDArray){
+		if($riggingFlag)	CSS_autoRigging($mayaPass , $charaID);
+		if($motTransFlag)	CSS_motTransfer($mayaPass , $animPass , $charaID);
+	}
+	confirmDialog -title "CharacterSetupSystem" -message ("作業が完了しました。") -button "OK" -defaultButton "OK";
+}
+
+//--------------------------------------------------------------------------------
+global proc CSS_setTextfData(string $textf , string $fileName, string $fileType){
+//テストメッセージ
+	print ("Loaded to " + $textf + " , File " + $fileName + " , Type " + $fileType + "\n");
+
+//フォルダで、ドラ直下等でなければ/追加
+	if ($fileType == "directory" && endsWith($fileName,"/") !=1 && endsWith($fileName,"\\") !=1 ){
+		$fileName = ($fileName + "/");
+	}
+
+//パスを"/"から"\\"へ変換
+	$fileName = `substituteAllString $fileName "/" "\\"`;
+	textFieldButtonGrp -e -text $fileName $textf;
+
+}
+
+//--------------------------------------------------------------------------------
+global proc string CSS_LoadSettings(string $settingFile , string $accessedSaveData){
+	if(`filetest -r $settingFile`){
+		int $fileId = `fopen $settingFile "r"`;
+		string $line ;
+		$line = `fgetline $fileId`;
+		int $i=0;
+		string $loadedData;
+
+		while ( size( $line ) > 0 ){
+			string $buffer[];
+			tokenize $line "," $buffer;
+			if( $accessedSaveData == $buffer[0] ){
+				$loadedData = $buffer[1];
+				break;
+			}
+			$line = `fgetline $fileId`;
+			$i++;
+		}
+		fclose $fileId;
+		return( $loadedData );
+	}else{
+		return("");
+	}
+}
+
+//セーブします
+global proc CSS_setMelSaveData(string $saveDataFileName , string $accessedSaveData , string $saveState ){
+	string $loadedData[];
+
+	if(`filetest -r $saveDataFileName`){
+		int $fileId = `fopen $saveDataFileName "r"`;
+		string $line;
+		$line = `fgetline $fileId`;
+		int $i , $savedFlag;
+
+		while ( size( $line ) > 0 ){
+			$loadedData[$i] = $line;
+			string $buffer[];
+			tokenize $line "," $buffer;
+			if( $accessedSaveData == $buffer[0] ){
+				$loadedData[$i] = ($accessedSaveData + "," + $saveState);
+				$savedFlag = 1;
+			}
+			$line = `fgetline $fileId`;
+			$i++;
+		}
+		if( $savedFlag == 0 ){
+			$loadedData[$i] = ($accessedSaveData + "," + $saveState);
+		}
+		fclose $fileId;
+	}else{
+//セーブデータなし
+		$loadedData[0] = ("Mel-tool SettingData");
+		$loadedData[1] = ($accessedSaveData + "," + $saveState);
+		sysFile -md (`dirname $saveDataFileName` + "\\");
+	}
+	$fileId=`fopen $saveDataFileName "w"`;
+	print (size($loadedData) + "個のセーブデータ.");
+	for ($loadedItem in $loadedData){
+		if (endsWith($loadedItem,"\n") == 0){
+			$loadedItem = ($loadedItem + "\n");
+		}
+		fprint $fileId ($loadedItem);
+		print ($loadedItem);
+	}
+	fclose $fileId;
+}
+
+//--------------------------------------------------------------------------------
+//ui
+//--------------------------------------------------------------------------------
+global proc CharacterSetupSystem(){
+
+
+	string $CSSPass = (`getenv "GP_MAYA_ROOT"` + "\\common\\scripts\\GP_mel\\CSS\\");
+	string $settingFile = ($CSSPass + "Settings.csv");
+
+//mayaシーン構築スペース
+	string $mbPass = CSS_LoadSettings($settingFile,"CCS_mayaPJ");
+
+//モーションフォルダを指定
+	string $animPass = CSS_LoadSettings($settingFile,"CCS_anim");
+
+//出力キャラを指定
+	string $charaList = CSS_LoadSettings($settingFile,"CCS_chara");
+	if($charaList == "") $charaList = "(例)chr0100,chr0110,chr0120,chr0130";
+
+	string $title = "CharacterSetupSystem";
+	string $SSwindow = "CSSsystem";
+	if ( `window -exists $SSwindow` )
+	{deleteUI	$SSwindow;}
+
+	string $MTwindow = "moTrtool";
+	if ( `window -exists $MTwindow` )
+	{
+		confirmDialog -title "CharacterSetupSystem" -message ("一部UIが競合するため、MultiMotionTransferを終了します。") -button "OK" -defaultButton "OK";
+		deleteUI	$MTwindow;
+	}
+
+	string $CSSversion = getCSSVersion();
+	window  -t ($title + "   " + $CSSversion) $SSwindow;
+
+	string $formMargin = `formLayout -numberOfDivisions 100 formMargin`;
+		string $mainLayout = `columnLayout`;
+	//sourceFile
+		string $tf1 = (`textFieldButtonGrp -cl3 left both right -cw3 120 440 100 -label "Mayaデータ基本パス" -text $mbPass -ann "Mayaプロジェクトの格納パスを指定して下さい。" -buttonLabel "Edit" CSS_MbNameTf`);
+		string $tf2 = (`textFieldButtonGrp -cl3 left both right -cw3 120 440 100  -label ".animファイルパス" -text $animPass -ann ".animファイルの保管先パスを指定して下さい。" -buttonLabel "Edit" CSS_animNameTf`);
+
+		string $tf5 = (`textFieldGrp -cl2 left both -cw2 120 440 -label "キャラクターID" -text $charaList -ann "作業を行うキャラのIDです。(複数可)" CSS_chrNameTf`);
+
+		string $saveData = `text -label $settingFile -vis 0 saveFileName`;
+		string $CSS_rig_c0 = `checkBox -vis 0 -v 1 -l "エラー発生時、自動調整" errorRepCb`;
+
+		string $RiggingFrame = `frameLayout -label "AutoRiggingTool" -h 60 -w 600 -labelAlign "center" -borderStyle "etchedIn" AtRigFraLay`;
+			string $RiggingLayout = `rowLayout -numberOfColumns 3 -cw3 20 50 150`;
+				string $CSS_Rig_c01 = `checkBox -v 1 -label "" -w 15 CSS_Rig_c01`;
+				picture -image (`getenv "GP_MAYA_ROOT"` + "\\common\\icons\\AutoRigging.bmp");
+				string $riggingText = `text -label "■AutoRiggingTool\r\t[キャラクターID]のモデルデータに、全自動でリグ設定を行い同フォルダに保存します。\r\nchr0100.mb\t→\tchr0100_rigbase.mb"`;
+				setParent ..;
+			setParent ..;
+
+		string $MultiMotTransFrame = `frameLayout -label "MultiMotionTransfer" -h 90 -w 600 -labelAlign "center" -borderStyle "etchedIn" MultiMotTransLay`;
+			string $MultiMotTransLayoutS = `rowLayout -numberOfColumns 3 -cw3 20 50 200`;
+				string $CSS_MMT_c01 = `checkBox -v 1 -label "" -w 15 CSS_MMT_c01`;
+
+				string $adjustLayout = `columnLayout`;
+					text -label "";
+					picture -image (`getenv "GP_MAYA_ROOT"` + "\\common\\icons\\Multi_Motion_Transfer.bmp");
+					setParent ..;
+				string $MultiMotTransLayoutL = `columnLayout`;
+					string $MotTransText = `text -align left -label "■MultiMotionTransfer\r\n[キャラクターID]のリグベースに[.animファイルパス]のanimデータをインポートし、同フォルダに保存します。"`;
+					string $s1 = `separator -w 520 -h 10`;
+				//処理対象選定
+					string $epTf = `textFieldGrp -cl2 left both -cw2 120 400 -label "モーション名を指定" -ann"インポート処理の対象を、名前で絞ります。半角スペースで複数入力した場合、どれかに該当したものが処理されます。" extgtTF`;
+					string $CSS_MMT_c02 = `checkBox -v 1 -label "[.anim -> maya(load Scene)]機能" -ann "既に同名のモーションファイルがある場合、それを開いてインポートします。" overWriteFlag`;
+
+					string $radioCollection1 = `radioCollection rC1`;
+						string $radioLayout = `rowLayout -numberOfColumns 2 -cw2 150 160`;
+						radioButton -vis 0 -label ".anim -> maya(new scene)" -select rb3;
+						radioButton -vis 0 -label ".anim -> maya(load scene)" rb4;
+						setParent ..;
+
+					string $radioCollection2 = `radioCollection rCexpt`;
+						string $radioLayout2 = `rowLayout -numberOfColumns 3 -cw3 120 100 100`;
+						radioButton -vis 0 -label ".mbで保存" -select rb_mb;
+						radioButton -vis 0 -label ".maで保存" rb_ma;
+						radioButton -vis 0 -label "元ファイルを維持" rb_keep;
+						setParent ..;
+
+					setParent ..;
+				setParent ..;
+			setParent ..;
+
+
+		string $CSS_b1 = `button -w 600 -h 50 -l "Auto-Rigging + Motion-Import" CSS_StartBtn`;
+
+
+		string $tc1 = `textFieldButtonGrp -edit -bc ("fileBrowserDialog -mode 4 -fileType \"directory\" -actionName \"Mayaプロジェクトの格納パスを指定して下さい。\" -fileCommand \"CSS_setTextfData(\\\"CSS_MbNameTf\\\")\" ") CSS_MbNameTf`;
+		string $tc2 = `textFieldButtonGrp -edit -bc ("fileBrowserDialog -mode 4 -fileType \"directory\" -actionName \".animファイルの格納パスを指定して下さい。\" -fileCommand \"CSS_setTextfData(\\\"CSS_animNameTf\\\")\" ") CSS_animNameTf`;
+		button -edit -command "execCharacterSetupSystem( `textFieldButtonGrp -q -text CSS_MbNameTf` , `textFieldButtonGrp -q -text CSS_animNameTf` , `textFieldGrp -q -text CSS_chrNameTf` , `text -q -label saveFileName` );" -ann "処理実行" CSS_StartBtn;
+
+		setParent ..;
+	formLayout -edit
+		-attachForm	$mainLayout	"top" 10
+		-attachForm	$mainLayout	"left" 10
+		-attachForm	$mainLayout	"bottom" 10
+		-attachForm	$mainLayout	"right" 10
+		$formMargin;
+	setParent ..;
+
+	window -e -h 325 -w 640 $SSwindow;
+	showWindow $SSwindow;
+}

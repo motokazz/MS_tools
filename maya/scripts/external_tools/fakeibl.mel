@@ -1,0 +1,1189 @@
+/*
+Fake IBL 1.0.3
+Author: Sasan Rafiee
+Date: 2010/Dec/10
+License: freeware
+website: http://fakeibl.blogspot.com
+E-mail: sasanraf@gmail.com
+Spercial thanks to Mr. Hafiizh Hamid for his great help...http://www.creativecrash.com/users/hafiizh-hamid
+*/
+
+setAttr( "defaultRenderGlobals.currentRenderer" ) -type "string" "mentalRay";
+
+global proc helpProc()
+{
+    showHelp -absolute "http://fakeibl.blogspot.com/";
+};
+
+global proc aboutProc()
+{
+    if (`window -ex aboutWin`)
+    deleteUI aboutWin;
+    
+    window -wh 100 100 -rtf 1 -s off -t "" aboutWin;
+    frameLayout -l "" -bs "in";
+    columnLayout -adj 1;
+    text -fn boldLabelFont "\Fake IBL 1.0\n";
+    
+    text "Copyright © 2010 Sasan Rafiee" ;
+    text "E-mail: sasanraf@gmail.com" ;
+        
+    window -e -wh 200 150 aboutWin ;
+    showWindow aboutWin;
+};
+
+
+//Select map
+//getting Map path and name//
+global proc string importImage(string $mapName, string $fileType)
+{
+    int $domeSeg = `sphere -q -s skyDome`;
+    //int $domeSeg = `intSliderGrp -q -v domesliderVal`;
+    
+    $buttonName = $mapName;
+    if ($mapName == "")
+    {
+    $buttonName = "Please select an image map...";
+    };
+    button -e -l $buttonName "mapButn";
+    setAttr -type "string" skyTexture.fileTextureName $buttonName;
+    
+    lightCol($domeSeg);
+    return $buttonName;
+};
+
+
+// import map Dialog//
+global proc mapDlg()
+{
+    fileBrowserDialog -m 0 -fc "importImage" -ft "image" -an "Import" -om "Import";
+};
+
+
+//Dome center Align// 
+global proc algnDome()
+{
+    $algSel = `ls -sl`;
+    int $sizesel = `size $algSel`; 
+    
+    vector $algpos;
+    if ( $sizesel == 1)
+    {
+    $algpos = `xform -a -ws -query -translation $algSel`;
+    } else 
+    $algpos = <<0, 0, 0>>;
+    move -absolute ($algpos.x) ($algpos.y) ($algpos.z) "skyDome";
+};
+
+
+
+//creating sphereDome Shader 
+global proc DomeShader()
+{
+    $shaderCheck  = `ls -mat`;
+    int $exist = 0; 
+    for ($check in $shaderCheck)
+    {
+    if ($check == "skyDomeSS")
+    {
+    $exist = 1; 
+    }
+    
+    };
+    
+    if ($exist == 0)
+    {
+    shadingNode -asShader surfaceShader -n "skyDomeSS";
+    sets -renderable true -noSurfaceShader true -empty -name skyDomeSSSG;
+    shadingNode -asTexture file -n "skyTexture";
+    shadingNode -asUtility projection -n skyDomeproj;
+    shadingNode -asUtility place3dTexture -name skyDomep3dt;
+    shadingNode -asUtility place2dTexture -n "domeplace2dTexture";//for more control over texture
+    connectAttr -f domeplace2dTexture.outUV skyTexture.uvCoord; 
+    connectAttr -f domeplace2dTexture.outUvFilterSize skyTexture.uvFilterSize; 
+    connectAttr -f domeplace2dTexture.coverage skyTexture.coverage; 
+    connectAttr -f domeplace2dTexture.translateFrame skyTexture.translateFrame; 
+    connectAttr -f domeplace2dTexture.rotateFrame skyTexture.rotateFrame; 
+    connectAttr -f domeplace2dTexture.mirrorU skyTexture.mirrorU; 
+    connectAttr -f domeplace2dTexture.mirrorV skyTexture.mirrorV; 
+    connectAttr -f domeplace2dTexture.stagger skyTexture.stagger; 
+    connectAttr -f domeplace2dTexture.wrapU skyTexture.wrapU; 
+    connectAttr -f domeplace2dTexture.wrapV skyTexture.wrapV; 
+    connectAttr -f domeplace2dTexture.repeatUV skyTexture.repeatUV; 
+    connectAttr -f domeplace2dTexture.vertexUvOne skyTexture.vertexUvOne; 
+    connectAttr -f domeplace2dTexture.vertexUvTwo skyTexture.vertexUvTwo; 
+    connectAttr -f domeplace2dTexture.vertexUvThree skyTexture.vertexUvThree; 
+    connectAttr -f domeplace2dTexture.vertexCameraOne skyTexture.vertexCameraOne; 
+    connectAttr -f domeplace2dTexture.noiseUV skyTexture.noiseUV; 
+    connectAttr -f domeplace2dTexture.offset skyTexture.offset; 
+    connectAttr -f domeplace2dTexture.rotateUV skyTexture.rotateUV;
+    
+    parent skyDomep3dt skyDome;
+    hide skyDomep3dt;
+    setAttr skyDomeproj.projType 2;
+    setAttr "skyDomep3dt.scaleX" -1;
+    setAttr "skyDomep3dt.rotateZ" -90;
+    setAttr "skyDomep3dt.rotateY" 45;
+    rotate -r -os 0 0 90 skyDome;
+    connectAttr -f skyDomeSS.outColor skyDomeSSSG.surfaceShader;
+    connectAttr -force skyTexture.outColor skyDomeproj.image;
+    connectAttr -force skyDomeproj.outColor skyDomeSS.outColor;
+    connectAttr -f skyDomep3dt.worldInverseMatrix[0] skyDomeproj.placementMatrix;
+    };
+
+};
+
+//creating Dome 
+global proc makeDome()
+{
+    int $domeSeg = sliderValu();
+    //checking Dome existance
+    int $exist = 0; 
+    $domeCheck  = `ls -g`;
+    for ($check in $domeCheck)
+    {
+    if ($check == "skyDomeShape")
+    {
+    $exist = 1; 
+    $domeSeg = `sphere -q -s skyDome`;
+    }
+    };
+    
+    if ($exist == 0)
+    {
+    sphere -r 300 -n skyDome -s ($domeSeg)  -nsp ($domeSeg);
+    setAttr "skyDomeShape.castsShadows" 0;
+    setAttr "skyDomeShape.receiveShadows" 0;
+    
+    DomeShader;
+    // assign mat to sphere
+    sets -e -forceElement skyDomeSSSG skyDomeShape;
+    creatingLights($domeSeg);
+    };
+};
+
+
+//query for dome slider value 
+global proc int sliderValu()
+{
+    int $domeSeg = `intSliderGrp -q -v domesliderVal`;
+    return $domeSeg;
+};
+
+//query for dome segments 
+global proc lightNosliderVal()
+{
+    int $domeSeg = `intSliderGrp -q -v domesliderVal`;
+    domeSeg ($domeSeg);
+};
+
+//changing dome span/section 
+global proc domeSeg(int $domeSeg)
+{
+    float $sliderMax;
+    setAttr "makeNurbSphere1.sections" $domeSeg;
+    setAttr "makeNurbSphere1.spans" $domeSeg;
+         
+    creatingLights($domeSeg);
+    
+    int $counter = 1;
+    
+    $lightCheck  = `ls -lt`;
+    for ($check in $lightCheck)
+    {
+    if ($check == "skyLightShape"+$counter)
+    {
+    $counter++;
+    }
+    };
+    $sliderMax = (17.000)/($counter-1);
+    float $lower_lightints = `getAttr "skyLightShape1.intensity"`;
+    float $upper_lightints = `getAttr ("skyLightShape"+($counter-1)+".intensity")`;
+    
+    floatSliderGrp -edit -max $sliderMax "lower_lghtIntsSlider";
+    floatSliderGrp -edit -max $sliderMax "upper_lghtIntsSlider";
+    
+    floatSliderGrp -edit -value $lower_lightints "lower_lghtIntsSlider";
+    floatSliderGrp -edit -value $upper_lightints "upper_lghtIntsSlider";
+        
+    //lightCol($domeSeg);
+};
+
+
+
+//make light on each surface points
+global proc creatingLights(int $domeSeg)
+{
+    //checking light existance
+    $lightCheck  = `ls -lt`;
+    int $counter = 1;
+    int $deltrue = 0;
+    int $lightonoff = 1;
+    int $NoOfLights = ($domeSeg * ($domeSeg -1) +2);
+    float $lower_lightints = (12.00)/$NoOfLights;
+    float $upper_lightints = (15.00)/$NoOfLights;
+    
+    for ($check in $lightCheck)
+    {
+    if ($check == "skyLightShape"+$counter)
+    {
+    $deltrue = 1;
+    $counter++;
+    }    
+    };
+    
+    if ($deltrue == 1)
+    {      
+    $lower_lightints = `getAttr "skyLightShape1.intensity"`;
+    $upper_lightints = `getAttr ("skyLightShape"+($counter-1)+".intensity")`;
+        
+    $sliderMax = (17.000)/$NoOfLights;
+    
+    floatSliderGrp -edit -max $sliderMax "lower_lghtIntsSlider";
+    floatSliderGrp -edit -max $sliderMax "upper_lghtIntsSlider";
+    
+    intSliderGrp -edit -value $domeSeg "domesliderVal";
+    floatSliderGrp -edit -value $lower_lightints "lower_lghtIntsSlider";
+    floatSliderGrp -edit -value $upper_lightints "upper_lghtIntsSlider";
+    
+    if ($lower_lightints>$sliderMax)
+    {
+    $lower_lightints=$sliderMax;
+    };
+    
+    if ($upper_lightints>$sliderMax)
+    {
+    $upper_lightints=$sliderMax;
+    };
+    $lightonoff = `getAttr "skyLightShape1.emitDiffuse"`;  
+    delete ("\*skyLight\*");
+    }
+        
+    int $no = 1;
+    vector $pos = `pointOnSurface -u 0 -v 0 -position skyDome`;
+    string $light = `directionalLight -i $lower_lightints -n ("skyLight"+$no) -position ($pos.x) ($pos.y) ($pos.z)`;
+    
+    $no++;
+    int $divided = $domeSeg/2;
+    int $lowerLightsNo;
+    if ($domeSeg%2 == 0)
+    {
+    $lowerLightsNo =  $domeSeg * ($divided - 1) + 1; 
+    }
+    else 
+    {
+    $lowerLightsNo =  $domeSeg * $divided + 1; 
+    };
+    
+    for ($i=1; $i<$domeSeg; $i++) {
+    for ($j=0; $j<$domeSeg; $j++) {
+    //set intensity for lowerhalf and upper half of the dome
+    $lightInst = $lower_lightints;
+    if ($no>$lowerLightsNo)
+    {
+    $lightInst = $upper_lightints;
+    };
+    //making the lights based on position of points of surface and the intensity
+    vector $pos = `pointOnSurface -u $i -v $j -position skyDome`;
+    string $light = `directionalLight -i $lightInst -n ("skyLight"+$no) -position ($pos.x) ($pos.y) ($pos.z)`;
+    $no++;
+    }
+    };    
+    
+    vector $pos = `pointOnSurface -u $domeSeg -v $domeSeg -position skyDome`;
+    string $light = `directionalLight -i $upper_lightints -n ("skyLight"+$no) -position ($pos.x) ($pos.y) ($pos.z)`;
+        
+    // force the direction of lights to center of sphere
+    float $center[] = `objectCenter -gl skyDome`;
+    for ($i=1; $i<($NoOfLights+1); $i++) {
+    aimConstraint -offset 0 0 0 -weight 1 -aimVector 0 0 -1 -upVector 0 1 0 -worldUpType "scene" skyDome ("skyLight"+$i);
+    }
+    
+    // specular off
+    for ($m= 1; $m <($NoOfLights+1); $m++) {
+    setAttr ("skyLightShape"+$m+".emitSpecular") 0;
+    setAttr ("skyLightShape"+$m+".emitDiffuse") $lightonoff;
+    };
+    
+    // group - parent
+    for ($m= 1; $m <($NoOfLights+1); $m++) {
+    parent ("skyLight"+$m) skyDome ;
+    };
+        
+    lightCol($domeSeg);
+};
+
+
+
+// light color assignment
+global proc lightCol(int $domeSeg)
+{
+    string $mapNamebutton = `getAttr skyTexture.fileTextureName`;
+    int $NoOfLights = ($domeSeg * ($domeSeg -1) +2);
+    if ($mapNamebutton == "")
+    {
+    for ($i=1; $i<= $NoOfLights;$i++)
+    { 
+    setAttr ("skyLightShape"+$i+".color") 1 1 1;
+    }
+    }
+    else
+    {
+    int $k = 1;
+    vector $lightColor = `colorAtPoint -o RGB -u 0.02 -v 0.02 skyTexture`;
+    setAttr "skyLightShape1.color" -type double3 ($lightColor.r) ($lightColor.g) ($lightColor.b);
+    for ($i=1; $i<$domeSeg; $i++) 
+    {
+    for ($j=0; $j<$domeSeg; $j++) 
+    {
+    float $convertvar = $domeSeg;
+    float $id = ($i)/$convertvar;
+    float $jd = ($j)/$convertvar;
+    vector $lightColor = `colorAtPoint -o RGB -u $jd -v $id skyTexture`;
+    setAttr ("skyLightShape"+$k+".color") -type double3 ($lightColor.r) ($lightColor.g) ($lightColor.b);
+    $k = $k + 1;
+    };
+    };
+    vector $lightColor = `colorAtPoint -o RGB -u 0.98 -v 0.98 skyTexture`;
+    int $lastLight = ($domeSeg * ($domeSeg -1) +2);
+    string $lightAttrName = ("skyLightShape"+$lastLight+".color");
+    setAttr $lightAttrName -type double3 ($lightColor.r) ($lightColor.g) ($lightColor.b);
+    };
+};
+
+
+//select all Lights
+global proc selLights()
+{
+    select "skyLightShape*";
+};
+
+
+//light on/off
+global proc lghton()
+{
+    int $domeSec = `sphere -q -s skyDome`;
+    $NoOfLights = ($domeSec * ($domeSec -1) +2);
+    for ($m= 1; $m <($NoOfLights+1); $m++) {
+    setAttr ("skyLightShape"+$m+".emitDiffuse") 1;
+    }
+};
+
+global proc lghtoff()
+{
+    int $domeSec = `sphere -q -s skyDome`;
+    $NoOfLights = ($domeSec * ($domeSec -1) +2);
+    for ($m= 1; $m <($NoOfLights+1); $m++) {
+    setAttr ("skyLightShape"+$m+".emitDiffuse") 0;
+    }
+};
+
+
+
+//light intensity slider
+global proc Lightints()
+{
+    int $domeSeg = `sphere -q -s skyDome`;
+    int $divided = $domeSeg/2;
+    int $NoOfLights = ($domeSeg * ($domeSeg -1) +2);
+    
+    float $lowerLightsIntensity;
+    float $upperLightsIntensity;
+        
+    int $lowerLightsNo;
+    
+    if ($domeSeg%2 == 0)
+    {
+    $lowerLightsNo =  $domeSeg * ($divided - 1) + 1; 
+    }
+    else 
+    {
+    $lowerLightsNo =  $domeSeg * $divided + 1; 
+    };
+        
+    for ($m=1; $m<($lowerLightsNo+1); $m++)
+    {
+    float $lowerLightsIntensity = `floatSliderGrp -q -v lower_lghtIntsSlider`;
+    setAttr ("skyLightShape"+$m+".intensity") $lowerLightsIntensity;
+    };
+        
+    // int $upperLightsNo = $NoOfLights - $lowerLightsNo;
+    
+    for ($n=($lowerLightsNo+1); $n<($NoOfLights+1); $n++)
+    {
+    float $upperLightsIntensity = `floatSliderGrp -q -v upper_lghtIntsSlider`;
+    setAttr ("skyLightShape"+$n+".intensity") $upperLightsIntensity;
+    };
+};
+
+
+
+//dome visibility
+global proc vison()
+{
+    setAttr "skyDomeShape.primaryVisibility" 1;
+};
+
+global proc visoff()
+{
+    setAttr "skyDomeShape.primaryVisibility" 0;
+};
+
+
+
+//delete dome
+global proc deleteDome()
+{
+    $deleteConfirm = `confirmDialog -title "Delete Dome" -message "Are you sure?"
+    -button "Yes" -button "No" -defaultButton "No"
+    -cancelButton "No" -dismissString "No"`;
+
+    if ($deleteConfirm == "Yes")
+    {
+    //checking shader existance
+    $shaderCheck  = `ls -mat`;
+    for ($check in $shaderCheck)
+    {
+    if ($check == "skyDomeSS")
+    {
+    delete skyDomeSS;
+    delete skyTexture;
+    delete skyDomeSSSG;
+    delete AO_shader ;
+    delete Exposure_Control ;
+    checkBox -edit -value  0 "camexpCheckbox"; 
+    delete AO_map ;
+    delete AO_shadergroup;
+    }        
+    };
+    
+    //checking Dome existance
+    $domeCheck  = `ls -g`;
+    for ($check in $domeCheck)
+    {
+    if ($check == "skyDomeShape")
+    {
+    delete "skyDome";
+    delete "\*skyDomeproj\*";
+    button -e -l "Select Map" "mapButn";
+    }
+    }
+    };
+};
+
+
+
+//Refresh
+global proc refreshUI()
+{
+    //setAttr( "defaultRenderGlobals.currentRenderer" ) -type "string" "mentalRay";
+    int $domeSeg = 4;
+    //checking Dome existance
+    int $exist = 0; 
+    $domeCheck  = `ls -g`;
+    for ($check in $domeCheck)
+    {
+    if ($check == "skyDomeShape")
+    {
+    $exist = 1; 
+    $domeSeg = `sphere -q -s skyDome`;
+    $lightonoff = `getAttr "skyLightShape1.emitDiffuse"`;
+    }
+    };
+    
+    if ($exist == 0)
+    {
+    sphere -r 300 -n skyDome -s ($domeSeg)  -nsp ($domeSeg);
+    setAttr "skyDomeShape.castsShadows" 0;
+    setAttr "skyDomeShape.receiveShadows" 0;
+    //setAttr "skyDomeShape.primaryVisibility" 0;
+    
+    DomeShader;
+    // assign mat to sphere
+    sets -e -forceElement skyDomeSSSG skyDomeShape;
+    creatingLights($domeSeg);
+    };
+    
+    $lightonoff = `getAttr "skyLightShape1.emitDiffuse"`;
+    checkBox -edit -value $lightonoff "lightonoffcheck";
+
+    string $currentCamera = `modelEditor -q -camera modelPanel4`; 
+    int $shaderalreadyExist = 0;
+    string $listLensshaders[] = `listConnections ($currentCamera+".miLensShader")`;
+    $shaderCheck  = `ls -type mia_exposure_simple`;//
+    
+    if (size ($shaderCheck) >=1 )
+    {
+    $shaderalreadyExist = 1;
+    if (size ($listLensshaders) >= 1 )
+    {
+    checkBox -edit -value  1 "camexpCheckbox";
+    }  else checkBox -edit -value  0 "camexpCheckbox"; 
+    };
+
+    //Fixing bug: some times 'defaultRenderLayer' listed as a connection to lens shader
+    if ((size ($listLensshaders) == 1) && ($listLensshaders[0] == "defaultRenderLayer"))
+    {
+    checkBox -edit -value  0 "camexpCheckbox";
+    };
+
+    if ($shaderalreadyExist == 0)
+    {
+    string $currentCamera = `modelEditor -q -camera modelPanel4`; 
+    shadingNode -asUtility mia_exposure_simple -n "Exposure_Control";
+    }
+
+    checkBox -edit -value $lightonoff "lightonoffcheck";
+
+    int $domeSeg = `sphere -q -s skyDome`;
+    intSliderGrp -edit -value $domeSeg "domesliderVal";
+    int $counter = 1;
+    $lightCheck  = `ls -lt`;
+    for ($check in $lightCheck)
+    {
+    if ($check == "skyLightShape"+$counter)
+    {
+    $counter++;
+    }
+    };
+    
+    lightCol($domeSeg);
+        
+    $sdPv = `getAttr "skyDomeShape.primaryVisibility"`;
+    if ($sdPv == 1)
+    {
+    checkBox -edit -v 1 "visCheckbox";
+    }
+    else 
+    {
+    checkBox -edit -v 0 "visCheckbox";
+    };
+    
+    string $mapNamebutton = `getAttr skyTexture.fileTextureName`;
+    if ($mapNamebutton == "")
+    {
+    $mapNamebutton = "Please select a map";
+    };
+    button -edit -label ($mapNamebutton) "mapButn";
+        
+    $sliderMax = (17.000)/($counter-1);
+    floatSliderGrp -edit -max $sliderMax "lower_lghtIntsSlider";
+    floatSliderGrp -edit -max $sliderMax "upper_lghtIntsSlider";  
+    
+    float $lower_lightints = `getAttr "skyLightShape1.intensity"`;
+    float $upper_lightints = `getAttr ("skyLightShape"+($counter-1)+".intensity")`;
+    
+    floatSliderGrp -edit -value $lower_lightints "lower_lghtIntsSlider";
+    floatSliderGrp -edit -value $upper_lightints "upper_lghtIntsSlider";
+    
+    //check ambient occlusion shader exist
+    $shaderCheck  = `ls -mat`;
+    int $shaderalreadyExist = 0;
+    for ($check in $shaderCheck)
+    {
+    if ($check == "AO_shader")
+    {
+    $shaderalreadyExist = 1;
+    
+    }
+    };
+    
+    if ($shaderalreadyExist == 0)
+    {
+    createAOShader();
+    }
+};
+
+
+//Import
+global proc importCheck()
+{
+    $importConfirm = `confirmDialog -title "Import Dome" -message "Warning: Any existing dome will be deleted..."
+    -button "Yes" -button "No" -defaultButton "No"
+    -cancelButton "No" -dismissString "No"`;
+
+    if ($importConfirm == "Yes")
+    {
+    //during importing, maya rename the dome and light and causes problem
+    //maya add scene name with : or _ to the original name during importing(namespaces) 
+    //this will rename them to original names
+    //string $currentScenename = `file -q -sn -shn` ;// because in some condition the scene name and the ##_dome name are not the same
+    //string $Scenename = basenameEx($currentScenename);// this method will work when the scene name and ##_dome are the same
+    
+    if (`objExists ("skyDome")`)
+    {
+    deleteDome;//delete existing dome
+    }
+
+    Import;
+        
+
+    if (`objExists ("\*_skyDome")`)
+    {
+    rename ("\*_skyDome") skyDome;
+    rename ("\*_skyDomep3dt") skyDomep3dt;
+    rename ("\*_skyDomeproj") skyDomeproj;
+    rename ("\*_skyTexture") skyTexture;
+    rename ("\*_skyDomeSS") skyDomeSS;
+    rename ("\*_skyDomeSSSG") skyDomeSSSG;
+    rename ("\*_domeplace2dTexture") domeplace2dTexture;
+    rename ("\*_makeNurbSphere1") makeNurbSphere1;
+    int $domeSeg = `sphere -q -s skyDome`;
+    int $NoOfLights = ($domeSeg * ($domeSeg -1) +2);
+    for ($i=1; $i<=$NoOfLights; $i++)
+    {
+    rename ("\*_skyLight"+$i) ("skyLight"+$i);
+    }
+
+    if (`objExists ("\*_Exposure_Control")`)
+    {
+    rename ("\*_Exposure_Control") Exposure_Control;
+    }
+
+    for ($i=1; $i<=$NoOfLights; $i++)
+    {
+    rename ("\*_skyLight"+$i+"_aimConstraint1") ("skyLight"+$i+"_aimConstraint1");
+    };
+    };
+
+    if (`objExists ("\*AO_shader")`)
+    {
+    rename ("\*AO_shader") AO_shader;
+    rename ("\*AO_shadergroup") AO_shadergroup;
+    rename ("\*AO_map") AO_map;
+    };
+
+    if (`objExists ("\*:skyDome")`)
+    {
+    rename ("\*:skyDome") skyDome;
+    rename ("\*:skyDomep3dt") skyDomep3dt;
+    rename ("\*:skyDomeproj") skyDomeproj;
+    rename ("\*:skyTexture") skyTexture;
+    rename ("\*:skyDomeSS") skyDomeSS;
+    rename ("\*:skyDomeSSSG") skyDomeSSSG;
+    rename ("\*:domeplace2dTexture") domeplace2dTexture;
+    rename ("\*:makeNurbSphere1") makeNurbSphere1;
+    int $domeSeg = `sphere -q -s skyDome`;
+    int $NoOfLights = ($domeSeg * ($domeSeg -1) +2);
+    for ($i=1; $i<=$NoOfLights; $i++)
+    {
+    rename ("\*:skyLight"+$i) ("skyLight"+$i);
+    };
+
+    if (`objExists ("\*:Exposure_Control")`)
+    {
+    rename ("\*:Exposure_Control") Exposure_Control;
+    }
+  
+    for ($i=1; $i<=$NoOfLights; $i++)
+    {
+    rename ("\*:skyLight"+$i+"_aimConstraint1") ("skyLight"+$i+"_aimConstraint1");
+    };
+    };
+
+    refreshUI;
+    };
+};
+
+
+
+//RENDER procs
+//AO creating layer, shader, render proc
+global proc createAOShader()
+{
+    shadingNode -asShader surfaceShader -n "AO_shader";
+    sets -renderable true -noSurfaceShader true -empty -name AO_shadergroup;
+    shadingNode -asTexture mib_amb_occlusion -n "AO_map";
+    connectAttr -f AO_map.outValue AO_shader.outColor;
+    connectAttr -f AO_shader.outColor AO_shadergroup.surfaceShader;
+    //connectAttr -f AO_shadergroup.message AO.shadingGroupOverride; // AO layer still not created 
+    setAttr "AO_map.samples" 64;
+    setAttr "AO_map.max_distance" 10;
+};
+
+global proc createAOlayer()
+{
+    //creating AO: copy selected render layer  and rename it to AO
+    // I used this way because by creating "AO" layer and adding objects MEL will send error if some repetitive objects exist
+    
+    //frist try was copy the selected layer and the last layer will be the copied layer
+    //I thought that the copied layer is the last one but I was wrong
+    //$lastLayername =  $renderLayerslist[$countRenderlayers-1];// -1 because array started at 0
+    
+    //Normaly, it will be copy after the selected layer
+    //finding the index number of the copied layer
+    //first I will find the index number of the selected layer
+    //string $copiedLayername;
+    //for ($indexCounter=0 ; $indexCounter<=$countRenderlayers ;$indexCounter++)
+    //{
+    //    if ($renderLayerslist[$indexCounter] == $mainRenderLayer)
+    //    {
+    //    $copiedLayername = $renderLayerslist[$indexCounter+1];//copied Layer = next item        
+    //    };
+    //};
+    //renderLayerEditorItemOnRename $copiedLayername "AO";
+    // BUG: what if we have layer1, layer2, layer3 and if we copy layer2 it will create layer4 but rename layer3 because it is the next layer after layer2
+    //we have to query all layers name and compare them with the layers after copy.
+    //new layer would be the copied one and will be the AO layer 
+    
+    $renderLayerslist = `ls -type renderLayer`;
+    $countRenderlayers = size ($renderLayerslist);
+    
+    $mainRenderLayer = `editRenderLayerGlobals -q -currentRenderLayer`;//query selected/current render layer
+    int $counter = 0;
+    string $copiedLayer = "";
+    string $renderLayers1[];
+    $renderLayerslist = `ls -type renderLayer`;
+    for ($layerList in $renderLayerslist)
+    {
+    $renderLayers1[$counter] = $layerList;
+    $counter++;
+    };
+    
+    renderLayerEditorCopyLayer RenderLayerTab $mainRenderLayer;//copy selected render layer
+    
+    // now make another render layer array and compare to see whitch layer has been added, that layer will be th copied layer and will be the AO layer
+    int $counter = 0;
+    $renderLayerslist = `ls -type renderLayer`;
+    for ($layerList in $renderLayerslist)
+    {
+    if ($layerList != $renderLayers1[$counter])
+    {
+    $copiedLayer = $layerList;
+    renderLayerEditorItemOnRename $copiedLayer "AO";//rename it to AO    
+    setAttr AO.psdBlendMode 4;//layer changed to multiply
+    connectAttr -f AO_shadergroup.message AO.shadingGroupOverride;//connect shader to createded AO layer
+    break;
+    };
+    $counter++;
+    };
+};
+
+global proc renderAO()
+{
+    //check ambient occlusion shader exist - first check for shader because later we want to connect them after create
+    $shaderCheck  = `ls -mat`;
+    int $shaderalreadyExist = 0;
+    for ($check in $shaderCheck)
+    {
+    if ($check == "AO_shader")
+    {
+    $shaderalreadyExist = 1;
+    }
+    };
+    
+    if ($shaderalreadyExist == 0)
+    {
+    createAOShader();
+    };
+    
+    $mainRenderLayer = `editRenderLayerGlobals -q -currentRenderLayer`;//query selected/current render layer
+    int $aoExist = `objExists AO`;
+    if ($aoExist == 0) 
+    {
+    createAOlayer();
+    
+    $renderONOFF = `optionVar -q renderViewRenderAllLayers`; //query 0 off/1 on
+    if ($renderONOFF == 1)
+    {
+    switchRenderAllLayers;
+    };
+    editRenderLayerMembers -remove -noRecurse AO skyDomeShape;
+    editRenderLayerGlobals -currentRenderLayer "AO";
+    RenderIntoNewWindow; 
+    editRenderLayerGlobals -currentRenderLayer $mainRenderLayer;
+    showEditorExact "AO_map";//open AO map attr window
+    };
+    
+    if ($aoExist == 1 && ($mainRenderLayer != "AO")) 
+    {
+    delete AO;
+    createAOlayer();
+    
+    $renderONOFF = `optionVar -q renderViewRenderAllLayers`; //query 0 off/1 on
+    if ($renderONOFF == 1)
+    {
+    switchRenderAllLayers;
+    };
+    editRenderLayerMembers -remove -noRecurse AO skyDomeShape;
+    editRenderLayerGlobals -currentRenderLayer "AO";
+    RenderIntoNewWindow; 
+    editRenderLayerGlobals -currentRenderLayer $mainRenderLayer;
+    showEditorExact "AO_map";//open AO map attr window
+    };
+    
+    if ($aoExist == 1 && ($mainRenderLayer == "AO")) 
+    {
+    $renderONOFF = `optionVar -q renderViewRenderAllLayers`; //query 0 off/1 on
+    if ($renderONOFF == 1)
+    {
+    switchRenderAllLayers;
+    };
+    editRenderLayerMembers -remove -noRecurse AO skyDomeShape;
+    RenderIntoNewWindow; 
+    showEditorExact "AO_map";//open AO map attr window
+    };
+};
+
+//Render scene + AO
+global proc renderComp()
+{
+    int $domeSeg = `sphere -q -s skyDome`;
+    lightCol($domeSeg);//do the refresh for any changes in texture or ...
+    $mainRenderLayer = `editRenderLayerGlobals -q -currentRenderLayer`;//query selected/current render layer
+    //check ambient occlusion shader exist - first check for shader because later we want to connect them after create
+    $shaderCheck  = `ls -mat`;
+    int $shaderalreadyExist = 0;
+    for ($check in $shaderCheck)
+    {
+    if ($check == "AO_shader")
+    {
+    $shaderalreadyExist = 1;
+        }
+    };
+    
+    if ($shaderalreadyExist == 0)
+    {
+    createAOShader();
+    }
+    
+    int $aoExist = `objExists AO`;
+    
+    if ($aoExist == 1 && ($mainRenderLayer != "AO")) 
+    {
+    delete AO;
+    createAOlayer();
+    };
+    
+    if ($aoExist == 0) 
+    {
+    createAOlayer();
+    };
+    
+    $renderONOFF = `optionVar -q renderViewRenderAllLayers`; //query 0 off/1 on
+    if ($renderONOFF == 0)
+    {
+    switchRenderAllLayers;
+    };
+    
+    //disable all other layers
+    int $counter = 0;
+    string $otherrenderLayername[];
+    $renderLayerslist = `ls -type renderLayer`;
+    for ($check in $renderLayerslist)
+    {
+    // query for render layer to not to be a 'render layer' of a 'reference file'
+    // this bug will be happen when we have refrence file and the 'render layer' of that 'refrence file' will merge and causes problem
+    // Error: file: C:/Program Files/Autodesk/Maya2010/scripts/startup/layerEditor.mel line 3811: Item '*:defaultRenderLayer' was not found in the treeview // 
+    $refCheck = `referenceQuery -isNodeReferenced $check`;
+    if ($check !="AO" && $check !=$mainRenderLayer && $refCheck != 1)
+    {
+    $otherrenderLayername[$counter] = $check;
+    renderLayerEditorRenderable RenderLayerTab ($otherrenderLayername[$counter]) 0;
+    $counter++;
+    };
+    };
+    
+    $layerEnablecheck = getAttr ($mainRenderLayer+".renderable");//check to see selected render layer enable or not
+    if ($layerEnablecheck == 0)
+    {
+    renderLayerEditorRenderable RenderLayerTab $mainRenderLayer 1;
+    };
+    
+    optionVar -intValue renderViewRenderLayersMode 0;//option 'Composite and keep layer'
+    //setAttr miDefaultFramebuffer.colorclip 1;//Render option Color clip set to Alpha
+    //setAttr "miDefaultFramebuffer.premultiply" 1;
+    RenderIntoNewWindow; 
+    editRenderLayerGlobals -currentRenderLayer $mainRenderLayer;
+    showEditorExact "AO_shader";// adjusting 'out Matte Opacity' for AO layer opacity
+    switchRenderAllLayers;
+    //setAttr miDefaultFramebuffer.colorclip 2;//Render option Color clip setback to Raw
+    
+    //enable all other layers
+    for ($enablelayr = 0; $enablelayr<$counter; $enablelayr++)
+    {
+    renderLayerEditorRenderable RenderLayerTab ($otherrenderLayername[$enablelayr]) 1;
+    }
+    
+    renderLayerEditorRenderable RenderLayerTab $mainRenderLayer $layerEnablecheck;//set back to last setting
+};
+
+
+//camera exposure on/off
+global proc expoff()
+{
+    //string $currentCamera = `modelEditor -q -camera modelPanel4`; 
+    //disconnectAttr Exposure_Control.message ($currentCamera+".miLensShader");
+
+    string $currentCamera = `modelEditor -q -camera modelPanel4`;
+    string $listLensshaders[] = `listConnections ($currentCamera+".miLensShader")`;
+    //disconnect any 'lens shader from camera'
+    if (size ($listLensshaders) >= 1 )
+    {
+    for ($lenz in $listLensshaders)
+    {
+    if ($lenz !="defaultRenderLayer")
+    {
+    disconnectAttr ($lenz+".message") ($currentCamera+".miLensShader");
+    };
+    };
+    };
+};
+
+
+global proc expon()
+{
+    string $currentCamera = `modelEditor -q -camera modelPanel4`; 
+    $shaderCheck = `ls -type mia_exposure_simple`;
+    for ($lenz in $shaderCheck)// just to avoid problem if there was no Exposure_Control
+    {
+    if ($lenz == "Exposure_Control")
+    {
+    connectAttr -f Exposure_Control.message ($currentCamera+".miLensShader");
+    }
+    }
+};
+
+
+
+//check dome exist
+global proc domeExistcheck()
+{
+    if (`objExists "\*skyDome\*"`)
+    {
+    fakeibl();
+    };
+};
+
+
+//UI and main proc
+global proc fakeibl()
+{
+    setAttr( "defaultRenderGlobals.currentRenderer" ) -type "string" "mentalRay";
+    int $minval = 4;
+    int $maxval = 20;
+    int $lightNo = 0;
+    int $domeSeg = 4;
+    float $minvalLightup = 0.0000;
+    float  $minvalLightdown = 0.0000;
+    int $lightonoff = 1;
+    int $exponoff = 0;
+    string $currentCamera = `modelEditor -q -camera modelPanel4`;
+    setAttr ($currentCamera+".farClipPlane") 100000;//set camera `far Clip Plane` 
+
+    if (`window - exists fakeibl`)
+    {
+    deleteUI fakeibl;
+    }
+    //checking Dome existance
+    int $exist = 0; 
+    $domeCheck  = `ls -g`;
+    for ($check in $domeCheck)
+    {
+    if ($check == "skyDomeShape")
+    {
+    $exist = 1; 
+    $domeSeg = `sphere -q -s skyDome`;
+    $lightonoff = `getAttr "skyLightShape1.emitDiffuse"`;
+    }
+    };
+    
+    if ($exist == 0)
+    {
+    sphere -r 300 -n skyDome -s ($domeSeg)  -nsp ($domeSeg);
+    setAttr "skyDomeShape.castsShadows" 0;
+    setAttr "skyDomeShape.receiveShadows" 0;
+    //setAttr "skyDomeShape.primaryVisibility" 0;
+    
+    DomeShader;
+    // assign mat to sphere
+    sets -e -forceElement skyDomeSSSG skyDomeShape;
+    creatingLights($domeSeg);
+    };
+    
+    //check ambient occlusion shader exist
+    $shaderCheck  = `ls -mat`;
+    int $shaderalreadyExist = 0;
+    for ($check in $shaderCheck)
+    {
+    if ($check == "AO_shader")
+    {
+    $shaderalreadyExist = 1;
+    }
+    };
+    
+    if ($shaderalreadyExist == 0)
+    {
+    createAOShader();
+    }
+    
+    //set camera exposure and connect to the current camera
+    //query for 'Exposure_Control':
+    // nodeType "Exposure_Control"; 
+    // Result: mia_exposure_simple
+    // so -type should be 'mia_exposure_simple'
+    
+    //check for any lens shader existans
+    $shaderCheck  = `ls -type mia_exposure_simple`;//
+    int $shaderalreadyExist = 0;
+    if (size ($shaderCheck) >0)
+    {
+    $shaderalreadyExist = 1;
+    //$exponoff = `isConnected  Exposure_Control.message ($currentCamera+".miLensShader")`;
+    };
+    
+    //check to see if any shaders connected to 'lens shader'
+    string $listLensshaders[] = `listConnections ($currentCamera+".miLensShader")`;
+    if (size ($listLensshaders) >= 1)
+    {
+    $exponoff = 1;
+    }
+
+    //Fixing bug: some times 'defaultRenderLayer' listed as a connection to lens shader
+    int $listSize = size ($listLensshaders);
+    if (($listSize == 1) && ($listLensshaders[0] == "defaultRenderLayers"))
+    {
+    $shaderalreadyExist = 0;
+    $exponoff = 0;
+    };
+    
+    //check to make sure we have 'Exposure_Control' shader
+    for ($checkShader in $shaderCheck)
+    {
+    if ($checkShader == "Exposure_Control")
+    {
+    $shaderalreadyExist = 1;
+    }
+    }
+
+    if ($shaderalreadyExist == 0)
+    {
+    shadingNode -asUtility mia_exposure_simple -n "Exposure_Control";
+    //connectAttr -f Exposure_Control.message ($currentCamera+".miLensShader");
+    }
+
+    //Creating UI
+    string $win = `window -title "Fake IBL" -w 390 -h 420 -s 0 -menuBar true fakeibl`;
+    columnLayout -adjustableColumn 1 -cal "center";
+    
+    
+    menu -label "Help" -helpMenu true;
+    menuItem -label "Online Help" -c helpProc;
+    menuItem -label "About" -c aboutProc;
+    
+    
+    string $mapNamebutton = "Select Map";
+    string $checkMapbutton = `getAttr skyTexture.fileTextureName`;
+    if ($checkMapbutton != "")
+    {
+    $mapNamebutton = $checkMapbutton;
+    };
+    
+    button 
+    -label ($mapNamebutton)
+    -al "right"
+    -c "mapDlg" 
+    "mapButn";
+    
+    button 
+    -label "Select Object to align dome" 
+    -c "algnDome"; 
+    
+    intSliderGrp 
+    -label "Dome segment 4<seg<20"
+    -en 1
+    -field true
+    -min ($minval) 
+    -max ($maxval)
+    -fmn 4
+    -fmx 20
+    -value ($domeSeg)
+    -cc "lightNosliderVal()"
+    "domesliderVal";
+    
+    button 
+    -label "Select All lights" 
+    -c "selLights";
+    button 
+    -label "Outliner Window" 
+    -c "OutlinerWindow";
+    
+    checkBox -label "Lights on/off" -v $lightonoff -onc lghton -ofc lghtoff -al "left" "lightonoffcheck";
+    
+    int $NoOfLights = ($domeSeg * ($domeSeg -1) +2);
+    float $lowerLightsIntensity = `getAttr "skyLightShape1.intensity"`;
+    float $upperLightsIntensity = `getAttr ("skyLightShape"+$NoOfLights+".intensity")`;
+    $sliderMax = (17.000)/($NoOfLights);
+    
+    floatSliderGrp 
+    -label "Upper Lights intensity"
+    -en 1
+    -field true
+    -min ($minvalLightup) 
+    -max ($sliderMax)
+    -pre 4
+    -ss .001
+    -value ($upperLightsIntensity)
+    -cc "Lightints()"
+    "upper_lghtIntsSlider";
+    
+    floatSliderGrp 
+    -label "Lower Lights intensity"
+    -en 1
+    -field true
+    -min ($minvalLightdown) 
+    -max ($sliderMax)
+    -pre 4
+    -ss .001
+    -value ($lowerLightsIntensity)
+    -cc "Lightints()"
+    "lower_lghtIntsSlider";
+    
+    text -label "";
+    int $sdPv = 1;
+    if ($exist == 1)
+    {
+    $sdPv = `getAttr "skyDomeShape.primaryVisibility"`;
+    };
+    
+    checkBox -label "Dome Primary Visibility(should be off in rendering)" -v $sdPv -onc vison -ofc visoff -al "left" "visCheckbox";
+        
+    button 
+    -label "Delete Dome" 
+    -c "deleteDome"; 
+    
+    
+    button 
+    -label "Refresh/Create" 
+    -c "refreshUI"; 
+
+    button 
+    -label "Import" 
+    -c "importCheck"; 
+    
+    text -label "";
+    text -label "Render Preview:" -al "left";
+    
+    button 
+    -label "Render Ambient Occlusion" 
+    -c "renderAO"; 
+    
+    button 
+    -label "Render" 
+    -c "renderComp"; 
+    
+    checkBox -label "Camera Exposure on/off" -v $exponoff -onc expon -ofc expoff -al "left" "camexpCheckbox";
+    
+    button 
+    -label "Camera exposure settings" 
+    -c "showEditor Exposure_Control"; 
+    
+    select -r skyDome ;
+  
+    showWindow $win;
+};
+
+scriptJob -e SceneOpened domeExistcheck;//check for scene open and if dome exist refresh the UI
+//scriptJob -e displayLayerManagerChange importCheck;//check for scene import and rename imported dome and light to correct names
+
+fakeibl();

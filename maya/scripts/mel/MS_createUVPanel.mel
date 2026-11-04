@@ -1,0 +1,178 @@
+
+
+global proc MS_UVfitter(float $cnt_u,float $cnt_v,float $scl_u,float $scl_v,float $angl){
+	$perspectiveAspectRatio=`checkBox -q -v perspectiveAspectRatio`;
+	string $sel[]=`ls -sl`;
+	string $obj[]=`ls -typ "transform" -sl`;
+	if(size($sel)){
+		if(size($obj)){
+			for($each in  $obj){
+				polyNormalizeUV -normalizeType 1 -preserveAspectRatio $perspectiveAspectRatio  $each;
+			}
+		}else{
+			polyNormalizeUV -normalizeType 1 -preserveAspectRatio $perspectiveAspectRatio $sel;
+		}
+		PolySelectConvert 4;
+		polyEditUV -su $scl_u -sv $scl_v -a $angl;
+		float $trn_u=$cnt_u;
+		float $trn_v=$cnt_v;
+		polyEditUV -r 1 -u $trn_u -v $trn_v;
+		select -r $sel;
+	}
+}
+
+
+
+global proc MS_UVpanels(){
+	if(`window -q -ex MyTools_MS_UVpanels`)deleteUI MyTools_MS_UVpanels;
+	window MyTools_MS_UVpanels;
+	formLayout myUIFormLayout;
+	
+	
+	//separate
+	float $ref_u=`intSliderGrp -q -v "panel_u"`;
+	float $ref_v=`intSliderGrp -q -v "panel_v"`;
+	float $blank=`floatSliderGrp -q -v "blank"`;
+	
+	//ButtonSize
+	float $bsize_u=(256/$ref_u);
+	float $bsize_v=(256/$ref_v);
+	
+	$i=0;
+	$j=0;
+	float $cnt_u;
+	string $button_commands;
+	
+	for($i=0;$i<$ref_v;$i++){
+		for($j=0;$j<$ref_u;$j++){
+			
+			float $cnt_u=((1/$ref_u)*$j)+((1-$blank)/($ref_u*2));
+			float $cnt_v=(1-((1/$ref_v)*($i+1)))+((1-$blank)/($ref_u*2));
+			
+			float $scl_u=((1/$ref_u)*$blank);
+			float $scl_v=((1/$ref_v)*$blank);
+			
+			float $trn_u=(0.5-$cnt_u);
+			float $trn_v=(0.5-$cnt_v);
+			
+			float $angl=0;
+			
+			//create eval commands
+			$button_name=("uvbutton_"+$i+"_"+$j);
+			$button_commands=($button_commands+
+			"button -width "+ceil($bsize_u)+
+			" -height "+ceil($bsize_v)+
+			" -recomputeSize 0 "+
+			"-label \""+$i+","+$j+"\" "+
+			"-c \"MS_UVfitter("+$cnt_u+","+$cnt_v+","+$scl_u+","+$scl_v+","+$angl+")\" "+
+			$button_name+
+			";\n" );//Data//
+		
+		}
+	}
+	
+	string $layout_option;
+			
+	for($i=0;$i<$ref_v;$i++){
+		int $loc_v=($bsize_v*$i);
+		for($j=0;$j<$ref_u;$j++){
+			int $loc_u=($bsize_u*$j);
+			$layout_name=("uvbutton_"+$i+"_"+$j);
+			$layout_option=$layout_option+"-af \""+$layout_name+"\" \"left\" "+$loc_u+"\n";
+			$layout_option=$layout_option+"-af \""+$layout_name+"\" \"top\" "+$loc_v+"\n";
+		}
+	}
+	//print $button_commands;
+	eval $button_commands;
+	eval ("formLayout -e "+$layout_option+" myUIFormLayout");
+	
+	//--DataPart--//
+	
+	window -e -w 263 -h 282 MyTools_MS_UVpanels;
+	showWindow MyTools_MS_UVpanels;
+	
+}
+
+
+global proc MS_createUVPanel()
+{
+	
+	//Window Check
+	if(`window -exists MS_createUVPanel`){
+		deleteUI MS_createUVPanel;
+	}
+	
+	
+	//Create Window
+	
+	window -title "MS_createUVPanel" MS_createUVPanel;
+	
+	columnLayout ;
+	
+	//Contents	
+	
+	
+	//text
+	text -label "ThisWindowIsMS_createUVPanel";
+	
+
+	
+	separator -w 200 -h 10 -st "single";
+	
+	
+	setParent ..;
+	
+	//text -l "panelU";
+	intSliderGrp -cw3 50 30 100 -adj 3 -l "panel_U" -field true -min 1 -max 16 -v 4 -cc "MS_UVpanels" "panel_u";
+	rowLayout -numberOfColumns 4
+		-columnWidth4 40 40 40 40
+		-columnAlign  1 "center"
+		-columnAttach 1 "both" 	0
+		-columnAttach 2 "both"  0
+		-columnAttach 3 "both"  0
+		-columnAttach 4 "both"  0;
+	button -l "U*2" -command "intSliderGrp -e -v 2 panel_u;MS_UVpanels;" ;
+	button -l "U*4" -command "intSliderGrp -e -v 4 panel_u;MS_UVpanels;" ;
+	button -l "U*8" -command "intSliderGrp -e -v 8 panel_u;MS_UVpanels;" ;
+	button -l "U*16" -command "intSliderGrp -e -v 16 panel_u;MS_UVpanels;" ;
+	
+	setParent ..;
+	columnLayout;
+	//text -l "panelV";
+	intSliderGrp -cw3 50 30 100 -adj 3 -l "panel_V" -field true -min 1 -max 16 -v 4 -cc "MS_UVpanels" "panel_v";
+	rowLayout -numberOfColumns 4
+    	-columnWidth4 40 40 40 40
+    	-columnAlign  1 "center"
+    	-columnAttach 1 "both" 	0
+    	-columnAttach 2 "both"  0
+    	-columnAttach 3 "both"  0
+    	-columnAttach 4 "both"  0;
+
+	button -l "V*2" -command "intSliderGrp -e -v 2 panel_v;MS_UVpanels;" ;
+	button -l "V*4" -command "intSliderGrp -e -v 4 panel_v;MS_UVpanels;" ;
+	button -l "V*8" -command "intSliderGrp -e -v 8 panel_v;MS_UVpanels;" ;
+	button -l "V*16" -command "intSliderGrp -e -v 16 panel_v;MS_UVpanels;" ;
+	setParent ..;
+	
+	//---------------
+	//Execute Buttons
+	//---------------
+
+	separator -w 600 -h 10 -st "single";
+
+	floatSliderGrp -cw3 50 30 100 -adj 3 -l "blank" -field true -precision 2 -step 0.01 -min 0.1 -max 1.0 -v 1.0 -cc "MS_UVpanels" "blank";
+	
+	//20100531バグありの為コメントアウト
+	checkBox -vis 0 -v 0 -l "perspectiveAspectRatio" -cc "MS_UVpanels" perspectiveAspectRatio;	
+
+	//Footer
+	window -e -w 184 -h 180 MS_createUVPanel;
+	showWindow MS_createUVPanel;
+	
+	//20100531最初にUVパネル呼び出す
+	MS_UVpanels;
+	
+}
+
+
+

@@ -1,0 +1,260 @@
+P4CheckStatus
+//asobi2.0/patch/asset/graphic/multi_platformer/levels/mup_level_collection_room.ma#64 - edit default change (text) by Takako_Maeda@asobi2.0_Takako_Maeda_JPC00151710_patch
+Change 28386 on 2018/09/18 by Takako_Maeda@asobi2.0_Takako_Maeda_JPC00151710_patch
+
+	bug fix 3225
+
+Change 28378 on 2018/09/18 by Maki_Murakami@asobi2.0_Maki_Murakami_JPC00155398_patch
+
+	bug fix : 3372/3373 // fixed prize's intersection and strange green light of tombstone
+
+Change 28315 on 2018/09/14 by Takako_Maeda@asobi2.0_Takako_Maeda_JPC00151710_patch
+
+	bug fix 3226
+
+Change 28306 on 2018/09/14 by Maki_Murakami@asobi2.0_Maki_Murakami_JPC00155398_patch
+
+	bug fix (prize)
+
+Change 28302 on 2018/09/14 by Maki_Murakami@asobi2.0_Maki_Murakami_JPC00155398_patch
+
+	bug fix : 3168 / 3166 (prize FPS)
+
+Change 28273 on 2018/09/14 by Maki_Murakami@asobi2.0_Maki_Murakami_JPC00155398_patch
+
+	updated prize
+
+Change 28269 on 2018/09/14 by Maki_Murakami@asobi2.0_Maki_Murakami_JPC00155398_patch
+
+	updated prize
+
+Change 28226 on 2018/09/14 by Takako_Maeda@asobi2.0_Takako_Maeda_JPC00151710_patch
+
+	bug fix 3297 3282 3278 3277 3273
+
+Change 28200 on 2018/09/13 by Maki_Murakami@asobi2.0_Maki_Murakami_JPC00155398_patch
+
+	bug fix : 3255/3167 (prize)
+
+Change 28182 on 2018/09/13 by Takako_Maeda@asobi2.0_Takako_Maeda_JPC00151710_patch
+
+	bug fix 3286 3281 3274 3272
+	set enemy color for bug fix
+
+Change 28158 on 2018/09/13 by Maki_Murakami@asobi2.0_Maki_Murakami_JPC00155398_patch
+
+	bug fix : 3180 / 3182 : prize
+
+Change 28060 on 2018/09/13 by Takumi_Yoshida@asobi2.0_Takumi_Yoshida_JPC00155553_patch
+
+	collection room invisible collision thickness
+
+Change 28051 on 2018/09/12 by Takako_Maeda@asobi2.0_Takako_Maeda_JPC00151710_patch
+
+	bug fix 3220
+
+Change 27998 on 2018/09/12 by Takako_Maeda@asobi2.0_Takako_Maeda_JPC00151710_patch
+
+	bug fix 3226
+
+Change 27958 on 2018/09/11 by Takako_Maeda@asobi2.0_Takako_Maeda_JPC00151710_patch
+
+	bug fix 3205 3194 3193 3184 3183 3176 3174
+
+Change 27913 on 2018/09/11 by Motokazu_Sakai@asobi2.0_Motokazu_Sakai_JPC00155482_patch
+
+	collection room : task sp41 modify look at
+
+Change 27898 on 2018/09/11 by Takako_Maeda@asobi2.0_Takako_Maeda_JPC00151710_patch
+
+	set enemy color
+	set enemy attachment
+
+Change 27865 on 2018/09/11 by Takako_Maeda@asobi2.0_Takako_Maeda_JPC00151710_patch
+
+	maya data clean up
+
+Change 27842 on 2018/09/10 by Maki_Murakami@asobi2.0_Maki_Murakami_JPC00155398_patch
+
+	bug fix 2903 : fixed bosses position onto contoroller
+
+Change 27841 on 2018/09/10 by Maki_Murakami@asobi2.0_Maki_Murakami_JPC00155398_patch
+
+	bug fix 3189/3188/3187/3186/2903 : fixed prize's bugs 
+
+Change 27787 on 2018/09/10 by Takumi_Yoshida@asobi2.0_Takumi_Yoshida_JPC00155553_patch
+
+	change piano switch lox
+
+Change 27630 on 2018/09/07 by Takahiro_Sasamura@asobi2.0_Takahiro_Sasamura_JPC00163279_patch
+
+	updated collection room piano block sfx
+
+Change 27617 on 2018/09/07 by Masafumi_Noda@asobi2.0_Masafumi_Noda_JPC00151713_patch
+
+	Adjust IBL intensity
+
+Change 27607 on 2018/09/06 by Sebastian_Brueckner@asobi2.0_Sebastian_Brueckner_JPC00155404_patch
+
+	updated the lighting in the collection room
+
+Change 27389 on 2018/09/04 by Sebastian_Brueckner@asobi2.0_Sebastian_Brueckner_JPC00155404_patch
+
+	created skybox for each theme in collection room - updated the cow model and created hover inisde the ufo beam
+
+Change 27340 on 2018/09/04 by Sebastian_Brueckner@asobi2.0_Sebastian_Brueckner_JPC00155404_patch
+
+	updated the collection room-  changed lighting and updated lava shader settings in fire theme
+
+Change 27292 on 2018/09/03 by Maki_Murakami@asobi2.0_Maki_Murakami_JPC00155398_patch
+
+	prize: updated collectionroom and adjusted the size and Yposition of prizes
+
+Change 27164 on 2018/08/30 by Maki_Murakami@asobi2.0_Maki_Murakami_JPC00155398_patch
+
+	prize : updated poses and collectionroom scene
+
+Change 26580 on 2018/08/21 by Maki_Murakami@asobi2.0_Maki_Murakami_JPC00155398_patch
+
+	fixed bug 2918 : fixed the placement of CR_sky_garden_03_Lvy and exported for collectionroom.
+
+Change 26516 on 2018/08/20 by Maki_Murakami@asobi2.0_Maki_Murakami_JPC00155398_patch
+
+	added prize in collectionroom and added pose for prize
+
+Change 26447 on 2018/08/17 by Takanori_Shigihara@asobi2.0_Takanori_Shigihara_JPC00151642_patch
+
+	collection room：mup_bg_sky_collision_cloud_a → mup_bg_collision_cloud_a
+
+Change 26420 on 2018/08/17 by Takanori_Shigihara@asobi2.0_Takanori_Shigihara_JPC00151642_patch
+
+	devtrack：2500
+
+Change 26375 on 2018/08/16 by Sebastian_Brueckner@asobi2.0_Sebastian_Brueckner_JPC00155404_patch
+
+	crane game lighting adjustments first pass
+
+Change 26306 on 2018/08/16 by Takanori_Shigihara@asobi2.0_Takanori_Shigihara_JPC00151642_patch
+
+	devtrack：2863
+
+Change 26281 on 2018/08/15 by Takanori_Shigihara@asobi2.0_Takanori_Shigihara_JPC00151642_patch
+
+	devtrack：947、938
+
+Change 26214 on 2018/08/15 by Takanori_Shigihara@asobi2.0_Takanori_Shigihara_JPC00151642_patch
+
+	devtrack：2788
+
+Change 26163 on 2018/08/14 by Takanori_Shigihara@asobi2.0_Takanori_Shigihara_JPC00151642_patch
+
+	PATCH1.1：Review teetering and collisions in every room.
+
+Change 26031 on 2018/08/13 by Takanori_Shigihara@asobi2.0_Takanori_Shigihara_JPC00151642_patch
+
+	devtrack:2687
+
+Change 25978 on 2018/08/10 by Yuki_Miyamae@asobi2.0_autobuild2_merge
+
+	autobuild merge default_to_patch
+
+Change 25849 on 2018/08/09 by Yuki_Miyamae@asobi2.0_autobuild2_merge
+
+	autobuild merge default_to_patch
+
+Change 25752 on 2018/08/08 by Yuki_Miyamae@asobi2.0_autobuild2_merge
+
+	autobuild merge default_to_patch
+
+Change 25664 on 2018/08/07 by Yuki_Miyamae@asobi2.0_autobuild2_merge
+
+	autobuild merge default_to_patch
+
+Change 25419 on 2018/08/03 by Yuki_Miyamae@asobi2.0_autobuild2_merge
+
+	autobuild merge default_to_patch
+
+Change 25275 on 2018/08/02 by Yuki_Miyamae@asobi2.0_autobuild2_merge
+
+	autobuild merge default_to_patch
+
+Change 25152 on 2018/08/01 by Yuki_Miyamae@asobi2.0_autobuild2_merge
+
+	autobuild merge default_to_patch
+
+Change 25037 on 2018/07/31 by Yuki_Miyamae@asobi2.0_autobuild2_merge
+
+	autobuild merge default_to_patch
+
+Change 24852 on 2018/07/27 by Yuki_Miyamae@asobi2.0_autobuild2_merge
+
+	autobuild merge default_to_patch
+
+Change 24734 on 2018/07/26 by Yuki_Miyamae@asobi2.0_autobuild2_merge
+
+	autobuild merge default_to_patch
+
+Change 24613 on 2018/07/25 by Yuki_Miyamae@asobi2.0_autobuild2_merge
+
+	autobuild merge default_to_patch
+
+Change 24525 on 2018/07/24 by Yuki_Miyamae@asobi2.0_autobuild2_merge
+
+	autobuild merge default_to_patch
+
+Change 24473 on 2018/07/23 by Yuki_Miyamae@asobi2.0_autobuild2_merge
+
+	autobuild merge default_to_patch
+
+Change 24417 on 2018/07/23 by Yuki_Miyamae@asobi2.0_autobuild2_merge
+
+	autobuild merge default_to_patch
+
+Change 24388 on 2018/07/21 by Yuki_Miyamae@asobi2.0_autobuild2_merge
+
+	autobuild merge default_to_patch
+
+Change 24142 on 2018/07/20 by Yuki_Miyamae@asobi2.0_autobuild2_merge
+
+	autobuild merge default_to_patch
+
+Change 23947 on 2018/07/19 by Yuki_Miyamae@asobi2.0_autobuild2_merge
+
+	autobuild merge default_to_patch
+
+Change 23736 on 2018/07/18 by Yuki_Miyamae@asobi2.0_autobuild2_merge
+
+	autobuild merge default_to_patch
+
+Change 23595 on 2018/07/17 by Yuki_Miyamae@asobi2.0_autobuild2_merge
+
+	autobuild merge default_to_patch
+
+Change 23574 on 2018/07/14 by Yuki_Miyamae@asobi2.0_autobuild2_merge
+
+	autobuild merge default_to_patch
+
+Change 23532 on 2018/07/13 by Yuki_Miyamae@asobi2.0_autobuild2_merge
+
+	autobuild merge default_to_patch
+
+Change 23254 on 2018/07/12 by Yuki_Miyamae@asobi2.0_autobuild2_merge
+
+	autobuild merge default_to_patch
+
+Change 23134 on 2018/07/11 by Yuki_Miyamae@asobi2.0_autobuild2_merge
+
+	autobuild merge default_to_patch
+
+Change 23073 on 2018/07/10 by Yuki_Miyamae@asobi2.0_autobuild2_merge
+
+	autobuild merge default_to_patch
+
+Change 23027 on 2018/07/10 by Yuki_Miyamae@asobi2.0_Yuki_Miyamae_JPC00151704
+
+	patch: merge with default.
+
+Change 22868 on 2018/07/08 by Yuki_Miyamae@asobi2.0_Yuki_Miyamae_JPC00151704
+
+	Create patch branch.
+

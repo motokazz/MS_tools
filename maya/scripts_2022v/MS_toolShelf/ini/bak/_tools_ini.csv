@@ -1,0 +1,3 @@
+cathegory,exec,label,annotation,command
+launch,pyexf,MS_toolShelf,MS_toolShelf,MS_toolShelf_exec
+system,pyexf,MS_listOptionVar,OptionVarを編集するツールです、MS_で検索するとMS_tools関連が検索できます。,MS_listOptionVar_exec

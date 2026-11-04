@@ -1,0 +1,16 @@
+//cgfxプラグインが使用不可になっている場合、強制的に使用できるようにします。
+{
+waitCursor -state on;
+
+$ignoreUpdateCallback = true;
+
+catch( `loadPlugin "C:/Program Files/Alias/Maya7.0/bin/plug-ins/cgfxShader.mll"`);
+
+updatePluginUI( "8" );
+
+$ignoreUpdateCallback = false;
+
+waitCursor -state off;
+}
+
+

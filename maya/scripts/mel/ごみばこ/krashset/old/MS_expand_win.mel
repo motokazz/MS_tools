@@ -1,0 +1,86 @@
+global proc MS_CenterResetter(string $obj_a){
+
+
+string $obj_a_tx=$obj_a+".tx";
+string $obj_a_ty=$obj_a+".ty";
+string $obj_a_tz=$obj_a+".tz";
+
+string $obj_a_rpx=$obj_a+".rotatePivotX";
+string $obj_a_rpy=$obj_a+".rotatePivotY";
+string $obj_a_rpz=$obj_a+".rotatePivotZ";
+
+float $orgx=`getAttr $obj_a_tx`;
+float $orgy=`getAttr $obj_a_ty`;
+float $orgz=`getAttr $obj_a_tz`;
+float $flpx=`getAttr $obj_a_rpx`;
+float $flpy=`getAttr $obj_a_rpy`;
+float $flpz=`getAttr $obj_a_rpz`;
+
+setAttr $obj_a_tx (-$flpx);
+setAttr $obj_a_ty (-$flpy);
+setAttr $obj_a_tz (-$flpz);
+
+makeIdentity -apply true -t 1 -r 1 -s 0 -n 0 $obj_a;
+
+setAttr $obj_a_tx ($orgx+$flpx);
+setAttr $obj_a_ty ($orgy+$flpy);
+setAttr $obj_a_tz ($orgz+$flpz);
+
+}
+
+
+
+global proc MS_expand(){
+	$objzall=`ls - sl`;
+	
+	$expx=`floatSliderGrp -q -v expx`;
+	$expy=`floatSliderGrp -q -v expy`;
+	$expz=`floatSliderGrp -q -v expz`;
+
+	int $j;
+	for($j=0;$j<size($objzall);$j++){
+
+		xform -cp $objzall[$j];
+		MS_CenterResetter $objzall[$j];
+
+		$tmpnamex=$objzall[$j]+".tx";
+		$tmpnamey=$objzall[$j]+".ty";
+		$tmpnamez=$objzall[$j]+".tz";
+
+		$valx=(`getAttr $tmpnamex`*$expx);
+		$valy=(`getAttr $tmpnamey`*$expy);
+		$valz=(`getAttr $tmpnamez`*$expz);
+
+		setAttr $tmpnamex $valx;
+		setAttr $tmpnamey $valy;
+		setAttr $tmpnamez $valz;
+	}
+}
+
+
+global proc MS_slider()
+{
+	if(`window -exists MS_slider`){
+		deleteUI MS_slider;
+	}
+
+	window -title "Slider for testobj" MS_slider;
+	columnLayout ;
+
+	floatSliderGrp -l "expx" -field true -min 1 -max 2 -v 1.1 expx;
+	floatSliderGrp -l "expy" -field true -min 1 -max 2 -v 1.1 expy;
+	floatSliderGrp -l "expz" -field true -min 1 -max 2 -v 1.1 expz;
+
+	button -l "do" -command "MS_expand" ;
+	button -l "undo" -command "Undo" ;
+	button -l "exit" -command "deleteUI MS_slider" ;
+
+	showWindow MS_slider;
+
+}
+
+
+MS_slider;
+
+
+

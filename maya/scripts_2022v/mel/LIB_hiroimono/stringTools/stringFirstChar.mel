@@ -1,0 +1,16 @@
+//stringFirstChar, by Julian Love, julian@lightmail.com. Part of the StringTools set.
+//
+//description:	returns the first character of the source string
+//
+//usage:		stringFirstChar string[source string];
+//
+//examples:		stringFirstChar "hello world.";
+//				// Result: h //
+//
+//				stringFirstChar "left_wrist_controller";
+//				// Result: l //
+
+
+global proc string stringFirstChar (string $item){
+	return `match "^." $item`;
+}

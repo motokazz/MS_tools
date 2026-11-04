@@ -1,0 +1,193 @@
+//--------------------------------------------------------------------------
+//
+// ScriptName : AriCombineExtract(旧AriMargeSeparate)
+// Contents   : 結合(Combine)と抽出(Extract)を情報をできるだけ保ったまま行います。
+// Author     : Ari
+// Since      : 2014/06
+// LastUpdate : 2016/04/24 結合の際、移動値、回転値、スケール値を保持。
+//            : 2015/10/12 スクリプト名変更。
+//                         結合、抽出したオブジェクトが単一マテリアルであれば、オブジェクトアサインにするよう修正。
+//              2015/04/02 選択項目の分離表示状態で結合しても非表示にならないように調整。
+//              2015/02/18 親に同じ名前があると結合できないエラーを修正。
+//
+// Note       : オブジェクト(複数)を選択して実行すると「結合(Combine)」、フェースを選択して実行すると「抽出(Extract)」になります。
+//               
+//--------------------------------------------------------------------------
+
+
+
+proc int AriCombineExtract_ListNum (string $obj){
+int $num;
+string $parent[]=`listRelatives -p -pa $obj`;
+string $children[];
+if($parent[0]=="")	$children=`ls -as`;
+else $children=		`listRelatives -c -pa $parent[0]`;
+int $i=0;
+for($child in $children){
+if($child == $obj){
+$num=$i;
+break;
+}
+$i++;
+}
+return $num;
+}
+proc string[] AriCombineExtract_ObjectsToMaterials(string $objectList[]){
+string $materialList[];
+string $beforeSelectList[]=`ls -sl`;
+select $objectList;
+hyperShade -smn "";
+$materialList = `ls -sl -mat`;
+select $beforeSelectList;
+return $materialList;
+}
+proc string AriCombineExtract_CombineGo(string $selectObj[]){
+delete -ch;
+string $lastSelect=$selectObj[size($selectObj)-1];
+string $parent[]=`listRelatives -pa -p  $lastSelect`;
+string $setList[] = `ls -type "objectSet"`;
+string $menberSetList[];
+int $i=0;
+for($set in $setList){
+print $set;
+string $setMembers[]=`sets -q $set`;
+if(stringArrayContains($lastSelect, $setMembers)){
+$menberSetList[$i]=$set;
+$i++;
+}
+}
+int $lastObjNum=AriCombineExtract_ListNum($lastSelect);
+if($parent[0] != ""){
+string $parentName[]=`parent -w $lastSelect`;
+$lastSelect=$parentName[0];
+$selectObj[size($selectObj)-1]=$lastSelect;
+}
+float $translateVal[] = `getAttr ($lastSelect+".translate")` ;
+float $rotateVal[]    = `getAttr ($lastSelect+".rotate")` ;
+float $scaleVal[]     = `getAttr ($lastSelect+".scale")` ;
+for($i=0 ; $i<size($selectObj)-1 ; $i++){
+string $parentName[]=`parent $selectObj[$i] $lastSelect`;
+$selectObj[$i]=$parentName[0];
+}
+setAttr ($lastSelect+".translate" )0 0 0;
+setAttr ($lastSelect+".rotate") 0 0 0;
+setAttr ($lastSelect+".scale") 1 1 1;
+for($i=0 ; $i<size($selectObj)-1 ; $i++){
+string $parentName[]=`parent -w $selectObj[$i] `;
+$selectObj[$i]=$parentName[0];
+}
+makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 $selectObj;
+float $rotatePiv[] = `getAttr ($lastSelect+".rotatePivot")` ;
+float $scalePiv[]  = `getAttr ($lastSelect+".scalePivot")` ;
+for($obj in $selectObj){
+string $meshs[]= `listRelatives -pa -s $obj`;
+if(size($meshs)>0){
+if(`getAttr($meshs[0]+".opposite")`==1){
+polyNormal -normalMode 0 -userNormalMode 0 $obj;
+setAttr ($meshs[0]+".opposite") 0;
+}
+}
+}
+delete -ch;
+string $combineObjList[]=`polyUnite -ch 1 $selectObj`;
+string $combineObj=$combineObjList[0];
+string $matList[] = AriCombineExtract_ObjectsToMaterials($combineObjList);
+if(size($matList)==1){
+select $combineObj;
+hyperShade -assign $matList[0];
+}
+delete -ch $combineObj;
+setAttr ($combineObj+".rotatePivot")  $rotatePiv[0]  $rotatePiv[1]  $rotatePiv[2];
+setAttr ($combineObj+".scalePivot") $scalePiv[0] $scalePiv[1] $scalePiv[2];
+setAttr ($combineObj+".translate" ) $translateVal[0] $translateVal[1] $translateVal[2];
+setAttr ($combineObj+".rotate")     $rotateVal[0] $rotateVal[1] $rotateVal[2];
+setAttr ($combineObj+".scale")      $scaleVal[0] $scaleVal[1] $scaleVal[2];
+if($parent[0]!=""){
+string $parentName[]=`parent $combineObj $parent[0]`;
+$combineObj=$parentName[0];
+}
+reorder -relative ($lastObjNum+1) $combineObj;
+delete -ch $combineObj;
+if(!`isValidObjectName($lastSelect)`){
+$lastSelect=endString($lastSelect,size($lastSelect)-1);
+}
+string $combineName=`rename $combineObj $lastSelect`;
+for($set in $menberSetList){
+sets -edit -forceElement $set $combineName;
+}
+return $combineName;
+}
+proc AriCombineExtract_Combine(){
+string $selectObj[]=`ls -sl -transforms`;
+string $childrenList[]=`listRelatives -pa -c -ad -type "mesh" $selectObj`;
+if(size($childrenList)==1){
+return;
+}
+AriCombineExtract_CombineGo($selectObj);
+}
+proc AriCombineExtract_Extract(){
+string $selectFace[]=`ls -sl`;
+$selectFace = `filterExpand -selectionMask 34 $selectFace`;
+string $sourceObjList[]=`polyListComponentConversion $selectFace`;
+$sourceObjList=`listRelatives -pa -p $sourceObjList`;
+select -cl;
+string $all_dupObj[];
+int $j=0;
+for($sourceObj in $sourceObjList){
+string $allFace[]=`polyListComponentConversion -toFace $sourceObj`; 
+$allFace = `filterExpand -selectionMask 34 $allFace`;
+string $unSelFace[]=stringArrayRemove($selectFace, $allFace);
+string $SelFace_thisObj[]=stringArrayRemove($unSelFace, $allFace);
+string $dupObj[]=`duplicate -rr $sourceObj`;
+delete $SelFace_thisObj;
+string $deleteFace[];
+clear $deleteFace;
+int $i=0;
+for($face in $unSelFace){
+string $sepa[];
+tokenize $face "." $sepa;
+$deleteFace[$i] = ($dupObj[0]+"."+$sepa[1]);
+$i++;
+}
+delete $deleteFace;
+int $lastObjNum=AriCombineExtract_ListNum($sourceObj);
+reorder -relative ($lastObjNum+2) $dupObj[0];
+string $matList[];
+string $sourceObjs[];
+clear $matList;
+$sourceObjs[0]=$sourceObj;
+$matList = AriCombineExtract_ObjectsToMaterials($sourceObjs);
+if(size($matList)==1){
+select $sourceObjs;
+hyperShade -assign $matList[0];
+}
+$sourceObjs[0]=$dupObj[0];
+$matList = AriCombineExtract_ObjectsToMaterials($sourceObjs);
+if(size($matList)==1){
+select $sourceObjs;
+hyperShade -assign $matList[0];
+}
+$all_dupObj[$j]=$dupObj[0];
+$j++;
+}
+select $all_dupObj;
+}
+global proc AriCombineExtract(){
+string $selectObj[]=`ls -sl`;
+string $faceList[] =`filterExpand -selectionMask 34 $selectObj`;
+string $objList[]  =`filterExpand -selectionMask 12 $selectObj`;
+int $faceTotal = size($faceList);
+int $objTotal  = size($objList);
+if($faceTotal>=1 && $objTotal>=1){
+print "選択タイプの混合\n";
+return;
+}
+if($objTotal>0){
+AriCombineExtract_Combine();
+return;
+}
+if($faceTotal>0){
+AriCombineExtract_Extract();
+}
+}
+

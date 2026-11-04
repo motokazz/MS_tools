@@ -1,0 +1,143 @@
+/*
+if ($MS_CommandCollection_buttonCommands){
+	clear $MS_CommandCollection_buttonCommands;
+}
+*/
+string $MS_CommandCollection_buttonCommands;
+
+global proc MS_CommandCollection_core(){
+	$head="if(`window -exists MS_commandCollection_window`){\n		deleteUI MS_commandCollection_window;\n	}\n";
+	$head=($head+"	window -title \"MS_commandCollection_window\" MS_commandCollection_window;\n");
+	$head=($head+"	scrollLayout scrollLayout;\n	columnLayout;\n");
+	
+	$do="print \"dummy\"";
+	
+	global string $MS_CommandCollection_buttonCommands;
+	$commands=`textFieldGrp -q -tx "commands"`;
+	string $ev;
+	string $res;
+	string $options;
+	string $tokenz1[];
+	string $tokenz2[];
+	//string $buttonCommands;
+	string $helps=`help $commands`;
+	$ev="text -l \""+$commands+"\" commands;\n";
+	
+	tokenize $helps "\n" $tokenz1;
+	for($str1 in $tokenz1){
+		tokenize ($str1,$tokenz2);
+		
+		string $label=`substitute "-" $tokenz2[1] ""`;
+		
+		print ("------------------"+$tokenz2[1]+"------------------");
+		
+		if(`size($tokenz2)`==3 && $tokenz2[2]=="Float"){
+			$ev=($ev+"floatSliderGrp -l \""+$tokenz2[1]+"("+$tokenz2[0]+")0\" -field true -min 1 -max 100 -v 1 "+$label+";\n");
+			$res=($res+"$"+$label+"=`floatSliderGrp -q -v "+$label+"`;\n");
+			$options=($options+$tokenz2[0]+" $"+$label+" ");
+		}
+		if(`size($tokenz2)`==5 && $tokenz2[4]=="Float"){
+			$ev=($ev+"floatSliderGrp -l \""+$tokenz2[1]+"("+$tokenz2[0]+")0\" -field true -min 1 -max 100 -v 1 "+$label+"0;\n");
+			$ev=($ev+"floatSliderGrp -l \""+$tokenz2[1]+"("+$tokenz2[0]+")1\" -field true -min 1 -max 100 -v 1 "+$label+"1;\n");
+			$ev=($ev+"floatSliderGrp -l \""+$tokenz2[1]+"("+$tokenz2[0]+")2\" -field true -min 1 -max 100 -v 1 "+$label+"2;\n");
+			$res=($res+"$"+$label+"0 =`floatSliderGrp -q -v "+$label+"0`;\n");
+			$res=($res+"$"+$label+"1 =`floatSliderGrp -q -v "+$label+"1`;\n");
+			$res=($res+"$"+$label+"2 =`floatSliderGrp -q -v "+$label+"2`;\n");
+			$options=($options+$tokenz2[0]+" $"+$label+"0 $"+$label+"1 $"+$label+"2 ");
+		}
+		if(`size($tokenz2)`==3 && $tokenz2[2]=="Int"){
+			$ev=($ev+"intSliderGrp -l \""+$tokenz2[1]+"("+$tokenz2[0]+")\" -field true -min 1 -max 100 -v 1 "+$label+"0;\n");
+			$res=($res+"$"+$label+"=`intSliderGrp -q -v "+$label+"`;\n");
+			$options=($options+$tokenz2[0]+" $"+$label+" ");
+		}
+		if(`size($tokenz2)`==5 && $tokenz2[4]=="Int"){
+			$ev=($ev+"intSliderGrp -l \""+$tokenz2[1]+"("+$tokenz2[0]+")0\" -field true -min 1 -max 100 -v 1 "+$label+"0;\n");
+			$ev=($ev+"intSliderGrp -l \""+$tokenz2[1]+"("+$tokenz2[0]+")1\" -field true -min 1 -max 100 -v 1 "+$label+"1;\n");
+			$ev=($ev+"intSliderGrp -l \""+$tokenz2[1]+"("+$tokenz2[0]+")2\" -field true -min 1 -max 100 -v 1 "+$label+"2;\n");
+			$res=($res+"$"+$label+"0 =`intSliderGrp -q -v "+$label+"0`;\n");
+			$res=($res+"$"+$label+"1 =`intSliderGrp -q -v "+$label+"1`;\n");
+			$res=($res+"$"+$label+"2 =`intSliderGrp -q -v "+$label+"2`;\n");
+			$options=($options+$tokenz2[0]+" $"+$label+"0 $"+$label+"1 $"+$label+"2 ");
+		}
+		
+		if(`size($tokenz2)`==3 && $tokenz2[2]=="on|off"){
+			$ev=($ev+"checkBox -label \""+$tokenz2[1]+"("+$tokenz2[0]+")\" -recomputeSize 0 -v 0 -width 128 "+$label+";\n");
+			$res=($res+"$"+$label+"=`checkBox -q -v "+$label+"`;\n");
+			$options=($options+$tokenz2[0]+" $"+$label+" ");
+		}
+		if(`size($tokenz2)`==3 && $tokenz2[2]=="String"){
+			$ev=($ev+"textFieldGrp -label \""+$tokenz2[1]+"("+$tokenz2[0]+")\" "+$label+";\n");
+			$res=($res+"$"+$label+"=`textFieldGrp -q "+$label+"`;\n");
+			$options=($options+$tokenz2[0]+" $"+$label+" ");
+		}
+		if(`size($tokenz2)`==2 && $tokenz2[2]==""){
+			$ev=($ev+"text -rs 1 -label \""+$tokenz2[1]+"("+$tokenz2[0]+") is Query Mode only.\""+";\n");
+		}
+		
+		$ev=($ev+"separator;\n");
+		
+	}
+	
+	//$ev=($ev+"button -l \"go\" -c \"MS_commandCollection_exec\""+";\n");
+	
+	
+	$MS_CommandCollection_buttonCommands=("{"+$res+$commands+$options+";}");
+	
+	$ev=($ev+"button -l \"go\" -c \"MS_commandCollection_exec\""+";\n");
+	
+	print $ev;
+	print "----------------------------------------------------------\n";
+	print $res;
+	print "----------------------------------------------------------\n";
+	print ($commands+" "+$options+"\n");
+	print "----------------------------------------------------------\n";
+	print ($MS_CommandCollection_buttonCommands+"\n");
+	$foot="separator;\n";
+	//$foot=($foot+"button -l \"doCommands\" -command \""+$do+"\";\n");
+	//$foot=($foot+"button -l \"listCommands\" -command \""+$list+"\";\n");
+	
+	
+	$foot=($foot+"showWindow MS_commandCollection_window;\n");
+	
+	
+	
+	eval ($head+$ev+$foot);
+	
+}
+
+global proc MS_commandCollection_exec(){
+	global string $MS_CommandCollection_buttonCommands;
+	eval($MS_CommandCollection_buttonCommands);
+}
+
+global proc MS_commandCollection_window(){
+	if(`window -exists MS_commandCollection_window`){
+		deleteUI MS_commandCollection_window;
+	}
+	
+	window -title "MS_commandCollection_window" MS_commandCollection_window;
+	columnLayout;
+
+	//button -l "do" -command "MS_commandCollection_window_core";
+	
+	
+	showWindow MS_commandCollection_window;
+}
+
+
+global proc MS_commandCollection(){
+	if(`window -exists MS_commandCollection`){
+		deleteUI MS_commandCollection;
+	}
+	
+	window -title "MS_commandCollection" MS_commandCollection;
+	columnLayout;
+	textFieldGrp -l "commands" "commands";
+	button -l "do" -command "MS_CommandCollection_core";
+	
+	
+	showWindow MS_commandCollection;
+}
+
+//MS_commandCollection;
+

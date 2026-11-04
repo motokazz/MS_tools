@@ -1,0 +1,110 @@
+global proc MS_BakeShadowSetting_Core(){
+	
+	string $mat_name[];
+	
+	string $aniso_list[]=`lsType anisotropic`;
+	string $blinn_list[]=`lsType blinn`;
+	string $lambt_list[]=`lsType lambert`;
+	string $phong_list[]=`lsType phong`;
+	string $phonE_list[]=`lsType phongE`;
+	
+	appendStringArray($mat_name,$aniso_list,(size($aniso_list)-1));
+	appendStringArray($mat_name,$blinn_list,(size($blinn_list)-1));
+	appendStringArray($mat_name,$lambt_list,(size($lambt_list)-1));
+	appendStringArray($mat_name,$phong_list,(size($phong_list)-1));
+	appendStringArray($mat_name,$phonE_list,(size($phonE_list)-1));
+	
+	
+	//string $mat_name[]=`ls -sl`;
+	
+	string $mat_checker=($mat_name[0]+".incandescenceR");
+	
+	$i=0;
+	
+	for ($i=0;$i<size($mat_name);$i++){
+			//transparancy normalize
+		
+		if (`connectionInfo -id ($mat_name[$i]+".transparency")`==0){
+			setAttr ($mat_name[$i]+".transparency") -type double3 0 0 0;
+		}
+		
+		string $mat_setting=($mat_name[$i]+".incandescence");
+		
+		
+		if(`getAttr $mat_checker`!=0){
+			setAttr $mat_setting -type double3 0 0 0 ;
+		}else{
+			setAttr $mat_setting -type double3 1 1 1 ;
+		}
+	
+	}
+	
+	select -r `listTransforms -lights`;
+	string $lgt_name[]=`ls -sl`;
+	
+	$j=0;
+	for($j=0;$j<size($lgt_name);$j++){
+		
+		string $lgt_setting=($lgt_name[$i]+".shadowColor");
+		
+		if(`getAttr $mat_checker`!=0){
+		setAttr $lgt_setting -type double3 0 0 0 ;
+		}else{
+		setAttr $lgt_setting -type double3 -100 -100 -100 ;
+		}
+	}
+	
+	
+//select $mat_name;
+
+
+}
+
+
+
+global proc MS_BakeShadowSetting()
+{
+	
+	//Window Check
+	if(`window -exists MS_BakeShadowSetting`){
+		deleteUI MS_BakeShadowSetting;
+	}
+	
+	
+	//Create Window
+	
+	window -title "MS_BakeShadowSetting" MS_BakeShadowSetting;
+	
+	columnLayout ;
+	
+	//Contents	
+	
+	
+	//text
+	text -label "ThisWindowIsMS_BakeShadowSetting";
+	separator -w 600 -h 40 -st "single";
+	
+	
+	
+	
+	//---------------
+	//Execute Buttons
+	//---------------
+	separator -w 600 -h 40 -st "doubleDash";
+	
+	button -l "do" -command "MS_BakeShadowSetting_Core" ;
+	
+	separator -w 600 -h 40 -st "double";
+	
+	button -l "undo" -command "Undo" ;
+	
+	button -l "exit" -command "deleteUI MS_BakeShadowSetting" ;
+	
+	
+	//Footer
+	showWindow MS_BakeShadowSetting;
+	
+}
+
+MS_BakeShadowSetting;
+

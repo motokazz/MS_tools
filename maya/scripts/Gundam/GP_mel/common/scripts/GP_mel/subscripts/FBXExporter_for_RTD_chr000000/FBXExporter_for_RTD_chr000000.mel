@@ -1,0 +1,44 @@
+scriptJob -e "PostSceneRead" "L7pluginload()";
+eval("paneLayout -e -manage false $gMainPane");
+
+global proc L7pluginload(){
+	
+	loadPlugin  "fbxmaya";
+	source "multiPurposeEditablePicker.mel";multiPurposeEditablePicker;
+	
+	source "setupRTD_for_Export_setting";
+	rtdExpt_loadSettings("RTDSetting_saveData");
+	
+	source "setupRTD_for_Export_output";
+	rtdExpt_syncTgtList();
+	
+	L7selectcharacter();
+	
+	L7selectedExpt();
+	
+	$pid = `getpid`;
+	system("taskkill /pid " + $pid + " /f");
+}
+
+global proc L7selectcharacter(){
+
+	string $temp[] = `textScrollList -q -ai textScrollList_setupRTD_for_Export4_csv_rtdExpt_tgtList0`;
+	for($item in $temp){
+		$matchtemp = `match "chr000000" $item`;
+		if("" != $matchtemp){
+			textScrollList -e -si $item textScrollList_setupRTD_for_Export4_csv_rtdExpt_tgtList0;
+			break;
+		}
+	}
+}
+
+global proc L7selectedExpt(){
+	string $previousVersion = `FBXExportFileVersion -q`;
+	FBXExportFileVersion -v "FBX201400";
+
+	string $exptList[] = getExptList();
+	for($item in $exptList){
+		RTD_singleTGT_export($item);
+	}
+	FBXExportFileVersion -v $previousVersion;
+}

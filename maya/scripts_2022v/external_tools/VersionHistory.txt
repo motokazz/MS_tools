@@ -1,0 +1,13 @@
+
+Version 1.2.0
+This reviison has split up a few of the scripts into separate files to
+stop an occasional issue with Maya failing to properly source some of the
+Global Procedures used to build parts.
+
+Version 1.1.0
+This revision now includes travelling Walkways. Also now includes
+both a Hi and LoRes version of each moving part in two seperate layers.
+Also revised script to ensure the lock off of all unused attributes is complete.
+
+Version 1.0.0
+First Release

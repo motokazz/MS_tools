@@ -1,0 +1,205 @@
+global proc MS_setEmitter_core(string $EmitterName,int $ct1,int $ct2,int $StartFlame0,int $EndFlame0,int $rnd1){
+string $obj[]=`ls -sl`;
+	for($name in $obj){
+		
+		select -r $name;
+		setEmitterInfo;
+		
+		setAttr -type "string" ($name+".EmitterName") $EmitterName;
+		
+		$ct1=$ct1+rand ($rnd1);
+
+
+
+		if($StartFlame0){
+			
+			currentTime ($ct1-1);
+			setKeyframe -v 0 ($name+".EmitterVolume");
+			
+			currentTime $ct1;
+			setKeyframe -v 1 ($name+".EmitterVolume");
+
+		}else{
+			currentTime $ct1 ;
+			setKeyframe -v 1 ($name+".EmitterVolume");
+		}
+
+
+		if($EndFlame0){
+			
+			currentTime ($ct1+$ct2-1);
+			setKeyframe -v 1 ($name+".EmitterVolume");
+			
+			currentTime ($ct1+$ct2);
+			setKeyframe -v 0 ($name+".EmitterVolume");
+		
+		}else{
+		
+			currentTime ($ct1+$ct2);
+			setKeyframe -v 1 ($name+".EmitterVolume");
+		
+		}
+		
+		keyTangent -ott step ($name+".EmitterVolume");
+	}
+}
+
+
+global proc MS_setEmitter_core2(){
+	
+	string $EmitterName=`textFieldGrp -q -tx EmitterName`;
+	
+	int $ct1=`intSliderGrp -q -v ct1`;
+	int $ct2=`intSliderGrp -q -v ct2`;
+	int $StartFlame0=`checkBox -q -v StartFlame0`;
+	int $EndFlame0=`checkBox -q -v EndFlame0`;
+	
+	int $rnd1=`intSliderGrp -q -v rnd1`;
+	
+	MS_setEmitter_core ($EmitterName,$ct1,$ct2,$StartFlame0,$EndFlame0,$rnd1);
+	
+	
+}
+
+global proc MS_setEmitter_delAttr(){
+
+	string $obj[]=`ls -sl`;
+	for($name in $obj){
+		if(`attributeExists "EmitterName" $name`){
+			deleteAttr ($name+".EmitterName");
+		}
+		
+		if(`attributeExists "EmitterVolume" $name`){
+			cutKey -clear -time ":" -float ":" -hierarchy none -controlPoints 0 -shape 1 ($name+".EmitterVolume");
+			deleteAttr ($name+".EmitterVolume");
+		}
+	}
+
+}
+
+global proc MS_setEmitter_createLocator(){
+	
+	string $EmitterName=`textFieldGrp -q -tx EmitterName`;
+	string $locname[]=`spaceLocator -p 0 0 0`;
+	if($EmitterName!=""){
+	rename $locname[0] ($EmitterName+"_em0");
+	}
+	MS_setEmitter_core2;
+}
+
+
+global proc MS_setEmitter_valReset(){
+
+	textFieldGrp -e -tx "" EmitterName;
+	intSliderGrp -e -v 1 ct1;
+	intSliderGrp -e -v 100 ct2;
+	checkBox -e -v 1 StartFlame0;
+	checkBox -e -v 1 EndFlame0;
+	intSliderGrp -e -v 0 rnd1;
+
+}
+
+global proc MS_setEmitter()
+{
+	
+	//Window Check
+	if(`window -exists MS_setEmitter`){
+		deleteUI MS_setEmitter;
+	}
+	
+	
+	//Create Window
+	
+	window -title "MS_setEmitter" MS_setEmitter;
+
+	scrollLayout scrollLayout;
+//		columnLayout -adjustableColumn true;
+	columnLayout;
+	frameLayout 
+		-l "About"
+		-borderVisible true 
+		-labelVisible true 
+		-labelAlign "center"
+		-cll 1
+		-w 400
+		-h 40;
+
+
+		columnLayout ;
+	
+	//Contents
+			//text
+			text -label "ThisWindowIs MS_setEmitter";
+	
+			setParent ..;
+		setParent ..;
+	
+	frameLayout 
+		-l "Control"
+		-borderVisible true 
+		-labelVisible true 
+		-labelAlign "center"
+		-cll 1
+		-w 400
+		-h 120;
+
+
+	columnLayout ;
+
+
+	textFieldGrp -l "EmitterName" EmitterName;
+	//intSilder
+	intSliderGrp -l "StartFlame" -field true -min -1000 -max 1000 -v 1 ct1;
+	intSliderGrp -l "AnimationTotal" -field true -min 1 -max 1000 -v 100 ct2;
+
+
+	checkBox -l "StartFlame0" -v 1 StartFlame0;
+	checkBox -l "EndFlame0" -v 1 EndFlame0;
+
+				setParent ..;
+		setParent ..;
+
+	frameLayout 
+		-l "RandomSetting"
+		-borderVisible true 
+		-labelVisible true 
+		-labelAlign "center"
+		-cll 1
+		-w 400
+		-h 45;
+	
+	columnLayout ;
+		intSliderGrp -l "Random1" -field true -min -1000 -max 1000 -v 0 rnd1;
+				setParent ..;
+		setParent ..;
+
+
+
+	frameLayout 
+		-l "Buttons"
+		-borderVisible true 
+		-labelVisible true 
+		-labelAlign "center"
+		-cll 1
+		-w 400
+		-h 50;
+		rowLayout -numberOfColumns 6 -cw6 64 80 112 64 32 32;
+	//---------------
+	//Execute Buttons
+	//---------------
+			button -w 64 -bgc 1.0 0.9 0.7 -l "setEmitter" -command "MS_setEmitter_core2" ;
+			button -w 64 -bgc 1.0 0.7 0.7 -l "deleteAttr" -command "MS_setEmitter_delAttr" ;
+			button -w 80 -bgc 0.7 0.7 1.0 -l "createEmitter" -command "MS_setEmitter_createLocator" ;
+			button -w 48 -bgc 0.5 0.7 0.5 -l "Reset" -command "MS_setEmitter_valReset" ;
+			button -w 32 -l "undo" -command "Undo" ;
+			button -w 32 -l "exit" -command "deleteUI MS_setEmitter" ;
+			setParent ..;
+		setParent ..;
+	
+	//Footer
+	showWindow MS_setEmitter;
+	
+}
+
+MS_setEmitter;
+

@@ -1,0 +1,12 @@
+global proc setupRTD_for_Export3_primalAct(){
+	source "setupRTD_for_Export_setting";
+	textField -e -cc "rtdExpt_SaveSettings();" textField_setupRTD_for_Export3_csv_cutTimingTf0;
+	textField -e -cc "rtdExpt_SaveSettings();" textField_setupRTD_for_Export3_csv_cameraTf0;
+	textField -e -cc "rtdExpt_SaveSettings();" textField_setupRTD_for_Export3_csv_camera_aimTf0;
+	textField -e -cc "rtdExpt_SaveSettings();" textField_setupRTD_for_Export3_csv_camera_upTf0;
+	textField -e -cc "rtdExpt_SaveSettings();" textField_setupRTD_for_Export3_csv_GP2_folder_Path0;
+	textField -e -cc "rtdExpt_SaveSettings();" textField_setupRTD_for_Export3_csv_GP2_folder_Path1;
+	textField -e -cc "rtdExpt_SaveSettings();" textField_setupRTD_for_Export3_csv_GP2_folder_Path2;
+	textField -e -cc "rtdExpt_SaveSettings();" textField_setupRTD_for_Export3_csv_GP2_folder_Path3;
+}
+setupRTD_for_Export3_primalAct();

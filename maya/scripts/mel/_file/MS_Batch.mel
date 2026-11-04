@@ -1,0 +1,97 @@
+/*-----------------------------------------------------------------------------
+ アニメーションデータをバッチエクスポートする。 
+ ファイル名からモデル名とアニメーション名をエクスポートする。 
+ */
+global proc MS_BatchRefferenceScene( string $exportDir, string $basename )
+{
+
+	string $charsetName = `startString $basename 4`;
+	$stringLengthN = `size $basename`;
+	$stringLength = `size $basename` - 4;
+	string $animName = `endString $basename $stringLength`;
+	
+	string $filename = $exportDir + $charsetName + $animName + "_eff.mb";
+	
+	print("baseName = [" + $basename + "] " + $stringLengthN + ":\n");
+	print ("charName = [" + $charsetName + "] : animName [" + $animName + "]\n" );
+	print ("fileName = [" + $filename + "]\n" );
+	
+
+	string $option = ("file -rename \""+ $filename + "\";file -f -options \"v=0\" -type \"mayaBinary\" -save;");
+	
+	evalEcho( $option );
+}
+
+global proc MS_Batch( string $exportDir, string $sceneDir )
+{
+	string $workspace = $sceneDir;
+	print ( "------------------------------\nexport directory : " + $workspace + "\n\n" );
+	
+	//***************** MB 
+	{
+		string $scenefiles[] = `getFileList -folder $workspace -filespec "*.mb"`;
+		for( $i=0; $i<`size $scenefiles`; $i++ )
+		{
+			string $realname = $workspace + $scenefiles[$i];
+			print ( $realname + "\n" );
+			
+			string $filebase = `basename $realname ".mb"`;
+			FileNameMender $filebase;
+			string $filebasex = `FileNameMender $filebase`;
+			
+			print ( "export : [" + $filebasex + "]\n" );
+			
+//			file -f -options "v=0"  -typ "mayaBinary" -o $realname;
+
+//ここからシーン読み込み後のコマンド
+	file -r -type "mayaBinary" -gl -namespace $filebasex -options "v=0" ("D:/DATA/EOJ2EFFECT/z129_behemoth2/motion/"+$filebasex+".mb");
+	string $setTimeCommand=`scriptNode -q -bs ($filebasex+":sceneConfigurationScriptNode")`;
+	eval $setTimeCommand;
+//ここまで
+	
+
+			
+			MS_BatchRefferenceScene( $exportDir, $filebasex );
+			
+		}
+		file -f -new;
+	}
+	//***************** MA 
+	{
+		string $scenefiles[] = `getFileList -folder $workspace -filespec "*.ma"`;
+		for( $i=0; $i<`size $scenefiles`; $i++ )
+		{
+			string $realname = $workspace + $scenefiles[$i];
+			print ( $realname + "\n" );
+			
+			//file -f -options "v=0"  -typ "mayaAscii" -o $realname;
+			
+			string $filebase = `basename $realname ".ma"`;
+			FileNameMender $filebase;
+			string $filebasex = `FileNameMender $filebase`;
+			int $stringLengthNX = `size $filebasex`;
+			
+			print ( "export : [" + $filebasex + "]\n" );
+			
+			//MS_BatchRefferenceScene( $exportDir, $filebasex );
+			
+			file -f -new;
+		}
+		file -f -new;
+	}
+	print ("file convert end...\n");
+}
+
+
+global proc MS_BatchFolder()
+{
+	string $sceneDir  = `GetDirectoryName "シーンディレクトリを指定してください。"`;
+	string $exportDir = `GetDirectoryName "xffのエクスポート先を指定してください。"`;
+	
+	$sceneDir  = $sceneDir + "/";
+	$exportDir = $exportDir + "/";
+	
+	MS_Batch( $exportDir, $sceneDir );
+}
+
+MS_BatchFolder;

@@ -1,0 +1,587 @@
+global proc MS_performCleanUpScene ()
+{
+	string $result = "OK";
+	
+	//
+	//	We will use catch statements around each individual optimization
+	//	step to detect any errors (syntax errors or other error conditions)
+	//	that may occur.  This is important so that errors in one step
+	//	do not cause the whole process to abort.  Also, since the optimization
+	//	steps mess around with the progress bar and the global cursor state,
+	//	it is important that we restore these things to their previous
+	//	states before this function exits.
+	//
+	int $errorCount = 0;
+
+	cleanUp_Initialize();
+
+	//	so that we can suppress the user confirmation dialog
+	//	during automated testing
+	//
+
+	if (!`about -batch` && $result != "OK") {
+		return;
+	}
+
+	print "\n";
+
+	//	turn on progress reporting
+	//
+	cleanUp_EnableProgressReporting(1);
+
+	if( cleanUp_CheckInterrupt() )
+	{
+    if (`optionVar -query nurbsSrfOption` ) {
+
+        print "Removing invalid nurbs curves and surfaces\n";
+        print "------------------------------------------\n";
+        int $numDel = 0;
+        
+        $errorCount += catch (
+        	$numDel += deleteInvalidNurbs(0)
+        );
+
+		// These nodes can be considered "invalid" 
+		// if they have no connections.  The list is
+		// far from complete; we'll add to it as needed.
+		//
+		$errorCount += catch (
+        	$numDel += deleteUnusedCommon_Multi( 
+					{"stitchSrf","rebuildSurface","insertKnotSurface","avgNurbsSurfacePoints"}, 
+					  0, "Removing invalid NURBS curves and surfaces" )
+		);
+
+		cleanUp_Summary( "Removed invalid NURBS Curves and Surfaces",
+						 ("Removed " + $numDel + " invalid NURBS curves and surfaces") );
+        print "\n";
+    }
+	}	
+
+	if( cleanUp_CheckInterrupt() )
+	{
+    if (`optionVar -query nurbsCrvOption`) {
+        print "Removing unused NURBS curves\n";
+        print "----------------------------\n";
+        
+        int $numDel = 0;
+        $errorCount += catch (
+        	$numDel = deleteUnusedInUnusedHierarchy( "nurbsCurve", 0,
+													 "Deleting unused NURBS curves" )
+		);
+		cleanUp_Summary( "Removed unused NURBS curves", ("Removed " + $numDel + " unused NURBS curves") );
+        print "\n";
+    }
+	}
+
+	if( cleanUp_CheckInterrupt() )
+	{
+    if (`optionVar -query locatorOption`) {
+        print "Removing unused locators\n";
+        print "------------------------\n";
+		int $numDel = 0;
+		
+		$errorCount += catch( 
+			$numDel = deleteUnusedLocators()
+		);
+		cleanUp_Summary( "Removed unused locators", ("Removed " + $numDel + " unused locators") );
+        print "\n";
+    }
+	}
+
+	if( cleanUp_CheckInterrupt() )
+	{
+    if (`optionVar -query ptConOption`) {
+        print "Removing unused constraints\n";
+        print "---------------------------------\n";
+        int $numDel = 0;
+        
+        $errorCount += catch(
+        	$numDel = deleteUnusedConstraints()
+        );
+        
+		cleanUp_Summary( "Removed unused constraints", ("Removed " + $numDel + " unused constraints") );
+        print "\n";
+    }
+	}
+
+	if( cleanUp_CheckInterrupt() )
+	{
+    if (`optionVar -query pbOption`) {
+        print "Removing unused pairBlends\n";
+        print "---------------------------------\n";
+        int $numDel = 0;
+        
+        $errorCount += catch(
+        	$numDel = deleteUnusedPairBlends()
+        );
+		cleanUp_Summary( "Removed unused pairBlends", ("Removed " + $numDel + " unused pairBlends") );
+        print "\n";
+    }
+	}
+
+	if( cleanUp_CheckInterrupt() )
+	{
+	if (`optionVar -query deformerOption`) {
+    	print "Removing unused deformers\n";
+		print "-------------------------\n";
+    	int $numDel = 0;
+    	$errorCount += catch(
+    		$numDel = deleteUnusedDeformers()
+    	);
+		cleanUp_Summary( "Removed unused deformers", ("Removed " + $numDel + " unused deformers") );
+		print "\n";
+	}
+	}
+
+	if( cleanUp_CheckInterrupt() )
+	{
+	if (`optionVar -query unusedSkinInfsOption`) {
+    	print "Removing unused skin influences\n";
+		print "-------------------------\n";
+    	int $numDel = 0;
+    	$errorCount += catch(
+    		$numDel = removeAllUnusedSkinInfs()
+    	);
+		cleanUp_Summary( "Removed unused skin influences", ("Removed " + $numDel + " unused skin influences") );
+		print "\n";
+	}
+	}
+
+	if( cleanUp_CheckInterrupt() )
+	{
+    if (`optionVar -query expressionOption`) {
+        print "Removing unused expressions\n";
+        print "---------------------------\n";
+		int $numDel = 0;
+		$errorCount += catch( 
+			$numDel = deleteUnusedExpressions()
+		);
+		cleanUp_Summary( "Removed unused expressions", ("Removed " + $numDel + " unused expressions") );
+        print "\n";
+    }
+	}
+
+	if( cleanUp_CheckInterrupt() )
+	{
+    if (`optionVar -query groupIDnOption`) {
+        print "Removing unused groupID nodes\n";
+        print "-----------------------------\n";
+        int $numDel = 0;
+        $errorCount += catch(
+        	$numDel = deleteUnusedCommon("groupId", 1, "Deleting unused groupID nodes" )
+        );
+		cleanUp_Summary( "Removed unused groupID nodes", ("Removed " + $numDel + " unused groupID nodes") );
+        print "\n";
+    }
+	}
+
+	if( cleanUp_CheckInterrupt() )
+	{
+    if (`optionVar -query animationCurveOption`) {
+        print "Removing unused animation curves\n";
+        print "--------------------------------\n";
+		int $numDel = 0;
+		$errorCount += catch(
+			$numDel = deleteUnusedCommon( "animCurve", 0, "Deleting unused animation curves" )
+		);
+		cleanUp_Summary( "Removed unused animation curves", ("Removed " + $numDel + " unused animation curves") );
+        print "\n";
+    }
+	}
+
+	if( cleanUp_CheckInterrupt() )
+	{
+    if (`optionVar -query clipOption`) {
+        print "Removing unused animation clips\n";
+        print "-------------------------------\n";
+		int $numDel = 0;
+		$errorCount += catch(
+			$numDel = deleteUnusedTrax( "clips" )
+		);
+		cleanUp_Summary( "Removed unused animation clips", ("Removed " + $numDel + " unused animation clips") );
+        print "\n";
+    }
+	}
+
+	if( cleanUp_CheckInterrupt() )
+	{
+    if (`optionVar -query poseOption`) {
+        print "Removing unused animation poses\n";
+        print "-------------------------------\n";
+		int $numDel = 0;
+		$errorCount += catch(
+			$numDel = deleteUnusedTrax( "poses" )
+		);
+		cleanUp_Summary( "Removed unused animation poses", ("Removed " + $numDel + " unused animation poses") );
+        print "\n";
+    }
+	}
+
+	if( cleanUp_CheckInterrupt() )
+	{
+    if (`optionVar -query snapshotOption`) {
+        print "Removing unused snapshot nodes\n";
+        print "------------------------------\n";
+		int $numDel = 0;
+		$errorCount += catch(
+			$numDel = deleteUnusedCommon("snapshot", 1,
+							  			 "Deleting unused snapshot nodes" )
+		);
+							 
+		cleanUp_Summary( "Removed unused snapshot nodes", ("Removed " + $numDel + " unused snapshot nodes") );
+        print "\n";
+    }
+	}
+
+	if( cleanUp_CheckInterrupt() )
+	{
+    if (`optionVar -query unitConversionOption`) {
+        print "Removing unused unit conversion nodes\n";
+        print "-------------------------------------\n";
+
+		int $numDel = 0;
+		$errorCount += catch( 
+			$numDel = deleteUnusedCommon_Multi( {"unitConversion","timeToUnitConversion","unitToTimeConversion"},
+									   			 1, "Deleting unused unit conversion nodes" )
+		);
+		cleanUp_Summary( "Removed unused unit conversion nodes", ("Removed " + $numDel + " unused unit conversion nodes") );
+        print "\n";
+    }
+	}
+
+	if( cleanUp_CheckInterrupt() )
+	{
+	if (`optionVar -query shaderOption`) {
+		print "Removing unused rendering nodes\n";
+		print "-------------------------------\n";
+		int $numDel = 0;
+		$errorCount += catch(
+			$numDel = MLdeleteUnused()
+		);
+		cleanUp_Summary( "Removed unused rendering nodes", ("Removed " + $numDel + " unused rendering nodes") );
+		print "\n";
+	}
+	}
+
+	if( cleanUp_CheckInterrupt() )
+	{
+    if (`optionVar -query cachedOption`) {
+        print "Removing cached data in datablocks\n";
+        print "----------------------------------\n";
+
+		cleanUp_StartProgress( 1, "Removing cached data in datablocks", 1 );
+		int $cleared = 0;
+		$errorCount = catch(
+			$cleared = `clearCache -allNodes`
+		);
+		cleanUp_EndProgress();
+		print( "Cleaned out " + $cleared + " datablocks\n");
+		cleanUp_Summary( "Removed cached data in datablocks", ("Cleaned out " + $cleared + " datablocks") );
+        print "\n";
+    }
+	}
+
+	if( cleanUp_CheckInterrupt() )
+	{
+	if (`optionVar -query transformOption`) {
+	    print "Removing empty transforms\n";
+		print "-------------------------\n";
+	    int $numDel = 0;
+	    $errorCount += catch(
+	    	$numDel = deleteEmptyGroups()
+	    );
+	    
+		cleanUp_Summary( "Removed empty transforms",
+						 ( "Removed " + $numDel + " empty transforms" ) );
+		print "\n";
+	}
+	}
+
+	if( cleanUp_CheckInterrupt() )
+	{
+	if (`optionVar -query displayLayerOption`) {
+	    print "Removing empty display layers\n";
+		print "-----------------------------\n";
+	    int $numDel = 0;
+	    $errorCount += catch(
+	    	$numDel = deleteEmptyLayers("Display")
+	    );
+		cleanUp_Summary( "Removed empty display layers", ("Removed " + $numDel + " empty display layers") );
+		print "\n";
+	}
+	}
+
+	if( cleanUp_CheckInterrupt() )
+	{
+	if (`optionVar -query renderLayerOption`) {
+	    print "Removing empty render layers\n";
+		print "-----------------------------\n";
+	    int $numDel = 0;
+	    $errorCount += catch(
+	    	$numDel = deleteEmptyLayers("Render")
+	    );
+		cleanUp_Summary( "Removed empty render layers", ("Removed " + $numDel + " empty render layers") );
+		print "\n";
+	}
+	}
+
+	if( cleanUp_CheckInterrupt() )
+	{
+    if (`optionVar -query setsOption`) {
+        print "Removing empty sets\n";
+        print "-------------------\n";
+        int $numDel = 0;
+        $errorCount += catch(
+        	$numDel = deleteUnusedSets()
+        );
+		cleanUp_Summary( "Removed empty sets", ( "Removed " + $numDel + " empty sets" ) );
+        print "\n";
+    }
+	}
+
+	if( cleanUp_CheckInterrupt() )
+	{
+    if (`optionVar -query partitionOption`) {
+        print "Removing empty partitions\n";
+        print "-------------------------\n";
+        int $numDel = 0;
+        $errorCount += catch(
+        	$numDel = deleteUnusedCommon( "partition", 0, "Deleting empty partitions" )
+        );
+		cleanUp_Summary( "Removed empty partitions", ( "Removed " + $numDel + " empty partitions" ) );
+        print "\n";
+    }
+	}
+
+	if( cleanUp_CheckInterrupt() )
+	{
+    if (`optionVar -query referencedOption`) {
+        print "Removing unused referenced items\n";
+        print "--------------------------------\n";
+		int $numDel = 0;
+		$errorCount += catch(
+			$numDel = RNdeleteUnused()
+		);
+		cleanUp_Summary( "Removed unused referenced items", ("Removed " + $numDel + " unused referenced items") );
+        print "\n";
+    }
+	}
+
+	if( cleanUp_CheckInterrupt() )
+	{
+    if (`optionVar -query brushOption`) {
+        print "Removing unused brushes\n";
+        print "-----------------------\n";
+		int $numDel = 0;
+		$errorCount += catch(
+			$numDel = deleteUnusedBrushes()
+		);
+		cleanUp_Summary( "Removed unused brushes", ("Removed " + $numDel + " unused brushes") );
+        print "\n";
+    }
+	}
+
+	if( cleanUp_CheckInterrupt() )
+	{
+    if (`optionVar -query shadingNetworksOption`) {
+        print "Removing duplicate shading networks\n";
+        print "------------------------------------\n";
+        
+        int $numDel = 0;
+        $errorCount += 	catch( 
+        	$numDel = removeDuplicateShadingNetworks(0)
+        );
+      
+		cleanUp_Summary( "Removed duplicate shading networks", ("Removed " + $numDel + " duplicate shading networks") );
+        print "\n";
+    }
+	}
+
+	$errorCount += userCleanUp_PerformCleanUpScene();
+
+	//	turn off progress reporting
+	//
+	cleanUp_EnableProgressReporting(0);
+
+	string $stepsRun[];
+	string $summaries[];
+	cleanUp_GetSummary( $summaries, $stepsRun );
+
+	print( "Optimize Scene Size Summary:\n" );
+	print( "----------------------------\n" );
+	for( $i = 0; $i < size($summaries); $i++ )
+	{
+		print "- ";
+		print( $summaries[$i] );
+		print "\n";
+	}
+	print "\n";
+
+	string $msg = "Scene optimized ";
+	if( $errorCount > 0 )
+	{
+		$msg += ( " with " + $errorCount + " errors ");
+	}
+	
+	$msg += "(";
+	
+	for( $i = 0; $i < size($stepsRun); $i++ )
+	{
+		$msg += $stepsRun[$i];
+
+		if( $i < size($stepsRun)-1 )
+		{
+			$msg += ", ";
+		}
+	}
+
+	$msg += ") - see Script Editor for details.\n";
+	
+	//	If any errors occurred during optimization, output a warning at
+	//	the end to let the user know.
+	//
+	if( $errorCount > 0 )
+	{
+		warning $msg;
+	}
+	else
+	{
+		print $msg;
+	}
+
+	//	if an error occurred in one of the stages, then it wouldn't have 
+	//	called cleanUp_EndProgress(), therefore the progress bar and wait
+	//	cursor would be in the wrong state.  We'll call it here.
+	//	
+	if( $errorCount )
+	{
+		cleanUp_EndProgress();
+	}
+}
+/*-----------------------------------------------------------------------------
+ アニメーションデータをバッチエクスポートする。 
+ ファイル名からモデル名とアニメーション名をエクスポートする。 
+ */
+
+global proc MS_deleteExpressions(){
+	
+	string $obj[]=`ls -typ expression`;
+	delete $obj;
+
+}
+
+
+global proc MS_optimizeScene( string $bdir, string $basename )
+{
+	/* bn_baseを見える状態にする */
+	string $bn_base_names[] = `ls -type transform`;
+	for( $i=0; $i<`size $bn_base_names`; $i++ )
+	{
+		if( `startsWith $bn_base_names[$i] "bn_"` )
+		{
+			setAttr -l false ($bn_base_names[$i]+".visibility");
+			setAttr ($bn_base_names[$i]+".visibility") on;
+			
+			/* レイヤーが存在する場合、それをオンにする */
+			string $layer_info[] = `listConnections ($bn_base_names[$i]+".drawOverride")`;
+			int $bn_layer_exist = `size $layer_info`;
+			for( $j=0; $j<`size $layer_info`; $j++ )
+			{
+				setAttr ($layer_info[$j]+".visibility") 1;
+			}
+		}
+	}
+	
+	/* 選択を解除する */
+	select -cl;
+	
+	string $charsetName = `startString $basename 4`;
+	$stringLengthN = `size $basename`;
+	$stringLength = `size $basename` - 4;
+	string $animName = `endString $basename $stringLength`;
+	
+	string $filename = $bdir + $charsetName + $animName + "_optimized.mb";
+	
+	print("baseName = [" + $basename + "] " + $stringLengthN + ":\n");
+	print ("charName = [" + $charsetName + "] : animName [" + $animName + "]\n" );
+	print ("fileName = [" + $filename + "]\n" );
+	
+	MS_performCleanUpScene;
+	MS_deleteExpressions;
+	string $option = ("file -rename \""+ $filename + "\";file -f -options \"v=0\" -type \"mayaBinary\" -save;");
+	
+	evalEcho( $option );
+}
+
+
+global proc MS_cubicBatchExportAll( string $bdir, string $exdir )
+{
+	
+
+	string $workspace = $exdir;
+	print ( "------------------------------\nexport directory : " + $workspace + "\n\n" );
+	
+	//***************** MB 
+	{
+		string $scenefiles[] = `getFileList -folder $workspace -filespec "*.mb"`;
+		for( $i=0; $i<`size $scenefiles`; $i++ )
+		{
+			string $realname = $workspace + $scenefiles[$i];
+			print ( $realname + "\n" );
+			
+			file -f -options "v=0"  -typ "mayaBinary" -o $realname;
+			
+			string $filebase = `basename $realname ".mb"`;
+			FileNameMender $filebase;
+			string $filebasex = `FileNameMender $filebase`;
+			int $stringLengthNX = `size $filebasex`;
+			
+			print ( "export : [" + $filebasex + "]\n" );
+			
+			MS_optimizeScene( $bdir, $filebasex );
+			
+			
+			
+			file -f -new;
+		}
+		file -f -new;
+	}
+	//***************** MA 
+	{
+		string $scenefiles[] = `getFileList -folder $workspace -filespec "*.ma"`;
+		for( $i=0; $i<`size $scenefiles`; $i++ )
+		{
+			string $realname = $workspace + $scenefiles[$i];
+			print ( $realname + "\n" );
+			
+			file -f -options "v=0"  -typ "mayaAscii" -o $realname;
+			
+			string $filebase = `basename $realname ".ma"`;
+			FileNameMender $filebase;
+			string $filebasex = `FileNameMender $filebase`;
+			int $stringLengthNX = `size $filebasex`;
+			
+			print ( "export : [" + $filebasex + "]\n" );
+			
+			MS_optimizeScene( $bdir, $filebasex );
+			
+			file -f -new;
+		}
+		file -f -new;
+	}
+	print ("file convert end...\n");
+}
+
+
+global proc MS_cubicBatchExport()
+{
+	string $sceneDir  = `GetDirectoryName "シーンディレクトリを指定してください。"`;
+	string $exportDir = `GetDirectoryName "xffのエクスポート先を指定してください。"`;
+	
+	$sceneDir  = $sceneDir + "/";
+	$exportDir = $exportDir + "/";
+	
+	MS_cubicBatchExportAll( $exportDir, $sceneDir );
+}
+
+MS_cubicBatchExport;

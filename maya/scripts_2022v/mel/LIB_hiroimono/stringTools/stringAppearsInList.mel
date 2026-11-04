@@ -1,0 +1,25 @@
+//stringAppearsInList, by Julian Love, julian@lightmail.com. Part of the StringTools set.
+//
+//description:	returns an int of 1 if the source string appears in the source list
+//
+//usage:		stringAppearsInList string[source string] string[][string list];
+//
+//examples:		stringAppearsInList "hello" {"hello", "world", ","};
+//				// Result: 1//
+//				stringAppearsInList "shello" {"hello", "world", ","};
+//				// Result: 0//
+
+
+global proc int stringAppearsInList (string $item, string $list[]){
+	string	$x;
+	string	$matchString = ($item + "+");
+	int		$returnInt = 0;
+
+	for ($x in $list){
+		if (`match $matchString $x` == $item){
+			$returnInt = 1;
+		}
+	}
+
+	return $returnInt;
+}

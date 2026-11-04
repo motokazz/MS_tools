@@ -1,0 +1,17 @@
+
+
+//選択したオブジェクトのリストアップ
+
+string $obj[]=`ls -sl`;
+
+
+ls -type transform "pCube*";
+
+
+//選択したオブジェクトのタイプ
+nodeType ;
+
+
+//アトリビュートリスト表示
+
+listAttr;

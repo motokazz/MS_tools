@@ -1,0 +1,12 @@
+
+global proc MS_havok_convexHull(){
+    string $SEL[]=`ls -sl -l`;
+    for($EACH in $SEL){
+        hkCmdCreateConvexHull -mv 32 -en 0 $EACH;
+    }
+}
+
+
+
+
+

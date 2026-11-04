@@ -1,0 +1,52 @@
+
+/*
+RenzokuMergeVertex
+filter 1-10
+*/
+
+
+global proc MS_rmv_core(){
+string $obj_name[]=`ls -sl`;
+
+	$rev_rep=`intSliderGrp -q -v rev_rep`;
+
+$i=0;
+
+$j=0;
+
+for($j=0;$j<$rev_rep;$j++){
+
+	for($i=0;$i<size($obj_name);$i++){
+	
+	polyMergeVertex  -d $j -ch 0 $obj_name[$i];
+	
+	}
+
+}
+
+}
+
+
+
+global proc MS_RenzokuMergeVertex()
+{
+	if(`window -exists MS_RenzokuMergeVertex`){
+		deleteUI MS_RenzokuMergeVertex;
+	}
+
+	window -title "MS_RenzokuMergeVertex" MS_RenzokuMergeVertex;
+	columnLayout ;
+
+	intSliderGrp -l "repeat" -field true -min 1 -max 100 -v 1 rev_rep;
+
+	button -l "do" -command "MS_rmv_core" ;
+	
+	button -l "undo" -command "Undo" ;
+	
+	button -l "exit" -command "deleteUI MS_RenzokuMergeVertex" ;
+
+	showWindow MS_RenzokuMergeVertex;
+
+}
+
+MS_RenzokuMergeVertex;

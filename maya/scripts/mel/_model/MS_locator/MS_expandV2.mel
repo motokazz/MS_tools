@@ -1,0 +1,100 @@
+global proc MS_expandV2(int $random,int $objCenter){
+/*
+$random 
+0 ランダムOFF
+1 ランダムON
+
+$objCenter
+0 ローテーション時にオブジェクトのローテーションの位置をそれぞれのオブジェクトの中心にしない。
+1 ローテーション時にオブジェクトのローテーションの位置をそれぞれのオブジェクトの中心にする。
+
+*/
+
+	string $objz[];
+	
+	if(`selectMode -q -co`){
+		$objz=`filterExpand -sm 31 -sm 32 -sm 34 -sm 46`;
+	}else{
+		$objz=`ls -tr -sl`;
+	}
+	
+	float $expx=`floatSliderGrp -q -v expx`;
+	float $expy=`floatSliderGrp -q -v expy`;
+	float $expz=`floatSliderGrp -q -v expz`;
+	
+	float $trnx=`floatSliderGrp -q -v trnx`;
+	float $trny=`floatSliderGrp -q -v trny`;
+	float $trnz=`floatSliderGrp -q -v trnz`;
+	
+	float $rotx=`floatSliderGrp -q -v rotx`;
+	float $roty=`floatSliderGrp -q -v roty`;
+	float $rotz=`floatSliderGrp -q -v rotz`;
+	
+	float $sclx=`floatSliderGrp -q -v sclx`;
+	float $scly=`floatSliderGrp -q -v scly`;
+	float $sclz=`floatSliderGrp -q -v sclz`;
+	
+	$rndtx=$trnx;
+	$rndty=$trny;
+	$rndtz=$trnz;
+	
+	$rnd_rotx=$rotx;
+	$rnd_roty=$roty;
+	$rnd_rotz=$rotz;
+	
+	$rnd_sclx=$sclx;
+	$rnd_scly=$scly;
+	$rnd_sclz=$sclz;
+	
+	//----center check---
+	select -r $objz;
+	vector $center=`xform -q -t $objz[0]`;
+	print ($center+"\n");
+	
+	for($name in $objz){
+		
+		if(!`selectMode -q -co`||$objCenter==1){
+			xform -cp $name;
+		}
+
+		//----center check---
+		
+		select -r $name;
+		vector $nameCenter=`MS_ditectCenter 1 `;
+		
+		//---Create Randomseed---
+		
+		if($random==1){
+			
+			$rndtx=rand($trnx,(-$trnx));
+			$rndty=rand($trny,(-$trny));
+			$rndtz=rand($trnz,(-$trnz));
+			
+			$rnd_rotx=rand($rotx,-$rotx);
+			$rnd_roty=rand($roty,-$roty);
+			$rnd_rotz=rand($rotz,-$rotz);
+			
+			$rnd_sclx=rand(1,$sclx);
+			$rnd_scly=rand(1,$scly);
+			$rnd_sclz=rand(1,$sclz);
+			
+		}
+		
+		//---Expand&Translarte---
+		$valx=(((($nameCenter.x)-($center.x))*($expx-1))+$rndtx);
+		$valy=(((($nameCenter.y)-($center.y))*($expy-1))+$rndty);
+		$valz=(((($nameCenter.z)-($center.z))*($expz-1))+$rndtz);
+		
+		move -ws -r $valx $valy $valz $name;
+		
+		rotate -p ($nameCenter.x) ($nameCenter.y) ($nameCenter.z) -r $rnd_rotx $rnd_roty $rnd_rotz $name;
+		
+		scale -r $rnd_sclx $rnd_scly $rnd_sclz $name;
+	}
+	
+	select $objz;
+	
+}
+
+
+

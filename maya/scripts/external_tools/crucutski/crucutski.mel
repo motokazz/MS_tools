@@ -1,0 +1,1044 @@
+/* This file downloaded from Highend3d.com
+''  
+''  Highend3d.com File Information:
+''  
+''    Script Name: Crucutski
+''    Author: greyskull 
+''    Last Updated: Feb 04, 2009
+''    Update/Change this file at:
+''    http://Highend3d.com/maya/downloads/mel_scripts/modeling/poly_tools/2742.html
+''  
+''  Please do not alter any information above this line
+''  it is generated dynamically by Highend3d.com and will
+''  be changed automatically on any updates.
+*/
+// Written by Seth Hall
+//
+// Script Load Stuff, touch below and break shit :(
+//
+
+global string $cruPath;
+$cruPath = (`internalVar -usd` + "crucutski/");
+
+string $load[] = {
+	//"rayIntersect.mll",
+	"cru_header.mel",
+	"cru_cutter.mel",
+	"cru_shading.mel"
+};
+
+int $errorCount = 0;
+string $cruErrors[];
+float $mayaVer = `getApplicationVersionAsFloat`;
+
+int $i;
+for ($i = 0; $i < size($load); $i++) {
+/*
+	if (`fileExtension $load[$i]` == "mll") {
+		if ($mayaVer >= 7 && $mayaVer < 8) {
+		// Maya 7
+			if (`filetest -f ($cruPath + "plugin/m7/" + $load[$i])`) {
+				if (!`pluginInfo -q -l $load[$i]`) {
+					loadPlugin -qt ($cruPath + "plugin/m7/" + $load[$i]);
+				}
+			} else {
+				$cruErrors[$errorCount] = toNativePath($cruPath + "plugin/m7/" + $load[$i]);
+
+				$errorCount++;
+			}
+		} else {
+		// Maya 8
+			if (`filetest -f ($cruPath + "plugin/m8/" + $load[$i])`) {
+				if (!`pluginInfo -q -l $load[$i]`) {
+					loadPlugin -qt ($cruPath + "plugin/m8/" + $load[$i]);
+				}
+			} else {
+				$cruErrors[$errorCount] = toNativePath($cruPath + "plugin/m8/" + $load[$i]);
+
+				$errorCount++;
+			}
+		}
+	} else {
+*/
+		if (`filetest -f ($cruPath + $load[$i])`) {
+			eval("source \"" + $cruPath + $load[$i] + "\"");
+		} else {
+			$cruErrors[$errorCount] = toNativePath($cruPath + $load[$i]);
+
+			$errorCount++;
+		}
+	//}
+}
+
+//
+// <ESLS>
+
+global proc cruListSort(string $listName) {
+	string $list[] = sort(`textScrollList -q -ai $listName`);
+
+	textScrollList -e -ra $listName;
+
+	int $i;
+	for ($i = 0; $i < size($list); $i++) {
+		if (`objExists $list[$i]`) {
+			string $shapeType[] = `cruShapeType $list[$i]`;
+
+			if ($shapeType[1] == "mesh") {
+				textScrollList -e -a $list[$i] $listName;
+			}
+		}
+	}
+
+	clear $list;
+}
+
+global proc cruGroupRemove(string $objZip) {
+	string $objs[] = `cruUnzip $objZip`;
+	string $buffer[];
+
+	tokenize $objs[0] "_" $buffer;
+
+	string $group = `group -em -n ($buffer[0] + "#")`;
+
+	int $i;
+	for ($i = 0; $i < size($objs); $i++) {
+		if (`objExists $objs[$i]`) {
+			parent $objs[$i] $group;
+		}
+	}
+
+	cruList "refresh";
+
+	clear $objs;
+
+	select -r $group;
+}
+
+global proc cruRenamer(string $objZip, string $newName) {
+	string $objs[] = sort(`cruUnzip $objZip`);
+
+	int $objSize = size($objs);
+	string $temp = $objSize;
+	int $padSize = size($temp) + 1;
+
+	int $i;
+	for ($i = 0; $i < $objSize; $i++) {
+		string $name = ($newName + "_" + `cruVersionUp $i $padSize`);
+
+		rename ($objs[$i]) $name;
+	}
+
+	cruList "refresh";
+
+	clear $objs;
+}
+
+global proc cruUpdateObjList(string $objects[]) {
+	textScrollList -e -ra cru_objList;
+
+	int $i;
+	for ($i = 0; $i < size($objects); $i++) {
+		textScrollList -e -a $objects[$i] cru_objList;
+	}
+}
+
+global proc cruList(string $mode) {
+	string $objects[] = `textScrollList -q -ai cru_objList`;
+	string $master = "crucutski";
+	int $i;
+
+	switch ($mode) {
+		case "add":
+			string $sel[]	= `ls -sl`;
+			string $manual	= `textField -q -tx cru_manualObject`;
+
+			int $count = 0;
+
+			for ($i = 0; $i < size($sel); $i++) {
+				if (!`cruInArray $objects $sel[$i]`) {
+					if ($sel[$i] != $manual) {
+						textScrollList -e -a $sel[$i] cru_objList;
+					} else {
+						$count++;
+					}
+				} else {
+					$count++;
+				}
+			}
+
+			cruListSort "cru_objList";
+
+			clear $sel;
+		break;
+
+		case "remove":
+			string $objSel[] = `textScrollList -q -si cru_objList`;
+
+			for ($i = 0; $i < size($objSel); $i++) {
+				textScrollList -e -ri $objSel[$i] cru_objList;
+			}
+
+			cruListSort "cru_objList";
+		break;
+
+		case "refresh":
+			if (`objExists $master`) {
+				string $list[] = `listRelatives $master`;
+				string $meshes[] = `cruGetMeshOnly $list`;
+
+				textScrollList -e -ra cru_objList;
+
+				for ($i = 0; $i < size($meshes); $i++) {
+					textScrollList -e -a $meshes[$i] cru_objList;
+				}
+
+				clear $list;
+				clear $meshes;
+			}
+		break;
+
+		case "superSeparate":
+		break;
+	}
+
+	clear $objects;
+
+	cruChecker;
+}
+
+global proc cruCutList(string $mode) {
+	string $cutters[] = `textScrollList -q -ai cru_cutList`;
+	string $master = "crucutters";
+
+	int $i;
+
+	switch ($mode) {
+		case "add":
+			string $objects[] = `textScrollList -q -ai cru_objList`;
+			string $sel[]	= `ls -sl`;
+
+			int $count = 0;
+
+			for ($i = 0; $i < size($sel); $i++) {
+				if (!`cruInArray $objects $sel[$i]`) {
+					if (!`cruInArray $cutters $sel[$i]`) {
+						textScrollList -e -a $sel[$i] cru_cutList;
+					}
+				}
+			}
+
+			cruListSort "cru_cutList";
+
+			clear $objects;
+			clear $sel;
+		break;
+
+		case "remove":
+			string $cutSel[] = `textScrollList -q -si cru_cutList`;
+
+			for ($i = 0; $i < size($cutSel); $i++) {
+				textScrollList -e -ri $cutSel[$i] cru_cutList;
+			}
+
+			cruListSort "cru_cutList";
+
+			clear $cutSel;
+		break;
+
+		case "refresh":
+			if (`objExists $master`) {
+				string $list[] = `listRelatives $master`;
+				string $meshes[] = `cruGetMeshOnly $list`;
+
+				clear $list;
+
+				int $count = 0;
+
+				for ($i = 0; $i < size($meshes); $i++) {
+					if (`attributeExists "crucutPlane" $meshes[$i]`) {
+						if (`getAttr ($meshes[$i] + ".crucutPlane")` == "superCut") {
+							$list[$count] = $meshes[$i];
+
+							$count++;
+						}
+					}
+				}
+
+				textScrollList -e -ra cru_cutList;
+
+				for ($i = 0; $i < size($list); $i++) {
+					textScrollList -e -a $list[$i] cru_cutList;
+				}
+
+				clear $list;
+				clear $meshes;
+			}
+		break;
+
+		case "delete":
+			string $cutSel[] = `textScrollList -q -si cru_cutList`;
+
+			for ($i = 0; $i < size($cutSel); $i++) {
+				if (`objExists $cutSel[$i]`) {
+					textScrollList -e -ri $cutSel[$i] cru_cutList;
+
+					delete $cutSel[$i];
+				}
+			}
+
+			cruListSort "cru_cutList";
+
+			clear $cutSel;
+		break;
+
+		case "deleteAll":
+			string $cutObjs[] = `textScrollList -q -ai cru_cutList`;
+
+			for ($i = 0; $i < size($cutObjs); $i++) {
+				if (`objExists $cutObjs[$i]`) {
+					textScrollList -e -ri $cutObjs[$i] cru_cutList;
+
+					delete $cutObjs[$i];
+				}
+			}
+
+			cruListSort "cru_cutList";
+
+			clear $cutSel;
+		break;
+	}
+
+	clear $cutters;
+
+	cruChecker;
+}
+
+global proc cruManual(int $mode) {
+	string $sel[]		= `ls -sl`;
+	string $shapeType[]	= `cruShapeType $sel[0]`;
+	string $objs[]		= `textScrollList -q -ai cru_objList`;
+	string $field		= `textField -q -tx cru_manualObject`;
+
+	if ($mode > 0) {
+		if ($shapeType[1] == "mesh") {
+			if (!`cruInArray $objs $sel[0]`) {
+				if (`attributeExists "crucutPlane" $sel[0]`) {
+					textField -e -tx $sel[0] cru_manualObject;
+					button -e -l "Clear Plane" -c "cruManual 0" cru_manualButton;
+				}
+			}
+		}
+	} else {
+		textField -e -tx "" cru_manualObject;
+		button -e -l "Set Plane" -c "cruManual 1" cru_manualButton;
+	}
+
+	clear $sel;
+	clear $shapeType;
+
+	cruChecker;
+}
+
+global proc int cruSuperChecker() {
+	int $check = 0;
+	int $doManual		= `checkBox -q -v cru_doManual`;
+
+	string $master		= "crucutters";
+
+	string $cuts[]		= `textScrollList -q -ai cru_cutList`;
+	string $cutsSel[]	= `textScrollList -q -si cru_cutList`;
+	string $cutZip;
+
+	int $doCutQuickSel	= `checkBox -q -v cru_cutQuickSel`;
+
+	if ($doManual < 1) {
+		text -e -l ("   Total Cutters [" + size($cutsSel) + ":" + size($cuts) + "]") cru_totalCuttersLabel;
+
+		textScrollList -e -en 1 cru_cutList;
+
+		button -e -en 1 cru_genCutPlaneForList;
+		button -e -en 1 cru_addCutButton;
+
+		if (!`objExists $master`) {
+			button -e -en 0 cru_cutRefreshButton;
+		} else {
+			button -e -en 1 cru_cutRefreshButton;
+		}
+
+		if (size($cutsSel) > 0) {
+			if ($doCutQuickSel > 0) {
+				select -r $cutsSel;
+			}
+		}
+
+		if (size($cuts) > 0) {
+			$cutZip = `cruZip $cuts`;
+
+			checkBox -e -en 1 cru_cutQuickSel;
+			checkBox -e -en 1 cru_cutDeleteAfterOp;
+
+			if (size($cutsSel) > 0) {
+				button -e -en 1 -l "Remove Selected" -c "cruCutList remove" cru_cutRemoveButton;
+				button -e -en 1 -l "Delete Selected Cutter(s)" -c "cruCutList delete" cru_deletePlaneButton;
+			} else {
+				button -e -en 1 -l "Clear List" -c "textScrollList -e -ra cru_cutList; cruChecker;" cru_cutRemoveButton;
+				button -e -en 1 -l "Delete All Cutters" -c "cruCutList deleteAll" cru_deletePlaneButton;
+			}
+		} else {
+			checkBox -e -en 0 cru_cutQuickSel;
+			checkBox -e -en 0 cru_cutDeleteAfterOp;
+			button -e -en 0 cru_cutRemoveButton;
+			button -e -en 0 cru_deletePlaneButton;
+
+			$check++;
+		}
+	} else {
+		text -e -l ("   Manual Cut is currently toggled on.") cru_totalCuttersLabel;
+
+		textScrollList -e -en 0 cru_cutList;
+
+		checkBox -e -en 0 cru_cutQuickSel;
+		checkBox -e -en 0 cru_cutDeleteAfterOp;
+
+		button -e -en 0 cru_genCutPlaneForList;
+		button -e -en 0 cru_deletePlaneButton;
+		button -e -en 0 cru_addCutButton;
+		button -e -en 0 cru_cutRemoveButton;
+		button -e -en 0 cru_cutRefreshButton;
+
+		checkBox -e -en 0 cru_cutQuickSel;
+	}
+
+	return $check;
+
+	clear $cuts;
+	clear $cutsSel;
+	clear $cutZip;
+}
+
+global proc cruShadCheck() {
+	int $doShaders		= `checkBox -q -v cru_doShadAssign`;
+
+	int $doSearch		= `checkBox -q -v cru_shadDoSearch`;
+	string $wildcard	= `textField -q -tx cru_shadWildcard`;
+	$wildcard			= `substituteAllString $wildcard " " ""`;
+
+	string $foundShader;
+	string $cmd;
+	string $ann;
+	int $enable;
+	int $found = `optionMenu -q -sl cru_shadShadersFound`;
+	int $shadType = `optionMenu -q -sl cru_shadTypesList` - 1;
+
+	if ($found > 0) {
+		$foundShader = `optionMenu -q -v cru_shadShadersFound`;
+		$cmd = ("cruShaderAE \"" + $foundShader + "\"");
+		$ann = "Click me to load in the Attribute Editor.";
+		$enable = 1;
+	} else {
+		$foundShader = `cruGetGlow`;
+		$cmd = "";
+		$ann = "This means there was no shader found.";
+		$enable = 0;
+	}
+
+	if ($doShaders > 0) {
+		checkBox -e -en 1 cru_shadDoSearch;
+		text -e -en 1 cru_shadFoundListLabel;
+		optionMenu -e -en 1 cru_shadShadersFound;
+
+		if ($doSearch > 0) {
+			checkBox -e -l "Search" cru_shadDoSearch;
+			textField -e -en 1 -tx $wildcard cru_shadWildcard;
+			button -e -en 1 -l "Find" -c "cruShadSeekAndReplace()" cru_shadWildcardFind;
+
+			text -e -en 0 cru_shadTypesListLabel;
+			optionMenu -e -en 0 cru_shadTypesList;
+		} else {
+			checkBox -e -l "Type" cru_shadDoSearch;
+			textField -e -en 0 -tx "" cru_shadWildcard;
+			button -e -en 1 -l "Refresh" -c "cruShadTypesFind()" cru_shadWildcardFind;
+
+			text -e -en 1 cru_shadTypesListLabel;
+			optionMenu -e -en 1 cru_shadTypesList;
+		}
+
+			swatchDisplayPort -e
+				-h 256 -rs 256
+				-en $enable
+				-ann $ann
+				-pc $cmd
+				-sn $foundShader
+			cruSelectedShadSwatch;
+
+			swatchDisplayPort -e -h 128 -rs 128 cruSelectedShadSwatch;
+	} else {
+		checkBox -e -en 0 cru_shadDoSearch;
+		textField -e -en 0 -tx $wildcard cru_shadWildcard;
+		button -e -en 0 cru_shadWildcardFind;
+		text -e -en 0 cru_shadTypesListLabel;
+		optionMenu -e -en 0 cru_shadTypesList;
+		text -e -en 0 cru_shadFoundListLabel;
+		optionMenu -e -en 0 cru_shadShadersFound;
+
+		swatchDisplayPort -e
+			-h 256 -rs 256
+			-en 0
+		cruSelectedShadSwatch;
+
+		swatchDisplayPort -e -h 128 -rs 128 cruSelectedShadSwatch;
+	}
+}
+
+global proc cruChecker() {
+	string $master		= "crucutski";
+
+	int $realtime		= `checkBox -q -v cru_realtime`;
+
+	string $objs[]		= `textScrollList -q -ai cru_objList`;
+	string $objSel[]	= `textScrollList -q -si cru_objList`;
+	string $objZip;
+
+	string $cuts[]		= `textScrollList -q -ai cru_cutList`;
+	string $cutZip;
+
+	int $doQuickSel		= `checkBox -q -v cru_quickSel`;
+	int $doCutQuickSel	= `checkBox -q -v cru_cutQuickSel`;
+	int $doCutterDelete	= `checkBox -q -v cru_cutDeleteAfterOp`;
+
+	string $manualObj	= `textField -q -tx cru_manualObject`;
+	int $doManual		= `checkBox -q -v cru_doManual`;
+	int $doReplace		= `checkBox -q -v cru_doReplacement`;
+	int $doFillHole		= `checkBox -q -v cru_doFillHole`;
+	int $doSeparate		= `checkBox -q -v cru_doSeparate`;
+
+	float $offset[]	= `floatFieldGrp -q -v cru_extractOffset`;
+	int $doExtract	= `checkBox -q -v cru_doExtract`;
+	int $doDelete	= `checkBox -q -v cru_doDelete`;
+
+	string $shader	= "none";
+	int $doShader	= `checkBox -q -v cru_doShadAssign`;
+	int $selShader;
+
+	string $tempName = `textField -q -tx cru_renamer`;
+	string $rename;
+
+	int $check = 0;
+
+	text -e -l ("   Total Objects [" + size($objSel) + ":" + size($objs) + "]") cru_totalObjectsLabel;
+
+	if (size($objs) > 0) {
+		$objZip = `cruZip $objs`;
+
+		if (!`objExists $master`) {
+			button -e -en 0 cru_refreshButton;
+		} else {
+			button -e -en 1 cru_refreshButton;
+		}
+
+		text -e -en 1 cru_renamerLabel;
+		textField -e -en 1 cru_renamer;
+
+		if (size($tempName) > 0) {
+			$rename = `substituteAllString $tempName " " ""`;
+			textField -e -tx $rename cru_renamer;
+
+	 		button -e -en 1 -c ("cruRenamer \"" + $objZip + "\" \"" + $rename + "\"") cru_renameButton;
+		} else {
+			button -e -en 0 -c "" cru_renameButton;
+		}
+
+		checkBox -e -en 1 cru_doReplacement;
+		checkBox -e -en 1 cru_doManual;
+		checkBox -e -en 1 cru_doDelete;
+
+		if (size($objs) > 1) {
+			button -e -en 1 -c ("cruGroupRemove " + $objZip) cru_groupRemoveButton;
+		} else {
+			button -e -en 0 -c "" cru_groupRemoveButton;
+		}
+
+
+		if (size($objSel) > 0) {
+			button -e -en 1 -l "Remove Selected" -c ("cruList remove") cru_removeButton;
+
+			if ($doQuickSel > 0) {
+				select -r $objSel;
+			}
+		} else {
+			button -e -en 1 -l "Clear List" -c "textScrollList -e -ra cru_objList; cruChecker;" cru_removeButton;
+		}
+
+		if ($doFillHole > 0) {
+			text -e -l "Fill \"Holes\" is Enabled" cru_fillHolesWarning;
+
+			checkBox -e -en 1 cru_doShadAssign;
+
+			if ($doShader > 0) {
+				$selShader = `optionMenu -q -sl cru_shadShadersFound`;
+
+				if ($selShader > 0) {
+					$shader = `optionMenu -q -v cru_shadShadersFound`;
+				}
+
+				cruShadCheck;
+			}
+		} else {
+			text -e -l "Fill \"Holes\" Must be Enabled to Assign Shaders" cru_fillHolesWarning;
+
+			$doShader = 0;
+			checkBox -e -en 0 -v 0 cru_doShadAssign;
+
+			cruShadCheck;
+		}
+
+		if ($doManual > 0) {
+			$doCutQuickSel = 0;
+
+			button -e -l "Slice Object(s)" -c "" cru_goButton;
+
+			checkBox -e -en 0 -v 0 cru_cutQuickSel;
+			checkBox -e -en 0 cru_cutDeleteAfterOp;
+
+			checkBox -e -l "Manual Cut" cru_doManual;
+			textField -e -en 1 -ed 0 cru_manualObject;
+			button -e -en 1 cru_manualButton;
+
+			if (`objExists $manualObj`) {
+				button -e -l "Clear Plane" cru_manualButton;
+			} else {
+				textField -e -tx "" cru_manualObject;
+				button -e -l "Set Plane" cru_manualButton;
+
+				$check++;
+			}
+		} else {
+			$cutZip = `cruZip $cuts`;
+
+			button -e -l "Eviscerate Object(s)" -c "" cru_goButton;
+
+			checkBox -e -l "Super Cut" cru_doManual;
+			textField -e -en 0 -ed 0 -tx "Super Cut Enabled" cru_manualObject;
+			button -e -en 0 cru_manualButton;
+
+			int $superCheck = `cruSuperChecker`;
+
+			$check = $check + $superCheck;
+		}
+
+		if ($doQuickSel > 0) {
+			checkBox -e -en 0 -l "Object Quick Select is enabled" cru_cutQuickSel;
+		} else if ($doQuickSel < 1 && $doCutQuickSel < 1) {
+			checkBox -e -en 1 -l "Enable Object Quick Selection" cru_quickSel;
+
+			if ($doManual < 1) {
+				if (size($cuts) > 0) {
+					checkBox -e -en 1 -l "Enable Cutter Quick Selection" cru_cutQuickSel;
+				}
+			}
+		} else if ($doCutQuickSel > 0) {
+			checkBox -e -en 0 -l "Cutter Quick Select is enabled" cru_quickSel;
+		}
+
+		if ($doDelete > 0) {
+			checkBox -e -en 0 cru_doSeparate;
+			checkBox -e -en 0 cru_doExtract;
+			floatFieldGrp -e -en 0 cru_extractOffset;
+		} else {
+			checkBox -e -en 1 cru_doSeparate;
+			checkBox -e -en 1 cru_doExtract;
+
+			if ($doExtract > 0) {
+				checkBox -e -en 1 cru_doFillHole;
+				floatFieldGrp -e -en 1 cru_extractOffset;
+
+				if ($offset[0] == 0 && $offset[1] == 0 && $offset[2] == 0) {
+					$doSeparate = 0;
+					$doFillHole = 0;
+
+					checkBox -e -en 0 cru_doFillHole;
+					checkBox -e -en 0 cru_doSeparate;
+				} else {
+					checkBox -e -en 1 cru_doFillHole;
+					checkBox -e -en 1 cru_doSeparate;
+				}
+			} else {
+				checkBox -e -en 0 cru_doFillHole;
+				floatFieldGrp -e -en 0 cru_extractOffset;
+			}
+		}
+	} else {
+		$check++;
+
+		$objZip = "";
+		$cutZip = "";
+
+		if (!`objExists $master`) {
+			button -e -en 0 cru_refreshButton;
+		} else {
+			button -e -en 1 cru_refreshButton;
+		}
+
+		text -e -l "There is No Objects To Process" cru_fillHolesWarning;
+
+		text -e -en 0 cru_renamerLabel;
+		textField -e -en 0 cru_renamer;
+
+		button -e -en 0 -c "" cru_renameButton;
+
+		$doShader = 0;
+		checkBox -e -en 0 -v 0 cru_doShadAssign;
+
+		cruShadCheck;
+
+		button -e -en 0 -c "" cru_groupRemoveButton;
+
+		button -e -en 0 cru_removeButton;
+
+		checkBox -e -en 0 cru_doReplacement;
+		checkBox -e -en 0 cru_doFillHole;
+		checkBox -e -en 0 cru_doSeparate;
+
+		checkBox -e -en 0 cru_doManual;
+		textField -e -en 0 -ed 0 cru_manualObject;
+		button -e -en 0 cru_manualButton;
+
+		checkBox -e -en 0 cru_doDelete;
+		checkBox -e -en 0 cru_doExtract;
+		floatFieldGrp -e -en 0 cru_extractOffset;
+	}
+
+	if ($doDelete > 0) {
+		$offset[0] = 0;
+		$offset[1] = 0;
+		$offset[2] = 0;
+		$doFillHole = 0;
+	} else if ($doDelete < 1) {
+		if ($offset[0] == 0 && $offset[1] == 0 && $offset[2] == 0) {
+			$doSeparate = 0;
+			$doFillHole = 0;
+		}
+	}
+
+	if ($check > 0) {
+		button -e -en 0 -c "" cru_goButton;
+	} else {
+		if ($doManual > 0) {
+			button -e -en 1 -l "Slice Object(s)" -c ("cruCutter " + $realtime + " \"" + $objZip + "\" \"" + $manualObj + "\" \"" + $shader + "\" " + $doShader + " " + $doReplace + " " + $doFillHole + " " + $doSeparate + " " + $doManual + " " + $doDelete + " " + $doExtract + " " + $offset[0] + " " + $offset[1] + " " + $offset[2]) cru_goButton;
+		} else {
+			button -e -en 1 -l "Eviscerate Object(s)" -c ("cruSuperCutter " + $realtime + " \"" + $objZip + "\" \"" + $cutZip + "\" \"" + $shader + "\" " + $doShader + " " + $doReplace + " " + $doFillHole + " " + $doSeparate + " " + $doDelete + " " + $doCutterDelete + " " + $doExtract + " " + $offset[0] + " " + $offset[1] + " " + $offset[2]) cru_goButton;
+		}
+	}
+}
+
+global proc cruTabChecker() {
+	string $tab = `tabLayout -q -st cruTabMain`;
+
+	switch ($tab) {
+		case "Main":
+			cruChecker;
+		break;
+
+		case "Super Cut":
+			cruSuperChecker;
+		break;
+
+		case "Shading":
+			cruShadCheck;
+		break;
+	}
+}
+
+global proc crucutski() {
+	if (`window -ex crucutGUI`) {
+		deleteUI crucutGUI;
+	}
+
+	string $shaders[] = { "anisotropic", "blinn", "hairTubeShader", "lambert", "layeredShader", "oceanShader", "phong", "phongE", "rampShader", "shadingMap", "surfaceShader", "useBackground", "all shaders"	};
+	string $allShad[] = `cruGetShaders 12 ""`;
+
+	window
+		 -t "Crucutski"
+		 -tb 1
+		 -s 0
+		 -mnb 0
+		 -mxb 0
+		 -mb 0
+		 -mbv 0
+		 -rtf 1
+		 -wh 350 450
+	crucutGUI;
+
+		columnLayout -adj true;
+			separator -h 1 -st "none";
+
+			progressBar crucutskiProgress;
+
+			separator -h 2 -st "none"; separator -h 3 -st "out"; separator -h 3 -st "none";
+
+			tabLayout -innerMarginWidth 0 -innerMarginHeight 0 -sc "cruTabChecker()" cruTabMain;
+				columnLayout -adj true -p "cruTabMain" "Main";
+					separator -h 2 -st "none";
+
+					text -al "left" -fn "boldLabelFont" -l "   Total Objects [0:0]" cru_totalObjectsLabel;
+
+					separator -h 1 -st "none";
+
+					textScrollList
+						-h 175
+						-ams 1
+						-sc "cruChecker()"
+					cru_objList;
+
+					separator -h 2 -st "none";
+
+					checkBox -al "left" -l "Enable Object Quick Selection" -cc "cruChecker()" cru_quickSel;
+
+					separator -h 2 -st "none";
+
+					rowColumnLayout -nc 3
+						-cw 1 60
+						-cs 2 2 -cw 2 214
+						-cs 3 3 -cw 3 60;
+
+						text -l "Re-Namer" cru_renamerLabel;
+						textField -tx "" -ec "cruChecker" -cc "cruChecker" cru_renamer;
+						button -l "Rename" -c "" cru_renameButton;
+					setParent ..;
+
+					separator -h 2 -st "none";
+					separator -h 3 -st "in";
+					separator -h 3 -st "none";
+
+
+					rowColumnLayout -nc 3
+						-cw 1 112
+						-cs 2 2 -cw 2 111
+						-cs 3 2 -cw 3 112;
+
+						button -l "Add Poly Object(s)" -c "cruList add" cru_addPolyButton;
+						button -l "Refresh List" -c "cruList refresh" cru_refreshButton;
+						button -l "Remove Selected" -c "cruList remove" cru_removeButton;
+					setParent ..;
+
+					separator -h 2 -st "none";
+
+					rowColumnLayout -nc 2
+						-cw 1 169
+						-cs 2 2 -cw 2 168;
+
+						button -bgc .675 1 .675 -l "Create Cutting Plane" -c ("cruGenSoloCutter; textField -e -tx \"\" cru_manualObject; textField -e -tx `ls -sl` cru_manualObject; cruChecker;") cru_createCutPlane;
+						button -bgc .675 .675 1 -l "Group and Remove Objects" -c "" cru_groupRemoveButton;
+					setParent ..;
+
+					separator -h 2 -st "none";
+					separator -h 3 -st "in";
+					separator -h 3 -st "none";
+
+					rowColumnLayout -nc 3
+						-cs 1 5 -cw 1 135
+						-cs 2 15 -cw 2 75
+						-cs 3 15 -cw 3 90;
+
+						checkBox -l "Random Replacement" -v 1 -cc "cruChecker()" cru_doReplacement;
+						checkBox -l "Fill \"Holes\"" -v 1 -cc "cruChecker()" cru_doFillHole;
+						checkBox -l "Auto Separate" -v 1 -cc "cruChecker()" cru_doSeparate;
+					setParent ..;
+
+					rowColumnLayout -nc 3
+						-cs 1 5 -cw 1 80
+						-cs 2 2 -cw 2 178
+						-cs 3 2 -cw 3 70;
+
+						checkBox -l "Manual Cut" -v 1 -cc "cruChecker()" cru_doManual;
+						textField -ed 0 -tx "" -cc "cruChecker()" -ec "cruChecker()" cru_manualObject;
+						button -l "Set Plane" -c "cruManual 1" cru_manualButton;
+					setParent ..;
+
+					separator -h 2 -st "none";
+					separator -h 3 -st "in";
+					separator -h 3 -st "none";
+
+					rowColumnLayout -nc 2
+						-cs 1 5 -cw 1 90;
+
+						checkBox -l "Delete Faces" -v 0 -cc "cruChecker()" cru_doDelete;
+					setParent ..;
+
+					rowColumnLayout -nc 2
+						-cs 1 5 -cw 1 90
+						-cs 2 2 -cw 2 185;
+
+						checkBox -l "Extract Offset" -v 1 -cc "cruChecker()" cru_doExtract;
+						floatFieldGrp
+							-nf 3
+							-cw 1 60
+							-cw 2 60
+							-cw 3 60
+							-pre 4
+							-v1 .0001
+							-v2 .0001
+							-v3 .0001
+							-cc "cruChecker()"
+						cru_extractOffset;
+					setParent ..;
+
+				setParent ..;	// first columnLayout :: "Main" tab
+
+				columnLayout -adj true -p "cruTabMain" "Super Cut";
+					separator -h 2 -st "none";
+
+						text -al "left" -fn "boldLabelFont" -l "   Total Cutters [0:0]" cru_totalCuttersLabel;
+
+					separator -h 1 -st "none";
+
+					textScrollList
+						-h 175
+						-ams 1
+						-sc "cruChecker()"
+					cru_cutList;
+
+					separator -h 2 -st "none";
+
+					checkBox -al "left" -l "Enable Object Quick Selection" -cc "cruChecker()" cru_cutQuickSel;
+					checkBox -al "left" -l "Delete Cutters After Operation" -cc "cruChecker()" cru_cutDeleteAfterOp;
+
+					separator -h 2 -st "none";
+					separator -h 3 -st "in";
+					separator -h 3 -st "none";
+
+					button -bgc .675 1 .675 -l "Create Cutting Plane For List" -c "cruGenSuperCutter()" cru_genCutPlaneForList;
+
+					separator -h 2 -st "none";
+
+					rowColumnLayout -nc 3
+						-cw 1 112
+						-cs 2 2 -cw 2 111
+						-cs 3 2 -cw 3 112;
+
+						button -l "Add Cutter" -c "cruCutList add" cru_addCutButton;
+						button -l "Refresh List" -c "cruCutList refresh" cru_cutRefreshButton;
+						button -l "Remove Selected" -c "cruCutList remove" cru_cutRemoveButton;
+					setParent ..;
+
+					separator -h 2 -st "none";
+
+					button -bgc 1 .675 .675 -l "Delete All Cutters" -c "cruCutList delete" cru_deletePlaneButton;
+				setParent ..;	// "Super Cut" columnLayout
+
+				columnLayout -adj true -p "cruTabMain" "Shading";
+
+					separator -h 2 -st "none";
+
+					text -fn "boldLabelFont" -l "Fill \"Holes\" must be enabled to assign shaders." cru_fillHolesWarning;
+
+					separator -h 2 -st "none";
+					separator -h 3 -st "in";
+					separator -h 3 -st "none";
+
+					rowColumnLayout -nc 1
+						-cs 1 105 -cw 1 128;
+
+						swatchDisplayPort
+							-h 256
+							-rs 256
+							-ann "Click me to load in the Attribute Editor."
+							-pc ""
+						cruSelectedShadSwatch;
+					setParent ..;
+
+					separator -h 2 -st "none";
+					separator -h 3 -st "in";
+					separator -h 3 -st "none";
+
+					checkBox -al "left" -l "Assign Shader to New Faces" -v 0 -cc "cruShadCheck()" cru_doShadAssign;
+
+					separator -h 2 -st "none";
+					separator -h 3 -st "in";
+					separator -h 3 -st "none";
+
+					rowColumnLayout -nc 3
+						-cs 1 5 -cw 1 60
+						-cs 2 2 -cw 2 198
+						-cs 3 2 -cw 3 70;
+
+						checkBox -l "Search" -v 0 -cc "cruShadCheck()" cru_shadDoSearch;
+						textField -tx "" -cc "cruShadCheck()" -ec "cruShadCheck()" cru_shadWildcard;
+						button -l "Find" -c "cruShadSeekAndReplace()" cru_shadWildcardFind;
+					setParent ..;
+
+					separator -h 2 -st "none";
+
+					rowColumnLayout -nc 5
+						-cs 1 36 -cw 1 30
+						-cs 2 4 -cw 2 110
+						-cs 3 14 -cw 3 30
+						-cs 4 4 -cw 4 110;
+
+						text -l "Types" cru_shadTypesListLabel;
+						optionMenu -cc "cruShadTypesFind()" cru_shadTypesList;
+
+						text -l "Found" cru_shadFoundListLabel;
+						optionMenu -cc "cruShadCheck()" cru_shadShadersFound;
+					setParent ..;
+
+					int $i;
+					for ($i = 0; $i < size($shaders); $i++) {
+						menuItem -p "cru_shadTypesList" -l $shaders[$i] ("cru_shadType_" + $shaders[$i] + "_mi");
+					}
+
+					for ($i = 0; $i < size($allShad); $i++) {
+						menuItem -p "cru_shadShadersFound" -l $allShad[$i] ("cru_shadFound_" + $allShad[$i] + "_mi");
+					}
+
+					optionMenu -e -sl 13 cru_shadTypesList;
+
+					swatchDisplayPort -e
+						-h 128 -rs 128
+						-sn `optionMenu -q -v cru_shadShadersFound`
+						-pc ("cruShaderAE \"" + `optionMenu -q -v cru_shadShadersFound` + "\"")
+					cruSelectedShadSwatch;
+
+					separator -h 2 -st "none";
+					separator -h 3 -st "in";
+					separator -h 3 -st "none";
+				setParent ..;
+			setParent ..;		// tabLayout main
+
+			separator -h 2 -st "none";
+
+			checkBox -al "left" -l "Realtime Feedback" -v 1 -cc "cruTabChecker()" cru_realtime;
+
+			separator -h 2 -st "none"; separator -h 3 -st "out"; separator -h 3 -st "none";
+
+			button -l "Slice Object(s)" -c "" cru_goButton;
+
+			//separator -h 2 -st "none";
+			//separator -h 3 -st "out";
+			//separator -h 3 -st "none";
+
+			//button -l "Close Crucutski" -c "deleteUI crucutGUI" cru_closeButton;
+		setParent ..;			// main columnLayout
+	setParent ..;				// window
+
+	showWindow crucutGUI;
+
+	cruChecker;
+	cruSuperChecker;
+	cruShadCheck;
+
+	clear $shaders;
+}
+
+if ($errorCount < 1) {
+	crucutski;
+} else {
+	print ("crucutLog -> Please place the following items in the respective locations and try sourcing again.\n");
+	print ("crucutLog -> -[ Begin Error Log ]------------\n");
+	print $cruErrors;
+	print ("crucutLog -> -[ End of Errors ]--------------\n");
+
+	clear $cruErrors;
+
+	warning ("Crucutski was unable to properly load. See Script Editor for details.");
+}

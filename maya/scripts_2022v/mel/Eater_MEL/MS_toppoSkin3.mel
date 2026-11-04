@@ -1,0 +1,172 @@
+
+global proc vector MS_ditectCenter(int $mode ){
+	/*
+	0　バウンディングボックス中心検出
+	1　ボリューム中心検出
+	
+	戻り値：vector
+	*/
+	string $orgobjz[]=`ls -sl`;
+	//より分け選択
+	string $objz[];
+	
+	$objz=`ls -tr -sl`;
+	
+	if(!size($objz)){
+		PolySelectConvert 3;
+		$objz=`filterExpand -sm 31`;
+	}
+	
+	vector $loc;
+	string $locatorList[];
+	string $temp[];
+	
+	float $totalX;
+	float $totalY;
+	float $totalZ;
+	
+	if ($mode==0){
+		
+		//バウンディングボックス中心検出
+		
+		float $bbox[6] = `exactWorldBoundingBox $objz`;
+		$loc=<<(($bbox[3]+$bbox[0])/2),(($bbox[4]+$bbox[1])/2),(($bbox[5]+$bbox[2])/2)>>;
+		
+		
+	}else if ($mode==1){
+		
+		//ボリューム中心検出
+		for ($each in $objz){
+			
+			vector $location=`xform -q -ws -t $each`;
+			
+			$totalX=$totalX+($location.x);
+			$totalY=$totalY+($location.y);
+			$totalZ=$totalZ+($location.z);
+			
+		}
+		
+		$loc=<<($totalX/size($objz)),($totalY/size($objz)),($totalZ/size($objz))>>;
+	}
+	
+	select -r $orgobjz;
+	return $loc;
+
+}
+
+global proc MS_toppoJoint(){
+	string $root="root";
+	if(`objExists $root`){delete $root;}
+	select -cl;
+	joint -p 0 0 0 -n joint_000;
+	joint -p 0 0 0 -n joint_127;
+	select -r |joint_000;
+	group -n $root;
+	string $num;
+	for($i=1;$i<127;$i++){
+		if($i<10){
+			$num=("00"+$i);
+		}else if($i<100){
+			$num=("0"+$i);
+		}else{
+			$num=$i;
+		}
+		select ($root+"|joint_000");
+		joint -p 0 0 0 -n ("joint_"+$num);
+	}
+	for($i=128;$i<237;$i++){
+		select ($root+"|joint_000|joint_127");
+		joint -p 0 0 0 -n ("joint_"+$i);
+	}
+}
+
+global proc MS_toppoSkin(){
+	string $skinCluster[]=`ls -l -typ skinCluster`;
+	if(size($skinCluster)){
+		delete $skinCluster;
+	}
+	if(`objExists "*_hk*"`){
+		delete "*_hk*";
+	}
+	string $pre_bone[]=`ls -l -sl`;
+	for($each in $pre_bone){
+		rename $each "MS_toppoSkin";
+	}
+	
+	string $bone[]=`ls -tr -l -sl "MS_toppoSkin*"`;
+	string $temp[];
+	vector $center;
+	int $i;
+	if(`objExists "parts"`){
+		rename "parts" "parts_bak";
+	}
+
+	//MS_toppoJoint;
+
+	string $num;
+	string $oname;
+	
+	$i=0;
+	for($i=0;$i<234;$i++){
+		if($i<9){
+			$num=("00"+($i+1));
+		}else if($i<99){
+			$num=("0"+($i+1));
+		}else if($i<126){
+			$num=($i+1);
+		}else{
+			$num=($i+3);
+		}
+		
+		if($i<84){
+			$oname=("kawa_"+$num);
+		}else if($i<126){
+			$oname=("in_"+$num);
+		}else if($i<199){
+			$oname=("kawa_"+$num);
+		}else {
+			$oname=("in_"+$num);
+		}
+		int $check[];
+		if(`objExists $bone[$i]`){
+			$check=`polyEvaluate -v $bone[$i]`;
+		}
+		if(!$check[0]){
+			delete $bone[$i];
+		}
+		if(`objExists $bone[$i]`){
+			select -r $bone[$i];
+			$center=`MS_ditectCenter(0)`;
+			xform -a -ws -t ($center.x) ($center.y) ($center.z) ("joint_"+$num);
+		}else{
+			polyCube -n ("dummy"+$i);
+			$bone[$i]=("dummy"+$i);
+		}
+		
+		select -r $bone[$i] ("joint_"+$num);
+		skinCluster -tsb;
+		
+		rename $bone[$i] $oname;
+		$temp[$i]=$oname;
+	}
+	
+	group -w -n "parts" $temp;
+	
+	
+}
+
+global proc MS_topposkinUI(){
+	if (`window -q -ex MS_topposkinUI`){
+		deleteUI MS_topposkinUI;
+	}
+	window MS_topposkinUI;
+	columnLayout;
+	
+	button -w 50 -l "toppoJoint" -c "MS_toppoJoint";
+	button -w 50 -l "toppoSkin" -c "MS_toppoSkin";
+	
+	window -e -wh 217 200 MS_topposkinUI;
+	showWindow MS_topposkinUI;
+}
+
+MS_topposkinUI;

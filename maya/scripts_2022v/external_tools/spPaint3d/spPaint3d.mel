@@ -1,0 +1,20 @@
+//-----------------------------------------------------------------
+//	SCRIPT			spPaint3d.mel
+//	AUTHOR			Sebastien Paviot
+//				spaviot@gmail.com
+//	DATE:			2009
+//
+//	DESCRIPTION:		Mel script to kickstart the python modules
+//
+//	VERSION:			0.9
+//
+//-----------------------------------------------------------------
+
+
+
+global proc spPaint3d ()
+{
+	python("import sys; sys.path.append('D:/Projects/Gravite2/tools/maya/maya2014/scripts/python/s2000_tools/creativecrash/spPaint3d')");
+	python("import spPaint3dGui; spPaint3dwin=spPaint3dGui.spPaint3dWin()");
+}
+spPaint3d();

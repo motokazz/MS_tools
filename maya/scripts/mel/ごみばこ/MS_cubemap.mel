@@ -1,0 +1,177 @@
+global proc MS_cubemap_camera(){
+	string $newcam[]=`camera -ar 1 -fcp 100000 -ncp 1 -p 0 200 0 -fl 12 -n "MS_cubemapcam"`;
+	string $camshape[]=`listRelatives -s $newcam[0]`;
+	setAttr ($camshape[0]+".horizontalFilmAperture") 0.957;
+	setAttr ($camshape[0]+".verticalFilmAperture") 0.957;
+	setAttr ($camshape[0]+".focalLength") 12;
+	
+	setKeyframe -t 1 -v 0 ($newcam[0]+".rx");
+	setKeyframe -t 1 -v -90 ($newcam[0]+".ry");
+	setKeyframe -t 1 -v 0 ($newcam[0]+".rz");
+	
+	setKeyframe -t 2 -v 0 ($newcam[0]+".rx");
+	setKeyframe -t 2 -v 90 ($newcam[0]+".ry");
+	setKeyframe -t 2 -v 0 ($newcam[0]+".rz");
+	
+	setKeyframe -t 3 -v 90 ($newcam[0]+".rx");
+	setKeyframe -t 3 -v 0 ($newcam[0]+".ry");
+	setKeyframe -t 3 -v 0 ($newcam[0]+".rz");
+	
+	setKeyframe -t 4 -v -90 ($newcam[0]+".rx");
+	setKeyframe -t 4 -v 0 ($newcam[0]+".ry");
+	setKeyframe -t 4 -v 0 ($newcam[0]+".rz");
+	
+	setKeyframe -t 5 -v 0 ($newcam[0]+".rx");
+	setKeyframe -t 5 -v 180 ($newcam[0]+".ry");
+	setKeyframe -t 5 -v 0 ($newcam[0]+".rz");
+	
+	setKeyframe -t 6 -v 0 ($newcam[0]+".rx");
+	setKeyframe -t 6 -v 0 ($newcam[0]+".ry");
+	setKeyframe -t 6 -v 0 ($newcam[0]+".rz");
+	
+	
+	lookThroughModelPanel $newcam[0] modelPanel4;
+}
+global proc MS_cubemap_camera_panoramaViewer(){
+	string $newcam[]=`camera -ar 1 -fcp 100000 -ncp 1 -p 0 15 0 -fl 12 -n "MS_cubemapcam"`;
+	string $camshape[]=`listRelatives -s $newcam[0]`;
+	setAttr ($camshape[0]+".horizontalFilmAperture") 0.945;
+	setAttr ($camshape[0]+".verticalFilmAperture") 0.945;
+	setAttr ($camshape[0]+".focalLength") 12;
+	
+	setKeyframe -t 1 -v 0 ($newcam[0]+".rx");
+	setKeyframe -t 1 -v 0 ($newcam[0]+".ry");
+	setKeyframe -t 1 -v 0 ($newcam[0]+".rz");
+	
+	setKeyframe -t 2 -v 0 ($newcam[0]+".rx");
+	setKeyframe -t 2 -v -90 ($newcam[0]+".ry");
+	setKeyframe -t 2 -v 0 ($newcam[0]+".rz");
+	
+	setKeyframe -t 3 -v 0 ($newcam[0]+".rx");
+	setKeyframe -t 3 -v 180 ($newcam[0]+".ry");
+	setKeyframe -t 3 -v 0 ($newcam[0]+".rz");
+	
+	setKeyframe -t 4 -v 0 ($newcam[0]+".rx");
+	setKeyframe -t 4 -v 90 ($newcam[0]+".ry");
+	setKeyframe -t 4 -v 0 ($newcam[0]+".rz");
+	
+	setKeyframe -t 5 -v 90 ($newcam[0]+".rx");
+	setKeyframe -t 5 -v 0 ($newcam[0]+".ry");
+	setKeyframe -t 5 -v 0 ($newcam[0]+".rz");
+	
+	setKeyframe -t 6 -v -90 ($newcam[0]+".rx");
+	setKeyframe -t 6 -v 0 ($newcam[0]+".ry");
+	setKeyframe -t 6 -v 0 ($newcam[0]+".rz");
+	
+	
+	lookThroughModelPanel $newcam[0] modelPanel4;
+}
+
+
+global proc MS_cubemap_core(){
+	
+	int $x=`intFieldGrp -q -v1 "SIZEX"`;
+	int $y=`intFieldGrp -q -v1 "SIZEY"`;
+	
+	string $CAMERA[]=`camera -ar 1 -fcp 100000 -ncp 1 -p 0 200 0 -fl 12`;
+	string $CAMERA_SHAPE[]=`listRelatives -s $CAMERA[0]`;
+	
+	setAttr ($CAMERA_SHAPE[0]+".horizontalFilmAperture") 0.957;
+	setAttr ($CAMERA_SHAPE[0]+".verticalFilmAperture") 0.957;
+	setAttr ($CAMERA_SHAPE[0]+".focalLength") 12;
+	
+	setKeyframe -t 1 -v 0 ($CAMERA[0]+".rx");
+	setKeyframe -t 1 -v -90 ($CAMERA[0]+".ry");
+	setKeyframe -t 1 -v 0 ($CAMERA[0]+".rz");
+	
+	setKeyframe -t 2 -v 0 ($CAMERA[0]+".rx");
+	setKeyframe -t 2 -v 90 ($CAMERA[0]+".ry");
+	setKeyframe -t 2 -v 0 ($CAMERA[0]+".rz");
+	
+	setKeyframe -t 3 -v 90 ($CAMERA[0]+".rx");
+	setKeyframe -t 3 -v 0 ($CAMERA[0]+".ry");
+	setKeyframe -t 3 -v 0 ($CAMERA[0]+".rz");
+	
+	setKeyframe -t 4 -v -90 ($CAMERA[0]+".rx");
+	setKeyframe -t 4 -v 0 ($CAMERA[0]+".ry");
+	setKeyframe -t 4 -v 0 ($CAMERA[0]+".rz");
+	
+	setKeyframe -t 5 -v 0 ($CAMERA[0]+".rx");
+	setKeyframe -t 5 -v 180 ($CAMERA[0]+".ry");
+	setKeyframe -t 5 -v 0 ($CAMERA[0]+".rz");
+	
+	setKeyframe -t 6 -v 0 ($CAMERA[0]+".rx");
+	setKeyframe -t 6 -v 0 ($CAMERA[0]+".ry");
+	setKeyframe -t 6 -v 0 ($CAMERA[0]+".rz");
+	
+	
+	lookThroughModelPanel $CAMERA[0] modelPanel4;
+	
+	
+	playblast  
+	-st 1 -et 6
+	-format image 
+	
+	-clearCache 1 
+	-viewer 0
+	
+	-showOrnaments 0
+	-percent 100 
+	-widthHeight $x $y
+	
+	-filename cubemap
+	//-compression none
+	
+	;
+	
+	delete $CAMERA[0];
+
+}
+
+global proc MS_cubemap(){
+	
+	
+	//Window Check
+	if(`window -exists MS_cubemap`){
+		deleteUI MS_cubemap;
+	}
+	
+	window -title "MS_cubemap" MS_cubemap;
+	columnLayout;
+	
+	text -label "MS_cubeMap";
+	text -label "キューブマップ作成補助スクリプト";
+	separator -w 300 -h 10 -st "double";
+	text -label "１・カメラを選択して下記ボタンを実行";
+	text -label "２・レンダーセットアップでイメージサイズを正方形になるように設定";
+	text -label "３・1～6フレームをレンダリング";
+	separator -w 300 -h 10 -st "double";
+	text -w 300 -bgc 0.8 0.8 0.8 -label "DirectX準拠のキューブマップ";
+	button -w 300 -bgc 0.5 0.8 0.5 -l "Setup in Selected Camera DX" -command "MS_cubemap_camera" ;
+	separator -w 300 -h 10 ;
+	text -w 300 -bgc 0.8 0.8 0.8 -label "PanoramaViewer準拠のキューブマップ";
+	button -w 300 -bgc 0.5 0.5 0.5 -l "Setup in Selected Camera PanoramaViewer" -command "MS_cubemap_camera_panoramaViewer" ;
+	
+	separator -w 300 -h 40 -st "double";
+	text -w 300 -bgc 0.8 0.8 0.8 -label "クイック作成";
+	text -label "PlayBlastを使用してキューブマップ用のテクスチャを作成します";
+	text -label "カメラ作成とレンダリングを自動で行います";
+	text -label "１・下記ボタンを実行";
+	
+	intFieldGrp -l "sizeX" -v1 1024 "SIZEX";
+	intFieldGrp -l "sizeY" -v1 1024 "SIZEY";
+	
+	button -w 300 -bgc 0.8 0.5 0.5 -l "Render in PlayBlast" -command "MS_cubemap_core" ;
+	
+	
+	
+	
+	//Footer
+	showWindow MS_cubemap;
+	
+	window -e -wh 306 350 MS_cubemap;
+	
+}
+
+//MS_cubemap;
+

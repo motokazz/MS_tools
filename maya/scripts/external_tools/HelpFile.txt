@@ -1,0 +1,72 @@
+
+/////////////////////////////////////////////////////////////////////////////			
+/*				
+	Copyright © 2006 DVY_Stairs Help File. All rights reserved davvey@ntlworld.com
+
+						- DVY_Stairs Help File -
+						
+/////////////////////////////////////////////////////////////////////////////
+
+Ergonomics and Building Code requirements
+
+	Ergonomically and for safety reasons, stairs have to have certain
+	measurements in order for people to comfortably use them. Building
+	codes will typically specify certain measurements so that the stairs
+	are not too steep or narrow. Building codes will specify.
+
+    * minimum tread length, typically 9 inches (229 mm) including the nosing.
+	  However, most human feet are longer than 9 inches (229 mm), thus people's
+	  feet don't actually fit on the tread of the step.
+
+    * maximum riser height, typically 8.25 inches (210 mm). Note that by
+	  specifying the maximum riser height and minimum tread length, a maximum
+	  slope is established. Residential building codes will typically allow for
+	  steeper stairs than public building codes.
+
+    * minimum riser height: Some building codes also specify a minimum riser
+	  height, often 5 inches (125 mm).
+
+    * Riser-Tread formula: Sometimes the stair parameters will be something like
+	  2 times riser + tread equals 24 inches (610 mm).
+	  Thus a 7 inch (178 mm) rise and a ten inch (254 mm) tread exactly meets
+	  this code. If only a 2 inch(51 mm) rise is used then a 20 inch(508 mm) tread
+	  is required. This is based on the principle that a low rise is more like
+	  walking up a gentle incline and so the natural swing of the leg will be longer.
+	  This makes low rise stairs very expensive in terms of the space consumed.
+
+    * variance on riser height and tread depth between steps on the same flight should
+	  be very low. Building codes may specify variances as small as 0.25 inches (6.4 mm).
+	  The reason is that on a continuous flight of stairs, people get used to a regular
+	  step and may trip if there is a step that is different, especially at night. The
+	  general rule is that all steps on the same flight must be identical. Hence, stairs
+	  are typically custom made to fit the particular floor to floor height and horizontal
+	  space available. Special care must be taken on the first and last risers. Stairs must
+	  be supported directly by the subfloor. If thick flooring (e.g. thick hardwood planks)
+	  are added on top of the subfloor, it will cover part of the first riser, reducing the
+	  effective height of the first step. Likewise at the top step, if the top riser simply
+	  reaches the subfloor and thick flooring is added, the last rise at the top may be
+	  higher than the last riser. The first and last riser heights of the rough stairs are
+	  modified to adjust for the addition of the finished floor.
+
+    * maximum nosing protrusion, typically 1.25 inches (32 mm) to prevent people from
+	  tripping on the nosing.
+
+    * height of the handrail. This is typically between 34 and 38 inches (864 and 965 mm),
+	  measured to the nose of the tread. The minimum height of the handrail for landings
+	  may be different and is typically 36 inches (914 mm).
+
+    * railing diameter. The size has to be comfortable for grasping and is typically between
+	  1.25 and 2.675 inches (37 and 68 mm).
+
+    * maximum space between the pickets of the handrail. This is typically 4 inches (102 mm).
+
+    * openings (if they exist) between the bottom rail and treads are typically no bigger
+	  than 6 inches (152 mm).
+
+    * minimum headroom
+
+    * maximum vertical height between floors or landings. This allows people to rest and
+ 	 limits the height of a fall.
+
+    * mandate handrails if there is more than a certain number of steps (typically 2 risers)
+

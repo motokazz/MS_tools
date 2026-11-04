@@ -1,0 +1,250 @@
+/*
+-------------------
+MS_locater_dupVER.mel
+-------------------
+
+◆概要
+MS_locaterのバーテックス用バージョン。
+
+◆使用方法
+実行するとダイアログが出るので適当にいじるといろいろなことがおきる。
+
+
+◆詳細
+とりあえずRandomとExpandは使えると思う。
+
+
+※注意
+
+
+
+*/
+
+
+global proc MS_random_comp(int $mode){
+
+	string $objz[]=`filterExpand -sm 31 -sm 32 -sm 34`;
+
+	float $trnx=`floatSliderGrp -q -v trnx`;
+	float $trny=`floatSliderGrp -q -v trny`;
+	float $trnz=`floatSliderGrp -q -v trnz`;
+
+	float $rotx=`floatSliderGrp -q -v rotx`;
+	float $roty=`floatSliderGrp -q -v roty`;
+	float $rotz=`floatSliderGrp -q -v rotz`;
+
+	float $sclx=`floatSliderGrp -q -v sclx`;
+	float $scly=`floatSliderGrp -q -v scly`;
+	float $sclz=`floatSliderGrp -q -v sclz`;
+	
+	int $i;
+	
+	$rndtx=$trnx;
+	$rndty=$trny;
+	$rndtz=$trnz;
+	
+	$rnd_rotx=$rotx;
+	$rnd_roty=$roty;
+	$rnd_rotz=$rotz;
+	
+	$rnd_sclx=$sclx;
+	$rnd_scly=$scly;
+	$rnd_sclz=$sclz;
+	
+	for($i=0;$i<size($objz);$i++){
+		
+		//----center check---
+		float $bbox[6] = `polyEvaluate -bc $objz[$i]`;
+		
+		$center[0] = ( ($bbox[0]/2) + ($bbox[1]/2) ) ;
+		$center[1] = ( ($bbox[2]/2) + ($bbox[3]/2) ) ;
+		$center[2] = ( ($bbox[4]/2) + ($bbox[5]/2) ) ;
+		
+		//--- Random Translate---
+		if($mode==1){
+			$rndtx=rand($trnx,(-$trnx));
+			$rndty=rand($trny,(-$trny));
+			$rndtz=rand($trnz,(-$trnz));
+		}
+		
+		move -r -os $rndtx $rndty $rndtz $objz[$i];
+		
+		
+		//--- Random Rotate ---
+		
+		if($mode==1){
+			$rnd_rotx=rand($rotx,(-$rotx));
+			$rnd_roty=rand($roty,(-$roty));
+			$rnd_rotz=rand($rotz,(-$rotz));
+		}
+		
+		rotate -r -p $center[0] $center[1] $center[2] $rnd_rotx $rnd_roty $rnd_rotz $objz[$i];
+		
+		
+		//--- Random Scale ---
+		
+		if($mode==1){
+			$rnd_sclx=rand(($sclx),1+(1-$sclx));
+			$rnd_scly=rand(($scly),1+(1-$scly));
+			$rnd_sclz=rand(($sclz),1+(1-$sclz));
+		}
+		
+		scale -r -p $center[0] $center[1] $center[2] $rnd_sclx $rnd_scly $rnd_sclz $objz[$i];
+		
+ 	}
+}
+
+global proc MS_locater_compVer_valReset(){
+	floatSliderGrp -e -v 0 trnx;
+	floatSliderGrp -e -v 0 trny;
+	floatSliderGrp -e -v 0 trnz;
+	
+	floatSliderGrp -e -v 0 rotx;
+	floatSliderGrp -e -v 0 roty;
+	floatSliderGrp -e -v 0 rotz;
+	
+	floatSliderGrp -e -v 1 sclx;
+	floatSliderGrp -e -v 1 scly;
+	floatSliderGrp -e -v 1 sclz;
+}
+
+global proc MS_locater_compVer()
+{
+	if(`window -exists MS_locater_compVer`){
+		deleteUI MS_locater_compVer;
+	}
+	
+	window -title "MS_locater_compVer" MS_locater_compVer;	
+	
+	$form = `formLayout`;
+
+	setParent $form;
+	$sep=`separator`;
+
+	$com_trnx=`floatSliderGrp -l "trnx" -field true -min 0 -max 2 -v 0 trnx`;
+	$com_trny=`floatSliderGrp -l "trny" -field true -min 0 -max 2 -v 0 trny`;
+	$com_trnz=`floatSliderGrp -l "trnz" -field true -min 0 -max 2 -v 0 trnz`;
+
+	$com_rotx=`floatSliderGrp -l "rotx" -field true -min 0 -max 360 -v 0 rotx`;
+	$com_roty=`floatSliderGrp -l "roty" -field true -min 0 -max 360 -v 0 roty`;
+	$com_rotz=`floatSliderGrp -l "rotz" -field true -min 0 -max 360 -v 0 rotz`;
+
+	$com_sclx=`floatSliderGrp -l "sclx" -field true -min .1 -max 2 -v 1 sclx`;
+	$com_scly=`floatSliderGrp -l "scly" -field true -min .1 -max 2 -v 1 scly`;
+	$com_sclz=`floatSliderGrp -l "sclz" -field true -min .1 -max 2 -v 1 sclz`;
+
+	$com_mov=`button -bgc 1.0 0.5 0.5 -l "move" -command "MS_random_comp 0"`;
+	$com_rnd=`button -bgc 0.5 0.5 1.0 -l "random" -command "MS_random_comp 1"`;
+
+	$com_res=`button -bgc 0.5 0.75 0.5 -l "Reset" -command "MS_locater_compVer_valReset"`;
+	$com_und=`button -l "undo" -command "Undo" `;
+	$com_ext=`button -l "exit" -command "deleteUI MS_locater_compVer" `;
+
+
+	formLayout -e
+
+	-af $com_trnx "top" 10
+        -af $com_trnx "left" 5
+        -an $com_trnx "right"
+        -an $com_trnx "bottom"
+
+	-af $com_trny "top" 30
+        -af $com_trny "left" 5
+        -an $com_trny "right"
+        -an $com_trny "bottom"
+
+	-af $com_trnz "top" 50
+        -af $com_trnz "left" 5
+        -af $com_trnz "right" 5
+        -an $com_trnz "bottom"
+
+	-af $sep "top" 70
+	-af $sep "left" 5
+	-af $sep "right" 5
+	-an $sep "bottom"
+//------------------------------------
+
+	-af $com_rotx "top" 90
+        -af $com_rotx "left" 5
+        -an $com_rotx "right"
+        -an $com_rotx "bottom"
+
+	-af $com_roty "top" 110
+        -af $com_roty "left" 5
+        -an $com_roty "right"
+        -an $com_roty "bottom"
+
+	-af $com_rotz "top" 130
+        -af $com_rotz "left" 5
+        -af $com_rotz "right" 5
+        -an $com_rotz "bottom"
+
+	-af $sep "top" 150
+	-af $sep "left" 5
+	-af $sep "right" 5
+	-an $sep "bottom"
+//------------------------------------
+	
+	-af $com_sclx "top" 170
+        -af $com_sclx "left" 5
+        -an $com_sclx "right"
+        -an $com_sclx "bottom"
+
+	-af $com_scly "top" 190
+        -af $com_scly "left" 5
+        -an $com_scly "right"
+        -an $com_scly "bottom"
+
+	-af $com_sclz "top" 210
+        -af $com_sclz "left" 5
+        -af $com_sclz "right" 5
+        -an $com_sclz "bottom"
+
+	-af $sep "top" 230
+	-af $sep "left" 5
+	-af $sep "right" 5
+	-an $sep "bottom"
+
+
+//------------------------------------
+
+		-af $com_mov "top" 260
+        -af $com_mov "left" 5
+        -ap $com_mov "right" 0 25
+        -an $com_mov "bottom"
+
+		-af $com_rnd "top" 260
+        -ap $com_rnd "left" 0 25
+        -ap $com_rnd "right" 0 50
+        -an $com_rnd "bottom"
+
+		-af $sep "top" 290
+		-af $sep "left" 5
+		-af $sep "right" 5
+		-an $sep "bottom"
+
+
+		-af $com_res "top" 300
+        -af $com_res "left" 10
+        -ap $com_res "right" 0 25
+        -an $com_res "bottom"
+
+        -af $com_und "top" 300
+        -ap $com_und "left" 0 55
+        -ap $com_und "right" 0 70
+        -an $com_und "bottom"
+
+        -af $com_ext "top" 300
+        -ap $com_ext "left" 0 80
+        -af $com_ext "right" 5
+        -an $com_ext "bottom"
+	$form;
+	
+	showWindow MS_locater_compVer;
+	
+
+}
+
+
+MS_locater_compVer;
+

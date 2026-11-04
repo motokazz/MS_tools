@@ -1,0 +1,194 @@
+/* This file downloaded from Highend3d.com
+''  
+''  Highend3d.com File Information:
+''  
+''    Script Name: Davveys Vehicle Rigging Scripts
+''    Author:  
+''    Last Updated: Jul 21, 2007
+''    Update/Change this file at:
+''    http://Highend3d.com/maya/downloads/mel_scripts/animation/4109.html
+''  
+''  Please do not alter any information above this line
+''  it is generated dynamically by Highend3d.com and will
+''  be changed automatically on any updates.
+*/
+
+
+///////////////////////////////////////////////////////////////////////////////
+/*			
+	Copyright © 2006 DVY_VehicleRotate. All rights reserved davvey@ntlworld.com
+
+						- DVY_VehicleRotate -
+
+///////////////////////////////////////////////////////////////////////////////
+						  
+	This script is called by DVY_RigVehicle to set up compensatation for any
+	change in the Vehicl's orientation in the Y axis . The script adds in a
+	Muliiplier Node to each Wheel and then automatically adjust wheel spin
+	direction to ensure each wheel turns in the correct direction to suit
+	forward or reverse movemnt of the Vehicl.
+	
+*/
+///////////////////////////////////////////////////////////////////////////////
+//					DVY_VehicleRotate Procedure
+///////////////////////////////////////////////////////////////////////////////
+
+//==============================================================================
+//	GLOBAL VARIABLES
+//==============================================================================
+	global int $DVYDebug;
+
+// Integer Flag that allows print statements to be output to
+// message field for tracking purposes.
+	
+//==============================================================================
+
+global proc DVY_VehicleRotate()
+ {
+	 
+	print "Starting DVY_VehicleRotate procedure.\n\n";
+	 
+// *******************************************************************************//	
+//	Global Variables
+	
+	global string $RigControlsA[], $GroupV_A[], $DLocs[], $DJntsA[];
+	global string $DVY_VehName;
+	global float $DVYdata[];
+	
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+//	Local Variables
+
+	string $VehRotateN[], $RotateSwitchN[], $RotateCondN[], $RotateN[];
+
+	string $DPrefix[] = {"Fr", "Rr", "Lf", "Rt"};
+	string $DPrefixSp[] = {"LfFr_", "RtFr_", "LfRr_", "RtRr_"};
+	string $Temp[]; 
+	
+	int $a, $b, $c, $i, $j, $k, $r;
+	
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+
+	 $Temp = `spaceLocator -p 0 0 0 -name ($DVY_VehName + "Cn_Rotate_LocA_1")`;
+		$DLocs[1] = $Temp[0];
+		pointConstraint -mo -weight 1 $RigControlsA[2] $DLocs[1];
+		
+	 $Temp = `spaceLocator -p 0 0 0 -name ($DVY_VehName + $DPrefix[0] + "Cn_Rotate_LocA_1")`;
+		$DLocs[8] = $Temp[0];
+		delete `pointConstraint -offset 0 0 0 -skip x -skip y  -weight 1 $GroupV_A[4] $DLocs[8]`;
+		parentConstraint -mo -weight 1 ($DVY_VehName + "CnFr_Wheel_JnT_1") $DLocs[8];			 
+	
+	 $Temp = `spaceLocator -p 0 0 0 -name ($DVY_VehName + $DPrefix[1] + "Cn_Rotate_LocA_1")`;
+		$DLocs[9] = $Temp[0];
+		delete `pointConstraint -offset 0 0 0 -skip x -skip y  -weight 1 $GroupV_A[7] $DLocs[9]`;
+		parentConstraint -mo -skipRotate z -skipRotate x  -weight 1 ($DVY_VehName + "CnRr_Wheel_JnT_1") $DLocs[9];
+	
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+
+		connectAttr -f ($DLocs[8] + ".rotateY") ($RigControlsA[0] + ".RotateAngle");
+	
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+
+	$RotateCondN[0] = `createNode condition -name ($DVY_VehName + "Rotate_PlusCondN_1")`;
+		setAttr ($RotateCondN[0] + ".op") 2;
+		setAttr ($RotateCondN[0] + ".ft") 90;
+		setAttr ($RotateCondN[0] + ".cfr") 1;
+		setAttr ($RotateCondN[0] + ".ctr") -1;			
+		connectAttr -f ($RigControlsA[0] + ".RotateAngle")  ($RotateCondN[0] + ".st");
+	
+	$RotateCondN[1] = `createNode condition -name ($DVY_VehName + "Rotate_NegCondN_1")`;
+		setAttr ($RotateCondN[1] + ".op") 4;
+		setAttr ($RotateCondN[1] + ".ft") -90;
+		setAttr ($RotateCondN[1] + ".cfr") -1;
+		setAttr ($RotateCondN[1] + ".ctr") 1;			
+		connectAttr -f ($RigControlsA[0] + ".RotateAngle")  ($RotateCondN[1] + ".st");
+	
+	$RotateSwitchN[0] = `shadingNode -asUtility multDoubleLinear -name ($DVY_VehName + "Rotate_PlusSwitchN_1")`;
+		setAttr ($RotateSwitchN[0] + ".input1") -1;
+		connectAttr -f ($RotateCondN[0] + ".ocr") ($RotateSwitchN[0] + ".input2");
+		connectAttr -f ($RotateSwitchN[0] + ".output") ($RigControlsA[0] + ".PlusAngle");
+
+	$RotateSwitchN[1] = `shadingNode -asUtility multDoubleLinear -name ($DVY_VehName + "Rotate_NegSwitchN_1")`;
+		setAttr ($RotateSwitchN[1] + ".input1") 1;
+		connectAttr -f ($RotateCondN[1] + ".ocr") ($RotateSwitchN[1] + ".input2");
+		connectAttr -f ($RotateSwitchN[1] + ".output") ($RigControlsA[0] + ".NegAngle");
+		
+	$VehicleRotateN[0] = `shadingNode -asUtility multDoubleLinear -name ($DVY_VehName + "Rotate_VehicleRotateN_1")`;
+		connectAttr -f ($RotateSwitchN[0] + ".output") ($VehicleRotateN[0] + ".input1");
+		connectAttr -f ($RotateSwitchN[1] + ".output") ($VehicleRotateN[0] + ".input2");
+	
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+
+	$a = $r = 0;
+	for ($a=0; $a<2; $a++)
+		{$q = 1;
+		for ($q=1; $q<$DVYdata[1]+1; $q++)
+			{
+				$RotateN[$q+$r] = `shadingNode -asUtility multDoubleLinear -name ($DVY_VehName + "Rotate_" + $DPrefixSp[$i] + "WheelRotateN_1")`;
+					connectAttr -f ($VehicleRotateN[0] + ".output") ($RotateN[$q+$r] + ".input1");
+					connectAttr -f ($DVY_VehName + "Move_" + $DPrefixSp[$a] + "Wheel_AutoRotSwitchN_" + $q + ".output") ($RotateN[$q+$r] + ".input2");
+					connectAttr -f ($RotateN[$q+$r] + ".output") ($DVY_VehName + "WheelSpin_" + $DPrefixSp[$a] + "RotatorN_" + $q + ".input[1]");
+		 }
+		$r = $r + $DVYdata[1];
+	}
+	
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+
+	$r = $r + $DVYdata[1];
+	
+//	print ("$r is " + $r + "\n");	
+	
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+
+	for ($a=2; $a<4; $a++)
+		{$q = 1;
+		for ($q=1; $q<$DVYdata[2]+1; $q++)
+			{
+				$RotateN[$q+$r] = `shadingNode -asUtility multDoubleLinear -name ($DVY_VehName + "Rotate_" + $DPrefixSp[$i] + "WheelRotateN_1")`;
+					connectAttr -f ($VehicleRotateN[0] + ".output") ($RotateN[$q+$r] + ".input1");
+					connectAttr -f ($DVY_VehName + "Move_" + $DPrefixSp[$a] + "Wheel_AutoRotSwitchN_" + $q + ".output") ($RotateN[$q+$r] + ".input2");
+					connectAttr -f ($RotateN[$q+$r] + ".output") ($DVY_VehName + "WheelSpin_" + $DPrefixSp[$a] + "RotatorN_" + $q + ".input[1]");
+		 }
+		$r = $r + $DVYdata[2];
+	}
+	
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+
+	 parent $DLocs[1] $DLocs[8] $DLocs[9] ($DVY_VehName + "VehicleRotate_LocGrpN_1");
+	
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+
+/*
+		print "\n Vehicle RotateSwitch Nodes are..\n";
+		print $RotateSwitchN; 
+		print "\n Davvey © 2006..\n";
+		
+		print "\n Vehicle Rotate Condition Nodes are..\n";
+		print $RotateCondN;
+		print "\n Davvey © 2006..\n";
+		
+		print "\n Vehicle Rotate Nodes are..\n";
+		print $RotateN;
+		print "\n Davvey © 2006..\n";
+*/
+
+	print "\n DVY_VehicleRotate has set up Nodes for wheel rotation correction based on Y axis rotation. See help file for more details. Davvey © 2006..\n\n";
+
+ }	//	End of DVY_VehicleRotate.

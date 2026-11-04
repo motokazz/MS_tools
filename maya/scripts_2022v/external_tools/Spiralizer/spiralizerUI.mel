@@ -1,0 +1,60 @@
+/* This file downloaded from Highend3d.com
+''  
+''  Highend3d.com File Information:
+''  
+''    Script Name: Spiralizer
+''    Author:  
+''    Last Updated: April 13, 2014
+''    Update/Change this file at:
+''    http://Highend3d.com/maya/downloads/mel_scripts/modeling/misc/842.html
+''  
+''  Please do not alter any information above this line
+''  it is generated dynamically by Highend3d.com and will
+''  be changed automatically on any updates.
+*/
+//
+// Copyright (C) 2002 by Tom
+// marble@gmx.ch
+// 
+
+global proc spiralizerUI() 
+{
+
+string $winName = "wSpiralizer";
+
+
+if (`window -exists $winName`)
+{
+deleteUI $winName;
+windowPref -remove $winName;
+
+}
+
+windowPref -topLeftCorner 220 320 -widthHeight 398 180 -parentMain true wSpiralizer;
+
+window -title "NURBS Spiralizer" -wh 398 180 $winName;
+columnLayout;
+text " ";
+text "Select NURBS Surface";
+text " ";
+
+string $control = `floatSliderGrp -l "Number of Turns  " 
+        -field true  -minValue -900.0 -maxValue 900.0
+    	-fieldMinValue -900.0 -fieldMaxValue 900.0
+    	-value 0.0`;
+string $cmd = ("$numRounds = `floatSliderGrp -q -v " + $control + "`");
+floatSliderGrp -e -dc $cmd -cc $cmd $control;
+text " ";
+text "Positive value for Counterclockwise";
+text "Negative value for Clockwise";
+text "Press Enter after typing a value before Create!";
+text " ";
+text " ";
+
+button -w 390 -label "Create" -al "center" -c "spiralizer $numRounds" cButt; 
+
+ 
+
+showWindow $winName;
+}
+spiralizerUI() ;

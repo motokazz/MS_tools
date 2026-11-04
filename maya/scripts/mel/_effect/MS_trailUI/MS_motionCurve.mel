@@ -1,0 +1,67 @@
+global proc string MS_motionCurve(
+	float $strtm,
+	float $endtm,
+	int $curveDegree,
+	float $timeStep,
+	string $obj[],
+	int $createBspline,
+	int $reverseCurve)
+{
+	
+	//モーションからカーブを作成する
+	print $obj;
+	float $range=($endtm-$strtm);
+	
+	currentTime -e $strtm;
+	float $dtf[];
+	float $totalX;
+	float $totalY;
+	float $totalZ;
+	
+	for($each in  $obj){
+		$dtf=`xform -q -a -t -ws $each`;
+		$totalX=$totalX+$dtf[0];
+		$totalY=$totalY+$dtf[1];
+		$totalZ=$totalZ+$dtf[2];
+	}
+	
+	string $newCurve=`curve -ws -d $curveDegree -p ($totalX/size($obj)) ($totalY/size($obj)) ($totalZ/size($obj))`;
+	
+	float $ct=0;
+	int $i=0;
+	for($i=0;$i<($range/$timeStep);$i++){
+		$ct=$ct+$timeStep;
+		currentTime -e ($strtm+$ct);
+		//float $dtf[]=`xform -q -a -t -ws $obj`;
+		$totalX=0;
+		$totalY=0;
+		$totalZ=0;
+		for($each in  $obj){
+			$dtf=`xform -q -a -t -ws $each`;
+			$totalX=($totalX+$dtf[0]);
+			$totalY=($totalY+$dtf[1]);
+			$totalZ=($totalZ+$dtf[2]);
+		}
+		curve -ws -a -p ($totalX/size($obj)) ($totalY/size($obj)) ($totalZ/size($obj)) $newCurve;
+	}
+	
+	//カーブを反転する
+	if($reverseCurve){
+		reverseCurve -ch 0 -rpo 1 $newCurve;
+	}
+	
+	//fitBsplineを使う
+	if($createBspline){
+		
+		string $bs[]=`fitBspline -ch 1 -tol 0.01 $newCurve`;
+		$newCurve=$bs[0];
+		
+	}
+	
+	
+	return $newCurve;
+	
+}
+
+
+

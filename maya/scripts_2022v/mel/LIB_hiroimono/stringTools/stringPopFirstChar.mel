@@ -1,0 +1,20 @@
+//stringPopFirstChar, by Julian Love, julian@lightmail.com. Part of the StringTools set.
+//
+//description:	chops off the first character from the supplied string 
+//
+//usage:		stringPopFirstChar string[source string];
+//
+//examples:		stringPopFirstChar "hello world.";
+//				// Result: ello world.//
+//
+//				stringPopFirstChar "left_wrist_controller";
+//				// Result: eft_wrist_controller //
+
+
+global proc string stringPopFirstChar (string $item){
+	string	$returnString;
+	
+	$returnString = `substring $item 2 (size($item))`;
+	
+	return $returnString;
+}

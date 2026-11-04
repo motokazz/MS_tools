@@ -1,0 +1,265 @@
+
+global proc MS_loc_CenterResetter_pipe(){
+	int $mode;
+	string $cp=`radioCollection -q -sl "cp"`;
+	int $flz_scl =`checkBox -q -v "flz_scl"` ;//Data//
+	int $flz_rot =`checkBox -q -v "flz_rot" `;//Data//
+	int $flz_trn =`checkBox -q -v "flz_trn"` ;//Data//
+	print $cp;
+	if($cp=="BBC"){$mode=0;}
+	else if($cp=="VLC"){$mode=1;}
+	
+	MS_loc_CenterResetter_core $mode $flz_trn $flz_rot $flz_scl;
+	
+	
+	
+}
+
+
+global proc MS_locater_valReset(){
+	/*
+	UIの値をすべてリセット。
+	*/
+	
+	floatSliderGrp -e -v 1 expx;
+	floatSliderGrp -e -v 1 expy;
+	floatSliderGrp -e -v 1 expz;
+	
+	floatSliderGrp -e -v 0 trnx;
+	floatSliderGrp -e -v 0 trny;
+	floatSliderGrp -e -v 0 trnz;
+	
+	floatSliderGrp -e -v 0 rotx;
+	floatSliderGrp -e -v 0 roty;
+	floatSliderGrp -e -v 0 rotz;
+	
+	floatSliderGrp -e -v 1 sclx;
+	floatSliderGrp -e -v 1 scly;
+	floatSliderGrp -e -v 1 sclz;
+}
+
+
+global proc MS_locaterUI()
+{
+	if(`window -exists MS_locater`){
+		deleteUI MS_locater;
+	}
+	
+	window -title "MS_locater" MS_locater;	
+	
+	
+	string $tabs=`tabLayout`;
+	
+	$tab1 = `formLayout`;
+
+	setParent $tab1;
+	$sep=`separator`;
+
+
+	$com_expx=`floatSliderGrp -l "expx" -field true -min 0 -max 10000 -v 1 expx`;
+	$com_expy=`floatSliderGrp -l "expy" -field true -min 0 -max 10000 -v 1 expy`;
+	$com_expz=`floatSliderGrp -l "expz" -field true -min 0 -max 10000 -v 1 expz`;
+
+	$com_trnx=`floatSliderGrp -l "trnx" -field true -min 0 -max 10000 -v 0 trnx`;
+	$com_trny=`floatSliderGrp -l "trny" -field true -min 0 -max 10000 -v 0 trny`;
+	$com_trnz=`floatSliderGrp -l "trnz" -field true -min 0 -max 10000 -v 0 trnz`;
+
+	$com_rotx=`floatSliderGrp -l "rotx" -field true -min 0 -max 360 -v 0 rotx`;
+	$com_roty=`floatSliderGrp -l "roty" -field true -min 0 -max 360 -v 0 roty`;
+	$com_rotz=`floatSliderGrp -l "rotz" -field true -min 0 -max 360 -v 0 rotz`;
+
+	$com_sclx=`floatSliderGrp -l "sclx" -field true -min .01 -max 10 -v 1 sclx`;
+	$com_scly=`floatSliderGrp -l "scly" -field true -min .01 -max 10 -v 1 scly`;
+	$com_sclz=`floatSliderGrp -l "sclz" -field true -min .01 -max 10 -v 1 sclz`;
+
+
+	$com_exp=`button -bgc 1.0 0.5 0.5-l "locate" -command "MS_expand 0 0" `;
+	$com_rnd=`button -bgc 0.5 0.5 1.0 -l "random" -command "MS_expand 1 0" `;
+		
+	$com_ctr=`button -bgc 0.5 1.0 0.5 -l "centerResetter" -command "MS_loc_CenterResetter_core 0 1 0 0" `;
+	$com_expv2=`button -bgc 0.5 1.0 0.5 -l "expandV2" -command "MS_expandV2 0 0" `;
+	
+	$com_res=`button -bgc 0.5 0.75 0.5 -l "Reset" -command "MS_locater_valReset"`;
+	$com_und=`button -l "undo" -command "Undo" `;
+	$com_ext=`button -l "exit" -command "deleteUI MS_locater" `;
+
+	formLayout -e
+//----------------------------------
+	-af $com_trnx "top" 10
+        -af $com_trnx "left" 5
+        -an $com_trnx "right"
+        -an $com_trnx "bottom"
+
+	-af $com_trny "top" 30
+        -af $com_trny "left" 5
+        -an $com_trny "right"
+        -an $com_trny "bottom"
+
+	-af $com_trnz "top" 50
+        -af $com_trnz "left" 5
+        -af $com_trnz "right" 5
+        -an $com_trnz "bottom"
+
+	-af $sep "top" 80
+	-af $sep "left" 5
+	-af $sep "right" 5
+	-an $sep "bottom"
+//------------------------------------
+	-af $com_rotx "top" 110
+        -af $com_rotx "left" 5
+        -an $com_rotx "right"
+        -an $com_rotx "bottom"
+
+	-af $com_roty "top" 130
+        -af $com_roty "left" 5
+        -an $com_roty "right"
+        -an $com_roty "bottom"
+
+	-af $com_rotz "top" 150
+        -af $com_rotz "left" 5
+        -af $com_rotz "right" 5
+        -an $com_rotz "bottom"
+
+	-af $sep "top" 180
+	-af $sep "left" 5
+	-af $sep "right" 5
+	-an $sep "bottom"
+//------------------------------------
+
+	-af $com_sclx "top" 210
+        -af $com_sclx "left" 5
+        -an $com_sclx "right"
+        -an $com_sclx "bottom"
+
+	-af $com_scly "top" 230
+        -af $com_scly "left" 5
+        -an $com_scly "right"
+        -an $com_scly "bottom"
+
+	-af $com_sclz "top" 250
+        -af $com_sclz "left" 5
+        -af $com_sclz "right" 5
+        -an $com_sclz "bottom"
+
+	-af $sep "top" 280
+	-af $sep "left" 5
+	-af $sep "right" 5
+	-an $sep "bottom"
+//------------------------------------
+
+	-af $com_expx "top" 310
+        -af $com_expx "left" 5
+        -an $com_expx "right"
+        -an $com_expx "bottom"
+
+	-af $com_expy "top" 330
+        -af $com_expy "left" 5
+        -an $com_expy "right"
+        -an $com_expy "bottom"
+
+	-af $com_expz "top" 350
+        -af $com_expz "left" 5
+        -af $com_expz "right" 5
+        -an $com_expz "bottom"
+
+	-af $sep "top" 380
+	-af $sep "left" 5
+	-af $sep "right" 5
+	-an $sep "bottom"
+//------------------------------------
+
+	-af $com_exp "top" 400
+        -af $com_exp "left" 5
+        -ap $com_exp "right" 0 25
+        -an $com_exp "bottom"
+
+        -af $com_rnd "top" 400
+        -ap $com_rnd "left" 0 25
+        -ap $com_rnd "right" 0 50
+        -an $com_rnd "bottom"
+        
+       -af $com_ctr "top" 400
+        -ap $com_ctr "left" 0 50
+        -ap $com_ctr "right" 0 75
+        -an $com_ctr "bottom"
+	
+	-af $com_expv2 "top" 400
+        -ap $com_expv2 "left" 0 75
+        -ap $com_expv2 "right" 0 100
+        -an $com_expv2 "bottom"
+
+
+
+	-af $sep "top" 440
+	-af $sep "left" 5
+	-af $sep "right" 5
+	-an $sep "bottom"
+
+//---------------------------------------
+
+		-af $com_res "top" 450
+        -af $com_res "left" 10
+        -ap $com_res "right" 0 25
+        -an $com_res "bottom"
+
+        -af $com_und "top" 450
+        -ap $com_und "left" 0 50
+        -ap $com_und "right" 0 75
+        -an $com_und "bottom"
+
+        -af $com_ext "top" 450
+        -ap $com_ext "left" 0 75
+        -af $com_ext "right" 5
+        -an $com_ext "bottom"
+	$tab1;
+
+	setParent..;
+
+	string $tab2=`formLayout centerResetter`;
+	
+	//--DataPart--//
+	text -label "CenterPosition" "text4" ;//Data//
+	radioCollection "cp";
+	radioButton -label "VolumeCenter" -width 120 -sl "VLC" ;//Data//
+	radioButton -label "BoundingBoxCenter" -width 120 "BBC" ;//Data//
+	
+	text -label "Fleeze Option" "flz_opt" ;//Data//
+	checkBox -label "Scale" "flz_scl" ;//Data//
+	checkBox -label "Rotate" "flz_rot" ;//Data//
+	checkBox -v 1 -label "Translate" "flz_trn" ;//Data//
+	button -label "CenterResetter" -c "MS_loc_CenterResetter_pipe" "ex_cr" ;//Data//
+	formLayout -e
+	-af "text4" "left" 32//Data//
+	-af "text4" "top" 16//Data//
+	-af "VLC" "left" 32//Data//
+	-af "VLC" "top" 48//Data//
+	-af "BBC" "left" 32//Data//
+	-af "BBC" "top" 32//Data//
+	-af "flz_opt" "left" 32//Data//
+	-af "flz_opt" "top" 80//Data//
+	-af "flz_scl" "left" 32//Data//
+	-af "flz_scl" "top" 128//Data//
+	-af "flz_rot" "left" 32//Data//
+	-af "flz_rot" "top" 112//Data//
+	-af "flz_trn" "left" 32//Data//
+	-af "flz_trn" "top" 96//Data//
+	-af "ex_cr" "left" 112//Data//
+	-af "ex_cr" "top" 128//Data//
+	//--DataPart--//
+	
+	$tab2;
+	
+	setParent..;
+	
+	tabLayout -e -tl $tab1 "MS_locator" -tl $tab2 "centerResetter" $tabs;
+	
+	showWindow MS_locater;
+	
+
+}
+
+
+MS_locaterUI;
+
+
+

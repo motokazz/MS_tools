@@ -1,0 +1,25 @@
+global proc MS_copyTransform(){
+
+	string $obj[] =`ls -sl`;
+	float $tx=`getAttr ($obj[0]+".tx")`;
+	float $ty=`getAttr ($obj[0]+".ty")`;
+	float $tz=`getAttr ($obj[0]+".tz")`;
+	float $rx=`getAttr ($obj[0]+".rx")`;
+	float $ry=`getAttr ($obj[0]+".ry")`;
+	float $rz=`getAttr ($obj[0]+".rz")`;
+	float $sx=`getAttr ($obj[0]+".sx")`;
+	float $sy=`getAttr ($obj[0]+".sy")`;
+	float $sz=`getAttr ($obj[0]+".sz")`;
+
+	setAttr ($obj[1]+".tx") $tx;
+	setAttr ($obj[1]+".ty") $ty;
+	setAttr ($obj[1]+".tz") $tz;
+	setAttr ($obj[1]+".rx") $rx;
+	setAttr ($obj[1]+".ry") $ry;
+	setAttr ($obj[1]+".rz") $rz;
+	setAttr ($obj[1]+".sx") $sx;
+	setAttr ($obj[1]+".sy") $sy;
+	setAttr ($obj[1]+".sz") $sz;
+}
+
+MS_copyTransform;

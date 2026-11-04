@@ -1,0 +1,34 @@
+//stringInsertCharPosition, by Julian Love, julian@lightmail.com. Part of the StringTools set.
+//
+//description:	inserts a string into the source string at the character position
+//
+//usage:		stringInsertCharPosition string[source string] string[insert string] int[character position];
+//
+//examples:		stringInsertCharPosition "hello world." "l" 3;
+//				// Result: Helllo world. //
+//
+//				stringInsertCharPosition "left_wristcontroller" "_" 11;
+//				// Result: left_wrist_controller //
+
+
+global proc string stringInsertCharPosition (string $item, string $insert, int $position){
+	string	$firstSegment;
+	string	$secondSegment;
+
+	if ($position != 0){
+		if ($position < size($item)){
+			if ($position != 1){
+				$firstSegment = `substring $item 1 ($position -1)`;
+				$secondSegment = `substring $item ($position) (size($item))`;
+
+				return ($firstSegment + $insert + $secondSegment);
+			}
+			else
+				{return ($insert + $item);}
+		}
+		else
+			{return ($item + $insert);}
+	}
+	else
+		{return $item;}
+}

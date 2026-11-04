@@ -1,0 +1,20 @@
+#ifdef GR_FILE_LINKED
+GR_FILE_LINKED( _basepose )
+GR_FILE_LINKED( motion_c100_gmp061_rtd_pg_encount_00 )
+GR_FILE_LINKED( motion_c100_gmp061_rtd_pg_encount_01 )
+GR_FILE_LINKED( motion_c100_gmp061_rtd_pg_encount_02 )
+GR_FILE_LINKED( motion_c100_gmp061_rtd_pg_encount_03 )
+GR_FILE_LINKED( motion_c100_gmp061_rtd_pg_encount_04 )
+GR_FILE_LINKED( motion_c100_gmp061_rtd_pg_encount_05 )
+GR_FILE_LINKED( motion_c100_gmp061_rtd_pg_encount_06 )
+GR_FILE_LINKED( motion_c100_gmp061_rtd_pg_encount_07 )
+GR_FILE_LINKED( motion_c100_gmp061_rtd_pg_encount_08 )
+GR_FILE_LINKED( motion_c100_gmp061_rtd_pg_encount_09 )
+GR_FILE_LINKED( motion_c100_gmp061_rtd_pg_encount_10 )
+GR_FILE_LINKED( motion_c100_gmp061_rtd_pg_encount_11 )
+GR_FILE_LINKED( motion_c100_gmp061_rtd_pg_encount_12 )
+GR_FILE_LINKED( motion_c100_gmp061_rtd_pg_encount_13 )
+GR_FILE_LINKED( motion_c100_gmp061_rtd_pg_encount_14 )
+GR_FILE_LINKED( motion_c100_gmp061_rtd_pg_encount_15 )
+#undef GR_FILE_LINKED
+#endif // GR_FILE_LINKED

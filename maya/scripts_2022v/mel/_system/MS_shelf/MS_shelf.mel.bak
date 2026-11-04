@@ -1,0 +1,26 @@
+
+
+global proc MS_shelf(int $selectedShelfId[]){
+	if(`window -exists MS_shelf`){
+		deleteUI MS_shelf;
+	}
+	
+	window -title "MS_shelf" MS_shelf;
+	shelfTabLayout -image "smallTrash.xpm" -imageVisible true;
+	
+	for ($i in $selectedShelfId){
+		
+		string $shelfName = `optionVar -q ("shelfName" + $i)`;
+		string $shelfFile = `optionVar -q ("shelfFile" + $i)`;
+		
+		shelfLayout $shelfName;
+		eval($shelfFile)
+		setParent ..;
+	}
+	
+	showWindow MS_shelf;
+	
+}
+
+MS_shelf;
+

@@ -1,0 +1,19 @@
+global proc MS_splitTwoPointConstraintLocator(int $split){
+	
+	int $xxx=$split+1;
+	
+	string $objz[]=`ls -sl` ;
+	
+	for ($i=1;$i<$xxx;$i++){
+		string $newloc[]=`spaceLocator`;
+		
+		pointConstraint -w ($i) $objz[0] $newloc[0];
+		pointConstraint -w ($xxx-$i) $objz[1] $newloc[0];
+		
+		rename $newloc[0] "MS_splitTwoPointConstraintLocator";
+	}
+
+}
+
+
+

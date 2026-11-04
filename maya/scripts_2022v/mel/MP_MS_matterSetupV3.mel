@@ -1,0 +1,232 @@
+global proc string[] MP_MS_matterSetup_Def(string $MODE){
+	switch ($MODE){
+
+		//MELを出力するパス
+		case "MEL_EXPORT_PATH":
+			return {"d:/_MProject/Matterz/"};
+		break;
+		
+		//テクスチャーパス
+		case "TEXTURE_PATH":
+			return {"D:/_MProject/MAYA_MPROJECT/tex/"};
+		break;
+		
+		//コネクションできるアトリビュート
+		case "CONNECTABLE_ATTR":
+			return {
+			"color",
+			"transparency",
+			"normalCamera",
+			"specularColor"
+			};
+		break;	
+		
+		//MProでアクティブなアトリビュート
+		case "ACTIVE_ATTR":
+		return {
+			"color",
+			"colorR",
+			"colorG",
+			"colorB",
+			"ambientColor",
+			"ambientColorR",
+			"ambientColorG",
+			"ambientColorB",
+			"transparency",
+			"transparencyR",
+			"transparencyG",
+			"transparencyB",
+			"incandescence",
+			"incandescenceR",
+			"incandescenceG",
+			"incandescenceB",
+			"normalCamera",
+			"cosinePower",
+			"specularColor",
+			"specularColorR",
+			"specularColorG",
+			"specularColorB"
+		};
+		break;	
+		
+		//MProでアクティブなフロートアトリビュート
+		case "ACTIVE_ATTR_FLOAT":
+		return {
+			"colorR",
+			"colorG",
+			"colorB",
+			"ambientColorR",
+			"ambientColorG",
+			"ambientColorB",
+			"transparencyR",
+			"transparencyG",
+			"transparencyB",
+			"incandescenceR",
+			"incandescenceG",
+			"incandescenceB",
+			"cosinePower",
+			"specularColorR",
+			"specularColorG",
+			"specularColorB"
+		};
+		break;
+		
+		//MProでアクティブなコネクションアトリビュート
+		case "ACTIVE_ATTR_CONNECT":
+		return {
+			"color",
+			"ambientColor",
+			"transparency",
+			"incandescence",
+			"normalCamera",
+			"specularColor"
+		};
+		break;
+		//MProのエクストラアトリビュート
+		case "MAT_EXTRA_ATTR":
+		return {
+			"string:Shader",					//string Shader			シェーダーの名前
+			"int:blend",						//int blend 			ブレンドの種類
+			"int:fogOff",						//int fogOff			フォグを切るか
+			"int:backfaceCurring",	//int backfaceCurring			カリング
+			"float:zOffset",					//float zOffset			Zoffset
+			"int:zFunction",				//int zFunction			Zファンクション
+			"int:zWrite",						//int zWrite			Z描くか？
+			"int:aFunction",				//int aFunction			Alphaテストファンクション
+			"int:aReffernce",			//int aReffernce			Alphaテストの参照値
+			"int:renderStage",			//int renderStage			描画ステージ
+			"float:priority",					//float priority			描画優先度
+			
+			"int:minFilter",				//int minFilter			MINフィルタ（全テクスチャースロットにセットされる）
+			"int:magFilter",				//int magFilter			MAGフィルタ（全テクスチャースロットにセットされる）
+			"int:magFilter"				//int magFilter			MIPフィルタ（全テクスチャースロットにセットされる）
+		};
+		break;	
+		
+		
+		
+		
+	}
+}
+
+global proc MP_MS_matterSetup_setAttr(string $COMMAND){
+	//COMMAND【型】<>【オブジェクト名.アトリビュート】<>【
+	string $TEMP[];
+	tokenize($COMMAND,"<>",$TEMP);
+	switch ($TEMP[0]){
+		case "string":
+		break;
+		case "int":
+		break;
+		case "float":
+		break;
+	}
+}
+
+global proc MP_MS_createMatterMel(){	
+	string $MAT[]=`ls -typ phong -sl`;
+	string $DEBUG;
+	print "{\r\n";
+	//コネクションできるアトリビュートを定義
+	string $CONNECTABLE_ATTR[]=`MP_MS_matterSetup_Def("CONNECTABLE_ATTR")`;
+	print "string $PHONG=`createNode phong`;\r\n";
+	
+	//マテリアルの数値をGetAttr
+	string $ACTIVE_ATTR_FLOAT[]=`MP_MS_matterSetup_Def("ACTIVE_ATTR_FLOAT")`;
+	for($EACH_ACTIVE_ATTR in $ACTIVE_ATTR_FLOAT){
+		print ("setAttr ($PHONG+\"."+$EACH_ACTIVE_ATTR+"\") "+`getAttr ($MAT[0]+"."+$EACH_ACTIVE_ATTR)`+";\r\n");
+	}
+	
+	//コネクションを調べる
+	print "//CONNECTABLE_ATTR\r\n";
+	string $ACTIVE_ATTR_CONNECT[]=`MP_MS_matterSetup_Def("ACTIVE_ATTR_CONNECT")`;
+	for($EACH_CONNECTABLE_ATTR in $ACTIVE_ATTR_CONNECT){
+		$TEMP=`listConnections ($MAT[0]+"."+$EACH_CONNECTABLE_ATTR)`;
+		if(size($TEMP)){
+			print("string $NODE=`createNode -n "+$TEMP[0]+" "+`nodeType $TEMP[0]`+"`;\r\n");//ノード作成
+			string $SOURCE_FROM_DESTINATION=`connectionInfo -sfd ($MAT[0]+"."+$EACH_CONNECTABLE_ATTR)`;
+			string $PLUGNAME[];//コネクト先のプラグ名
+			tokenize($SOURCE_FROM_DESTINATION,".",$PLUGNAME);
+			print ("connectAttr  ($NODE+\"."+$PLUGNAME[size($PLUGNAME)-1]+"\") ($PHONG+\"."+$EACH_CONNECTABLE_ATTR+"\");\r\n");//ノードコネクション
+		}
+	}
+	print "}\r\n";
+	//コネクション先をGetAttr
+	
+	
+	//エクストラアトリビュートをGetAttr
+	
+	//マテリアルからコネクションを調べて何が何につながってるかリストを作成
+/*
+	for ($EACH_CONNECTABLE_ATTR in $CONNECTABLE_ATTR){
+		string $TEMP[]=`listConnections ($MAT[0]+"."+$EACH_CONNECTABLE_ATTR)`;
+		
+		for($EACH in $TEMP){
+			$COMMAND+="connectAttr "+$EACH_CONNECTABLE_ATTR+" "+$EACH+";\r\n";
+		}
+	}
+	*/
+	//コネクトされてるノードのアトリビュートをGetAttr
+	
+	
+	//もとになってるマテリアルのスクリーンショット作成と保存
+	
+	
+	
+	//■■■MEL作成■■■
+	string $COMMAND;
+	//マテリアル作成
+	//$COMMAND+="string $PHONG=`createNode phong`;\r\n";
+	//アトリビュートをセットするMEL作成
+	
+	//colorにつながってたらそのファイルノード作成
+	//$COMMAND+="string $FILE=`createNode file`;\r\n";
+	//transparencyにつながってたらそのファイルノード作成
+	
+	//specularColorにつながってたらそのファイルノード作成
+	
+	//normalCameraにつながってたらそのfileノードとBUMPノード作成
+	
+	//何が何につながってるかリストからコネクションMEL作成
+	
+	print $COMMAND;
+	print $DEBUG;
+	//シェルフに登録系
+	
+	
+
+}
+
+global proc MP_MS_matAttrLocker(){
+	string $MAT[]=`ls -mat -sl`;
+
+	//MPROでアクティブなアトリビュートを定義
+	string $ACTIVE_ATTR[]=`MP_MS_matterSetup_Def("ACTIVE_ATTR")`;
+	
+	for($EACHMAT in $MAT){
+		setAttr -l 1 ($EACHMAT+".ambientColor");
+		setAttr -l 1 ($EACHMAT+".diffuse");
+		string $ATTR[]=`listAttr -v $EACHMAT`;
+		for($EACHATTR in $ATTR){
+			setAttr -l 1 ($EACHMAT+"."+$EACHATTR);
+		}
+		for($EACH_ACTIVE_ATTR in $ACTIVE_ATTR){
+			setAttr -l 0 ($EACHMAT+"."+$EACH_ACTIVE_ATTR);
+		}
+	}
+}
+
+
+global proc MP_MS_matterSetupV3UI(){
+	if (`window -q -ex MP_MS_matterSetupV3UI`){
+		deleteUI MP_MS_matterSetupV3UI;
+	}
+	window MP_MS_matterSetupV3UI;
+	
+	columnLayout;
+	button -l "attrlocker" -c "MP_MS_matAttrLocker";
+	button -l "createMatterMel" -c "MP_MS_createMatterMel";
+	
+	showWindow MP_MS_matterSetupV3UI;
+}
+

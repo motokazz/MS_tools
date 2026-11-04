@@ -1,0 +1,1174 @@
+//bind-tool (ID)
+//--------------------------------------------------------------------
+//---GPキャラモデル用ウェイト設定ツール---
+//１、.csvを元に、選択したオブジェクトにIDを追加します。
+//２、.csvファイルにて指定された、「IDが付いたオブジェクト」とジョイントのペアを、weightFillerへ投げます。
+//.csvの2～4列目、2段目以降を参照しています。
+//
+//20140818:エクストラジョイント名の制限を緩く
+//20140702:PGの新骨格ルール対応
+//20140701:バックアップの信憑性を向上
+//20140630:骨の角度・オリエントを許容
+//20140410:ポリゴン数チェックのバグ対応。メッシュが無い場合の処理を追加、メッシュ無いって問題無いん？
+//20140408:バインド前などに、モデルの状況をチェックする仕組みを追加。また、バインド後に不要なジョイントを選択するスクリプトを機能化
+//20131111:カラーリング処理・UI修正など。
+//20131111:GP2仕様化。csvより情報を読み取る際、ジョイントの属性が(extra)であれば特殊処理。
+//20120823:「ゲルズゲー」の処理を有効化
+//20120820:新体系キャラ「モビルアーマー」用に対応
+//20120604:柔らかパーツ対応
+//20120319:ネットワークから落とす方式に対応
+//20120308:対応骨が無い場合に、動作が止まっていたので修正
+//
+//--------------------------------------------------------------------
+
+//ウェイト設定ツール読み込み
+source "WeightFiller.mel";
+
+//アウトライナも呼び出し
+tearOffPanel "アウトライナ" "outlinerPanel" false;
+
+
+//--------------------------------------------------------------------------------
+global proc string getIBTVersion(){
+	string $IBTversion = "ver2.140_20140818";
+	return ($IBTversion);
+}
+//--------------------------------------------------------------------
+global proc IDBindTool(){
+	//.csv指定
+	string $fileName = (`getenv "GP_MAYA_ROOT"` + "\\common\\scripts\\GP_mel\\csv\\GxChrSkinCluster.csv");
+	//メインウィンドウ起動
+	IDBindToolWindow($fileName);
+}
+//--------------------------------------------------------------------
+global proc string IBT_getCsvName(){
+	string $fileName = (`getenv "GP_MAYA_ROOT"` + "\\common\\scripts\\GP_mel\\csv\\GxChrSkinCluster.csv");
+	string $divTGT[] = `textScrollList -q -selectItem tsl_pdt_IBT`;
+
+	if($divTGT[0] == "PGMS_登場演出用骨追加版"){
+		$fileName = (`getenv "GP_MAYA_ROOT"` + "\\common\\scripts\\GP_mel\\csv\\PG_GxChrSkinCluster.csv");
+	}else if($divTGT[0] != "通常モビルスーツ"){
+		string $charaNum = `match "[0-9]+" $divTGT[0]`;
+		string $fileNameDir = dirname( $fileName );
+		string $fileNameBas = basename( $fileName , "" );
+		string $charaType = `match "BA_+" $divTGT[0]`;
+		if ($charaType == "BA_")
+		{
+			$fileName = ( $fileNameDir + "/BA_" + $charaNum + "_" + $fileNameBas );
+		}
+		string $charaType = `match "HG_+" $divTGT[0]`;
+		if ($charaType == "HG_")
+		{
+			$fileName = ( $fileNameDir + "/HG_" + $charaNum + "_" + $fileNameBas );
+		}
+		string $charaType = `match "MA_+" $divTGT[0]`;
+		if ($charaType == "MA_")
+		{
+			$fileName = ( $fileNameDir + "/MA_" + $charaNum + "_" + $fileNameBas );
+		}
+		//$fileName = ( $fileNameDir + "/HG_" + $charaNum + "_" + $fileNameBas );
+	}
+	return($fileName) ;
+}
+
+//メッシュノード名称調整機能--------------------------------------------------------------------
+//meshノードを (transnode名)Shapeに書き換え。
+//transformノードとmeshノードで名前が完全一致するケースがあったので、回避用にリネーム。
+//実際の処理(IDBindExec)時の選択に、 select -tr と tokenize を使っても回避は可能。
+
+global proc string[] meshRename( string $transnd[] ){
+
+	select -hierarchy parts;
+	select -d "parts*";
+	string $meshnd[] = `ls -sl -s`;
+	string $transnd[] = `ls -sl -tr`;
+
+	int $i = 0;
+	while ( $i < size($transnd) ){
+		string $divtrans[];
+		string $divmesh[];
+		tokenize $transnd[$i] "|" $divtrans;
+		tokenize $meshnd[$i] "|" $divmesh;
+		int $tsize = size($divtrans);
+		int $msize = size($divmesh);
+		$tsize--;
+		$msize--;
+		print ("transnode name :" +$transnd[$i] + "---" + $divtrans[$tsize] + "\n");
+		print ("meshnode name  :" + $meshnd[$i] + "---" + $divmesh[$msize] + "\n");
+		rename ($transnd[$i] + "|" + $divmesh[$msize] ) ($divtrans[$tsize]+"Shape");
+//		print ("----Mesh-Node Renamed.----\n\n");
+		$i++;
+	}
+
+	return($transnd);
+}
+
+
+//IDリスト取得--------------------------------------------------------------------
+//csvからIDのリストを読み込み、配列として返す。
+//よく使いそうなので独立化。
+global proc string[] getBindIDList(string $fileName){
+	int $fileId = `fopen $fileName "r"`;
+	string $line = `fgetline $fileId`;		//最上段は不要（目次）
+	$line = `fgetline $fileId`;
+	int $i=0;
+	string $IDlist[];
+
+	while ( size( $line ) > 0 ){
+		string $buffer[];
+		tokenize $line "," $buffer;
+		$IDlist[$i] = $buffer[2];
+		$line = `fgetline $fileId`;
+		$i++;
+	}
+	fclose $fileId;
+	return( $IDlist );
+}
+
+//トランスフォームノード　名称取得--------------------------------------------------------------------
+//オブジェクト名かぶりが無ければもっと楽。
+global proc string getTransName( string $transnd )
+{
+	int $i = 1;
+	string $divtrans[];
+	tokenize $transnd "|" $divtrans;
+	int $tsize = size($divtrans);
+	$tsize--;
+	if($tsize != 0){
+		$transnd = $divtrans[$tsize];
+	}
+	return( $transnd );
+}
+
+
+//階層チェッカー--------------------------------------------------------------------
+//parts以下の子をチェック、孫がいたら警告
+global proc int parentsCheck(){
+	select -hi parts;
+	string $objectlist[] = `ls -l -sl -tr`;
+	int $i = 0,$magocount = 0;
+	string $magoobj = "";
+	while ( $i < size($objectlist) ){
+		string $divtrans[];
+		tokenize $objectlist[$i] "|" $divtrans;
+		int $tsize = size($divtrans);
+		$tsize--;
+		if ($tsize > 1){
+			$magocount++;
+			$magoobj = $magoobj + ($divtrans[$tsize] + "\n");
+		}
+		//print ("transnode name :" + $divtrans[$tsize] + "\n");
+		$i++;
+	}
+	if ($magocount != 0){
+		confirmDialog -title "parts hierarchy　checker" -message ("以下のオブジェクトが、partsの孫以下に置かれています。\n" + $magoobj + "\n各オブジェクトは、parts直下に置いて下さい。")
+		-button "OK" -defaultButton "OK"
+		-cancelButton "OK" -dismissString "OK";
+	}
+
+	return $magocount;
+}
+
+//骨位置チェッカー--------------------------------------------------------------------
+//ウェイトコピー時に確認。
+global proc int jointPosCheck(){
+	int $i,$j,$result;
+	string $doubledJoints;
+	float $transXList[];float $transYList[];float $transZList[];
+	select -hierarchy root;
+	string $joints[] = `ls -sl -type "joint"`;
+	spaceLocator -p 0 0 0 -n "jointPosChecker";
+	for($jointItem in $joints){
+		select -r $jointItem jointPosChecker;
+		pointConstraint -offset 0 0 0 -weight 1;
+		$transXList[$i] = `getAttr "jointPosChecker.tx"`;
+		$transYList[$i] = `getAttr "jointPosChecker.ty"`;
+		$transZList[$i] = `getAttr "jointPosChecker.tz"`;
+		select -r $jointItem jointPosChecker;
+		pointConstraint -remove; 
+		$i++;
+	}
+	for( $i=0 ; $i<size($transXList) ; $i++){
+		for($j = ($i+1) ; $j <size($transXList) ; $j++){
+			print ("check " + $transXList[$i] + "==" + $transXList[$j] + " && " + $transYList[$i] + "==" + $transYList[$j] + " && " + $transZList[$i] + "==" + $transZList[$j] + "\r\n");
+			if($transXList[$i] == $transXList[$j] && $transYList[$i] == $transYList[$j] && $transZList[$i] == $transZList[$j]){
+				$doubledJoints = ($doubledJoints + $joints[$i] + " - " + $joints[$j] + "\r\n");
+			}
+		}
+	}
+	if ($doubledJoints != ""){
+		confirmDialog -title "joint pos checker" -message ("以下のジョイントが、同じ座標に存在しています。\n" + $doubledJoints + "\nウェイトのコピーを行うには、骨の位置をずらして配置して下さい。")
+		-button "OK" -defaultButton "OK"
+		-cancelButton "OK" -dismissString "OK";
+		$result = 1;
+	}
+
+	return $result;
+}
+
+//ID式ウェイト調整--------------------------------------------------------------------
+//当スクリプトのメイン部分。ここだけやるつもりだっｔ
+global proc int IDBindExec(string $fileName){
+	int $hiechk = parentsCheck();
+	if ($hiechk > 0){
+		print "partsに孫ノードがあったので、処理を中断しました。";
+		return(0);
+	}
+
+//以下、まとめて別ボタン化
+/*
+	GPbackup();	//処理前にバックアップ
+	meshClean();	//オブジェクトフリーズ、ウェイトの複製元として残す
+	GPmeshBind();	//通常のスムースバインド
+	GPWeightCopy();	//オリジナルからウェイトを取得、削除する処理
+*/
+
+
+//	string $temp_sceneName[] = `file -q -list`;
+//	string $charaID = `basenameEx( $temp_sceneName[0])`;
+	string $charaID = `textField -q -text IBT_chrIDTF`;
+
+	string $IDlist[] = getBindIDList($fileName);
+	select -hierarchy parts;
+	string $transnd[] = `ls -sl -tr`;
+
+	int $i = size($transnd);
+	int $trcheck[];		//ID拾えたかのチェック用
+
+	//同名複数オブジェクト対策
+	for($i = 0; $i < size($transnd); $i++){
+		string $transname = $transnd[$i];
+		$transname = getTransName($transname);
+		$transnd[$i] = $transname;
+		$trcheck[$i] = 0;
+	}
+
+//---load csv file---
+	int $fileId = `fopen $fileName "r"`;
+	string $line = `fgetline $fileId`;		//最上段は不要（目次）
+	$line = `fgetline $fileId`;
+
+//---ID check---
+	while ( size( $line ) > 0 ){
+		string $buffer[];
+		tokenize $line "," $buffer;
+			//$buffer[]…0がオブジェクト名(使用見送り)、1が骨名、2が判定用ID、3がパーツ名(未使用)
+
+		print ("bindID :" + $buffer[2] + "\n");
+		print ("joint  :" + $buffer[1] + "\n");
+		print ("type   ;" + $buffer[7] + "\n");
+
+
+		$i = 0;
+		while ( $i < size($transnd) && $buffer[1] != "(--SmoothWeightParts--)" && $buffer[7] != "efLoc"){	//全メッシュノード、ただし柔らかパーツ以外を処理
+
+			if(startsWith($transnd[$i] , $buffer[2])){	//メッシュノード名が条件に合致
+
+				print ("object :" + $transnd[$i] + "\n");
+
+				if( ((catch(`select $buffer[1]`)) == 0 && $buffer[7] == "-" )){	//メッシュノード名が条件に合致
+					weightFiller $transnd[$i] $buffer[1];
+					print ("----weight edited.----\n\n");
+					$trcheck[$i] = 1;
+//				}else if((catch(`select ( $charaID + "_"+$buffer[1] )`)) == 0 && $buffer[7] == "extra" ){	//メッシュノード名が条件に合致
+				}else if((catch(`select -r ( "*_" + $buffer[1] )`)) == 0 && $buffer[7] == "extra" ){	//メッシュノード名が条件に合致
+					string $exJoint[] = `ls -sl`;
+					weightFiller $transnd[$i] ( $exJoint[0] );
+					print ("----weight edited.----\n\n");
+					$trcheck[$i] = 1;
+				}
+			}
+			$i++;
+		}
+		$line = `fgetline $fileId`;
+	}
+	fclose $fileId;
+
+	string $message;
+	for( $i = 1 ; $i < size($transnd) ; $i++){
+		if($trcheck[$i] == 0){
+			//print $transnd[$i];
+			$message = ($message + $transnd[$i] + "\n");
+		}
+	}
+	confirmDialog -title "GP WeightEdit Tool" -message ("ウェイト調整が完了しました。\nフラグが見つからなかった為、以下のオブジェクトが未処理となっています。\n\n" + $message )
+	-button "OK" -defaultButton "OK"
+	-cancelButton "OK" -dismissString "OK";
+
+	return(1);
+}
+
+
+//バインドしなおし--------------------------------------------------------------------
+//シーンチェックを独立
+global proc int GP2IDBND_check_global(){
+	int $res = 1;
+
+	int $hiechk = parentsCheck();
+	int $jntchk;
+
+	if ($hiechk > 0){
+			GP2_MessageDialog ( "GP2IDBND_hieCheck", {"partsに孫ノードが存在しています。","モデル側の階層構造化には対応していません。"} );
+		print "partsに孫ノードが存在しています。";
+		$res = 0;
+	}
+
+	if ($jntchk > 0){
+		print "処理を中断しました。\r\n複数ジョイントが同座標に存在するため、ウェイトコピーが正常に行えない可能性があります。";
+	}
+
+	//GP2からの新チェック。パーツ毎のポリゴン数、n角形ポリゴンがあった場合に検出(警告)
+	string $model_error[] = GP2IDBND_polyCheck();
+	if(size($model_error)){
+		GP2_MessageDialog ( "GP2IDBND_polyCheck", $model_error );
+		print(stringArrayToString($model_error , "\r\n"));
+	}
+
+	//GP2からの新チェック。骨に角度値、名称ミス等があった場合に検出(警告)
+	string $joint_error[] = GP2IDBND_jointStatusCheck();
+	if(size($joint_error)){
+		GP2_MessageDialog ( "GP2IDBND_jointCheck", $joint_error );
+		print(stringArrayToString($joint_error , "\r\n"));
+		//$res = 0;	minogashi
+	}
+	return $res;
+}
+
+//問題なければバインド
+global proc int GPRebind(int $wcmode){
+	int $checkScene = GP2IDBND_check_global();
+	if($checkScene == 0){
+		return(0);
+	}
+
+	string $dir = `workspace -q -dir`;
+	string $message[] = {"以下のパスに、現在のシーンがバックアップ「Skinning_OriginData.mb」として保存されます。",$dir,"(前作作業者注意！バックアップ後に元のシーン名に戻ります。)"};
+	GP2_MessageDialog ( "ReBind Tool", $message );
+	GPbackup();	//処理前にバックアップ
+	meshClean();	//オブジェクトフリーズ、ウェイトの複製元として残す
+	GPmeshBind();	//通常のスムースバインド
+	GPWeightCopy($wcmode);	//オリジナルからウェイトを取得、削除する処理
+	confirmDialog -title "ReBind Tool" -message ("バインド作業が完了しました。\n")
+	-button "OK" -defaultButton "OK"
+	-cancelButton "OK" -dismissString "OK";
+	return(1);
+}
+
+//GP2からの新チェック。骨に角度値、名称ミス等があった場合に検出
+//rotate,jointOrient,JointNameCheck--------------------------------------------------------------------
+global proc string[] GP2IDBND_jointStatusCheck(){
+	string $res[];
+	select -r -hi root;
+	string $checkList[] = `ls -sl -type joint`;
+	select -cl;
+	string $attr[] = {"rotateX","rotateY","rotateZ","jointOrientX","jointOrientY","jointOrientZ"};
+	string $evadeList[] = {
+		"J_R_upArm_201.jointOrientX","J_R_upArm_201.jointOrientY","J_R_upArm_201.jointOrientZ",
+		"J_R_elbow_202.jointOrientX","J_R_elbow_202.jointOrientY","J_R_elbow_202.jointOrientZ",
+		"J_R_foreArm_203.jointOrientX","J_R_foreArm_203.jointOrientY","J_R_foreArm_203.jointOrientZ",
+		"J_L_upArm_301.jointOrientX","J_L_upArm_301.jointOrientY","J_L_upArm_301.jointOrientZ",
+		"J_L_elbow_302.jointOrientX","J_L_elbow_302.jointOrientY","J_L_elbow_302.jointOrientZ",
+		"J_L_foreArm_303.jointOrientX","J_L_foreArm_303.jointOrientY","J_L_foreArm_303.jointOrientZ",
+		"J_R_upLeg_420.jointOrientX","J_R_upLeg_420.jointOrientY","J_R_upLeg_420.jointOrientZ",
+		"J_R_knee_421.jointOrientX","J_R_knee_421.jointOrientY","J_R_knee_421.jointOrientZ",
+		"J_R_leg_422.jointOrientX","J_R_leg_422.jointOrientY","J_R_leg_422.jointOrientZ",
+		"J_L_upLeg_430.jointOrientX","J_L_upLeg_430.jointOrientY","J_L_upLeg_430.jointOrientZ",
+		"J_L_knee_431.jointOrientX","J_L_knee_431.jointOrientY","J_L_knee_431.jointOrientZ",
+		"J_L_leg_432.jointOrientX","J_L_leg_432.jointOrientY","J_L_leg_432.jointOrientZ"
+	};
+	int $i,$j;
+	float $checkAttr;
+	string $attrName;
+	string $charaID = `textField -q -text IBT_chrIDTF`;
+	string $badAttrList[],$badNameList[];
+
+	for($i=0 ; $i<size($checkList) ; $i++){
+		for($j=0 ;$j<size($attr); $j++){
+			$attrName = ($checkList[$i] + "." + $attr[$j]);
+			setAttr -l false $attrName;
+			if(stringArrayContains($attrName,$evadeList) == 0){
+			$checkAttr = `getAttr $attrName`;
+				if($checkAttr >= 0.01 || $checkAttr <= -0.01 ){
+					$badAttrList[size($badAttrList)] = $attrName;
+				}else if($checkAttr != 0){
+				    setAttr $attrName 0;
+				}
+			}
+		}
+		if(gmatch($checkList[$i] , "*Extra*") || gmatch( $checkList[$i] , "*C_backpack*" ) || gmatch( $checkList[$i] , "*R_backpack*" ) || gmatch( $checkList[$i] , "*L_backpack*" ) ){
+			if(startsWith($checkList[$i],$charaID) != 1){
+				$badNameList[size($badNameList)] = $checkList[$i];
+			}
+		}
+	}
+	if(size($badAttrList)){
+		$res[size($res)] = ("(注意)以下のジョイントのアトリビュートに、数値が入っています。");
+		$res = (stringArrayCatenate($res,$badAttrList));
+	}
+
+	if(size($badNameList)){
+		$res[size($res)] = ("(注意)以下のエクストラジョイント名がキャラIDと一致していないため、共有ジョイントとして扱われます。" );
+		$res[size($res)] = ("「他MSと共有しないエクストラジョイント」は、名前の頭にキャラクターIDを使用して下さい。" );
+		$res = (stringArrayCatenate($res,$badNameList));
+		select -r $badNameList;
+	}
+
+	return $res;
+}
+
+
+//GP2からの新チェック。パーツ毎のポリゴン数、n角形ポリゴンがあった場合に検出
+//rotate,jointOrient,JointNameCheck--------------------------------------------------------------------
+global proc string[] GP2IDBND_polyCheck(){
+	string $res[];
+
+//check polynum
+	int $partsType;
+	int $polyCountTemp[] , $polyCount[];
+	int $polyMax[] = {1000,1000,3000,2500,1500};
+	string $typeList[] = {"0.n","1.n","2.3","4.n","5.n"};
+	string $typeName[] = {"head","body","Arm","Foot","Backpack"};
+	string $temp[] , $checkTypes[] , $flags[];
+	string $removes[] = {"non"};
+	int $i;
+	for($i=0 ; $i<size($typeList) ; $i++){
+	    clear $temp;
+	    string $temp[];
+		tokenize $typeList[$i] "." $temp;
+		clear $checkTypes;
+		string $checkTypes[];
+
+        int $j=0;
+		for($j ; $j < size($temp) ; $j++){
+			$checkTypes[$j] = ("chr00" + $temp[$j]);
+		}
+		
+		clear $flags;
+		string $flags[] = GP2IDBND_polyCheck_getFlags($checkTypes);
+		$flags = `stringArrayRemoveDuplicates $flags`;
+		$flags = `stringArrayRemove $removes $flags`;
+		select -cl;
+
+		for($item in $flags){
+			if(size(`ls ($item + "*")`)){
+				catch (`select -add ($item + "_*")`);
+			}
+		}
+		//色々選択しちゃうのでトランスフォームのみへ
+		select -r `ls -sl -type transform`;
+
+		if(size(`ls -sl`)){
+			$polyCountTemp = `polyEvaluate -t`;
+			$polyCount[$i] = $polyCountTemp[0];
+		}else{
+			$polyCount[$i] = 0;
+		}
+	}
+
+	int $i;
+	for($i=0 ; $i<size($typeList) ; $i++){
+		print("パーツグループ[" + $typeName[$i] + "]\tポリゴン数合計値(" + $polyCount[$i] + ")\tHGモデル規定値(" + $polyMax[$i] + ")\r\n");
+		if($polyCount[$i] > $polyMax[$i]){
+			$res[size($res)] = ("パーツグループ[" + $typeName[$i] + "]のポリゴン数合計値(" + $polyCount[$i] + ")が、HGモデルの規定値(" + $polyMax[$i] + ")をオーバーしています。");
+		}
+	}
+//check poly-4up
+	polyCleanupArgList 3 { "1","2","1","0","1","0","0","0","0","1e-005","0","1e-005","0","1e-005","0","-1","0" };
+	if(size(`ls -sl`)){
+		$res[size($res)] = ("以下のメッシュにて、5角形以上の頂点が見つかりました。");
+		$temp = `ls -sl`;
+		$res = stringArrayCatenate($res , $temp);
+	}
+	return $res;
+}
+
+
+
+global proc string[] GP2IDBND_polyCheck_getFlags(string $checkTypes[]){
+	string $res[];
+	string $saveDataFileName = (`getenv "GP_MAYA_ROOT"` + "\\common\\scripts\\GP_mel\\csv\\GxChrSkinCluster.csv");
+
+	if(`filetest -r $saveDataFileName`){
+		int $fileId = `fopen $saveDataFileName "r"`;
+		string $line ;
+		$line = `fgetline $fileId`;
+		int $i=0;
+		while ( size( $line ) > 0 ){
+			string $buffer[];
+			tokenize $line "," $buffer;
+			if( stringArrayContains( $buffer[0] , $checkTypes ) ){
+				$res[size($res)] = $buffer[2];
+			}
+			$line = `fgetline $fileId`;
+			$i++;
+		}
+		fclose $fileId;
+	}
+	return $res;
+}
+
+
+
+//メッシュ掃除--------------------------------------------------------------------
+//骨・オブジェクトの複製とヒストリ削除、リネームを行う。
+global proc int meshClean(){
+	select root parts;
+	performDuplicate false;
+	rename parts "partsOrig";
+	rename root "rootOrig";
+	rename parts1 "parts";
+	rename root1 "root";
+	select -hi root parts;
+	delete -ch;
+	return (1);
+}
+
+//スムースバインド--------------------------------------------------------------------
+//通常のスムースバインドを全体にかける。
+global proc int GPmeshBind(){
+	select -r root parts;
+	select -tgl -hi root parts;
+	newSkinCluster "-bindMethod 0 -normalizeWeights 1 -weightDistribution 0 -mi 2 -omi true -dr 4 -rui false,multipleBindPose,1";
+	//SmoothBindSkin;
+	return(1);
+}
+
+//ウェイト継承、オリジナル削除--------------------------------------------------------------------
+global proc int GPWeightCopy(int $wcmode){
+	if ($wcmode) {
+		select -hierarchy parts;
+		string $transnd[] = `ls -sl -tr`;
+		int $i ;		//= size($transnd);
+		for($i = 1; $i < size($transnd); $i++){
+			string $transname = $transnd[$i];
+			$transname = getTransName($transname);
+
+			select ("partsOrig|" + $transname) ("parts|" + $transname) ;
+			CopySkinWeights -influenceAssociation name;
+		}
+	}
+	select partsOrig rootOrig;
+	doDelete;
+	return(1);
+}
+
+//バックアップ--------------------------------------------------------------------
+global proc int GPbackup(){
+	string $temp_sceneName[] = `file -q -list`;
+	string $charaID = `basenameEx( $temp_sceneName[0])`;
+	string $dir = `dirname( $temp_sceneName[0])`;
+	print "***Skinning_OriginData.mbとしてバックアップを取ります。***\n";
+	file -rename ($dir + "\\Skinning_OriginData.mb");
+	file -save -type "mayaBinary";
+	file -rename ($dir + "\\" + $charaID + ".mb");
+	return(1);
+}
+
+//オブジェクトリネーム(ID付加)--------------------------------------------------------------------
+//受け取ったIDを、選択中のオブジェクトに付加する。
+//選択中オブジェクトの名前とcsvのIDリストを照合し、同じものがあれば書き換え、なければ新規追加。
+global proc int addBindID(string $ID ,string $fileName){
+	$ID = startString($ID, 3);
+	string $selobj[] = `ls -sl`;
+	int $i,$j,$matchflag;
+	string $IDlist[] = `getBindIDList($fileName)`;
+
+	for($i=0; $i<size( $selobj ) ; $i++ )
+	{
+		if(`checkBox -q -v overWriteModeCB`){
+			rename $selobj[$i] ($ID + "_");	//新規追加
+		}else{
+			$matchflag = 0;
+			for($j=0; $j<size( $IDlist ) ; $j++ )
+			{
+				if( startsWith( $selobj[$i] , $IDlist[$j]) ){
+					$matchflag = 1;
+				//	print ("Mode:" + $matchflag + "," + $selobj[$i] + "," + $IDlist[$j] + "\n");		エラーチェック用メッセージ、書き換え時に選択オブジェクト・判定されたフラグを表示
+				}
+			}
+			if ($matchflag == 0){
+				rename $selobj[$i] ($ID + "_" + $selobj[$i]);	//新規追加
+			}else{
+				int $strcount = size($selobj[$i]);		//書き換え
+				string $minname = endString($selobj[$i],$strcount-4);
+				rename $selobj[$i] ($ID + "_" + $minname);
+			}
+		}
+	}
+	return(1);
+}
+
+//オブジェクトリネーム(数値付加)--------------------------------------------------------------------
+//受け取った識別番号を、選択中のオブジェクトに付加する。
+//選択中オブジェクトの名前を確認し、「_3桁数値」があれば書き換え、なければ新規追加。
+global proc int addHideNum(string $num ){
+	$num = startString($num, 3);
+	string $selobj[] = `ls -sl`;
+	int $i,$j,$matchflag;
+
+	for($i=0; $i<size( $selobj ) ; $i++ )
+	{
+		$matchflag = 0;
+		if( `gmatch $selobj[$i] "*_[0-9][0-9][0-9]"` ){
+			$matchflag = 1;
+		}
+		if ($matchflag == 0){
+			rename $selobj[$i] ($selobj[$i] + "_" + $num);	//新規追加
+		}else{
+			int $strcount = size($selobj[$i]);		//書き換え
+			string $minname = startString($selobj[$i],$strcount-4);
+			rename $selobj[$i] ($minname + "_" + $num);
+		}
+	}
+	return(1);
+}
+
+//UI用IDリスト取得--------------------------------------------------------------------
+//csvからID、部位名、骨名を取得してtextfield用の形式に変換、stringとして返す。
+global proc string IDListGet(string $fileName){
+	string $ret;
+	string $IDList[];
+
+	int $fileId = `fopen $fileName "r"`;
+	string $line = `fgetline $fileId`;		//最上段は不要（目次）
+	$line = `fgetline $fileId`;
+	int $i=0;
+
+//データ部製作
+	string $partsCat = "";
+	while ( size( $line ) > 0 ){
+		string $buffer[];
+		tokenize $line "," $buffer;
+		if($buffer[0] != $partsCat){
+			$IDList[$i] = ("//" + $buffer[0] + "----------------------------------------------------------------------------");
+			$i++;
+			$partsCat = $buffer[0];
+		}
+		if($buffer[2] != "non"){
+//			if($buffer[7] != "extra") $IDList[$i] = ($buffer[2] + "\t" + $buffer[1]+ "\t:" + $buffer[3] );
+//			if($buffer[7] == "extra") $IDList[$i] = ($buffer[2] + "\t(ID)_" + $buffer[1]+ "\t:" + $buffer[3] );
+			if($buffer[7] != "extra") $IDList[$i] = ($buffer[2] + "\t" + $buffer[1] );
+			if($buffer[7] == "extra") $IDList[$i] = ($buffer[2] + "\t(ID)_" + $buffer[1] );
+			$i++;
+		}
+		$line = `fgetline $fileId`;
+	}
+
+//textfield用変換
+	for( $i=0,$ret="" ; $i<size( $IDList ) ; $i++ ){
+		$ret= ($ret + "-a \"" + $IDList[$i] + "\" ");
+	}
+	fclose $fileId;
+	return $ret;
+}
+
+//UI用識別番号取得--------------------------------------------------------------------
+//コピペでやりたかった。textfield用の形式に変換、stringとして返す。
+global proc string numListGet( int $NumMax){
+	string $ret;
+	string $NumList[];
+	int $i=0;
+
+//データ部製作
+	for ( $i=1;$i < $NumMax ; $i++ ){
+		string $buffer[];
+		$NumList[$i] = string($i);
+		if ($i< 10 ){
+			//$NumList[$i] = "00" + $NumList[$i];
+			$NumList[$i] = $NumList[$i] + "00";
+		}else if( $i < 100 ){
+			$NumList[$i] = "0" + $NumList[$i];
+		}
+	}
+
+//textfield用変換
+	for( $i=0,$ret="" ; $i<size( $NumList ) ; $i++ ){
+		$ret= ($ret + "-a \"" + $NumList[$i] + "\" ");
+	}
+	return $ret;
+}
+
+//識別番号チェック--------------------------------------------------------------------
+//parts以下を複製し、識別番号を基に配置する。
+//選択中オブジェクトの名前を確認し、「_3桁数値」毎に複製を配置、数値が無ければ最右のグループへ。
+global proc int makeNumCheck(int $mode){
+
+	select -r -hi parts;
+	select -d parts;
+	string $transnd[] = `ls -tr -sl`;
+	meshRename( $transnd );
+
+	select -r parts;
+	duplicate -n "check_parts";
+
+	select -r -hi parts;
+	select -d parts;
+	select -d "*Shape";
+	string $selobj[] = `ls -tr -sl`;
+	int $i , $j , $k , $matchflag , $numMax , $xpos , $zpos;
+	string $numStr,$unlbld,$istr;
+	$unlbld = "";
+	$numMax = 1;
+
+//サイズ把握
+	select -r parts;
+	float $wsize[] = `xform -q -bb`;
+	int $xmin = int($wsize[0]) * 1.2;
+	int $xmax = int($wsize[3])  * 1.2;
+	int $xwid = $xmax - $xmin;
+	int $yhgt = int($wsize[4])*1.1;
+	int $zmin = int($wsize[2]);
+	int $zmax = int($wsize[5]);
+	int $zdpt = $zmax - $zmin;
+
+
+//パーツ種数把握
+	for($i=0; $i<size( $selobj ) ; $i++ ){
+		$matchflag = 0;
+		if( `gmatch $selobj[$i] "*_[0-9][0-9][0-9]"` ){
+			$numStr = endString($selobj[$i] , 3);
+			int $j = int($numStr);
+			if ($numMax <= $j){
+				$numMax = $j;
+			};
+		}
+	}
+
+//高負荷専用処理、複製・配置
+	if ($mode){
+		for($i=0; $i<size( $selobj ) ; $i++ )
+		{
+			setAttr ( "check_" + $selobj[$i] + "|*Shape.overrideEnabled" ) 1;
+			setAttr ( "check_" + $selobj[$i] + "|*Shape.overrideDisplayType" ) 1;
+		}
+		for($j=1 ; $j <= $numMax ; $j++ ) {
+			plane -p 0 ($yhgt/2) 0 -w $yhgt -l $xwid -r 0deg 0deg 90deg -n ("checkplane" + $j);
+			select -r check_parts;
+			if($j < 10){
+				$istr = ("00" + string($j));
+			}else if($j< 100){
+				$istr = ("0" + string($j));
+			}else{
+				$istr = string($j);
+			}
+			duplicate -n ("check_" + $istr + "_parts");
+			parent ("checkplane" + $j) ("check_" + $istr + "_parts") ;
+
+			$xpos = ($xwid * (($j-1)%6) );
+			$zpos = ($zdpt * (($j-1) / 6) * -3);
+			move -r ($xwid + $xpos) 0 $zpos ("check_" + $istr + "_parts");
+		}
+		select -r  check_parts;
+		doDelete;
+	}else{
+		for($j=1 ; $j <= $numMax ; $j++ ) {
+			plane -p 0 ($yhgt/2) 0 -w $yhgt -l $xwid -r 0deg 0deg 90deg -n ("checkplane" + $j);
+			$xpos = ($xwid * (($j-1)%6) );
+			$zpos = ($zdpt * (($j-1) / 6) * -3);
+			move -r ($xwid + $xpos) 0 $zpos ("checkplane" + $j);
+			parent ("checkplane" + $j) ("check_parts") ;
+		}
+	}
+
+	for($i=0; $i<size( $selobj ) ; $i++ )
+	{
+		$matchflag = 0;
+		for($j=1 ; $j <= $numMax ; $j++ ) 
+		{
+			if($j < 10){
+				$istr = ("00" + string($j));
+			}else if($j < 100){
+				$istr = ("0" + string($j));
+			}else{
+				$istr = string($j);
+			}
+			string $texj = $istr;
+			$xpos = ($xwid * (($j-1)%6) );
+			$zpos = ($zdpt * (($j-1)/6) * -3);
+			$k =  endsWith($selobj[$i] , $texj );
+			if ($k == 1){	//	オリジナルを編集したくなかったので米	setAttr ( $selobj[$i] + "|*Shape.overrideEnabled" ) 1;setAttr ( $selobj[$i] + "|*Shape.overrideShading" ) 0;setAttr ( $selobj[$i] + "|*Shape.overrideColor" ) ($j + 3);
+				if ($mode == 0){
+					setAttr -lock false ( "check_" + $selobj[$i] + ".translateX" );
+					setAttr -lock false ( "check_" + $selobj[$i] + ".translateZ" );
+					setAttr ( "check_" + $selobj[$i] + "|*Shape.overrideEnabled" ) 1;
+					setAttr ( "check_" + $selobj[$i] + "|*Shape.overrideShading" ) 0;
+					setAttr ( "check_" + $selobj[$i] + "|*Shape.overrideColor" ) ($j + 3);
+					setAttr ( "check_" + $selobj[$i] + ".translateX" ) ($xpos + $xwid);
+					setAttr ( "check_" + $selobj[$i] + ".translateZ" ) $zpos;
+				}else{
+					if($j < 10){
+						$istr = ("00" + string($j));
+					}else if($j < 100){
+						$istr = ("0" + string($j));
+					}else{
+						$istr = string($j);
+					}
+					setAttr ( "check_" + $istr + "_" + $selobj[$i] + "|*Shape.overrideDisplayType" ) 0;
+					setAttr ( "check_" + $istr + "_" + $selobj[$i] + "|*Shape.overrideShading" ) 0;
+					setAttr ( "check_" + $istr + "_" + $selobj[$i] + "|*Shape.overrideColor" ) ($j + 3);
+				}
+			$j = $numMax;
+			$matchflag = 1;
+			}
+		}
+		if ($matchflag == 0){
+				if ($mode == 0){
+					setAttr -lock false ( "check_" + $selobj[$i] + ".translateX" );
+					setAttr -lock false ( "check_" + $selobj[$i] + ".translateZ" );
+					setAttr ( "check_" + $selobj[$i] + "|*Shape.overrideEnabled" ) 1;
+					setAttr ( "check_" + $selobj[$i] + "|*Shape.overrideShading" ) 0;
+					setAttr ( "check_" + $selobj[$i] + "|*Shape.overrideColor" ) 1;
+					setAttr ( "check_" + $selobj[$i] + ".translateX" ) $xpos;
+					setAttr ( "check_" + $selobj[$i] + ".translateZ" ) $zpos;
+				}else{
+					setAttr ( "check_" + $istr + "_" + $selobj[$i] + "|*Shape.overrideDisplayType" ) 0;
+					setAttr ( "check_" + $istr + "_" + $selobj[$i] + "|*Shape.overrideShading" ) 0;
+					setAttr ( "check_" + $istr + "_" + $selobj[$i] + "|*Shape.overrideColor" ) ($j + 3);
+				}
+			$unlbld = $unlbld + $selobj[$i] + "\n";
+		}
+	}
+	setAttr "perspShape.farClipPlane" ($xwid * 14);
+	select -cl;
+//結果報告
+	if(size($unlbld)==0){
+		confirmDialog -title "Object num Check" -message ("番号チェック用コピーを生成しました。")
+		-button "OK" -defaultButton "OK"
+		-cancelButton "OK" -dismissString "OK";
+	}else{
+		confirmDialog -title "Object num Check" -message ("番号チェック用コピーを生成しました。\nまた、以下のオブジェクトで番号が見つかりませんでした。\n\n" + $unlbld )
+		-button "OK" -defaultButton "OK"
+		-cancelButton "OK" -dismissString "OK";
+	}
+	return(1);
+}
+
+
+
+//UIwork------------------------------
+
+global proc IBT_coloring_listSelected(){
+	string $old[] = `editDisplayLayerMembers -q layer_IBTSelected`;
+	editDisplayLayerMembers -noRecurse layer_IBTList $old;
+	string $selected[] = `textScrollList -q -si IDList`;
+	string $temp[];
+	tokenize $selected[0] "\t" $temp;
+	string $items[] = `ls -dag -tr`;
+	if(startsWith($temp[1],"(ID)_")){
+		string $charaID = `textField -q -text IBT_chrIDTF`;
+		$temp[1] = substitute("\\(ID\\)" , $temp[1] , "*");
+	}
+	for($item in $items){
+		if($temp[1] != "" && gmatch($item , $temp[1])){
+			editDisplayLayerMembers -noRecurse layer_IBTSelected $temp[1];
+		}
+	}
+/*
+	if(stringArrayContains( $temp[1] , $items )){
+	}
+*/
+}
+
+global proc IBT_Initialize_colLS(){
+	createDisplayLayer -name "layer_IBTList" -number 1 -nr;
+	createDisplayLayer -name "layer_IBTSelected" -number 1 -nr;
+	setAttr layer_IBTSelected.color 13;
+	setAttr layer_IBTList.color 3;
+	select -r -hi root;
+	editDisplayLayerMembers -noRecurse layer_IBTList `ls -selection`;
+	select -cl;
+	textScrollList -e -sc "textField -e -text `textScrollList -q -si IDList` IDName ; IBT_coloring_listSelected()" IDList;
+	IBT_coloring_listSelected();
+}
+
+
+global proc IBT_deActive_colLS(){
+	select -r -hi root;
+	editDisplayLayerMembers -noRecurse joint `ls -selection`;
+	delete layer_IBTSelected layer_IBTList;
+	select -cl;
+	textScrollList -e -sc "textField -e -text `textScrollList -q -si IDList` IDName ;" IDList;
+}
+
+global proc IBT_resetUICheckbox(){
+	string $selected[] = `textScrollList -q -si tsl_pdt_IBT`;
+	textScrollList -e -ra IDList;
+	string $fileName = IBT_getCsvName();
+	string $IDAppendList= IDListGet($fileName);
+	string $work= ("textScrollList -e " + $IDAppendList + " IDList" );
+	eval( $work );
+
+/*分ける意味無い容疑
+	if($selected[0] == "通常モビルスーツ"){
+		string $fileName = IBT_getCsvName();
+		string $IDAppendList= IDListGet($fileName);
+		string $work= ("textScrollList -e " + $IDAppendList + " IDList" );
+		eval( $work );
+	}else if($selected[0] == "chr100349_ハイゴッグ"){
+		string $fileName = IBT_getCsvName();
+		string $IDAppendList= IDListGet($fileName);
+		string $work= ("textScrollList -e " + $IDAppendList + " IDList" );
+		eval( $work );
+	}else if($selected[0] == "chr3000_アークエンジェル"){
+		string $fileName = IBT_getCsvName();
+		string $IDAppendList= IDListGet($fileName);
+		string $work= ("textScrollList -e " + $IDAppendList + " IDList" );
+		eval( $work );
+	}else if($selected[0] == "chr7000_アルヴァトーレ"){
+		string $fileName = IBT_getCsvName();
+		string $IDAppendList= IDListGet($fileName);
+		string $work= ("textScrollList -e " + $IDAppendList + " IDList" );
+		eval( $work );
+	}else if($selected[0] == "chr4640_シャンブロ"){
+		string $fileName = IBT_getCsvName();
+		string $IDAppendList= IDListGet($fileName);
+		string $work= ("textScrollList -e " + $IDAppendList + " IDList" );
+		eval( $work );
+	}else if($selected[0] == "chr4680_ゲルズゲー"){
+		string $fileName = IBT_getCsvName();
+		string $IDAppendList= IDListGet($fileName);
+		string $work= ("textScrollList -e " + $IDAppendList + " IDList" );
+		eval( $work );
+	}
+*/
+}
+
+global proc IBT_closingWork(){
+	if(size(`ls "layer_IBTSelected"`)){
+		if(size(`ls "root"`)){
+			select -r -hi root;
+			editDisplayLayerMembers -noRecurse joint `ls -selection`;
+		}
+		delete layer_IBTSelected layer_IBTList;
+		select -cl;
+	}
+}
+
+//UI--------------------------------------------------------------------
+//誰か作って下さい
+global proc IDBindToolWindow(string $fileName)
+{
+	source "GP2_Ut";
+	string $ut = ("source \"" + `getenv "GP_MAYA_ROOT"` + "\\\\common\\\\scripts\\\\GP_mel\\\\subscripts\\\\GP2_Ut.mel\"");
+	eval $ut;
+	string $ut = ("source \"" + `getenv "GP_MAYA_ROOT"` + "\\\\common\\\\scripts\\\\GP_mel\\\\subscripts\\\\IDBind\\\\GP2_PickExcessJoints.mel\"");
+	eval $ut;
+
+	int $NumMax = 10;		//識別番号のマックス値。FAZZとか出たら増やす。
+
+	string $title = "IDBindTool";
+	string $SKwindow = "skintool";
+//	string $fileName = IBT_getCsvName();
+	
+
+	if ( `window -exists $SKwindow` )
+	{
+		deleteUI	$SKwindow;
+	}
+
+	string $IBTversion = getIBTVersion();
+	window  -t ( $title + "   " + $IBTversion ) -w 500 -h 730 $SKwindow;
+
+	string $scene[] = `file -q -list`;
+	string $charaID = `basenameEx($scene[0])`;
+
+	string $form = `formLayout -numberOfDivisions 100`;
+
+	string $headerLayout = `columnLayout IBT_headerLayout`;
+		string $partsDivTgt = (`textScrollList -allowMultiSelection false -width 450 -height 70 -sc ("IBT_resetUICheckbox()")
+	 		-append "通常モビルスーツ"
+			-append "HG_0400_ハイゴッグ"
+			-append "BA_0000_アークエンジェル"
+//			-append "chr7000_アルヴァトーレ"
+			-selectItem "通常モビルスーツ"
+			 tsl_pdt_IBT`);
+		separator -w 500 -h 15 -hr 1;
+		string $charaIDtext = `text -label "(エクストラジョイント用)キャラクターID"`;
+		string $charaIDtf = `textField -w 300 -text $charaID IBT_chrIDTF`;
+	setParent ..;
+
+	int $workLights = GP2_checkAccessRights();
+	if($workLights){
+	 		textScrollList -e -append "PGMS_登場演出用骨追加版" tsl_pdt_IBT;
+	}
+	string $work, $work2,$work3, $work4;
+	string $IDAppendList,$numList;
+
+
+	string $baseLayout = `rowLayout -numberOfColumns 2    -columnWidth2 300 200    -adjustableColumn 1    -columnAlign  1 "left"    -columnAttach 1 "both"     0    -columnAttach 2 "both"  0`;
+
+		string $IDform = `formLayout -numberOfDivisions 100`;
+			string $t0 = `text -label "ID　List"`;
+
+			string $tsl = `textScrollList -h 400 -shi 1 -ann "選択されたフラグが下欄に入ります" IDList`;
+			$IDAppendList= IDListGet($fileName);
+			$work2= "textField -e -text `textScrollList -q -si IDList` IDName;";
+			$work= ("textScrollList -e " + $IDAppendList + " -sc \"" + $work2 + "\" IDList" );
+			eval( $work );
+
+			string $tf = (`textField -text "追加したいフラグを選択するか、手入力して下さい" -ann "追加したいフラグを選択するか、手入力して下さい" IDName`);
+			string $IDset = `columnLayout -w 300 -columnAttach left 5`;
+				string $cbCol = `checkBox -label "選択をジョイントカラーへ反映" -ann "ジョイントを格納するレイヤーを新たに用意し、\r\nリストの選択に応じた色分け表示を行います。\r\nチェックを外す・ツールを閉じる事で元に戻ります。" -v 0 -h 18 -onc "IBT_Initialize_colLS()" -ofc "IBT_deActive_colLS()" recolModeCB`;
+				string $cbOw = `checkBox -label "元のオブジェクト名を残さない" -v 1 -h 18 overWriteModeCB`;
+				string $t1 = `text -label "選択オブジェクトをリネーム(ID追加)"`;
+				string $b1 = `button -w 200 -h 30 -l "Edit ID" AddIDBtn`;
+			setParent ..;
+		setParent ..;
+
+	formLayout -edit
+		-attachForm		$t0		"top"		0
+		-attachForm		$t0		"left"		0
+		-attachNone		$t0		"bottom"
+		-attachForm		$t0		"right"		0
+	
+		-attachControl	$tsl	"top"		0 $t0
+		-attachForm		$tsl	"left"		0
+		-attachControl	$tsl	"bottom"	0 $tf
+		-attachForm		$tsl	"right"		0
+	
+		-attachNone		$tf		"top"
+		-attachForm		$tf		"left"   0
+		-attachControl	$tf		"bottom" 0 $IDset
+		-attachForm		$tf		"right"  0
+
+		-attachNone		$IDset	"top"
+		-attachForm		$IDset	"left"   0
+		-attachForm		$IDset	"bottom" 0
+		-attachForm		$IDset	"right"  0
+	$IDform;
+
+		string $Numset = `columnLayout`;
+			string $t4 = `text -label "Number　List"`;
+
+			string $tsl2 = `textScrollList -w 200 -h 400 -shi 1 -ann "選択された識別番号が下欄に入ります" NumList`;
+			$numList= numListGet($NumMax);
+			$work4= "textField -e -text `textScrollList -q -si NumList` NumTextfield;";		//テキストフィールドに選択値を追加する機能
+			$work3= ("textScrollList -e " + $numList + " -sc \"" + $work4 + "\" NumList" );	//リストへの項目追加、↑機能の組み込み
+			eval( $work3 );
+
+			string $tf2 = (`textField -w 200 -text "" -ann "追加したい識別番号を選択するか、手入力して下さい" NumTextfield`);
+			string $t4_5 = `text  -h 36 -label ""`;
+			string $t5 = `text -label "選択オブジェクトをリネーム(番号追加)"`;
+			string $b2 = `button -w 200 -h 30 -l "Edit Number" CngIDBtn`;
+		setParent ..;
+	setParent ..;
+
+
+
+	string $b3 = `button -w 400 -h 30 -l "MeshNode-Name Check" MeshNmBtn`;
+	string $b4 = `button -w 400 -h 30 -l "Edit Weight" EditWtBtn`;
+	string $b8 = `button -w 400 -h 30 -l "モデル・骨の状態をチェック" checkSceneBtn`;
+	string $b5 = `button -w 400 -h 30 -l "状態チェック + 再バインド" ReBindBtn`;
+	string $b6 = `button -w 400 -h 30 -l "Optimize Scene" OptiBtn`;
+	string $b7 = `button -w 400 -h 30 -l "番号チェック用オブジェクト生成" numcheckBtn`;
+	string $b9 = `button -w 400 -h 30 -l "GP2_PickExcessJoints" pickExcessBtn`;
+
+
+
+
+	button -edit -command "addBindID( `textField -q -text IDName` , `IBT_getCsvName` );" -ann "選択中のオブジェクト名に、IDを設定します。既にIDが存在すれば書き換え、無ければ新規追加。" AddIDBtn;
+	button -edit -command "addHideNum( `textField -q -text NumTextfield` );" -ann "選択中のオブジェクト名に、識別番号を設定します。既に番号が存在すれば書き換え、無ければ新規追加。" CngIDBtn;
+	button -edit -command "meshRename( `ls -sl` );" -ann "parts下のオブジェクトの、transform・meshノード名を確認し、同名であればリネームします。\n正常に動作しない場合に使用して下さい。" MeshNmBtn;
+	button -edit -command "IDBindExec(`IBT_getCsvName`);" -ann "IDに基づきウェイトを調整します。\nスムースバインドを行った状態で使用して下さい。" EditWtBtn;
+	button -edit -command "GPRebind(int(`checkBox -q -v weightCopyFlag`));" -ann "parts以下のオブジェクトを複製し、再バインドします。\r\nシーンの状態をチェックし、骨などに問題があった場合はバインドされません。" ReBindBtn;
+	button -edit -command "cleanUpScene 2;" -ann "Optimize機能を呼び出します。" OptiBtn;
+	button -edit -command "makeNumCheck(`checkBox -q -v allCopyFlag`);" -ann "オブジェクト名末尾の、番号チェック用。番号に応じた位置に複製を作ります。" numcheckBtn;
+	button -edit -command "GP2IDBND_check_global();" -ann "メッシュ・ジョイントの状態に関して、チェックのみを行います。" checkSceneBtn;
+	button -edit -command "GP2_PickExcessJointsExec()" -ann "(バインド・optimize後用)対応するスキンクラスタを持たない、削除可能なジョイントを選択します。" pickExcessBtn;
+
+
+
+	string $t2 = `text -label "メッシュノード名調整"`;
+	string $t3 = `text -label "ウェイト値調整"`;
+	string $t4 = `text -label "オブジェクトを再バインド"`;
+
+	string $c1 = `checkBox -label "現モデルのウェイトをコピーする" weightCopyFlag`;
+	string $c2 = `checkBox -label "全身を複製して並べる(高付加注意)" allCopyFlag`;
+
+	formLayout -edit
+
+	    -attachForm		$headerLayout	"top"    5
+	    -attachForm		$headerLayout	"left"   5
+	    -attachNone		$headerLayout	"bottom"
+	    -attachNone		$headerLayout	"right"
+/*
+	    -attachControl	$IDset     "top"    5 $headerLayout
+	    -attachForm		$IDset     "left"   5
+	    -attachControl	$IDset     "bottom" 5 $t2
+	    -attachControl	$IDset     "right" 5 $Numset
+
+	    -attachControl	$Numset     "top"    5 $headerLayout
+	    -attachNone		$Numset     "left"   
+	    -attachControl	$Numset     "bottom" 5 $t2
+	    -attachForm		$Numset     "right" 5 
+*/
+	    -attachControl	$baseLayout "top"    5 $headerLayout
+	    -attachForm		$baseLayout "left"   5
+	    -attachControl	$baseLayout "bottom" 5 $t2
+	    -attachForm		$baseLayout "right" 5
+
+	    -attachNone     $t2     "top"
+	    -attachForm     $t2     "left"   5
+	    -attachControl  $t2     "bottom" 0 $b3
+	    -attachForm 	$t2     "right"  5
+
+	    -attachNone     $b3     "top"
+	    -attachForm     $b3     "left"   5
+	    -attachControl  $b3     "bottom" 6 $t4
+	    -attachForm 	$b3     "right"  5
+
+	    -attachNone     	$t4     "top"
+	    -attachForm     	$t4     "left"   5
+	    -attachControl  	$t4     "bottom" 0 $b8
+	    -attachForm 	$t4     "right"  5
+
+	    -attachNone     	$b8     "top"
+	    -attachForm     	$b8     "left"   5
+	    -attachControl  	$b8     "bottom" 0 $c1
+	    -attachForm 	$b8     "right"  5
+	
+	    -attachNone     	$c1     "top"
+	    -attachForm     	$c1     "left"   5
+	    -attachControl  	$c1     "bottom" 0 $b5
+	    -attachForm 	$c1     "right"  5
+
+	    -attachNone     	$b5     "top"
+	    -attachForm     	$b5     "left"   5
+	    -attachControl	$b5     "bottom" 6 $t3
+	    -attachForm     	$b5     "right"  5
+
+	    -attachNone     	$t3     "top"
+	    -attachForm     	$t3     "left"   5
+	    -attachControl  	$t3     "bottom" 0 $b4
+	    -attachForm 	$t3     "right"  5
+
+	    -attachNone     	$b4     "top"
+	    -attachForm     	$b4     "left"   5
+	    -attachControl     	$b4     "bottom" 5 $b6
+	    -attachForm     	$b4     "right"  5
+
+	    -attachNone     	$b6     "top"
+	    -attachForm     	$b6     "left"   5
+	    -attachControl	$b6     "bottom" 5 $c2
+	    -attachForm     	$b6     "right"  5
+
+	    -attachNone     	$c2     "top"
+	    -attachForm     	$c2     "left"   5
+	    -attachControl	$c2     "bottom" 5 $b7
+	    -attachForm     	$c2     "right"  5
+
+	    -attachNone     	$b7     "top"
+	    -attachForm     	$b7     "left"   5
+	    -attachControl	$b7     "bottom" 5 $b9
+	    -attachForm     	$b7     "right"  5
+
+	    -attachNone     	$b9     "top"
+	    -attachForm     	$b9     "left"   5
+	    -attachForm     	$b9     "bottom" 5
+	    -attachForm     	$b9     "right"  5
+	$form;
+
+	showWindow $SKwindow;
+	scriptJob -uiDeleted $SKwindow "IBT_closingWork();";
+}
+

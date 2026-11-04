@@ -1,0 +1,115 @@
+/*
+-------------------
+MS_SelByPolyCount.mel
+-------------------
+
+◆概要
+指定したポリゴン数以上のオブジェクトをふるいに掛ける。
+
+◆使用方法
+スクリプト実行でダイアログが開く。
+ふるいに掛けるポリゴン数を設定する。
+ふるいに掛けたいオブジェクトを、複数選んで実行ボタンを押す。
+
+◆詳細
+
+
+※注意
+
+
+*/
+
+
+
+
+global proc MS_SelByPolyCount_A(){
+
+	$val_check=`intSliderGrp -q -v check`;
+	string $name_objs[]=`ls -o -sl`;
+	string $results[];
+	
+print "x\n";
+	
+	$i=0;
+	$j=0;
+	for($i=0;$i<size($name_objs);$i++){
+print $name_objs[$i];
+print $val_check;
+		$val_fc=`polyEvaluate -f $name_objs[$i]`;
+print $val_fc;
+		if( $val_fc[0] < $val_check ){
+			print $name_objs[$i];
+			$results[$j]=$name_objs[$i];
+			$j++;
+		}
+	}
+	
+	
+print "x\n";	
+	
+	select $results;
+	clear $results;
+	
+}
+
+
+
+
+
+global proc MS_SelByPolyCount(){
+	if(`window -exists MS_SelByPolyCount`){
+		deleteUI MS_SelByPolyCount;
+	}
+	
+	window -title "MS_SelByPolyCount" MS_SelByPolyCount;	
+	
+	$form = `formLayout`;
+
+	setParent $form;
+	$sep=`separator`;
+
+
+	$com_check=`intSliderGrp -l "check" -field true -min 0 -max 60000 -v 0 check`;
+
+
+	$com_anglecheck=`button -l "AngleCheck" -command "MS_SelByPolyCount_A" `;
+	$com_und=`button -l "undo" -command "Undo" `;
+	$com_ext=`button -l "exit" -command "deleteUI MS_SelByPolyCount" `;
+
+
+	formLayout -e
+//----------------------------------
+	-af $com_check "top" 10
+        -af $com_check "left" 5
+        -an $com_check "right"
+        -an $com_check "bottom"
+
+	-af $sep "top" 80
+	-af $sep "left" 5
+	-af $sep "right" 5
+	-an $sep "bottom"
+//------------------------------------
+
+	-af $com_anglecheck "top" 100
+        -af $com_anglecheck "left" 5
+        -ap $com_anglecheck "right" 0 20
+        -an $com_anglecheck "bottom"
+
+        -af $com_und "top" 100
+        -ap $com_und "left" 0 60
+        -ap $com_und "right" 0 80
+        -an $com_und "bottom"
+
+        -af $com_ext "top" 100
+        -ap $com_ext "left" 0 80
+        -af $com_ext "right" 5
+        -an $com_ext "bottom"
+	$form;
+	
+	showWindow MS_SelByPolyCount;
+	
+
+}
+
+
+MS_SelByPolyCount;

@@ -1,0 +1,328 @@
+global proc MS_VFA_Switch_Simple_pipe(){
+	
+	string $obj[]=`ls -sl`;
+	int $cTime=`currentTime -q`;
+	int $tm[]=`MS_selectTime`;
+	
+	float $threshold=`floatSliderGrp -q -v "threshold_Switch_Simple"`;
+	int $reverse=`checkBox -q -v "reverse_Switch_Simple"`;
+	
+	string $target=`textFieldGrp -q -tx "target_Switch_Simple"`;
+	string $targetAttr=`textFieldGrp -q -tx "attr_Switch_Simple"`;
+	
+	string $attr1[]=`channelBox -q -sma mainChannelBox`;
+	string $attr2[]=`channelBox -q -ssa mainChannelBox`;
+	
+	string $attr[]=`stringArrayCatenate $attr1 $attr2`;
+	
+	MS_VFA_Switch_Simple ( $tm[0],$tm[1],$threshold,$reverse,$target,$targetAttr,$obj,$attr);
+	
+	for($each in $obj){
+		for($eachAttr in $attr){
+			MS_VFA_deleteFlatPoint $tm[0] $tm[1] ($each+"."+$eachAttr);
+		}
+	}
+	
+	currentTime $cTime;
+	//select -r $target;
+}
+
+global proc MS_footstep(){
+	string $target[]=`ls -typ transform -sl`;
+	int $cTime=`currentTime -q`;
+	int $tm[]=`MS_selectTime`;
+	
+	float $threshold=`floatSliderGrp -q -v "threshold_footstep"`;
+	float $ground=`floatSliderGrp -q -v "ground_footstep"`;
+	
+	for ($each in $target){
+		
+		string $newloc[]=`spaceLocator`;
+		
+		MS_setEmitter("sak_footstep",0,0,0,0,0,1);
+		
+		pointConstraint -w 1.0 -o 0 0 0 -sk y $each $newloc[0];
+		
+		MS_VFA_Step_V2 $tm[0] $tm[1] $threshold $ground $each $newloc {"EmitterVolume"};
+		
+		MS_VFA_deleteFlatPoint $tm[0] $tm[1] ($newloc[0]+".EmitterVolume");
+		
+		rename $newloc[0] "MS_footstep";
+	}
+	
+	currentTime $cTime;
+	//select -r $target;
+}
+
+global proc MS_VFA_Step_pipe(){
+	
+	string $obj[]=`ls -sl`;
+	int $cTime=`currentTime -q`;
+	int $tm[]=`MS_selectTime`;
+	
+	float $threshold=`floatSliderGrp -q -v "threshold_step"`;
+	
+	string $target=`textFieldGrp -q -tx "target_step"`;
+	string $attr=`textFieldGrp -q -tx "attr_step"`;
+	
+	string $attrs[];
+	tokenize($attr," ",$attrs);
+	
+	MS_VFA_Step ( $tm[0],$tm[1],$threshold,$target,$obj,$attrs);
+	for($each in $obj){
+		MS_VFA_deleteFlatPoint $tm[0] $tm[1] ($each+".EmitterVolume");
+	}
+	
+	currentTime $cTime;
+	//select -r $target;
+}
+
+global proc MS_VFA_Step_V2_pipe(){
+	
+	int $tm[]=`MS_selectTime`;
+	
+	float $threshold=`floatSliderGrp -q -v "threshold_stepV2"`;
+	float $ground=`floatSliderGrp -q -v "ground_stepV2"`;
+	string $target=`textFieldGrp -q -tx "target_stepV2"`;
+	string $attr=`textFieldGrp -q -tx "attr_stepV2"`;
+	
+	string $attrs[];
+	tokenize($attr," ",$attrs);
+	
+	string $obj[]=`ls -sl`;
+	
+	MS_VFA_Step_V2 ( $tm[0],$tm[1],$threshold,$ground,$target,$obj,$attrs);
+	
+	
+}
+
+global proc MS_VFA_Switch_pipe(){
+	
+	int $tm[]=`MS_selectTime`;
+	
+	float $threshold=`floatSliderGrp -q -v "threshold_int"`;
+	string $attr=`textFieldGrp -q -tx "attr_int"`;
+	string $attrs[];
+	tokenize($attr," ",$attrs);
+	
+	string $obj[]=`ls -sl`;
+	
+	string $target;
+	
+	if(`checkBox -q -v "selfSwitch"`){
+		$target=`textFieldButtonGrp -q -tx "target_int"`;
+		for($each in $obj){
+			MS_VFA_Switch ( $tm[0],$tm[1],$threshold,$each,{$each},$attrs);
+		}
+	}else{
+		$target=`textFieldButtonGrp -q -tx "target_int"`;
+		MS_VFA_Switch ( $tm[0],$tm[1],$threshold,$target,$obj,$attrs);
+	}
+	
+	
+	
+	
+	
+	
+}
+
+global proc MS_VFA_Float_pipe(){
+	
+	int $tm[]=`MS_selectTime`;
+	
+	float $minvalue=`floatSliderGrp -q -v "minvalue_float"`;
+	float $maxvalue=`floatSliderGrp -q -v "maxvalue_float"`;
+	
+	string $target=`textFieldButtonGrp -q -tx "target_float"`;
+	string $attr=`textFieldGrp -q -tx "attr_float"`;
+	
+	string $attrs[];
+	tokenize($attr," ",$attrs);
+	
+	string $obj[]=`ls -sl`;
+	if ($minvalue<$maxvalue){
+		MS_VFA_Float( $tm[0],$tm[1],$minvalue,$maxvalue,$target,$obj,$attrs);
+	}else{
+		MS_VFA_Float_reverse( $tm[0],$tm[1],$minvalue,$maxvalue,$target,$obj,$attrs);
+	}
+}
+
+global proc MS_VFA_getTarget(){
+	
+	string $obj[]=`ls -sl`;
+	
+	textFieldButtonGrp -e -tx $obj[0] "target_float";
+	textFieldButtonGrp -e -tx $obj[0] "target_int";
+	textFieldButtonGrp -e -tx $obj[0] "target_step";
+	textFieldButtonGrp -e -tx $obj[0] "target_stepV2";
+	textFieldButtonGrp -e -tx $obj[0] "target_Switch_Simple";
+}
+
+global proc MS_VFA_getAttr(){
+	string $values[]=`channelBox -q -sma mainChannelBox`;
+	string $values2[]=`channelBox -q -ssa mainChannelBox`;
+	
+	//singleData
+	string $attr[]=`stringArrayCatenate $values $values2`;
+	textFieldButtonGrp -e -tx $attr[0] "attr_Switch_Simple";
+	
+	//arrayData
+	string $newValue=stringArrayToString ($attr," ");
+	
+	textFieldButtonGrp -e -tx $newValue "attr_float";
+	textFieldButtonGrp -e -tx $newValue "attr_int";
+	textFieldButtonGrp -e -tx $newValue "attr_step";
+	textFieldButtonGrp -e -tx $newValue "attr_stepV2";
+}
+
+global proc MS_VFA_getGround(){
+	string $obj[]=`ls -sl`;
+	float $val[]=`xform -q -ws -t $obj[0]`;
+	float $ret;
+	if($val[1]!=0){
+		$ret=(`ceil ($val[1]*100)`/100);
+	}else{
+		$ret=0;
+	}
+	
+	floatSliderButtonGrp -e -v $ret "ground_stepV2";
+	floatSliderButtonGrp -e -v $ret "ground_footstep";
+}
+
+global proc MS_VFAUI()
+{
+	
+	//Window Check
+	if(`window -exists MS_VFAUI`){
+		deleteUI MS_VFAUI;
+	}
+	
+	
+	//Create Window
+	
+	window -title "MS_VFAUI" MS_VFAUI;
+	
+	$tabs=`tabLayout`;
+	
+	//-------------------------------------------------------
+	
+	$tab1=`columnLayout`;
+	
+	floatSliderGrp -f 1 -min 0 -max 1000 -v 0.0 -l "min" "minvalue_float";
+	floatSliderGrp -f 1 -min 0 -max 1000 -v 1.0 -l "max" "maxvalue_float";
+	
+	textFieldButtonGrp -l "target" -bl "getTarget" -bc "MS_VFA_getTarget" "target_float";
+	textFieldButtonGrp -l "attr" -bl "getAttr" -bc "MS_VFA_getAttr" "attr_float";
+	
+	
+	button -l "do" -command "MS_VFA_Float_pipe" ;
+	
+	button -l "undo" -command "Undo" ;
+	button -l "exit" -command "deleteUI MS_VFAUI" ;
+	
+	setParent ..;
+	
+	//-------------------------------------------------------
+	
+	$tab2=`columnLayout`;
+	
+	floatSliderGrp -f 1 -min 0 -max 1 -v 0.5 -l "threshold" "threshold_int";
+	
+	checkBox -v 0 -l "target is each self" "selfSwitch";
+	textFieldButtonGrp -l "target" -bl "getTarget" -bc "MS_VFA_getTarget" "target_int";
+	textFieldButtonGrp -l "attr" -bl "getAttr" -bc "MS_VFA_getAttr" "attr_int";
+	
+	
+	button -l "do" -command "MS_VFA_Switch_pipe" ;
+	
+	button -l "undo" -command "Undo" ;
+	button -l "exit" -command "deleteUI MS_VFAUI" ;
+	
+	setParent ..;
+	
+	//-------------------------------------------------------
+	
+	$MS_VFA_Switch_Simple=`columnLayout`;
+	
+	floatSliderGrp -f 1 -min -1000 -max 1000 -v 0.5 -l "threshold" "threshold_Switch_Simple";
+	
+	checkBox -v 0 -l "Reverse" "reverse_Switch_Simple";
+	textFieldButtonGrp -l "target" -bl "getTarget" -bc "MS_VFA_getTarget" "target_Switch_Simple";
+	textFieldButtonGrp -l "attr" -bl "getAttr" -bc "MS_VFA_getAttr" "attr_Switch_Simple";
+	
+	
+	button -l "do" -command "MS_VFA_Switch_Simple_pipe" ;
+	
+	button -l "undo" -command "Undo" ;
+	button -l "exit" -command "deleteUI MS_VFAUI" ;
+	
+	setParent ..;
+	
+
+	//-------------------------------------------------------
+	
+	$STEP=`columnLayout`;
+	
+	floatSliderGrp -f 1 -min -1000 -max 1000 -v 1 -l "threshold" "threshold_step";
+	
+	textFieldButtonGrp -l "target" -bl "getAttr" -bc "MS_VFA_getTarget" "target_step";
+	textFieldButtonGrp -l "attr" -bl "getAttr" -bc "MS_VFA_getAttr" "attr_step";
+	
+	
+	button -l "do" -command "MS_VFA_Step_pipe" ;
+	
+	button -l "undo" -command "Undo" ;
+	button -l "exit" -command "deleteUI MS_VFAUI" ;
+
+	setParent ..;
+	
+	//-------------------------------------------------------
+	
+	$STEP_V2=`columnLayout`;
+	floatSliderButtonGrp -bl "getGround" -bc "MS_VFA_getGround" -f 1 -pre 2 -min -1000 -max 1000 -v 0.5 -l "ground" "ground_stepV2";
+	floatSliderGrp -f 1 -min -1000 -max 1000 -v 0.1 -l "threshold" "threshold_stepV2";
+	
+	textFieldButtonGrp -l "target" -bl "getAttr" -bc "MS_VFA_getTarget" "target_stepV2";
+	textFieldButtonGrp -l "attr" -bl "getAttr" -bc "MS_VFA_getAttr" "attr_stepV2";
+	
+	
+	button -l "do" -command "MS_VFA_Step_V2_pipe" ;
+	
+	button -l "undo" -command "Undo" ;
+	button -l "exit" -command "deleteUI MS_VFAUI" ;
+
+	setParent ..;
+	
+	
+	//-------------------------------------------------------
+	
+	$FULLAUTOMATICSTEP=`columnLayout`;
+	
+	
+	text -align "left" -l "1 select animated Objects .\n2 set the ground height and move value threshold. \n3 select timerange from time silder bar .\n4 go .\n";
+		separator -w 1000;
+	floatSliderButtonGrp -bl "getGround" -bc "MS_VFA_getGround" -f 1 -pre 2 -min -1000 -max 1000 -v 0.5 -l "ground" "ground_footstep";
+	floatSliderGrp -f 1 -min -1000 -max 1000 -v 0.1 -l "threshold" "threshold_footstep";
+	
+	button -l "FULL AUTOMATIC STEP" -command "MS_footstep" ;
+	setParent ..;
+	
+	
+	tabLayout -e 
+		-tl $tab1 "MS_VFA_Float" 
+		-tl $tab2 "MS_VFA_Switch" 
+		-tl $MS_VFA_Switch_Simple "MS_VFA_Switch_Simple"
+		-tl $STEP "MS_VFA_Step" 
+		-tl $STEP_V2 "MS_VFA_Step_V2" 
+		-tl $FULLAUTOMATICSTEP "FULL AUTOMATIC STEP"
+	$tabs;
+	
+	//Footer
+	showWindow MS_VFAUI;
+	
+}
+
+//MS_VFAUI;
+
+
+

@@ -1,0 +1,304 @@
+
+//ここからrestore_Listボタン用
+//キャラクターリストの更新
+global proc selectFromChrList(){
+	string $list[] = `textScrollList -q -si textScrollList_setupRTD_for_Export2_csv_RTDconverter_charaList0`;
+	string $sel[];
+	for($item in $list){
+		string $temp[];
+		tokenize $item " " $temp;
+		if(size(`ls $temp[0]`)) $sel[size($sel)] = $temp[0];
+	}
+	select -r $sel;
+}
+
+global proc int getChrCount(string $catName){
+	string $baseData[] = `textScrollList -q -ai textScrollList_setupRTD_for_Export2_csv_RTDconverter_charaList0`;
+	string $temp[];
+	string $catIDList[];
+	for($i=0 ; $i < size($baseData) ; $i++){
+		tokenize $baseData[$i] " " $temp;
+		if(startsWith($temp[1],$catName)){
+			$catIDList[size($catIDList)] = $temp[1];
+		}
+	}
+	$catIDList = `sort $catIDList`;
+	string $tmpID;
+	for($i=0 ; $i < size($catIDList) ; $i++){
+		if($i<10){
+			$tmpID = $catName + "0" + $i;
+		}else{
+			$tmpID = $catName + $i;
+		}
+		if(stringArrayContains( $tmpID , $catIDList ) == 0){
+			break;
+		}
+	}
+	return $i;
+}
+
+global proc restoreListButtonAction(){
+	string $command = "selectFromChrList";
+	textScrollList -e -ra -ams 1 -sc $command textScrollList_setupRTD_for_Export2_csv_RTDconverter_charaList0;
+
+	string $charaList[] = `ls "|RTD_root|chara_*"`;
+	int $i;
+	for($i=0 ; $i<size($charaList) ; $i++){
+		$charaList[$i] = $charaList[$i] + "_root";
+	}
+
+	for($item in $charaList){
+		textScrollList -e -a $item textScrollList_setupRTD_for_Export2_csv_RTDconverter_charaList0;
+	}
+
+	textField -e -text "chr000009" textField_setupRTD_for_Export2_csv_chara_ID_manager0;	//ms
+	textField -e -text "chr01000" textField_setupRTD_for_Export2_csv_chara_ID_manager1;	//ma
+	textField -e -text "chr0000" textField_setupRTD_for_Export2_csv_chara_ID_manager2;	//gimmick
+	textField -e -text "chr00000" textField_setupRTD_for_Export2_csv_chara_ID_manager3;	//equip
+	textField -e -text "chr000" textField_setupRTD_for_Export2_csv_chara_ID_manager4;	//avatar
+}
+
+//restoreListButtonAction();
+//ここまでrestore_Listボタン用
+
+
+
+//以下、setCharaButton用
+global proc setCharaButton(int $cat){
+	int $chrCount[];
+	for($i=0 ; $i<5 ; $i++){
+		$chrCount[$i] = 0;
+	}
+
+	//int $cat = 1;	//ここのみボタンごとに書き換え
+
+	string $cat_list[] = {"ms" , "ma" , "gim" , "eq" , "avt" };
+	string $ID_temp = `textField -q -text ("textField_setupRTD_for_Export2_csv_chara_ID_manager" + $cat)`;
+	string $reSignTgt[] = `textScrollList -q -si textScrollList_setupRTD_for_Export2_csv_RTDconverter_charaList0`;
+	int $reSignIndex[] = `textScrollList -q -sii textScrollList_setupRTD_for_Export2_csv_RTDconverter_charaList0`;
+	string $temp[];
+	string $newInfo;
+	for($i=0 ; $i < size($reSignTgt) ; $i++ ){
+		$chrCount[$cat] = getChrCount($cat_list[$cat]);
+		tokenize $reSignTgt[$i] " " $temp;
+		if($temp[1] != "" && startsWith($temp[1] , $cat_list[$cat]) ){
+			$newInfo = ($temp[0] + " " + $temp[1] + " " + $ID_temp);
+		}else{
+			$newInfo = ($temp[0] + " " + $cat_list[$cat] + "0" + $chrCount[$cat] + " " + $ID_temp);
+		}
+		textScrollList -e -rii $reSignIndex[$i] textScrollList_setupRTD_for_Export2_csv_RTDconverter_charaList0;
+		textScrollList -e -ap $reSignIndex[$i] $newInfo textScrollList_setupRTD_for_Export2_csv_RTDconverter_charaList0;
+	}
+}
+
+//setCharaButton(0);
+//setCharaButton用ここまで
+
+
+//exportCsv
+//そうしょっちゅうやるものでは無い
+global proc export_RTDCsvSet(){
+	string $baseData[] = `textScrollList -q -ai textScrollList_setupRTD_for_Export2_csv_RTDconverter_charaList0`;
+
+	int $i;
+	string $temp[];
+	for($i=0 ; $i < size($baseData) ; $i++){
+		tokenize $baseData[$i] " " $temp;
+		exportRTD_csv($temp[0] , $temp[1] , 0);
+	}
+	exportRTD_csv("camera1","camera",1);
+	exportRTD_csv("RTD_root","RTD_locator",2);
+}
+
+
+global proc string makeCsvPath( string $castID , int $mode ){
+	string $lastPath;
+	string $tempPath = `textField -q -text textField_setupRTD_for_Export_csv_fbx_exportPathTF0`;
+	string $prePath = `dirname $tempPath`;
+	string $RTDID = `textField -q -text textField_setupRTD_for_Export2_csv_GP2_folder_Path1`;
+	switch($mode){
+		//chara
+		case 0 :
+			$lastPath = $prePath + "\\" + $RTDID + "_" + $castID + ".csv";
+			break;
+		case 1 :
+			$lastPath = $prePath + "\\" + $RTDID + "_camera.csv";
+			break;
+		case 2 :
+			$lastPath = $prePath + "\\" + $RTDID + ".csv";
+			break;
+	}
+	return $lastPath;
+}
+
+global proc exportRTD_csv(string $exportNode , string $castID , int $mode){
+	string $lastPath = makeCsvPath( $castID , $mode );
+	string $tempPath = `textField -q -text textField_setupRTD_for_Export_csv_fbx_exportPathTF0`;
+	string $prePath = `dirname $tempPath`;
+	string $preName = basename( $tempPath , "");
+	string $motionName = `textField -q -text textField_setupRTD_for_Export2_csv_GP2_folder_Path2`;
+	string $headerName = `textField -q -text textField_setupRTD_for_Export2_csv_GP2_folder_Path3`;
+	string $store[];
+	$store[0] = "#ファイル名,出力時の別名,ベースポーズ出力指定,差分モーション指定,サンプリングFPS指定,ジョイント設定ファイル,開始フレーム,終了フレーム,ルート平行移動を0から開始する,出力タイプ,ルートノード名";
+	//命名テンプレート・rtd000000_ms01.csv
+	switch($mode){
+		//chara
+		case 0 :
+			$store[1] = ("global," + $headerName + ",1,,30,../jointsetting.csv,,,0,," + $exportNode);
+			$store[2] = ($preName + ",basepose,1,,,,,,,");
+			$store[3] = ($preName + "," + $motionName + ",,,,,,,,");
+			break;
+		//camera
+		case 1 :
+			$store[1] = ("global,rtdcamera,1,,30,../jointsetting.csv,,,0,1,");
+			$store[2] = ($preName + "," + $motionName + ",,,,,,,,");
+			break;
+		//rtdLocator
+		case 2 :
+			$store[1] = ("global,rtdlocator,1,,30,../jointsetting.csv,,,0,,RTD_root");
+			$store[2] = ($preName + ",basepose,1,,,,,,,");
+			$store[3] = ($preName + "," + $motionName + ",,,,,,,,");
+			break;
+	}
+
+	$fileId=`fopen $lastPath "w"`;
+	for ($loadedItem in $store){
+		if (endsWith($loadedItem,"\n") == 0){
+			$loadedItem = ($loadedItem + "\n");
+		}
+		fprint $fileId ($loadedItem);
+	}
+	fclose $fileId;
+}
+
+//export_RTDCsvSet();
+
+
+
+//コンバート処理
+//プロシージャ makeCsvPathを借りているので注意
+global proc convert_RTDSet(){
+	string $projPath = `textField -q -text textField_setupRTD_for_Export2_csv_GP2_folder_Path0`;
+	string $baseData[] = `textScrollList -q -ai textScrollList_setupRTD_for_Export2_csv_RTDconverter_charaList0`;
+	int $i;
+	string $temp[];
+	for($i=0 ; $i < size($baseData) ; $i++){
+		tokenize $baseData[$i] " " $temp;
+		$lastPath = makeCsvPath( $temp[1] , 0 );
+		convertRTD($lastPath , $temp[1] , $projPath);
+	}
+	$lastPath = makeCsvPath("camera",1);
+	convertRTD($lastPath , "camera" , $projPath);
+	$lastPath = makeCsvPath("RTD_locator",2);
+	convertRTD($lastPath , "rtdLocator" , $projPath);
+}
+
+global proc convertRTD(string $lastPath , string $type , string $projPath){
+	string $command = ("call L:\\motion\\motionConverter\\fbxConverter.exe " + $lastPath);
+	$command = toNativePath($command);
+	system($command);
+	string $temp[];
+	tokenize $lastPath "." $temp;
+	string $secondPath = "\\program\\resource\\original\\GP\\motion\\";
+	string $fileName = `basenameEx($temp[0])`;
+
+	if(startsWith($type,"ms")){	$secondPath = ($secondPath + "ms\\" + $fileName + ".hlk.org");
+	}else if(startsWith($type,"ma")){	$secondPath = ($secondPath + "ma\\" + $fileName + ".hlk.org");
+	}else if(startsWith($type,"gim")){	$secondPath = ($secondPath + "gimmick\\" + $fileName + ".hlk.org");
+	}else if(startsWith($type,"eq")){	$secondPath = ($secondPath + "equip\\" + $fileName + ".hlk.org");
+	}else if(startsWith($type,"avt")){	$secondPath = ($secondPath + "avatar\\" + $fileName + ".hlk.org");
+	}else if(startsWith($type,"camera")){	$secondPath = ($secondPath + "camera\\" + `substitute "_camera" $fileName ""` + ".hlk.org");
+	}else {	$secondPath = ($secondPath + "rtdLocator\\" + $fileName + ".hlk.org");}
+
+	sysFile -cp ($projPath + $secondPath) ( $temp[0] + ".hlk.org" );
+}
+
+//convert_RTDSet();
+
+
+//でっち上げ
+
+global proc makeRTD_dummyCsv(){
+	string $projPath = `textField -q -text textField_setupRTD_for_Export2_csv_GP2_folder_Path0`;
+	string $RTDID = `textField -q -text textField_setupRTD_for_Export2_csv_GP2_folder_Path1`;
+	string $motionName = `textField -q -text textField_setupRTD_for_Export2_csv_GP2_folder_Path2`;
+	string $secondPath = "\\program\\resource\\original\\GP\\";
+	string $lastPath = ("rtd\\csv\\" + $RTDID + ".dt2.csv");
+	string $chrList[] = `textScrollList -q -ai textScrollList_setupRTD_for_Export2_csv_RTDconverter_charaList0`;
+	string $temp[];
+	string $output[];
+	$output[0] = "#ID,#モーション名,#出演者数,,,,,";
+	$RTDID = substitute("rtd" , $RTDID , "");
+	$output[1] = ($RTDID + "," + $motionName + "," + `size($chrList)` + ",,,,,");
+	$output[2] = "#出演者,#カテゴリ,#タイプ,#ノード名,#モーション,#モーションシーケンスパッケージ,#モデル,#モーションシーケンスエフェクト";
+
+	int $i;
+	string $fNBase[];
+	for($i=0 ; $i<size($chrList) ; $i++){
+		tokenize $chrList[$i] " " $temp;
+		int $cat = 0;
+		string $type;
+		string $charaID = substitute("_root",$temp[0],"");
+		if(startsWith($temp[1], "ms" )){ $cat = 1;$type = "ms";}
+		else if(startsWith( $temp[1] , "ma" )){ $cat=0 ; $type="ma" ; }
+		else if(startsWith( $temp[1] , "gim" )){ $cat=0 ; $type="gimmick" ; }
+		else if(startsWith( $temp[1] , "eq" )){ $cat=0 ; $type="equip" ; }
+		else if(startsWith( $temp[1] , "avt" )){ $cat=0 ; $type="avatar" ; }
+		$fNBase[$i] = ($type + "/rtd" + $RTDID + "_" + $temp[1]);
+	
+		$output[ $i+3 ] = ("#" + $temp[1] + "," + $cat + ",," + $charaID + ",GP/motion/" + $fNBase[$i] + ",GP/motionSequencePackage/rtdLocator/rtd" + $RTDID + ",GP/model/" + $type + "/" + $temp[2] + "/" + $temp[2] + ",GP/effect/mse/" + $fNBase[$i]);
+	}
+
+
+	$lastPath = ($projPath + $secondPath + $lastPath);
+
+	$fileId=`fopen $lastPath "w"`;
+	for ($loadedItem in $output){
+		if (endsWith($loadedItem,"\n") == 0){
+			$loadedItem = ($loadedItem + "\n");
+		}
+		fprint $fileId ($loadedItem);
+	}
+	fclose $fileId;
+
+	//mse生成
+	for($i=0 ; $i<size($chrList) ; $i++){
+		string $msePath = ($projPath + $secondPath + "effect\\mse\\" + $fNBase[$i] + ".mse.csv");
+		$fileId=`fopen $msePath "w"`;
+		fprint $fileId ("#ID一桁目,#シーケンスID,#メモ,#内容,#エフェクトファイル名,#ジョイント名,#アタッチタイプ,#ループエフェクト,#パーツID,#使用スキルＩＤ,#エフェクト生成タイプ,#Color_A,#オフセットX,#オフセットY,#オフセットZ,#回転X,#回転Ｙ,#回転Ｚ,#スケールX,#スケールY,#スケールＺ,#フェードフレーム,#地形エフェクト,#ライトプローブ適用,#パーツカラーを反映,#プレイヤー専用(PS3),#プレイヤー専用(VITA),#読み替え,#ポイントライト");
+		fclose $fileId;
+	}
+	$msePath = ($projPath + $secondPath + "effect\\mse\\rtd" + $RTDID + ".mse.csv");
+	$fileId=`fopen $msePath "w"`;
+	fprint $fileId ("#ID一桁目,#シーケンスID,#メモ,#内容,#エフェクトファイル名,#ジョイント名,#アタッチタイプ,#ループエフェクト,#パーツID,#使用スキルＩＤ,#エフェクト生成タイプ,#Color_A,#オフセットX,#オフセットY,#オフセットZ,#回転X,#回転Ｙ,#回転Ｚ,#スケールX,#スケールY,#スケールＺ,#フェードフレーム,#地形エフェクト,#ライトプローブ適用,#パーツカラーを反映,#プレイヤー専用(PS3),#プレイヤー専用(VITA),#読み替え,#ポイントライト");
+	fclose $fileId;
+
+	//msqp生成(?)
+	if(`filetest -r ($projPath + $secondPath + "motionSequencePackage\\rtdLocator\\rtd" + $RTDID + ".msq2.xml")` != 1){
+		sysFile -cp ($projPath + $secondPath + "motionSequencePackage\\rtdLocator\\rtd" + $RTDID + ".msq2.xml") (`getenv GP_MAYA_ROOT` + "\\common\\scripts\\GP_mel\\subscripts\\devMultiUI\\tool_rtdExport\\rtd_msqp_master.msq2.xml");
+		trace($projPath + $secondPath + "motionSequencePackage\\rtdLocator\\rtd" + $RTDID + ".msq2.xml\tをRTD確認再生用に作成しました。\r\nデザイナーの再生チェック用ファイルですので、コミットを行わないで下さ\e\n");
+	}
+	//サンプルからmsq複製
+	if(`filetest -r ($projPath + $secondPath + "motionSequence\\ef\\rtd900000\\RTD_check.msq.xml")` != 1){
+		sysFile -cp ($projPath + $secondPath + "motionSequence\\ef\\rtd900000\\RTD_check.msq.xml") (`getenv GP_MAYA_ROOT` + "\\common\\scripts\\GP_mel\\subscripts\\devMultiUI\\tool_rtdExport\\RTD_check.msq.xml");
+		sysFile -cp ($projPath + $secondPath + "motionSequence\\pl\\rtd900000\\RTD_check.msq.xml") (`getenv GP_MAYA_ROOT` + "\\common\\scripts\\GP_mel\\subscripts\\devMultiUI\\tool_rtdExport\\RTD_check.msq.xml");
+		sysFile -cp ($projPath + $secondPath + "motionSequence\\se\\rtd900000\\RTD_check.msq.xml") (`getenv GP_MAYA_ROOT` + "\\common\\scripts\\GP_mel\\subscripts\\devMultiUI\\tool_rtdExport\\RTD_check.msq.xml");
+		trace($projPath + $secondPath + "motionSequence\\ef\\rtd900000\\RTD_check.msq.xml\tをRTD確認再生用に作成しました。\r\nデザイナーの再生チェック用ファイルですので、コミットを行わないで下さ\e\n");
+		trace($projPath + $secondPath + "motionSequence\\pl\\rtd900000\\RTD_check.msq.xml\tをRTD確認再生用に作成しました。\r\nデザイナーの再生チェック用ファイルですので、コミットを行わないで下さ\e\n");
+		trace($projPath + $secondPath + "motionSequence\\se\\rtd900000\\RTD_check.msq.xml\tをRTD確認再生用に作成しました。\r\nデザイナーの再生チェック用ファイルですので、コミットを行わないで下さ\e\n");
+	}
+}
+//makeRTD_dummyCsv();
+
+
+global proc setExptDirBtn(){
+	string $tempPath = `textField -q -text textField_setupRTD_for_Export2_csv_GP2_folder_Path0`;
+	string $prePath , $preName;
+	if($prePath != ""){
+		$preName = basename( $tempPath , "");
+		$prePath = `dirname $tempPath`;
+	}
+	
+	string $output_names[] = `fileDialog2 -fm 3 -cap "GP2のプロジェクトフォルダ\"trunk\"を指定" -ds 1 -dir $prePath -ff "*.*"`;
+	textField -e -text $output_names[0] textField_setupRTD_for_Export2_csv_GP2_folder_Path0;
+}

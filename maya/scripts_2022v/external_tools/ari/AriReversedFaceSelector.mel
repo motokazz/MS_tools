@@ -1,0 +1,66 @@
+//--------------------------------------------------------------------------
+//
+// ScriptName : AriReversedFaceSelector
+// Contents   : 法線と面表示の不一致を選択します。
+// Author     : Arinosu
+// LastUpdate : 2014/06
+// Note       : 
+//               
+//--------------------------------------------------------------------------
+
+
+global proc AriReversedFaceSelector(){
+	if((`window -ex  AriReversedFaceSelector`)==true)deleteUI AriReversedFaceSelector;
+	window -title "AriReversedFaceSelector"  -w 200 -h 100 AriReversedFaceSelector;
+	string $form =`formLayout`;
+	string $button[];
+	$button[0]=`button -label "法線不一致を選択" -c "AriReversedFaceSelector_Select"`;
+	$button[1]=`button -label "法線方向に面表示" -c "AriReversedFaceSelector_Reversed"`;
+	$button[2]=`button -label "法線反転" -c "ReversePolygonNormals"`;
+	$button[3]=`button -label "フェース法線表示" -c "ToggleFaceNormalDisplay"`;
+	setParent..;
+	formLayout -edit
+		-af $button[0] "top"   0
+		-af $button[0] "left"   0
+		-af $button[0] "right" 0
+		-ac $button[1] "top"   0 $button[0]
+		-af $button[1] "left"   0
+		-af $button[1] "right" 0
+		-ac $button[2] "top"   0 $button[1]
+		-af $button[2] "left"   0
+		-af $button[2] "right" 0
+		-ac $button[3] "top"   0 $button[2]
+		-af $button[3] "left"   0
+		-af $button[3] "right" 0
+		$form;
+	showWindow;
+}
+global proc AriReversedFaceSelector_Select(){
+	string $selectObjs[]=`ls -sl -tr`;
+	string $reversedFaceList[];
+	int $i=0;
+	for($obj in $selectObjs){
+		string $meshs[]= `listRelatives -pa -s $obj`;
+		if(size($meshs)>0){
+			if(attributeExists("opposite",$meshs[0])){
+				if(1 == `getAttr ($meshs[0] +".opposite")`){
+					$reversedFaceList[$i]=$obj;
+					$i++;
+				}
+			}
+		}
+	}
+	select $reversedFaceList;
+}
+global proc AriReversedFaceSelector_Reversed(){
+	AriReversedFaceSelector_Select();
+	string $selectObjs[]=`ls -sl -tr`;
+	for($obj in $selectObjs){
+		string $meshs[]= `listRelatives -pa -s $obj`;
+		if(size($meshs)>0){
+			if(attributeExists("opposite",$meshs[0])){
+				setAttr ($meshs[0] +".opposite") 0;
+			}
+		}
+	}
+}

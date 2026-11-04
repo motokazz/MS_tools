@@ -1,0 +1,229 @@
+/* This file downloaded from Highend3d.com
+''  
+''  Highend3d.com File Information:
+''  
+''    Script Name: Davveys Vehicle Rigging Scripts
+''    Author:  
+''    Last Updated: Jul 21, 2007
+''    Update/Change this file at:
+''    http://Highend3d.com/maya/downloads/mel_scripts/animation/4109.html
+''  
+''  Please do not alter any information above this line
+''  it is generated dynamically by Highend3d.com and will
+''  be changed automatically on any updates.
+*/
+
+
+//////////////////////////////////////////////////////////////////////////
+//					DVY_BodyDoor Procedure
+//////////////////////////////////////////////////////////////////////////
+
+
+
+//////////////////////////////////////////////////////////////////////////
+
+//============================================================================
+//	GLOBAL VARIABLES
+//============================================================================
+	global int $DVYDebug;
+
+// Integer Flag that allows print statements to be output to
+// message field for tracking purposes.
+
+//============================================================================
+
+global proc DVY_BodyDoor()
+{
+// ******************************************************************************** //	
+//	Global Variables
+
+	global string $GroupV_A[], $GroupD_A[], $RigControlsA[], $DrControlsA[], $DVYHingeD[], $DVYHandleD[], $DVYWinBD[], $DVYWinTD[];
+	global string $DLocs[], $DJntsA[], $LocGroups[], $DVY_MuSuspGrp[];
+	global string $hier[], $LChier[], $JThier[];
+	
+	global string $DVY_VehName;
+	global int $On = 1;
+	
+	global float $DVYdata[];	
+	
+// -------------------------------------------------------------------------------- //
+	
+// ******************************************************************************** //	
+//	Local Variables
+
+	string $Temp[], $Tmp[], $DBody[];
+	string $Side[] = {"LfFr_", "RtFr_", "LfRr_", "RtRr_"};
+	string $Name = "Door";
+	float $Pos[], $DPos[], $SPos[], $WPos[];  
+	int $a, $b, $c, $i, $j, $k, $q, $r, $s;	
+	
+	int $SelF  = `radioButtonGrp -q -sl FrDoorRadioButtons`;
+	int $SelR  = `radioButtonGrp -q -sl RrDoorRadioButtons`;
+	
+	print $GroupD_A;
+	
+	$r = `size $DJntsA`;
+		print ("$r is " + $r + "\n");
+//		$r = 48;
+		
+	$s = `size $RigControlsA`;
+		print ("$s is " + $s + "\n");
+		
+	parent $DrControlsA[0] $DrControlsA[4] $RigControlsA[0];
+	parent $DrControlsA[8] $DrControlsA[12] $RigControlsA[0];
+		
+	for ($a=0; $a<4; $a++)
+	
+		{
+			$GroupD_A[$a+8] = `group -em -name ($DVY_VehName + $Side[$a] + "Win_Grp_1")`; 
+			delete `pointConstraint -offset 0 0 0 -weight 1 $DVYWinBD[$a] $GroupD_A[$a+8]`;
+			select -r $DVYWindB[$a];
+			$Temp = `duplicate -rr -renameChildren -un`;
+			$DVYWinBD[$a+4] = ($DVY_VehName + $Side[$a] + "Bot_Window_2");
+			$DVYWinTD[$a+4] = ($DVY_VehName + $Side[$a] + "Top_Window_2");
+			parent $Temp[0] $GroupD_A[$a+8];
+			setAttr ($GroupD_A[$a+8] + ".rotateZ") 180;
+			
+		}
+		
+		$a = 0;
+		$Pos = `objectCenter $GroupD_A[0]`;
+		$TDataA = `xform -q -bb $GroupD_A[0]`;
+			for ($s = 3; $s < 9; $s++ )
+				{ $Pos[$s] = $TDataA[($s-3)];}
+
+//		print $Pos;
+		$DPos = `objectCenter $GroupD_A[2]`;
+		$TDataA = `xform -q -bb $GroupD_A[2]`;
+			for ($s = 3; $s < 9; $s++ )
+				{ $DPos[$s] = $TDataA[($s-3)];}
+//		print $DPos;
+		
+//	print $DVYHinge;
+//	print $DVYHandle;
+		
+	select -r $DJntsA[0];
+		$DJntsA[$r] = `joint -p 0 $Pos[1] 0 -name ($DVY_VehName + "Cn_Door_JnT_1")`;
+			$DJntsA[$r+1] = `joint -p 0 $Pos[1] $Pos[2] -name ($DVY_VehName + "CnFr_Door_JnT_1")`;
+				select -r $DJntsA[$r];
+				$DJntsA[$r+2] =  `joint -p 0 $DPos[1] $DPos[2] -name ($DVY_VehName + "CnRr_Door_JnT_1")`;
+				
+	$Pos = `xform -q -ws -rp $DVYHinge[0]`;
+	$DPos = `xform -q -ws -rp $DVYHandle[0]`;
+			
+		select -r $DJntsA[$r+1];
+			$DJntsA[$r+3] = `joint -p $Pos[0] $Pos[1] $Pos[2] -name ($DVY_VehName + "LfFr_Door_JnT_1")`;
+				$DJntsA[$r+4] = `joint -p $DPos[0] $DPos[1] $DPos[2] -name ($DVY_VehName + "LfFr_Door_JnT_2")`;
+				
+	$Pos = `xform -q -ws -rp $DVYHinge[1]`;
+	$DPos = `xform -q -ws -rp $DVYHandle[1]`;
+				
+		select -r $DJntsA[$r+1];
+			$DJntsA[$r+5] = `joint -p $Pos[0] $Pos[1] $Pos[2] -name ($DVY_VehName + "RtFr_Door_JnT_1")`;
+				$DJntsA[$r+6] = `joint -p $DPos[0] $DPos[1] $DPos[2] -name ($DVY_VehName + "RtFr_Door_JnT_2")`;
+				
+	$Pos = `xform -q -ws -rp $DVYHinge[2]`;
+	$DPos = `xform -q -ws -rp $DVYHandle[2]`;
+			
+		select -r $DJntsA[$r+2];
+			$DJntsA[$r+7] = `joint -p $Pos[0] $Pos[1] $Pos[2] -name ($DVY_VehName + "LfRr_Door_JnT_1")`;
+				$DJntsA[$r+8] = `joint -p $DPos[0] $DPos[1] $DPos[2] -name ($DVY_VehName + "LfRr_Door_JnT_2")`;
+				
+				
+	$Pos = `xform -q -ws -rp $DVYHinge[3]`;
+	$DPos = `xform -q -ws -rp $DVYHandle[3]`;
+			
+		select -r $DJntsA[$r+2];
+			$DJntsA[$r+9] = `joint -p $Pos[0] $Pos[1] $Pos[2] -name ($DVY_VehName + "RtRr_Door_JnT_1")`;
+				$DJntsA[$r+10] = `joint -p $DPos[0] $DPos[1] $DPos[2] -name ($DVY_VehName + "RtRr_Door_JnT_2")`;
+				
+	select -r $DJntsA[$r];
+		joint -e -oj xyz -secondaryAxisOrient yup -ch -zso;
+		
+		
+	if ($SelF == 1)
+		{ select -r ($DJntsA[$r+5] + ".rotateAxis");
+			rotate -r -os 0 0 180;}
+	if ($SelF == 2)
+		{ select -r ($DJntsA[$r+3] + ".rotateAxis");
+			rotate -r -os 0 0 180;}
+	if ($SelF == 3) 
+		{ select -r ($DJntsA[$r+3] + ".rotateAxis");
+			rotate -r -os 0 180 0;}
+	if ($SelF == 4) 
+		{ select -r ($DJntsA[$r+5] + ".rotateAxis");
+			rotate -r -os 0 180 0;}
+		
+	if ($SelR == 1)
+		{ select -r ($DJntsA[$r+9] + ".rotateAxis");
+			rotate -r -os 0 0 180;}
+	if ($SelR == 2)
+		{ select -r ($DJntsA[$r+7] + ".rotateAxis");
+			rotate -r -os 0 0 180;}
+	if ($SelR == 3) 
+		{ select -r ($DJntsA[$r+7] + ".rotateAxis");
+			rotate -r -os 0 180 0;}
+			
+	if ($SelR == 4) 
+		{ select -r ($DJntsA[$r+9] + ".rotateAxis");
+			rotate -r -os 0 180 0;}
+			
+	parentConstraint -mo -weight 1 $GroupV_A[2] $DJntsA[$r];
+
+	parentConstraint -mo -weight 1 $DJntsA[$r+3] $GroupD_A[0];
+	parentConstraint -mo -weight 1 $DJntsA[$r+5] $GroupD_A[1];
+	parentConstraint -mo -weight 1 $DJntsA[$r+7] $GroupD_A[2];
+	parentConstraint -mo -weight 1 $DJntsA[$r+9] $GroupD_A[3];
+
+
+	string $JFaxis, $JRaxis;
+	
+	if (($SelF == 1) || ($SelF == 2)) { $JFaxis = ".ry";}
+	if (($SelF == 3) || ($SelF == 4)) { $JFaxis = ".rz";}
+	
+	if (($SelR == 1) || ($SelR == 2)) { $JRaxis = ".ry";}
+	if (($SelR == 3) || ($SelR == 4)) { $JRaxis = ".rz";}
+	
+	connectAttr -f ($DrControlsA[1] + ".ty") ($DJntsA[$r+3] + $JFaxis);
+	connectAttr -f ($DrControlsA[5] + ".ty") ($DJntsA[$r+5] + $JFaxis);
+	connectAttr -f ($DrControlsA[9] + ".ty") ($DJntsA[$r+7] + $JRaxis);
+	connectAttr -f ($DrControlsA[13] + ".ty") ($DJntsA[$r+9] + $JRaxis);
+	
+		print $DVYWinBD;
+		print $DVYWinTD;
+		print $GroupD_A;
+		print $DrControlsA;
+		
+	$b = 0; $c = 0;
+	for ($a=0; $a<4; $a++)
+	{
+		$Pos = `xform -q -ws -rp $DVYWinT[$a+4]`;
+		$DPos = `xform -q -ws -rp $DVYWindB[$a]`;
+		$WPos = `xform -q -ws -rp $DVYWinT[$a]`;
+			select -r $GroupD_A[$a+8];
+			scale 0.6 0.6 0.6;
+		$SPos = `xform -q -ws -rp $DVYWinT[$a+4]`;
+			print "\n";	print $Pos;
+			print "\n";	print $SPos;
+
+		select $DJntsA[$r+3+$c];
+			$DJntsA[$r+11+$b] = `joint -p $Pos[0] $Pos[1] $Pos[2] -name ($DVY_VehName + $Side[$a] + "_Window_JnT_1")`;
+				$DJntsA[$r+12+$b] = `joint -p $SPos[0] $SPos[1] $SPos[2] -name ($DVY_VehName + $Side[$a] + "_Window_JnT_2")`;
+				$DJntsA[$r+13+$b] = `joint -p $WPos[0] $WPos[1] $WPos[2] -name ($DVY_VehName + $Side[$a] + "_Window_JnT_3")`;
+				select -r $DJntsA[$r+11+$b]; joint -e -oj xyz -secondaryAxisOrient yup -ch -zso;
+			
+		parentConstraint -mo -weight 1 $DJntsA[$r+13+$b] $GroupD_A[$a+4];
+		
+		$DBody[$a] = `createNode multiplyDivide -name ($DVY_VehName + "Body_" + $Side[$a] + "Window_MultDvNA_1")`;
+			setAttr ($DBody[$a] + ".op") 2;
+			setAttr ($DBody[$a] + ".input1X") -10;
+				connectAttr -f -lock true ($DrControlsA[($a*4)+3] + ".ty") ($DBody[$a] + ".input2X");
+				connectAttr -f -lock true ($DBody[$a] + ".outputX") ($DJntsA[$r+12+$b] + ".sx");
+				
+		$b = $b+3; $c = $c+2;	
+	}
+		
+	select -r $DVYHinge $DVYWindB $DVYWinT;
+	select -add $GroupD_A[8] $GroupD_A[9] $GroupD_A[10] $GroupD_A[11];
+	delete;
+}

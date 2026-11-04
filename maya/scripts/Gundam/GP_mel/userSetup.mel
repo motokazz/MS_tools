@@ -1,0 +1,7 @@
+/*!
+		@file		userSetup.mel
+		@brief		Maya初期化スクリプト
+*/
+
+GPInitialize;
+

@@ -1,0 +1,89 @@
+global proc ym_Cut_Geometry_Make_Cut(string $xy_count,string $yz_count,string $zx_count)
+{
+	float $xy_c = `intSliderGrp -q -v $xy_count`;
+	float $yz_c = `intSliderGrp -q -v $yz_count`;
+	float $zx_c = `intSliderGrp -q -v $zx_count`;
+	$sel_geo = `ls -sl`;
+	$sel_count = `size($sel_geo)`;
+	group;
+	$bbox_size = `xform -q -bb`;
+	ungroup;
+	for ($i = 1; $i < ($sel_count + 1); $i++)
+	{
+		$sel_geo_name = $sel_geo[($i-1)];
+		for($j = 1; $j < ($xy_c + 1); $j++)
+		{
+			float $xy_cut = (($bbox_size[5] - $bbox_size[2]) / ($xy_c + 1)) * $j + $bbox_size[2];
+			if ($xy_c >= 1)
+			{
+				select -cl;
+				select -r $sel_geo_name;
+				$p_count = `polyEvaluate -f`;
+				string $p_count2 = $p_count[0];
+				polyCut -ch on -pc 0 0 $xy_cut -ro -180 0 -90 -ps 100 100 $sel_geo_name.f[0:$p_count2];
+			}
+			else{}
+		}
+		for($j = 1; $j < ($yz_c + 1); $j++)
+		{
+			float $yz_cut = (($bbox_size[3] - $bbox_size[0]) / ($yz_c + 1)) * $j + $bbox_size[0];
+			if ($yz_c >= 1)
+			{
+				select -cl;
+				select -r $sel_geo_name;
+				$p_count = `polyEvaluate -f`;
+				string $p_count2 = $p_count[0];
+				polyCut -ch on -pc $yz_cut 0 0 -ro -90 0 -90 -ps 100 100 $sel_geo_name.f[0:$p_count2];
+			}
+			else{}
+		}
+		for($j = 1; $j < ($zx_c + 1); $j++)
+		{
+			float $zx_cut = (($bbox_size[4] - $bbox_size[1]) / ($zx_c + 1)) * $j + $bbox_size[1];
+			if ($zx_c >= 1)
+			{
+				select -cl;
+				select -r $sel_geo_name;
+				$p_count = `polyEvaluate -f`;
+				string $p_count2 = $p_count[0];
+				polyCut -ch on -pc 0 $zx_cut 0 -ro -90 0 180 -ps 100 100 $sel_geo_name.f[0:$p_count2];
+			}
+			else{}
+		}
+	}
+	for($k = 1; $k < ($sel_count + 1); $k++)
+	{
+		select -cl;
+		select -r $sel_geo;
+	}
+}
+
+global proc ym_Cut_Geometry()
+{
+	if (`window -ex Cut_Geometry`) deleteUI Cut_Geometry;
+	window Cut_Geometry;
+	$form = `formLayout`;
+	string $xy_count = `intSliderGrp -l "XY_Plane" -f true -min 0 -max 10 -v 0 -step 1`;
+	string $yz_count = `intSliderGrp -l "YZ_Plane" -f true -min 0 -max 10 -v 0 -step 1`;
+	string $zx_count = `intSliderGrp -l "ZX_Plane" -f true -min 0 -max 10 -v 0 -step 1`;
+	string $btn = `button -label "Cut" -w 100 -c ("ym_Cut_Geometry_Make_Cut " + $xy_count + " " + $yz_count + " " + $zx_count)`;
+	string $cl_btn = `button -label "Close" -w 100 -c "deleteUI -window Cut_Geometry"`;
+
+	$o = 5;
+	$o1 = -80;
+	$o2 = 10;
+	formLayout -e 
+		-ac $btn "top" $o2 $zx_count
+		-af $btn "left" $o
+		-ac $cl_btn "top" $o2 $zx_count
+		-af $cl_btn "right" $o
+
+		-af $xy_count "top" $o
+		-af $xy_count "left" $o1
+		-ac $yz_count "top" $o $xy_count
+		-af $yz_count "left" $o1
+		-ac $zx_count "top" $o $yz_count
+		-af $zx_count "left" $o1
+		$form;
+	showWindow Cut_Geometry;
+}

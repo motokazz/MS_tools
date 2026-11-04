@@ -1,0 +1,94 @@
+//--------------------------------------------------------------------------
+//
+// ScriptName : AriSortOutliner
+// Contents   : アウトライナ、ハイパーグラフ階層のオブジェクトをソートします。
+// Author     : A-RI
+// Update     : 2014/10 公開
+// Note       : 選択して実行。選択したものの中でだけソートされる。
+//               
+//--------------------------------------------------------------------------
+
+
+global proc AriSortOutliner(){
+	
+	string $selectObjs[]=`ls -sl -l`;
+	string $before_parent[];
+	int $i=0;
+	for($obj in $selectObjs){
+		string $pWorks[]=`listRelatives -p -f $obj`;
+		$before_parent[$i]=$pWorks[0];
+		$i++;
+	}
+	string $parentList[] = stringArrayRemoveDuplicates($before_parent);
+	for($parent in $parentList){
+		int $before_Number[];
+		string $before_obj[];
+		clear $before_Number;
+		clear $before_obj;
+		int $j=0;
+		for($i=0;$i<size($before_parent);$i++){
+			if($before_parent[$i] == $parent){	
+				$before_Number[$j]=AriSortOutliner_ListNum($selectObjs[$i]);
+				$before_obj[$j]=$selectObjs[$i];
+				$j++;
+			}
+		}
+		int $after_Number[];
+		string $before_obj_ko[];
+		string $after_obj[];
+		string $after_obj_ko[];
+		clear $after_Number;
+		clear $before_obj_ko;
+		clear $after_obj;
+		clear $after_obj_ko;
+		$after_Number=sort($before_Number);
+		for($i=0;$i<size($before_obj);$i++){
+			$before_obj_ko[$i]=tolower($before_obj[$i]);
+		}
+		$after_obj_ko=sort($before_obj_ko);
+		for($i=0;$i<size($after_obj_ko);$i++){
+			for($j=0;$j<size($before_obj);$j++){
+				if($after_obj_ko[$i]==tolower($before_obj[$j])){
+					if(!stringArrayContains($before_obj[$j], $after_obj)){
+						$after_obj[$i]=$before_obj[$j];
+					}
+				}
+			}
+		}
+		for($i=0;$i<size($after_Number);$i++){
+			AriSortOutliner_NumSort($after_obj[$i],$after_Number[$i]);
+		}
+	}
+}
+global proc int AriSortOutliner_ListNum (string $obj){
+	int $num;
+	string $parent[]=`listRelatives -p  -f $obj`;
+	string $children[];
+	if($parent[0]=="")	$children=`ls -as -l`;
+	else $children=	`listRelatives -c  -f $parent[0]`;
+	int $i=0;
+	for($child in $children){
+		if($child == $obj){
+			$num=$i;
+			break;
+		}
+		$i++;
+	}
+	return $num;
+}
+global proc string AriSortOutliner_NumObj (string $parent,int $num){
+	int $num;
+	if($parent=="")	$children=`ls -as -l`;
+	else $children=	`listRelatives -c  -f $parent`;
+	return $children[$num];
+}
+global proc AriSortOutliner_NumSort (string $obj,int $num){
+	string $parent[]=`listRelatives -p  -f $obj`;	
+	string $thisObj=AriSortOutliner_NumObj ($parent[0],$num);
+	int $myNum=AriSortOutliner_ListNum($obj);
+	int $move = $num-$myNum;
+	if($move!=0){
+		reorder -relative $move $obj;
+		reorder -relative ($move*(-1)-1) $thisObj;
+	}
+}

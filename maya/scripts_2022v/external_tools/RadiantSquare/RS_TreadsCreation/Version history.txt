@@ -1,0 +1,18 @@
+//***************************************************************************************************	
+// version History  
+//***************************************************************************************************
+//	v2.2
+//	- Minor UI Improvements.
+// --------------------------------------------------------------------------------
+//	v2.1
+//	- Option to Copy or Instance new treads
+// 	- Help Menu linked to Radiant Square's website
+//	- User can add icon to the active shelf
+// --------------------------------------------------------------------------------
+//	v2.0
+//	- Capability to create multiple tread groups in the same scene.
+//	- Objects can now be facing either the X or the Z axis.
+//	- Fully keyable speed control in both directions.
+// 	- Fixed distribution of treads along the path.
+//	- Treads can now be created at any location in the scene without flipping.
+//****************************************************************************************************

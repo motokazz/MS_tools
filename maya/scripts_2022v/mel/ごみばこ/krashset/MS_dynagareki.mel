@@ -1,0 +1,122 @@
+proc MS_dynagareki(string $plane,string $fall){	
+	
+	int $fram=`intSliderGrp -q -v fram`;
+	int $skip=`intSliderGrp -q -v skip`;
+	int $grav=`intSliderGrp -q -v grav`;
+	
+	$newname="temp";
+	currentTime 0 ;
+	
+	//ダイナミクスの種作成
+	gravity -pos 0 0 0 -m $grav -att 0 -dx 0 -dy -1 -dz 0  -mxd -1  -vsh none -vex 0 -vof 0 0 0 -vsw 360 -tsr 0.5 ;
+	
+	rigidBody -passive -m 10000 -dp 0 -sf 1 -df 0 -b 0 -l 0 -tf 2000 -iv 0 0 0 -iav 0 0 0 -c 0 -pc 0 -i 0 0 0 -imp 0 0 0 -si 0 0 0 -sio none $plane;
+	
+	rigidBody -active -m 10000 -dp 0 -sf 1 -df 0 -b 0 -l 0 -tf 2000 -iv 0 0 0 -iav 0 0 0 -c 0 -pc 0 -i 0 0 0 -imp 0 0 0 -si 0 0 0 -sio none $fall;
+	
+	connectDynamic -f gravityField1  $fall;
+	
+	
+	
+	
+	
+	int $t_fram=$fram/$skip;
+	
+	//アニメーション再生
+	$j=0;
+	for ($j=0;$j<$t_fram;$j++){
+	currentTime ($j*$skip) ;
+	}
+	
+	
+	
+	
+	
+	
+	
+	
+	//結果と後処理
+	polyUnite -ch 0 -n $newname $fall $plane;
+	
+	delete $fall;
+	delete $plane;
+	delete "gravityField*" ;
+	rename $newname $plane;
+
+}
+
+
+global proc MS_dggo(){
+	$objz=`ls -sl`;
+	int $i;
+	for($i=1;$i<size($objz);$i++){
+		MS_dynagareki $objz[0] $objz[$i];
+	}
+}
+
+
+global proc MS_dg()
+{
+	if(`window -exists MS_dg`){
+		deleteUI MS_dg;
+	}
+	
+	window -title "MS_dg" MS_dg;	
+	
+	$form = `formLayout`;
+
+	setParent $form;
+	$sep=`separator`;
+	$com_fram=`intSliderGrp -l "fram" -field true -min 1 -max 1000 -v 300 fram`;
+	$com_skip=`intSliderGrp -l "skip" -field true -min 1 -max 100 -v 10 skip`;
+	$com_grav=`intSliderGrp -l "grav" -field true -min 1 -max 10000 -v 1000 grav`;
+
+	$com_dggo=`button -l "dggo" -command "MS_dggo" `;
+	$com_und=`button -l "undo" -command "Undo" `;
+	$com_ext=`button -l "exit" -command "deleteUI MS_dg" `;
+
+	formLayout -e
+	-af $com_fram "top" 10
+        -af $com_fram "left" 5
+        -an $com_fram "right"
+        -an $com_fram "bottom"
+
+	-af $com_skip "top" 30
+        -af $com_skip "left" 5
+        -an $com_skip "right"
+        -an $com_skip "bottom"
+
+	-af $com_grav "top" 50
+        -af $com_grav "left" 5
+        -an $com_grav "right"
+        -an $com_grav "bottom"
+
+	-af $sep "top" 80
+	-af $sep "left" 5
+	-af $sep "right" 5
+	-an $sep "bottom"
+
+        -af $com_dggo "top" 100
+        -ap $com_dggo "left" 0 25
+        -ap $com_dggo "right" 0 50
+        -an $com_dggo "bottom"
+
+        -af $com_und "top" 100
+        -ap $com_und "left" 0 50
+        -ap $com_und "right" 0 75
+        -an $com_und "bottom"
+
+        -af $com_ext "top" 100
+        -ap $com_ext "left" 0 75
+        -af $com_ext "right" 5
+        -an $com_ext "bottom"
+	$form;
+	
+	showWindow MS_dg;
+	
+
+}
+
+
+MS_dg;
+

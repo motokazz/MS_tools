@@ -1,0 +1,112 @@
+//addrig制御インプット、キーフレーム版
+
+global proc makeAddrigEtc_from_CSV_exec(){
+	string $charaID[] = `textScrollList -q -si textScrollList_test_area_csv_setupRigList0`;
+	string $temp[];
+	tokenize $charaID[0] " " $temp;
+	makeAddrigEtc_from_CSV($temp[0]);
+}
+
+
+global proc makeAddrigEtc_from_CSV(string $charaID){
+	string $fileName = ("M:\\Design\\Motions\\MS\\rig\\setupInfo\\export\\" + $charaID + ".csv");
+	print $fileName;
+	string $planeList[] = GP2ut_getCsvDataTop($fileName , 0);
+	string $temp[];
+	string $needNodes[];
+	int $i,$j;
+
+	for($item in $planeList){
+		tokenize $item "." $temp;
+		$needNodes[$i] = $temp[0];
+		$i++;
+	}
+	$needNodes = stringArrayRemoveDuplicates($needNodes);
+	string $ctrlList[] = `ls ($charaID + "_*_ctrl")`;
+
+	string $checkName;
+	string $typeList[] = {"cal_def" , "cal_rotate_bst" , "cal_walk" , "cal_up" , "cal_down"};
+	int $exptflagAll[];
+	int $exptflagOnce;
+
+	for($i=0 ; $i<size($ctrlList) ; $i++){
+		$exptflagOnce = 0;
+		for($j=0 ; $j<size($typeList) ; $j++){
+			$exptflagAll[$j] = 0;
+			$checkName = `substitute "ctrl" $ctrlList[$i] $typeList[$j]`;
+			if(stringArrayContains( ("addrig:" + $checkName) , $needNodes)){
+				spaceLocator -n $checkName;
+				$exptflagAll[$j] = 1;
+				$exptflagOnce = 1;
+			}
+		}
+		if($exptflagOnce){//どれかの出力がされた
+			$checkName = `substitute "ctrl" $ctrlList[$i] "cal_getOst"`;spaceLocator -n $checkName;
+			if($exptflagAll[0] == 0){
+				$checkName = `substitute "ctrl" $ctrlList[$i] "cal_def"`;spaceLocator -n $checkName;
+			}
+			if($exptflagAll[1] == 1 || $exptflagAll[2] == 1 || $exptflagAll[3] == 1  || $exptflagAll[4] == 1 ){
+				$checkName = `substitute "ctrl" $ctrlList[$i] "cal_output"`;spaceLocator -n $checkName;
+			}
+		}
+		string $parenting[] = {"cal_output","cal_down","cal_up","cal_walk","cal_rotate_bst","cal_def","cal_getOst"};
+		string $lastParented = "";
+		for($j=0 ; $j<size($parenting) ; $j++){
+			$checkName = `substitute "ctrl" $ctrlList[$i] $parenting[$j]`;
+			if(size(`ls $checkName`)){
+				if($lastParented != ""){
+					parent $lastParented $checkName;
+				}
+				$lastParented = $checkName;
+			}
+		}
+		if($exptflagOnce){
+			$checkName = `substitute "ctrl" $ctrlList[$i] "cal_getOst"`;
+			select -r $ctrlList[$i] $checkName;
+			pointConstraint -o 0 0 0 -w 1;
+			orientConstraint -o 0 0 0 -w 1;
+			pointConstraint -remove;
+			orientConstraint -remove;
+		}
+
+	}
+	string $topNodes[] = `ls ("|" + $charaID + "_*_getOst")`;
+	spaceLocator -n $charaID;
+	for($item in $topNodes){
+		parent $item ("|" + $charaID);
+
+		addAttr -ln "ctrlType"  -at "enum" -en "r:tr:" $item;
+		setAttr -e -keyable true ($item + ".ctrlType");
+		$checkName = `substitute "getOst" $item "*"`;
+		$checkName = ("addrig:" + $checkName + ".t[x-z]*");
+		for($line in $planeList){
+			if(gmatch($line , $checkName)){
+				setAttr ($item + ".ctrlType") 1;
+			}
+		}
+	}
+	select -r -hi $charaID ;
+	delete `ls -sl -type shape`;
+	print($charaID + "のaddrig_etcを生成しました。");
+}
+
+global proc string[] GP2ut_getCsvDataTop(string $fileName , int $tgtData){
+
+	print ("「" + $fileName + "」から" + $tgtData + "番目のデータを取得します");
+
+	int $fileId = `fopen $fileName "r"`;
+	string $line = `fgetline $fileId`;		//最上段は不要（目次）
+	int $i=0;
+	string $IDlist[];
+
+	while ( size( $line ) > 0 ){
+		string $buffer[];
+		tokenize $line "," $buffer;
+		$IDlist[$i] = `strip $buffer[$tgtData]`;
+		$line = `fgetline $fileId`;
+		$i++;
+	}
+	fclose $fileId;
+	print ("->完了しました。\r\n");
+	return( $IDlist );
+}

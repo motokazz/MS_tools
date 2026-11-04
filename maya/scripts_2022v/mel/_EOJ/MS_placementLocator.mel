@@ -1,0 +1,34 @@
+/*
+MS_placementLocator
+
+EOJ専用。
+オブジェクト配置用ロケーターを設定する。
+locatorに.Placement　ObjectName　StartFrameのアトリビュートを作成する。
+
+使用法：ロケーター（複数可）を選んでコマンド実行。
+
+20060914
+
+
+*/
+
+
+global proc MS_placementLocator()
+{
+	string $locatorNames[] = `ls -typ transform -sl`;
+	
+	for( $locator in $locatorNames )
+	{
+		addAttr -ln Placement -at bool  $locator;
+		setAttr ($locator+".Placement") 1;
+		
+		addAttr -ln ObjectName -dt "string"  $locator;
+		
+		string $cmd;
+		$cmd = ("addAttr -ln StartFrame -at double -min 0 -max 1000 -dv 0.0 " + $locator );
+		eval( $cmd );
+	}
+}
+
+MS_placementLocator;
+

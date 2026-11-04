@@ -1,0 +1,7 @@
+cathegory,exec,label,image,annotation,command,link
+common,ipyui,MS_asobi_cameraTool,MS_asobi_cameraTool,ゲーム内のカメラの動きを再現するためのツール,MS_asobi_cameraTool,
+common,ipyui,MS_asobi_matter_connect,MS_asobi_matter_connect,マテリアルのいテクスチャを一気にコネクトするツール,MS_asobi_matter_connect,
+common,ipyui,MS_asobi_attr_control,MS_asobi_attr_control,固有のアトリビュートを操作するツール,MS_asobi_attr_control,
+common,ipyui,MS_asobi_util,MS_asobi_util,主にリファレンスの操作、アトリビュートの保存など,MS_asobi_util,
+common,ipyui,MS_asobi_visibility_group_tool,MS_asobi_visibility_group_tool,ビジビリティグループ設定補助ツール,MS_asobi_visibility_group_tool,
+common,ipyui,MS_obj_selector,MS_obj_selector,名前でオブジェクトを選択する（超簡易版）,MS_obj_selector,

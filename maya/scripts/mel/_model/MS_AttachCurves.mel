@@ -1,0 +1,99 @@
+global proc MS_AttachCurves_core(){
+	
+	/*  This file downloaded from Highend3d.com
+	''  
+	''  Highend3d.com File Information:
+	''  
+	''    Script Name: Attach Curves v1.0
+	''    Author: kuba roth
+	''    Last Updated: November 15, 2004
+	''    Update/Change this file at:
+	''    http://www.highend3d.com/maya/mel/?section=modeling#3243
+	''  
+	''  Please do not alter any information above this line
+	''  it is generated dynamically by Highend3d.com and will
+	''  be changed automatically on any updates.
+	*/
+	
+	// Attach Curves - kuba roth 15.11.2004
+	
+	
+	// This script just allows to attach many curves at one go.
+	// The new curve takes over the name from the first selected one (if you selct by turns) 
+	// or alphabetically - first one (if you drag select)
+	
+	// Please note thet old curves arne not deleted, so you need to do the manually. 
+	// I had no time and idea to solve this shortcoming so I would be grateful for any help.
+	
+	string $selection[]=`ls -sl -l -fl`;
+	
+	
+	print ($selection[0]+"\n");
+	print ($selection[1]+"\n");
+	print ($selection[2]+"\n");
+	print ($selection[3]+"\n");
+	
+	int $i;
+	
+	for(	$i=1; 
+		$i<=`size($selection)`;
+		$i++){
+	
+	
+		attachCurve  -ch 1 -rpo 1 -kmk 1 -m 0 -bb 0.5 -bki 0 -p 0.1 $selection[0] $selection[$i] ;
+		
+		delete -ch;
+		select -cl;
+		select $selection[0];
+		CenterPivot;
+		
+		
+	}
+	delete $selection;
+}
+
+
+global proc MS_AttachCurves()
+{
+	
+	//Window Check
+	if(`window -exists MS_AttachCurves`){
+		deleteUI MS_AttachCurves;
+	}
+	
+	
+	//Create Window
+	
+	window -title "MS_AttachCurves" MS_AttachCurves;
+	
+	columnLayout ;
+	
+	//Contents	
+	
+	
+	//text
+	text -label "ThisWindowIsWindowFormatSample";
+	separator -w 600 -h 40 -st "single";
+	
+	
+	//---------------
+	//Execute Buttons
+	//---------------
+	separator -w 600 -h 40 -st "doubleDash";
+	
+	button -l "AttachCurves" -command "MS_AttachCurves_core" ;
+	
+	separator -w 600 -h 40 -st "double";
+	
+	button -l "undo" -command "Undo" ;
+	
+	button -l "exit" -command "deleteUI MS_AttachCurves" ;
+	
+	
+	//Footer
+	showWindow MS_AttachCurves;
+	
+}
+
+MS_AttachCurves;
+

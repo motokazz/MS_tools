@@ -1,0 +1,43 @@
+/*
+-------------------
+MS_Particle2Curve.mel
+-------------------
+
+◆概要
+パーティクルのポイントを発生順につないでラインを作成する
+
+◆使用方法
+パーティクルが出ている状態のものを選択して、スクリプトを実行。
+
+◆詳細
+やってみればわかる。
+
+
+※注意
+
+
+
+
+*/
+
+global proc MS_Particle2Curve(){
+
+	$sel = `ls -sl -sn -o`;
+	print $sel;
+	$part = $sel[0];
+	int $count = `getAttr ($part+".count")`;
+	print $count;
+	int $i = 0;
+	
+	$pos_v0 = `particle -at position -id 0 -q $part`;
+	$pos_v1 = `particle -at position -id 1 -q $part`;
+	curve -d 1 -p $pos_v0[0] $pos_v0[1] $pos_v0[2] -p $pos_v1[0] $pos_v1[1] $pos_v1[2] -k 0 -k 1 -n curvez;
+	
+	for($i=2;$i<$count;$i++){
+	$pos = `particle -at position -id $i -q $part`;
+	extendCurve -cos 0 -ch 0 -em 2 -px $pos[0] -py $pos[1] -pz $pos[2] -s 0 -jn true -rmk true -rpo on "curvez" ;
+	}
+	
+	rename curvez particle2curve;
+	
+}

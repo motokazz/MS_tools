@@ -1,0 +1,2023 @@
+//				FACE STUDIO
+//
+//						version 3.0
+//						for Maya 6.x
+//
+//						(c) 2005 Guillaume ROCHERON
+//						contact : guils_r@hotmail.com
+//
+//						
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//////// INIT ////////
+
+global string $FaceStudio3MainWindow = "FaceStudio3AnimationEdit";
+global string $FaceStudio3Console = "FaceStudio3Console";
+
+source "FaceStudio3UI.mel";
+source "FaceStudio3UILoad.mel";
+
+print "//FaceStudio v.3.0 Initialized...\n";
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+
+global proc FaceStudio3 ()
+{
+	global string $FaceStudio3MainWindow;
+	global string $FaceStudio3Console;
+	
+	// maya version check
+	float $version =  `about -version`;
+	if ( $version < 6 )
+	{
+		FaceStudio3ConsoleMessage "//Error : Maya 6 or higher is required";
+		return;		
+	}
+
+	// check selection type
+	string $sel[] = `ls -sl`;
+	string $selShape[];
+	
+	
+	if ( size ($sel) == 0 )
+	{
+		FaceStudio3ConsoleMessage "//Error : please select an object";
+		return;	
+	}
+	string $selType = `nodeType $sel[0]`;
+
+	if ( $selType == "mesh" )
+	{
+		$selShape[0] = $sel[0];	
+	}
+	else
+	{
+		if ( $selType == "transform" )
+		{
+			$selShape = `listRelatives -s -f $sel[0]`;
+		}
+		else
+		{
+			FaceStudio3ConsoleMessage "//Error : the selection is not a mesh";
+			return;	
+		}
+	}
+	FaceStudio3ConsoleMessage ("//Init : working on " + $selShape[0]);
+
+	// parent detection
+	string $selParent[];
+	string $listSkin  = `findRelatedSkinCluster $sel[0]`;
+
+	if ($listSkin == "")
+	{
+		$selParent[0] = $sel[0];
+		FaceStudio3ConsoleMessage "//Warning : no joint found.";	
+	}
+	else
+	{
+		string $listJoints[] = `skinPercent -q -t $listSkin ( $sel[0] + ".vtx[*]")`;
+		int $Njoints = size ($listJoints);
+		$selParent[0] = $listJoints[$Njoints-1];
+	}
+	
+	
+	// shape node detection
+	string $getShape[] = `listHistory $sel[0]`;
+	string $getShapeType;
+	string $selShapeNode;
+	
+	for ($i=0;$i<size($getShape);$i++)
+	{
+		$getShapeType = `nodeType $getShape[$i]`;
+		if ( $getShapeType == "blendShape" ) {
+			$selShapeNode = $getShape[$i];
+			break;
+		}
+	}
+	if ( $selShapeNode == "" ) {
+		FaceStudio3ConsoleMessage "//Error : no blendShape node";
+		return;
+	}
+	FaceStudio3ConsoleMessage ( "//Init : shape node is " + $selShapeNode );
+
+	string $FS3Shapes[] =  `listAnimatable $selShapeNode`;
+	int $Nshape = size ($FS3Shapes);
+	FaceStudio3ConsoleMessage ( "//Init : " + $Nshape + " shapes");
+
+
+	// registering informations
+	FaceStudio3ConsoleMessage ( "//Init : registering informations" );
+	
+	string $FS3node[];
+	if (`attributeExists "FaceStudio3Node" $sel[0]` == 0 )
+	{
+		addAttr -ln ("FaceStudio3Node") -dt "string" $sel[0];		
+		
+	}
+	$FS3node = `listConnections ($sel[0] + ".FaceStudio3Node" )`;
+	if ($FS3node[0] == "")
+	{
+		createNode groupId -n "FaceStudio3Attributes1";
+		$FS3node = `ls -sl`;		
+		addAttr -ln ("connection") -dt "string" $FS3node[0];				
+		connectAttr -f ($FS3node[0] + ".connection")  ($sel[0] + ".FaceStudio3Node");
+	}
+	
+	FaceStudio3WriteInfo "shape" $selShapeNode $sel[0];
+	FaceStudio3WriteInfo "parent" $selParent[0] $sel[0];
+	FaceStudio3WriteInfo "CurrentBlend" "1" $sel[0];
+
+	if ( `attributeExists "sound" $FS3node[0]` == 0 )
+	{
+		addAttr -ln ("sound") -dt "string" $FS3node[0];
+		addAttr -ln ("soundOffset") -dt "string" $FS3node[0];
+		setAttr -type "string" ( $FS3node[0] + ".soundOffset" ) "0";							
+	}
+
+	if ( `attributeExists "video" $FS3node[0]` == 0 )
+	{
+		string $defaultVideo = ( `internalVar -upd` + "icons/FaceStudio3/fs3_video.bmp");
+		addAttr -ln ("video") -dt "string" $FS3node[0];	
+		setAttr -type "string" ( $FS3node[0] + ".video" ) $defaultVideo;			
+	}
+	
+	if ( `attributeExists "videoExt" $FS3node[0]` == 0 )
+	{
+		addAttr -ln ("videoExt") -dt "string" $FS3node[0];
+		setAttr -type "string" ( $FS3node[0] + ".videoExt" ) "0";		
+	}
+
+	if ( `attributeExists "videoOffset" $FS3node[0]` == 0 )
+	{
+		addAttr -ln ("videoOffset") -dt "string" $FS3node[0];
+		setAttr -type "string" ( $FS3node[0] + ".videoOffset" ) "0";		
+	}		
+	
+	if ( `attributeExists "EyeControl1" $FS3node[0]` == 0 )
+	{
+		FaceStudio3WriteInfo "EyeControl1" "" $sel[0];
+	}
+	if ( `attributeExists "EyeControl2" $FS3node[0]` == 0 )
+	{
+		FaceStudio3WriteInfo "EyeControl2" "" $sel[0];
+	}
+	
+	if ( `attributeExists "ViewObj" $FS3node[0]` == 0 )
+	{
+		FaceStudio3WriteInfo "ViewObj" "" $sel[0];
+	}
+	
+	if ( `attributeExists "CustomParent" $FS3node[0]` == 0 )
+	{
+		FaceStudio3WriteInfo "CustomParent" "" $sel[0];
+	}
+
+	string $FS3Shapes[] = `listAnimatable $selShapeNode`;
+	for ($i=1;$i<size($FS3Shapes);$i++)
+	{
+		if ( `attributeExists ("ShapeIcon" + $i) $FS3node[0]` == 0 )
+		{
+			FaceStudio3WriteInfo ("ShapeIcon" + $i) "" $sel[0];		
+		}
+	}
+	FaceStudio3WriteInfo "currentLayout" "ShapeLayout1" $sel[0];
+	if ( `attributeExists "groupsList" $FS3node[0]` == 0 )
+	{
+		FaceStudio3WriteInfo "groupsList" "" $sel[0];
+	}
+		
+	string $customParent = `getAttr ($FS3node[0] + ".CustomParent")`;
+	if ( $customParent == "" )
+	{
+		$customParent = $selParent[0];	
+	}
+	
+	FaceStudio3ConsoleMessage("//Init : parent is " + $customParent );
+	
+	// camera building
+	string $FS3camera = "FaceStudio3View";
+	string $customParent = `getAttr ($FS3node[0] + ".CustomParent")`;
+	if ( $customParent == "" )
+	{
+		$customParent = $selParent[0];	
+	}
+	float $FS3camPos[];
+	if ( `objExists $FS3camera `) 
+		delete ( $FS3camera +"*");
+	camera;
+	rename $FS3camera;
+	hide $FS3camera;
+	pointConstraint $sel[0] $FS3camera;
+	orientConstraint $customParent $FS3camera;
+	delete -constraints $FS3camera;
+
+	$FS3camPos = `getAttr ($FS3camera + ".translate" )`;
+	camera -e -wci $FS3camPos[0] $FS3camPos[1] $FS3camPos[2] $FS3camera;
+	setAttr ( $FS3camera + ".focalLength" ) 100;
+	select -r $sel[0];
+	viewFit $FS3camera;
+	
+	parent $FS3camera $customParent;
+
+	// UI building
+	
+	string $alljobs[] = `scriptJob -lj`;
+	for ($n=0;$n<size($alljobs);$n++)
+	{
+		string $test = `match "FaceStudio3Exit" $alljobs[$n]`;
+		if ( $test == "FaceStudio3Exit" )
+		{	
+			string $jobfind = `substitute ":.*" $alljobs[$n] ""`;
+			int $jobindex = $jobfind;
+			scriptJob -k $jobindex;
+			break;
+		}
+	}
+	
+	FaceStudio3ConsoleMessage ( "//Init : building Editors" );		
+	FaceStudio3MainUI $sel[0];
+
+	
+	// configuration reading
+
+	FaceStudio3ReadConfiguration;
+
+	FaceStudio3ConsoleMessage ( "//Init : FaceStudio3 initialized !" );
+	pause -sec 2;
+	showWindow $FaceStudio3MainWindow;
+
+	scriptJob -uid $FaceStudio3MainWindow "FaceStudio3Exit";		
+
+	window -e -vis off $FaceStudio3Console;
+}
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+global proc FaceStudio3ReadConfiguration ()
+{
+	FaceStudio3ConsoleMessage ( "//Init : reading configuration..." );
+	FaceStudio3ReadGroups;
+	FaceStudio3ReadCustom;
+	FaceStudio3ReadObjects;
+	FaceStudio3ReadSound;
+	FaceStudio3ReadEyeControls;
+	FaceStudio3ReadShapeIcons;	
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+global proc FaceStudio3ReadUIFile (string $FSfile )
+{
+	global string $FaceStudio3MainWindow;
+	global string $FaceStudio3Console;
+		
+	string $obj = `window -q -dtg $FaceStudio3MainWindow`;
+	string $FS3node[] = `listConnections ($obj + ".FaceStudio3Node")`;
+
+	$fileId=`fopen ($FSfile) "r"`;
+	string $check = `fgetline $fileId`;
+	string $fs3cmd;
+
+ 	if ( `match "//FaceStudio3 UI File" $check` != "//FaceStudio3 UI File"   )
+ 	{
+ 		print "//FaceStudio3 error: wrong file\n";
+	  	fclose $fileId;
+ 		return;	
+ 	}
+	
+  	string $nextLine = $check;
+ 	while ( size( $nextLine ) > 0 ) 
+	{
+ 		$nextLine = `fgetline $fileId`;
+		$fs3cmd = $fs3cmd + $nextLine;
+	}
+  	fclose $fileId;
+
+	string $fs3loadFile = (`internalVar -usd` + "FaceStudio3UILoad.mel" );
+	$fileId=`fopen  $fs3loadFile "w"`;
+	fprint $fileId "// PLEASE DON'T DELETE THIS FILE //\n";	
+ 	fprint $fileId $fs3cmd ;
+	fclose $fileId;	
+ 	
+	select -r -ne $FS3node[0];
+	delete;
+
+	eval ( "source \"FaceStudio3UILoad.mel\"" );
+	FaceStudio3UILoad;
+
+	select -r -ne "FaceStudio3Import1";
+	rename $FS3node[0];
+		
+	string $FS3NewNode[] = `ls -sl`;
+	connectAttr -f ($FS3NewNode[0] + ".connection")  ($obj + ".FaceStudio3Node");
+	
+	FaceStudio3ReadConfiguration;
+	FaceStudio3ConsoleMessage ( "//Init : UI file loaded" );
+
+	pause -sec 1;
+	window -e -vis off $FaceStudio3Console;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+global proc FaceStudio3Module (int $module)
+{
+	global string $FaceStudio3MainWindow;	
+	string $obj = `window -q -dtg $FaceStudio3MainWindow`;
+	string $FS3node[] = `listConnections ($obj + ".FaceStudio3Node")`;
+	string $FS3ShapeNode = `getAttr ($FS3node[0]+".shape")`;	
+	string $FS3Shapes[] = `listAnimatable $FS3ShapeNode`;
+	int $Nshapes = `size $FS3Shapes`;
+	
+	if ( $module == 1 )
+	{
+		window -e -title "FaceStudio v.3.0  -  Animation Editor" $FaceStudio3MainWindow;
+		columnLayout -e -vis on fs3_AETOOLS;
+		//columnLayout -e -vis off fs3_SETOOLS;
+		columnLayout -e -vis off fs3_GETOOLS;
+
+		menu -e -vis off fs3_animationMenu;
+		//menu -e -vis off fs3_shapeMenu;
+		menu -e -vis off fs3_groupMenu;
+		menu -e -en true -vis on fs3_animationMenu;
+		//menu -e -en false -vis off fs3_shapeMenu;
+		menu -e -en false -vis off fs3_groupMenu;
+
+		for ($i=1;$i<$Nshapes;$i++)
+		{
+			mute -disable $FS3Shapes[$i];
+			iconTextButton -e -vis on ( "fs3_keyshape" + $i );
+			iconTextButton -e -vis on ("fs3_autokey" + $i);
+			iconTextButton -e -vis on ("fs3_delkey" + $i);
+			iconTextButton -e -vis on ("fs3_customkey" + $i);
+		}
+
+	}
+/*	
+	if ( $module == 2 )
+	{
+		window -e -title "FaceStudio v.3.0  -  Shapes Manager" $FaceStudio3MainWindow;
+		columnLayout -e -vis off fs3_AETOOLS;
+		//columnLayout -e -vis on fs3_SETOOLS;
+		columnLayout -e -vis off fs3_GETOOLS;
+		menu -e -vis off fs3_animationMenu;
+		//menu -e -vis off fs3_shapeMenu;
+		menu -e -vis off fs3_groupMenu;		
+		menu -e -en false -vis off fs3_animationMenu;
+		//menu -e -en true -vis on fs3_shapeMenu;
+		menu -e -en false -vis off fs3_groupMenu;
+		
+		for ($i=1;$i<$Nshapes;$i++)
+		{
+			mute $FS3Shapes[$i];
+			iconTextButton -e -vis off ( "fs3_keyshape" + $i );
+			iconTextButton -e -vis off ("fs3_autokey" + $i);
+			iconTextButton -e -vis off ("fs3_delkey" + $i);
+			iconTextButton -e -vis off ("fs3_customkey" + $i);
+		}
+		FaceStudio3ResetAll;
+	}
+*/
+	if ( $module == 3 )
+	{
+		window -e -title "FaceStudio v.3.0  -  Groups Manager" $FaceStudio3MainWindow;
+		columnLayout -e -vis off fs3_AETOOLS;
+		//columnLayout -e -vis off fs3_SETOOLS;
+		columnLayout -e -vis on fs3_GETOOLS;
+		//menu -e -vis off fs3_animationMenu;
+		//menu -e -vis off fs3_shapeMenu;
+		//menu -e -vis off fs3_groupMenu;		
+		menu -e -en false fs3_animationMenu;
+		//menu -e -en false -vis off fs3_shapeMenu;
+		//menu -e -en true -vis on fs3_groupMenu;
+		
+		for ($i=1;$i<$Nshapes;$i++)
+		{
+			iconTextButton -e -vis off ( "fs3_keyshape" + $i );
+			iconTextButton -e -vis off ("fs3_autokey" + $i);
+			iconTextButton -e -vis off ("fs3_delkey" + $i);
+			iconTextButton -e -vis off ("fs3_customkey" + $i);
+		}
+			
+	}	
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+global proc int FaceStudio3WriteUIFile (string $FSfile, string $fileType )
+{
+	global string $FaceStudio3MainWindow;	
+	string $obj = `window -q -dtg $FaceStudio3MainWindow`;
+	string $FS3node[] = `listConnections ($obj + ".FaceStudio3Node")`;
+	string $header = "//FaceStudio3 UI File	- 2005, Guillaume ROCHERON\nglobal proc FaceStudio3UILoad ()\n{\n";
+
+	select -r -ne $FS3node[0];
+	
+	string $check = `match ".fs3" $FSfile`;
+	if ( $check != ".fs3" )
+	{
+		$FSfile = ( $FSfile + ".fs3" );	
+	}
+	
+	file -typ "mayaAscii" -es $FSfile;
+
+	$fileId=`fopen ($FSfile + ".ma") "r"`;
+ 	string $nextLine = `fgetline $fileId`;
+	int $goWrite = 0;
+
+	while ( size( $nextLine ) > 0 ) 
+	{
+ 		$nextLine = `fgetline $fileId`;
+		if ( `match "groupId" $nextLine` == "groupId" )
+		{
+			$goWrite = 1;		
+		}
+				
+		if ( `match "lightLinker" $nextLine` == "lightLinker" )
+		{
+			break;	
+		}
+		if ( $goWrite == 1 )
+		{
+			$nextLine = `substitute "-ci true" $nextLine ""`;
+ 			$header = ( $header + $nextLine );
+ 		}
+ 	}	
+ 	
+ 	fclose $fileId; 
+ 	
+	$header = ($header + "select -r -ne " + $FS3node[0] + ";\nrename \"FaceStudio3Import1\";\n}\n// End of FaceStudio3 UI File");
+
+	
+	$fileId=`fopen $FSfile "w"`;
+ 	fprint $fileId $header;
+ 	fclose $fileId;
+ 	
+ 	sysFile -del ($FSfile + ".ma");
+ 	print ("//FaceStudio3 : UI saved as " + $FSfile + "\n");
+ 	select -cl;
+ 	return 1;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+global proc FaceStudio3ResetUI ()
+{
+	global string $FaceStudio3MainWindow;
+	global string $FaceStudio3Console;
+
+	string $obj = `window -q -dtg $FaceStudio3MainWindow`;
+	string $FS3node[] = `listConnections ($obj + ".FaceStudio3Node")`;
+	
+	string $alljobs[] = `scriptJob -lj`;
+	for ($n=0;$n<size($alljobs);$n++)
+	{
+		string $test = `match "FaceStudio3Exit" $alljobs[$n]`;
+		if ( $test == "FaceStudio3Exit" )
+		{	
+			string $jobfind = `substitute ":.*" $alljobs[$n] ""`;
+			int $jobindex = $jobfind;
+			scriptJob -k $jobindex;
+			break;
+		}
+	}
+
+	select -r -ne $FS3node[0];
+	delete;
+	select -r -ne $obj;
+	FaceStudio3;
+}	
+	
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+global proc FaceStudio3WriteInfo ( string $type, string $value, string $obj )
+{
+	string $FS3node[] = `listConnections ($obj + ".FaceStudio3Node")`;
+	if ( `attributeExists $type $FS3node[0]` == 0 )
+	{
+		addAttr -ln $type -dt "string" $FS3node[0];
+	}	
+	setAttr -type "string" ($FS3node[0] + "." + $type) $value;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+global proc FaceStudio3ReadGroups ()
+{
+	global string $FaceStudio3MainWindow;
+		
+	string $obj = `window -q -dtg $FaceStudio3MainWindow`;
+	string $FS3node[] = `listConnections ($obj + ".FaceStudio3Node")`;
+
+	string $FS3ShapeNode = `getAttr ($FS3node[0] + ".shape")`;	
+	string $FS3Shapes[] = `listAnimatable $FS3ShapeNode`;
+	
+	string $groupList = `getAttr ( $FS3node[0] + ".groupsList")`;
+	string $groupsList[] = stringToStringArray ( $groupList, " " );
+
+	textScrollList -e -ra fs3_groupsList;	
+	for ($i=0;$i<size($groupsList);$i++)
+	{
+		textScrollList -e -append $groupsList[$i] fs3_groupsList;
+		string $groupMembers = `getAttr ( $FS3node[0] + ".g" + $groupsList[$i])`;
+		string $members[] = stringToStringArray ( $groupMembers , " " );
+		
+		if (`columnLayout -exists ( "ColGroup" + $groupsList[$i])`)
+			deleteUI ( "ColGroup" + $groupsList[$i]);
+			
+		columnLayout -bgc 0.4 0.7 0.5 -p GridGroup -w 65 -h 50 -adjustableColumn true ( "ColGroup" + $groupsList[$i]);
+			iconTextButton 	-l ($groupsList[$i]) -bgc 0.4 0.7 0.5 -p  ( "ColGroup" + $groupsList[$i])
+					-style "iconAndTextVertical" -w 50 -h 50
+					-i1 ( `internalVar -upd` + "icons/FaceStudio3/fs3_unselgroup.bmp" )
+					-c ("FaceStudio3ShowGroupLayout " + $groupsList[$i] + ";iconTextButton -e -i1 ( \`internalVar -upd\` + \"icons/FaceStudio3/fs3_selgroup.bmp\" ) groupButton" + $groupsList[$i] )
+					( "groupButton" + $groupsList[$i]);
+			text -bgc 0.4 0.7 0.5 -l $groupsList[$i] -p  ( "ColGroup" + $groupsList[$i]);
+
+		if ( `frameLayout -exists ("ShapeLayout" + $groupsList[$i])`)
+			deleteUI ("ShapeLayout" + $groupsList[$i]);
+		frameLayout -h 434 -vis off -p ShapeLayout -l ($groupsList[$i] + " Shapes List") ("ShapeLayout" + $groupsList[$i]);
+			scrollLayout -bgc 0.6 0.6 0.6  -cr true -w 455 -h 400 ("ScrollBlend" + $groupsList[$i]);
+				columnLayout -p ("ScrollBlend" + $groupsList[$i]) ("ColBlend" + $groupsList[$i]);
+				
+					int $FS3nShapes = size ($members);
+					$FS3nShapes = `max  $FS3nShapes 5`;
+					gridLayout -bgc 0.6 0.6 0.6 -nc 5 -nr ($FS3nShapes / 5) -cw 87 -ch 130 -p ("ColBlend" + $groupsList[$i]) ("GridBlend"+$groupsList[$i]);
+
+		for ($n=0;$n<size($members);$n++)
+		{
+			int $shapeIndex = `FaceStudio3GetShapeIndex $members[$n]`;
+			string $shapeIcon = `getAttr ( $FS3node[0] + ".ShapeIcon" + $shapeIndex)`;
+/*			
+			int $test = `filetest -r $shapeIcon`;
+			if ( $test == 0 )
+			{
+				print "//FaceStudio error : icon file doesn't exists... removed !";	
+				$shapeIcon = "";
+				setAttr -type "string" ( $FS3node[0] + ".ShapeIcon" + $shapeIndex) "";
+			}
+*/
+			if ( $shapeIcon == "" )
+			{
+				$shapeIcon = ( `internalVar -upd` + "icons/FaceStudio3/fs3_noIcon.bmp" );
+			}
+			
+			columnLayout -bgc 0.6 0.6 0.6 -p ("GridBlend"+ $groupsList[$i]) -h 40 -adjustableColumn false ( "ColNodes" + $groupsList[$i] + $shapeIndex );
+				columnLayout -bgc 0.6 0.6 0.6 -adjustableColumn false ( "ColIcon" + $groupsList[$i] + $shapeIndex );					
+					iconTextButton 	-l ( `substitute ( $FS3ShapeNode + "." ) $FS3Shapes[$shapeIndex] ""`)
+							-c ( "setAttr -type \"string\" " + $FS3node[0] + ".CurrentBlend \"" + $shapeIndex + "\"")
+							-dcc ("if (\`getAttr " + $FS3Shapes[$shapeIndex] + "\` == 1 ) { setAttr " + $FS3Shapes[$shapeIndex] + " 0; } else { setAttr " + $FS3Shapes[$shapeIndex] + " 1;}")
+							-ann ( `substitute ( $FS3ShapeNode + "." )$FS3Shapes[$shapeIndex] ""`)
+							-style "iconAndTextVertical" -w 87 -h 87
+							-image1 $shapeIcon
+					("BlendButton" + $groupsList[$i] + $shapeIndex );
+					setParent ..;
+																		
+				columnLayout -bgc 0.6 0.6 0.6 -adjustableColumn false;
+					attrFieldSliderGrp -bgc 0.6 0.6 0.6 -pre 2 -cw 1 1 -cw 2 30 -cw 3 55 -min 0 -max 1 -l "" -at $FS3Shapes[$shapeIndex] -cc ("setAttr -type \"string\" " + $FS3node[0] + ".CurrentBlend \"" + $i +"\"") ("FSctrl" + $groupsList[$i] + $shapeIndex );	
+					rowLayout -nc 5 -cw5 15 15 15 15 15 -bgc 0.6 0.6 0.6 -p ( "ColNodes" + $groupsList[$i] + $shapeIndex );
+					separator -st none -w 10 -h 10 -bgc 0.6 0.6 0.6 ;
+					iconTextButton -w 15 -h 15 -bgc 1 0.3 0.3  -i1 ( `internalVar -upd`+ "icons/FaceStudio3/fs3_key.bmp") -ann "Add keyframe" -c ("setKeyframe " + $FS3Shapes[$shapeIndex]);
+					iconTextButton -w 15 -h 15 -bgc 0.8 0.7 0.7 -i1 ( `internalVar -upd`+ "icons/FaceStudio3/fs3_autokeyoff.bmp") -ann "Auto Key : off" -c ("FaceStudio3AutoKey " + $shapeIndex + " fs3_autokey" + $groupsList[$i] + $shapeIndex)("fs3_autokey" + $groupsList[$i] + $shapeIndex );
+					iconTextButton -w 15 -h 15 -bgc 0.8 0.5 0.5 -i1 ( `internalVar -upd`+ "icons/FaceStudio3/fs3_removekey.bmp") -ann "Remove all shape keys" -c ("FaceStudio3DeleteKey " + $shapeIndex );
+					iconTextButton -w 15 -h 15 -bgc 0.9 0.9 1 -i1 ( `internalVar -upd`+ "icons/FaceStudio3/fs3_customize.bmp") -ann "Customize shape icon";
+				setParent ..;
+		}
+	}
+}
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+global proc int FaceStudio3GetShapeIndex ( string $shp )
+{
+	global string $FaceStudio3MainWindow;
+		
+	string $obj = `window -q -dtg $FaceStudio3MainWindow`;
+	string $FS3node[] = `listConnections ($obj + ".FaceStudio3Node")`;
+	string $blendNode = `getAttr ($FS3node[0] + ".shape")`;	
+	string $FS3Shapes[] = `listAnimatable $blendNode`;
+	
+	for ($i=0;$i<size($FS3Shapes);$i++)
+	{
+		if ( $FS3Shapes[$i] == ($blendNode + "." + $shp) )
+		{
+			break;	
+		}
+	}
+	return $i;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+global proc FaceStudio3ReadCustom ()
+{
+	global string $FaceStudio3MainWindow;
+		
+	string $obj = `window -q -dtg $FaceStudio3MainWindow`;
+	string $FS3node[] = `listConnections ($obj + ".FaceStudio3Node")`;
+	
+	if ( `attributeExists "custom1" $FS3node[0]` == 0 )
+	{
+		addAttr -ln "custom1" -dt "string" $FS3node[0];
+		setAttr -type "string" ($FS3node[0] + ".custom1") "print \"//custom1 : empty.\"";				
+		addAttr -ln "custom2" -dt "string" $FS3node[0];
+		setAttr -type "string" ($FS3node[0] + ".custom2") "print \"//custom2 : empty.\"";
+		addAttr -ln "custom3" -dt "string" $FS3node[0];
+		setAttr -type "string" ($FS3node[0] + ".custom3") "print \"//custom3 : empty.\"";
+		addAttr -ln "custom4" -dt "string" $FS3node[0];
+		setAttr -type "string" ($FS3node[0] + ".custom4") "print \"//custom4 : empty.\"";		
+		addAttr -ln "custom5" -dt "string" $FS3node[0];		
+		setAttr -type "string" ($FS3node[0] + ".custom5") "print \"//custom5 : empty.\"";
+	}
+
+	string $custom;
+	$custom = `getAttr ( $FS3node[0] + ".custom1" )`;
+	iconTextButton -e -c $custom -ann $custom fs3_custom1; 
+
+	$custom = `getAttr ( $FS3node[0] + ".custom2" )`;
+	iconTextButton -e -c $custom -ann $custom fs3_custom2; 
+
+	$custom = `getAttr ( $FS3node[0] + ".custom3" )`;
+	iconTextButton -e -c $custom -ann $custom fs3_custom3; 
+
+	$custom = `getAttr ( $FS3node[0] + ".custom4" )`;
+	iconTextButton -e -c $custom -ann $custom fs3_custom4; 
+
+	$custom = `getAttr ( $FS3node[0] + ".custom5" )`;
+	iconTextButton -e -c $custom -ann $custom fs3_custom5; 	
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+global proc FaceStudio3ReadObjects ()
+{
+	global string $FaceStudio3MainWindow;
+	global string $FaceStudio3Console;
+		
+	string $obj = `window -q -dtg $FaceStudio3MainWindow`;
+	string $FS3node[] = `listConnections ($obj + ".FaceStudio3Node")`;
+	
+	select -r -ne $obj;
+
+	string $toAdd = `getAttr ( $FS3node[0] + ".ViewObj")`;
+	if ( $toAdd != "" )
+	{
+		string $listObj[] = stringToStringArray($toAdd, " ");
+		for ($i=0;$i<size($listObj);$i++)
+		{
+			select -add $listObj[$i];			
+		}
+	}
+	modelEditor -e -vs 1 FaceStudio3Pane;
+	modelEditor -e -ss FaceStudio3Pane;
+	select -cl;		
+}
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+global proc FaceStudio3ReadEyeControls ()
+{
+	global string $FaceStudio3MainWindow;	
+	string $obj = `window -q -dtg $FaceStudio3MainWindow`;
+	string $FS3node[] = `listConnections ($obj + ".FaceStudio3Node")`;	
+	string $selShapeNode = `getAttr ( $FS3node[0] + ".shape" )`;
+
+	string $control1 = `getAttr ( $FS3node[0] + ".EyeControl1")`;
+	string $control2 = `getAttr ( $FS3node[0] + ".EyeControl2")`;
+
+	toggleAutoLoad ("fs3_dopeOutlineEd") 1;
+	toggleAutoLoad ("fs3_graphOutlineEd") 1;
+	select -r -ne $selShapeNode;
+	
+	if ( $control1 != "" )
+	{
+		string $fs3_params[] = stringToStringArray($control1, " ");
+		float $val1 = $fs3_params[2];
+		float $val2 = $fs3_params[3];
+		attrFieldSliderGrp -e -at (  $fs3_params[0] + "." +  $fs3_params[1] ) -min  $val1 -max  $val2 FShorieye;
+		select -add  $fs3_params[0];
+	}
+	
+	if ( $control2 != "" )
+	{
+		string $fs3_params[] = stringToStringArray($control2, " ");
+		float $val1 = $fs3_params[2];
+		float $val2 = $fs3_params[3];
+		attrFieldSliderGrp -e -at (  $fs3_params[0] + "." + $fs3_params[1] ) -min  $val1 -max  $val2 FSvertieye;
+		select -add  $fs3_params[0];		
+	}
+	toggleAutoLoad ("fs3_dopeOutlineEd") 0;
+	toggleAutoLoad ("fs3_graphOutlineEd") 0;
+	select -cl;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+global proc FaceStudio3ReadShapeIcons ()
+{
+	global string $FaceStudio3MainWindow;	
+	string $obj = `window -q -dtg $FaceStudio3MainWindow`;
+	string $FS3node[] = `listConnections ($obj + ".FaceStudio3Node")`;
+	string $selShapeNode = `getAttr ( $FS3node[0] + ".shape" )`;
+	string $FS3Shapes[] = `listAnimatable $selShapeNode`;
+	
+	for ($i=1;$i<size($FS3Shapes);$i++)
+	{
+		string $icon = `getAttr ( $FS3node[0] + ".ShapeIcon" + $i)`;
+//		int $test = `filetest -r $icon`;
+//		if ( $test == 0 )
+//		{
+//			setAttr -type "string" ( $FS3node[0] + ".ShapeIcon" + $i ) "";
+//			$icon = "";
+//			print "//FaceStudio error : icon file doesn't exists... removed !";	
+//		}		
+		if ( $icon != "" )
+		{
+			iconTextButton -e -i1 $icon ("BlendButton" + $i);		
+		}	
+	}
+	
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+global proc FaceStudio3ReadSound ()
+{
+	global string $FaceStudio3MainWindow;
+	global string $gPlayBackSlider;
+		
+	string $obj = `window -q -dtg $FaceStudio3MainWindow`;
+	string $FS3node[] = `listConnections ($obj + ".FaceStudio3Node")`;
+	
+	int $foffset = `getAttr ( $FS3node[0] + ".soundOffset" )`;
+	string $FS3sound = `getAttr ( $FS3node[0] + ".sound" )`;
+	
+	int $test = `filetest -r $FS3sound`;
+	if ( $test == 0 )
+	{
+		setAttr -type "string" ( $FS3node[0] + ".sound" ) "";
+		$FS3sound = "";
+		print "//FaceStudio error : sound file doesn't exists... removed !";	
+	}
+
+	string $sounds[] = `ls -type "audio"`;
+	if ( $sounds[0] != "" )
+	{
+		select -r $sounds;
+		delete;
+	}
+	if ( $FS3sound != "" )
+	{
+		sound -offset $foffset  -file $FS3sound;	
+		string $sounds[] = `ls -type "audio"`;
+		select -r $sounds;
+		rename FaceStudio3Sound;		
+		soundControl -e -sound "FaceStudio3Sound" -displaySound 1  FS3scrubPort;
+		timeControl -e -sound "FaceStudio3Sound" -displaySound 1 $gPlayBackSlider;		
+ 	}
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+global proc FaceStudio3AssignCustomFunctions ()
+{
+
+	global string $FaceStudio3MainWindow;
+		
+	string $obj = `window -q -dtg $FaceStudio3MainWindow`;
+	string $FS3node[] = `listConnections ($obj + ".FaceStudio3Node")`;	
+
+	string $custom;
+
+	$custom = `textFieldGrp -q -text custom_txt1`;
+	iconTextButton -e -c $custom -ann $custom fs3_custom1;
+	FaceStudio3WriteInfo "custom1" $custom $obj;
+
+	$custom = `textFieldGrp -q -text custom_txt2`;
+	iconTextButton -e -c $custom -ann $custom fs3_custom2;
+	FaceStudio3WriteInfo "custom2" $custom $obj;
+
+	$custom = `textFieldGrp -q -text custom_txt3`;
+	iconTextButton -e -c $custom -ann $custom fs3_custom3;
+	FaceStudio3WriteInfo "custom3" $custom $obj;
+
+	$custom = `textFieldGrp -q -text custom_txt4`;
+	iconTextButton -e -c $custom -ann $custom fs3_custom4;
+	FaceStudio3WriteInfo "custom4" $custom $obj;
+
+	$custom = `textFieldGrp -q -text custom_txt5`;
+	iconTextButton -e -c $custom -ann $custom fs3_custom5;
+	FaceStudio3WriteInfo "custom5" $custom $obj;
+
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+global proc FaceStudio3FilterObjectList ()
+{
+	global string $FaceStudio3MainWindow;	
+	string $obj = `window -q -dtg $FaceStudio3MainWindow`;
+	string $FS3node[] = `listConnections ($obj + ".FaceStudio3Node")`;	
+	string $listObj[];
+	
+	string $toAdd = `getAttr ( $FS3node[0] + ".ViewObj")`;
+	if ($toAdd != "" )
+	{
+		 $listObj = stringToStringArray($toAdd, " ");
+
+		for ($i=0;$i<size($listObj);$i++)
+		{
+			textScrollList -e -ri $listObj[$i] FS3listObj;
+			textScrollList -e -w 245 -h 240 -append $listObj[$i] FS3viewObj;
+		}
+	} else
+	{
+		textScrollList -e -w 245 -h 240 -ra FS3viewObj;
+	}
+	textScrollList -e -ri $obj FS3listObj;
+	
+}
+
+global proc FaceStudio3AddToList ()
+{
+	string $FS3list[] = `textScrollList -q -si  FS3listObj`;
+	for ($i=0;$i<size($FS3list);$i++)
+	{
+		textScrollList -e -ri $FS3list[$i] FS3listObj;
+		textScrollList -e -append $FS3list[$i] FS3viewObj;	
+	}
+	$FS3list = `textScrollList -q -ai  FS3viewObj`;
+	$FS3list = `sort $FS3list`;
+	textScrollList -e -ra FS3viewObj;
+	for ($i=0;$i<size($FS3list);$i++)
+	{
+		textScrollList -e -w 245 -h 240 -append $FS3list[$i] FS3viewObj;	
+	}
+}
+
+global proc FaceStudio3RemFromList ()
+{
+	string $FS3list[] = `textScrollList -q -si  FS3viewObj`;
+	for ($i=0;$i<size($FS3list);$i++)
+	{
+		textScrollList -e -ri $FS3list[$i] FS3viewObj;
+		textScrollList -e -append $FS3list[$i] FS3listObj;	
+	}
+	$FS3list = `textScrollList -q -ai  FS3listObj`;
+	$FS3list = `sort $FS3list`;
+	textScrollList -e -ra FS3listObj;
+	for ($i=0;$i<size($FS3list);$i++)
+	{
+		textScrollList -e -w 245 -h 240 -append $FS3list[$i] FS3listObj;	
+	}
+
+}
+
+global proc FaceStudio3DisplayObjects ()
+{
+	global string $FaceStudio3MainWindow;	
+	string $obj = `window -q -dtg $FaceStudio3MainWindow`;
+	string $FS3node[] = `listConnections ($obj + ".FaceStudio3Node")`;
+	string $listObj[] = `textScrollList -q -ai  FS3viewObj`;
+	
+	string $objToAdd =  stringArrayToString( $listObj, " ");
+
+	
+	for ($i=0;$i<size($listObj);$i++)
+	{
+		FaceStudio3WriteInfo ( "ViewObj" ) $objToAdd $obj;
+	}
+	if ( $objToAdd == "" )
+	{
+		FaceStudio3WriteInfo ( "ViewObj" ) "" $obj;		
+	}
+	select -r -ne $listObj;
+	select -add $obj;
+	modelEditor -e -ss FaceStudio3Pane;
+
+	select -cl;	
+}
+
+global proc FaceStudio3CustomParent ( int $mode )
+{
+	global string $FaceStudio3MainWindow;	
+	string $obj = `window -q -dtg $FaceStudio3MainWindow`;
+	string $FS3camera = `modelEditor -q -cam FaceStudio3Pane`;
+	string $FS3node[] = `listConnections ($obj + ".FaceStudio3Node")`;
+	string $FS3parent;
+		
+	if ( $mode == 2 )
+	{
+		string $cParent = `getAttr ( $FS3node[0] + ".parent" )`;
+		setAttr -type "string" ( $FS3node[0] + ".CustomParent" ) "";
+		$FS3parent = $cParent;
+	}
+	else
+	{
+		string $objParent[] = `textScrollList -q -si  FS3parentObj`;
+		setAttr -type "string" ( $FS3node[0] + ".CustomParent" ) $objParent[0];
+		$FS3parent = $objParent[0];
+	}
+	parent -w $FS3camera;
+	parent $FS3camera $FS3parent;
+	button -e -l $FS3parent -w 220 -h 30 FS3parentBt;
+}
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+global proc FaceStudio3ApplyViewSettings () 
+{
+	global string $FaceStudio3MainWindow;	
+
+	int $ligthning = `checkBoxGrp -q -v1 fs3viewligth`;
+	if ( $ligthning == 1 )
+	{
+		modelEditor -e -dl "all" FaceStudio3Pane;	
+	}
+	else
+	{
+		modelEditor -e -dl "default" FaceStudio3Pane;			
+	}
+
+	int $showAll =  `checkBoxGrp -q -v1 fs3viewdisplay`;
+	if ( $showAll == 1 )
+	{
+		modelEditor -e -vs 0 FaceStudio3Pane;		
+	}
+	else
+	{		
+		FaceStudio3ReadObjects;
+	}
+	
+	setAttr "FaceStudio3View.focalLength" `floatSliderGrp -q -v fs3viewfocal`;
+	modelEditor -e -wos `checkBoxGrp -q -v1 fs3viewwire` FaceStudio3Pane;			
+	modelEditor -e -xr `checkBoxGrp -q -v1 fs3viewxray` FaceStudio3Pane;			
+	modelEditor -e -sdw `checkBoxGrp -q -v1 fs3viewshadow` FaceStudio3Pane;			
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+global proc FaceStudio3ApplyEyeSliderLink () 
+{
+	
+	global string $FaceStudio3MainWindow;	
+	string $obj = `window -q -dtg $FaceStudio3MainWindow`;
+	string $FS3node[] = `listConnections ($obj + ".FaceStudio3Node")`;
+	string $selShapeNode = `getAttr ( $FS3node[0] + ".shape" )`;
+
+	
+	string $obj1[] = `textScrollList -q -si FS3listObjLink1`;
+	string $obj2[] = `textScrollList -q -si FS3listObjLink2`;
+	
+	string $attr1[] = `textScrollList -q -si FS3listObjAttrib1`;	
+	string $attr2[] = `textScrollList -q -si FS3listObjAttrib2`;
+
+	float $min1 = `floatFieldGrp -q -v1 fs3_eye_s1_min`;
+	float $max1 = `floatFieldGrp -q -v1 fs3_eye_s1_max`;
+
+	float $min2 = `floatFieldGrp -q -v1 fs3_eye_s2_min`;
+	float $max2 = `floatFieldGrp -q -v1 fs3_eye_s2_max`;
+	
+	toggleAutoLoad ("fs3_dopeOutlineEd") 1;
+	toggleAutoLoad ("fs3_graphOutlineEd") 1;
+	select -r -ne $selShapeNode;
+
+	if ( $obj1[0] != "None" )
+	{
+		attrFieldSliderGrp -e -en true -bgc 0.6 0.4 0.1 -at ( $obj1[0] + "." + $attr1[0] ) -min $min1 -max $max1 FShorieye;
+		FaceStudio3WriteInfo ( "EyeControl1" ) ( $obj1[0] + " " + $attr1[0] + " " + $min1 + " " + $max1 ) $obj;
+		select -add $obj1;
+	}
+	else
+	{
+		FaceStudio3WriteInfo ( "EyeControl1" ) "" $obj;
+		attrFieldSliderGrp -e -en false FShorieye;			
+	}	
+	
+	if ( $obj2[0] != "None" )
+	{
+		attrFieldSliderGrp -e -en true -bgc 0.6 0.4 0.1 -at ( $obj2[0] + "." + $attr2[0] ) -min $min2 -max $max2 FSvertieye;		
+		FaceStudio3WriteInfo ( "EyeControl2" ) ( $obj2[0] + " " + $attr2[0] + " " + $min2 + " " + $max2 ) $obj;
+		select -add $obj2;
+	}
+	else
+	{
+		FaceStudio3WriteInfo ( "EyeControl2" ) "" $obj;				
+		attrFieldSliderGrp -e -en false FSvertieye;			
+	}	
+	toggleAutoLoad ("fs3_dopeOutlineEd") 0;
+	toggleAutoLoad ("fs3_graphOutlineEd") 0;
+	select -cl;
+
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+global proc FaceStudio3ApplyVideoSettings ()
+{
+	global string $gAECurrentTab;
+	global string $FaceStudio3MainWindow;	
+	string $obj = `window -q -dtg $FaceStudio3MainWindow`;
+	string $FS3node[] = `listConnections ($obj + ".FaceStudio3Node")`;
+		
+	int $fext = `checkBoxGrp -q -v1 fs3_frameExt`;
+	int $foffset = `intFieldGrp -q -v1 fs3_offset`;	
+	string $videofile = `textField -q -tx fs3_video`;
+
+	setAttr "FaceStudio3VideoPlane.useFrameExtension" $fext;
+	setAttr "FaceStudio3VideoPlane.frameOffset" $foffset;
+
+	setAttr -type "string" ($FS3node[0] + ".videoExt") $fext;
+	setAttr -type "string" ($FS3node[0] + ".videoOffset") $foffset;
+	
+	if ( $videofile != "none" )
+	{
+		setAttr -type "string" FaceStudio3VideoPlane.imageName $videofile;
+	}
+
+	string $sel[] = `ls -sl`;
+	select -r FaceStudio3VideoCam;
+	ShowAttributeEditorOrChannelBox;
+	commitAENotes($gAECurrentTab);window -e -vis 0 AEWindow;
+	select -r $sel;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+global proc FaceStudio3ApplySoundSettings ()
+{
+	global string $FaceStudio3MainWindow;
+	global string $gPlayBackSlider;
+	
+	string $obj = `window -q -dtg $FaceStudio3MainWindow`;
+	string $FS3node[] = `listConnections ($obj + ".FaceStudio3Node")`;
+		
+	int $foffset = `intFieldGrp -q -v1 fs3_soundOffset`;	
+	string $soundfile = `textField -q -tx fs3_sound`;
+
+	setAttr -type "string" ($FS3node[0] + ".soundOffset") $foffset;
+	string $sounds[] = `ls -type "audio"`;
+	if ( $sounds[0] != "" )
+	{
+		select -r $sounds;
+		delete;
+	}
+	if ( $soundfile != "none" )
+	{
+ 		sound -offset $foffset  -file $soundfile;
+		string $sounds[] = `ls -type "audio"`;
+		select -r $sounds;
+		rename FaceStudio3Sound;
+		soundControl -e -sound "FaceStudio3Sound" -displaySound 1  FS3scrubPort;
+ 		timeControl -e -sound "FaceStudio3Sound" -displaySound true $gPlayBackSlider;				
+ 	}
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+global proc FaceStudio3KeyAll ()
+{
+	global string $FaceStudio3MainWindow;	
+	string $obj = `window -q -dtg $FaceStudio3MainWindow`;
+	string $FS3node[] = `listConnections ($obj + ".FaceStudio3Node")`;	
+	string $selShapeNode = `getAttr ( $FS3node[0] + ".shape" )`;
+	string $FS3Shapes[] = `listAnimatable $selShapeNode`;
+		
+
+	for ($i=1;$i<size ($FS3Shapes);$i++)
+	{
+		setKeyframe $FS3Shapes[$i];
+	}
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+global proc FaceStudio3ResetAll () 
+{	
+	global string $FaceStudio3MainWindow;
+	string $obj = `window -q -dtg $FaceStudio3MainWindow`;
+	
+	string $FS3node[] = `listConnections ($obj + ".FaceStudio3Node")`;	
+	string $selShapeNode = `getAttr ( $FS3node[0] + ".shape" )`;
+	string $FS3Shapes[] = `listAnimatable $selShapeNode`;
+
+	for ($i=1;$i<size ($FS3Shapes);$i++)
+	{
+		setAttr $FS3Shapes[$i] 0;		
+	}			
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+global proc FaceStudio3DeleteAllKey ()
+{
+	global string $FaceStudio3MainWindow;	
+	string $obj = `window -q -dtg $FaceStudio3MainWindow`;
+	string $FS3node[] = `listConnections ($obj + ".FaceStudio3Node")`;	
+	string $selShapeNode = `getAttr ( $FS3node[0] + ".shape" )`;
+	string $FS3Shapes[] = `listAnimatable $selShapeNode`;
+		
+	string $FSconfirm = `confirmDialog 	-title "Delete" -message "Delete All Keys ?"
+    						-button "Yes" -button "No" -defaultButton "No"
+    						-cancelButton "No" -dismissString "No"`;
+	if ( $FSconfirm == "Yes" )
+	{
+		for ($i=1;$i<size ($FS3Shapes);$i++)
+		{
+			int $FSkeyCount = `keyframe -q -kc $FS3Shapes[$i]`;
+			if ( $FSkeyCount != 0 ) 
+			{
+				selectKey -r -k  $FS3Shapes[$i];
+				cutKey -clear;
+			}
+		}
+	}
+}
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+global proc FaceStudio3Iconize ()
+{
+	global string $FaceStudio3MainWindow;	
+	string $obj = `window -q -dtg $FaceStudio3MainWindow`;
+	string $FS3node[] = `listConnections ($obj + ".FaceStudio3Node")`;	
+	string $selShapeNode = `getAttr ( $FS3node[0] + ".shape" )`;
+	string $FS3Shapes[] = `listAnimatable $selShapeNode`;
+
+	float $currentBGcolor[] = `displayRGBColor -q -c background`;
+	int $frame = `currentTime -q`;
+	int $currentShapeIndex = `getAttr ($FS3node[0] + ".CurrentBlend")`;
+	int $currentImageFormat = `getAttr defaultRenderGlobals.imageFormat`;
+
+ 	string $currentShape = `iconTextButton -q -l ("BlendButton" + $currentShapeIndex)`;
+	string $iconPath = (`internalVar -usd` + "FaceStudio3/UI_icons/" + $obj + "_" + $FS3node[0] + "/");
+	string $iconFile = ( $iconPath + $currentShape );
+	
+	sysFile -md $iconPath;
+
+	setAttr "defaultRenderGlobals.imageFormat" 20;
+	displayRGBColor -c background 0.6 0.75 0.8;
+
+
+	for ($i=1;$i<size ($FS3Shapes);$i++)
+	{
+		mute $FS3Shapes[$i];
+	}
+	
+	modelEditor -e -av FaceStudio3Pane;
+	playblast -orn off -st $frame -et $frame -w 87 -h 87 -p 100 -v off -fo -fmt image -cf ( $iconFile + ".bmp");
+	displayRGBColor -c background $currentBGcolor[0] $currentBGcolor[1] $currentBGcolor[2];
+	
+	for ($i=1;$i<size ($FS3Shapes);$i++)
+	{
+		mute -disable $FS3Shapes[$i];
+	}
+
+	setAttr "defaultRenderGlobals.imageFormat" $currentImageFormat;
+	
+	FaceStudio3WriteInfo ("ShapeIcon" + $currentShapeIndex) ( $iconFile + ".bmp" ) $obj;		
+
+	deleteUI ("BlendButton" + $currentShapeIndex);
+	string $FS3nomShape = `substitute ( $selShapeNode + "." ) $FS3Shapes[$currentShapeIndex] ""`;
+	iconTextButton 	-l $FS3nomShape
+			-c ( "setAttr -type \"string\" " + $FS3node[0] + ".CurrentBlend \"" + $currentShapeIndex + "\";")
+			-dcc ("if (\`getAttr " + $FS3Shapes[$currentShapeIndex] + "\` == 1 ) { setAttr " + $FS3Shapes[$currentShapeIndex] + " 0; } else { setAttr " + $FS3Shapes[$currentShapeIndex] + " 1;}")		
+			-ann ( `substitute ( $selShapeNode + "." )$FS3Shapes[$currentShapeIndex] ""`)
+			-style "iconAndTextVertical" -w 87 -h 87
+			-image1 ( $iconFile + ".bmp" )
+			-p ( "ColIcon" + $currentShapeIndex ) 
+			("BlendButton" + $currentShapeIndex);								
+	FaceStudio3ReadGroups;
+
+	print "//FaceStudio3 : iconize done.\n";
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+global proc FaceStudio3AutoIconize (int $onlyUndefined)
+{
+	global string $FaceStudio3MainWindow;
+	global string $FaceStudio3Console;
+
+	string $obj = `window -q -dtg $FaceStudio3MainWindow`;
+	string $FS3node[] = `listConnections ($obj + ".FaceStudio3Node")`;	
+	string $selShapeNode = `getAttr ( $FS3node[0] + ".shape" )`;
+	string $FS3Shapes[] = `listAnimatable $selShapeNode`;
+ 	
+ 	columnLayout -e -vis off ShapeLayout;
+
+	for ($i=1;$i<size ($FS3Shapes);$i++)
+	{
+		FaceStudio3ResetAll;
+		if ( $onlyUndefined == 0 )
+		{
+			setAttr	-type "string" ($FS3node[0] + ".CurrentBlend") $i;
+			setAttr ( $FS3Shapes[$i] ) 1;
+			FaceStudio3Iconize;
+		}
+		else
+		{
+			string $check = `getAttr ($FS3node[0] + ".ShapeIcon" + $i)`;
+			if ( $check == "" )
+			{
+				setAttr	-type "string" ($FS3node[0] + ".CurrentBlend") $i;
+				setAttr ( $FS3Shapes[$i] ) 1;	
+				FaceStudio3Iconize;
+			}			
+		}
+	}
+ 	columnLayout -e -vis on ShapeLayout;
+
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+global proc FaceStudio3AutoKey (int $shapeIndex, string $shapebutton) {
+	
+	global string $FaceStudio3MainWindow;
+	global string $FaceStudio3Console;
+
+	string $obj = `window -q -dtg $FaceStudio3MainWindow`;
+	string $FS3node[] = `listConnections ($obj + ".FaceStudio3Node")`;	
+	string $selShapeNode = `getAttr ( $FS3node[0] + ".shape" )`;
+	string $FS3Shapes[] = `listAnimatable $selShapeNode`;
+	
+	string $status = `iconTextButton -q -ann $shapebutton`;
+
+	string $btslider = ("FSctrl" + (`substitute "fs3_autokey" $shapebutton ""`) );
+
+	if ( $status == "Auto Key : off" ) {
+		attrFieldSliderGrp -e -cc ("setKeyframe " + $FS3Shapes [$shapeIndex]) $btslider;
+		iconTextButton -e -w 15 -h 15 -i1 ( `internalVar -upd`+ "icons/FaceStudio3/fs3_autokeyon.bmp")-ann "Auto Key : on" $shapebutton;
+
+	} 
+	else 
+	{
+		attrFieldSliderGrp -e -cc ("") $btslider;
+		iconTextButton -e -w 15 -h 15 -i1 ( `internalVar -upd`+ "icons/FaceStudio3/fs3_autokeyoff.bmp") -ann "Auto Key : off" $shapebutton;
+	}
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+global proc FaceStudio3DeleteKey (int $shapeIndex) 
+{
+	global string $FaceStudio3MainWindow;
+	global string $FaceStudio3Console;
+
+	string $obj = `window -q -dtg $FaceStudio3MainWindow`;
+	string $FS3node[] = `listConnections ($obj + ".FaceStudio3Node")`;	
+	string $selShapeNode = `getAttr ( $FS3node[0] + ".shape" )`;
+	string $FS3Shapes[] = `listAnimatable $selShapeNode`;
+
+	string $confirm = `confirmDialog 	-title "Delete" -message ("Delete all \"" + $FS3Shapes[$shapeIndex] + "\" keys ?")
+    						-button "Yes" -button "No" -defaultButton "No"
+    						-cancelButton "No" -dismissString "No"`;
+
+	if ( $confirm == "Yes" ) 
+	{	
+		int $FSkeyCount = `keyframe -q -kc $FS3Shapes[$shapeIndex]`;
+		if ( $FSkeyCount != 0 ) 
+		{
+			selectKey -r -k $FS3Shapes[$shapeIndex];
+			cutKey -clear;	
+		}
+	}
+}
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+global proc FaceStudio3CustomizeIcons ( int $shapeIndex) 
+{
+	global string $FaceStudio3MainWindow;
+	global string $FaceStudio3Console;
+
+	string $obj = `window -q -dtg $FaceStudio3MainWindow`;
+	string $FS3node[] = `listConnections ($obj + ".FaceStudio3Node")`;	
+	string $selShapeNode = `getAttr ( $FS3node[0] + ".shape" )`;
+	string $FS3Shapes[] = `listAnimatable $selShapeNode`;
+	
+	string $FS3icon = `fileDialog -dm "*.bmp"`;
+	if ( $FS3icon != "" )
+	{
+		FaceStudio3WriteInfo ("ShapeIcon" + $shapeIndex) ( $FS3icon ) $obj;		
+
+	deleteUI ("BlendButton" + $shapeIndex);
+	string $FS3nomShape = `substitute ( $selShapeNode + "." ) $FS3Shapes[$shapeIndex] ""`;
+	iconTextButton 	-l $FS3nomShape
+			-c ( "setAttr -type \"string\" " + $FS3node[0] + ".CurrentBlend \"" + $shapeIndex + "\";")
+			-ann ( `substitute ( $selShapeNode + "." )$FS3Shapes[$shapeIndex] ""`)
+			-style "iconAndTextVertical" -w 87 -h 87
+			-image1 ( $FS3icon )
+			-p ( "ColIcon" + $shapeIndex ) 
+			("BlendButton" + $shapeIndex);								
+	FaceStudio3ReadGroups;
+	}
+}
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+global proc FaceStudioKeyEye (string $controlIndex) 
+{
+	
+	global string $FaceStudio3MainWindow;
+	global string $FaceStudio3Console;
+
+	string $obj = `window -q -dtg $FaceStudio3MainWindow`;
+	string $FS3node[] = `listConnections ($obj + ".FaceStudio3Node")`;
+	
+	string $fs3_attr = `attrFieldSliderGrp -q -at ("FS" + $controlIndex + "eye")`;
+	if ($fs3_attr != "" )
+	{
+		setKeyframe $fs3_attr;
+	}
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+global proc FaceStudioAutoKeyEye (string $controlIndex)
+{
+	
+	global string $FaceStudio3MainWindow;
+	global string $FaceStudio3Console;
+
+	string $obj = `window -q -dtg $FaceStudio3MainWindow`;
+	string $FS3node[] = `listConnections ($obj + ".FaceStudio3Node")`;
+	
+	string $fs3_attr = `attrFieldSliderGrp -q -at ("FS" + $controlIndex + "eye")`; 
+	float $min = `attrFieldSliderGrp -q -min ("FS" + $controlIndex + "eye")`; 
+	float $max = `attrFieldSliderGrp -q -max ("FS" + $controlIndex + "eye")`; 
+
+	string $status = `iconTextButton -q -ann ("FS3autokey" + $controlIndex)`;
+
+	if ($fs3_attr != "" )
+	{
+		if ( $status == "Auto Key : off" ) 
+		{
+			attrFieldSliderGrp -e -min $min -max $max -cc ("setKeyframe " + $fs3_attr) ("FS" + $controlIndex + "eye");
+			iconTextButton -e -w 15 -h 15 -i1 ( `internalVar -upd`+ "icons/FaceStudio3/fs3_autokeyon.bmp")-ann "Auto Key : on" 	("FS3autokey" +  $controlIndex);
+
+		}
+		else 
+		{
+			attrFieldSliderGrp -e -min $min -max $max -cc ("") ("FS" + $controlIndex + "eye");
+			iconTextButton -e -w 15 -h 15 -i1 ( `internalVar -upd`+ "icons/FaceStudio3/fs3_autokeyoff.bmp") -ann "Auto Key : off" ("FS3autokey" + $controlIndex);
+		}
+	}	
+	
+}
+
+global proc FaceStudioRemoveKeyEye (string $controlIndex)
+{
+	global string $FaceStudio3MainWindow;
+	global string $FaceStudio3Console;
+
+	string $obj = `window -q -dtg $FaceStudio3MainWindow`;
+	string $FS3node[] = `listConnections ($obj + ".FaceStudio3Node")`;
+	
+	string $fs3_attr = `attrFieldSliderGrp -q -at ("FS" + $controlIndex + "eye")`; 
+	
+	string $confirm = `confirmDialog 	-title "Delete" -message ("Delete all \"" + $fs3_attr + "\" keys ?")
+    						-button "Yes" -button "No" -defaultButton "No"
+    						-cancelButton "No" -dismissString "No"`;
+
+	if ( $confirm == "Yes" ) 
+	{	
+		int $FSkeyCount = `keyframe -q -kc $fs3_attr`;
+		if ( $FSkeyCount != 0 ) 
+		{
+			selectKey -r -k $fs3_attr;
+			cutKey -clear;	
+		}
+	}
+		
+}
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+global proc FaceStudio3SwitchPort ()
+{
+	int $scrub = `columnLayout -q -vis FS3timeLayout`;
+	if ( $scrub == 1 )
+	{
+		columnLayout -e -vis off FS3timeLayout;
+		columnLayout -e -vis on FS3soundLayout;
+		iconTextButton -e -i1  ( `internalVar -upd`+ "icons/FaceStudio3/fs3_switchT.bmp") FS3switchPort;
+	}
+	else
+	{
+		columnLayout -e -vis on FS3timeLayout;
+		columnLayout -e -vis off FS3soundLayout;
+		iconTextButton -e -i1  ( `internalVar -upd`+ "icons/FaceStudio3/fs3_switchS.bmp") FS3switchPort;
+	}
+}
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+global proc FaceStudio3Playblast ()
+{
+	modelEditor -e -av FaceStudio3Pane;
+	performPlayblast 4;
+	window -e -t "FaceStudio v.3.0  - Playblast" OptionBoxWindow;
+}
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+global proc FaceStudio3SoundOnOff ()
+{
+	global string $gPlayBackSlider;
+	string $statu = `iconTextButton -q -ann fs3_soundonoff`;
+	if ( $statu == "sound on" )
+	{	
+		iconTextButton -e -i1 ( `internalVar -upd`+ "icons/FaceStudio3/fs3_soundoff.bmp") fs3_soundonoff;
+		iconTextButton -e -ann "sound off" fs3_soundonoff;
+		if (`objExists FaceStudio3Sound` )
+		{
+			soundControl -e -sound "FaceStudio3Sound" -displaySound 0  FS3scrubPort;
+			timeControl -e -sound "FaceStudio3Sound" -displaySound 0 $gPlayBackSlider;	
+		}
+	}
+	else
+	{
+		iconTextButton -e -i1 ( `internalVar -upd`+ "icons/FaceStudio3/fs3_soundon.bmp") fs3_soundonoff;			
+		iconTextButton -e -ann "sound on" fs3_soundonoff;
+		if (`objExists FaceStudio3Sound` )
+		{
+			soundControl -e -sound "FaceStudio3Sound" -displaySound 1  FS3scrubPort;
+			timeControl -e -sound "FaceStudio3Sound" -displaySound 1 $gPlayBackSlider;	
+		}
+	}
+}
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+global proc FaceStudio3GroupCreate ()
+{
+	global string $FaceStudio3MainWindow;
+
+	string $obj = `window -q -dtg $FaceStudio3MainWindow`;
+	string $FS3node[] = `listConnections ($obj + ".FaceStudio3Node")`;
+		
+	string $groupName = `textFieldGrp -q -tx fs3_groupname`;
+	string $allgroups[] = `textScrollList -q -ai fs3_groupsList`;
+	string $Nodegroups = `getAttr ($FS3node[0] + ".groupsList")`;
+	
+	if (( $groupName == "" ) || ( $groupName == "noname" ))
+	{
+		print "//FaceStudio3 : no valid group name\n";
+		return;	
+	}
+	for ($i=1;$i<=10;$i++)
+	{
+		$groupName = `substitute " " $groupName "_"`;
+	}
+	for ($i=0;$i<size($allgroups);$i++)
+	{
+		if ( $groupName == $allgroups[$i] )
+		{
+			print "//FaceStudio3 :this group already exists\n";
+			return;
+		}	
+	}
+	
+	textScrollList -e -append $groupName fs3_groupsList;
+	setAttr -type "string" ($FS3node[0] + ".groupsList") ( $Nodegroups + " " + $groupName );
+	
+	addAttr -ln ("g" + $groupName) -dt "string" $FS3node[0];
+	
+	if (`objExists ( "ColGroup" + $groupName)`)
+		deleteUI ( "ColGroup" + $groupName);
+			
+	// group menu
+	columnLayout -bgc 0.4 0.7 0.5 -p GridGroup -w 65 -h 50 -adjustableColumn true ( "ColGroup" + $groupName);
+		iconTextButton 	-l ($groupName) -bgc 0.4 0.7 0.5 -p  ( "ColGroup" + $groupName)
+				-style "iconAndTextVertical" -w 50 -h 50
+				-i1 ( `internalVar -upd` + "icons/FaceStudio3/fs3_unselgroup.bmp" )
+				-c ("iconTextButton -e -i1 ( \`internalVar -upd\` + \"icons/FaceStudio3/fs3_selgroup.bmp\" ) groupButton" + $groupName )
+				( "groupButton" + $groupName);
+		text -bgc 0.4 0.7 0.5 -l $groupName -p  ( "ColGroup" + $groupName);	
+
+	// group layout
+	
+	FaceStudio3ReadGroups; 		
+}
+
+global proc FaceStudio3GroupRename ()
+{
+	global string $FaceStudio3MainWindow;
+
+	string $obj = `window -q -dtg $FaceStudio3MainWindow`;
+	string $FS3node[] = `listConnections ($obj + ".FaceStudio3Node")`;
+		
+	string $groupName[] = `textScrollList -q -si fs3_groupsList`;
+	string $allgroups[] = `textScrollList -q -ai fs3_groupsList`;	
+	string $newName = `textFieldGrp -q -tx fs3_groupnewname`;
+	string $Nodegroups = `getAttr ($FS3node[0] + ".groupsList")`;
+	
+	if ( $groupName[0] == "" )
+	{
+		print "//FaceStudio3 : no group selected\n";
+		return;
+	}
+	
+	if ( $newName == "" )
+	{
+		print "//FaceStudio3 : no valid group name\n";
+		return;
+	}
+	
+	for ($i=1;$i<=10;$i++)
+	{
+		$newName = `substitute " " $newName "_"`;
+	}
+	
+	if ( $newName == $groupName[0] )
+	{
+		return;	
+	}
+	
+	int $pos = 1;
+	for ($i=0;$i<size($allgroups);$i++)
+	{
+		if ( $newName == $allgroups[$i] )
+		{
+			print "//FaceStudio3 :this group already exists\n";
+			return;
+		}
+		if ( $allgroups[$i] == $groupName[0] )
+		{
+			$pos = $i + 1;	
+		}		
+	}
+	textScrollList -e -ri $groupName[0] fs3_groupsList;
+	textScrollList -e -ap $pos $newName fs3_groupsList;
+	
+	string $listGroup[] = stringToStringArray($Nodegroups, " ");
+	for ($i=0;$i<size($listGroup);$i++)
+	{
+		if ( $listGroup[$i] == $groupName[0] )
+		{
+			 $listGroup[$i] = $newName;
+		}
+	}
+	$Nodegroups = stringArrayToString( $listGroup , " ");
+	setAttr -type "string" ($FS3node[0] + ".groupsList") $Nodegroups;
+	
+	string $members = `getAttr ($FS3node[0] + ".g" + $groupName[0])`;
+	deleteAttr ($FS3node[0] + ".g" + $groupName[0]);
+	addAttr -ln ("g" + $newName) -dt "string" $FS3node[0];
+	setAttr -type "string" ($FS3node[0] + ".g" + $newName) $members;
+	
+	if (`columnLayout -exists ( "ColGroup" + $groupName[0])`)
+		deleteUI ( "ColGroup" + $groupName[0]);
+
+	if ( `frameLayout -exists ("ShapeLayout" + $groupName[0])`)
+		deleteUI ("ShapeLayout" + $groupName[0]);
+			
+	FaceStudio3ReadGroups;			
+}
+
+global proc FaceStudio3GroupDelete ()
+{
+	global string $FaceStudio3MainWindow;
+
+	string $obj = `window -q -dtg $FaceStudio3MainWindow`;
+	string $FS3node[] = `listConnections ($obj + ".FaceStudio3Node")`;
+		
+	string $groupName[] = `textScrollList -q -si fs3_groupsList`;
+	string $Nodegroups = `getAttr ($FS3node[0] + ".groupsList")`;
+	
+	string $confirm = `confirmDialog 	-title "FaceStudio v.3.0  -  Delete group" -message "Delete this group ?"
+ 						-button "Yes" -button "No" -defaultButton "No"
+ 						-cancelButton "No" -dismissString "No"`;
+
+	if ( $confirm == "Yes" )
+	{
+		textScrollList -e -ri $groupName fs3_groupsList;
+	
+		string $allgroups[] = `textScrollList -q -ai fs3_groupsList`;
+		string $Nodegroups = "";
+		
+		for ($i=0;$i<size($allgroups);$i++)
+		{
+			$Nodegroups = ( $Nodegroups + " " + $allgroups[$i] );
+		}
+		setAttr -type "string" ($FS3node[0] + ".groupsList") $Nodegroups;
+		deleteAttr ($FS3node[0] + ".g" + $groupName[0]);
+
+		if (`columnLayout -exists ( "ColGroup" + $groupName[0])`)
+			deleteUI ( "ColGroup" + $groupName[0]);
+
+		deleteUI ("ShapeLayout" + $groupName[0]);
+						
+		FaceStudio3ReadGroups;			
+	}	
+}
+
+global proc FaceStudio3AddToGroup ()
+{
+	global string $FaceStudio3MainWindow;
+
+	string $obj = `window -q -dtg $FaceStudio3MainWindow`;
+	string $FS3node[] = `listConnections ($obj + ".FaceStudio3Node")`;
+
+	string $FS3ShapeNode = `getAttr ($FS3node[0] + ".shape")`;	
+	string $FS3Shapes[] = `listAnimatable $FS3ShapeNode`;
+		
+	string $toAdd[] = `textScrollList -q -si fs3_shapeList`;
+	string $groupName[] = `textScrollList -q -si fs3_groupsList`;
+	
+	string $groupMembers = `getAttr ( $FS3node[0] + ".g" + $groupName[0])`;
+	string $members[] = stringToStringArray ( $groupMembers , " " );
+	
+	string $newList = $groupMembers;
+	
+	int $checkAdd;
+	for ($i=0;$i<size($toAdd);$i++)
+	{
+		$checkAdd = 0;
+		for ($n=0;$n<size($members);$n++)
+		{
+			if ( $toAdd[$i] == $members[$n] )
+			{
+				$checkAdd = 1;
+			}
+		}
+		if ( $checkAdd == 0 )
+		{
+			$newList = ( $newList + " " + $toAdd[$i] );
+		}
+	}
+	setAttr -type "string" ( $FS3node[0] + ".g" + $groupName[0]) $newList;
+	FaceStudio3ShowGroupList;
+	
+	$members = stringToStringArray ( $newList , " " );
+	for ($n=0;$n<size($members);$n++)
+	{	
+		int $shapeIndex = `FaceStudio3GetShapeIndex $members[$n]`;
+		string $shapeIcon = `getAttr ( $FS3node[0] + ".ShapeIcon" + $shapeIndex)`;
+		if ( $shapeIcon == "" )
+		{
+			$shapeIcon = ( `internalVar -upd` + "icons/FaceStudio3/fs3_noIcon.bmp" );
+		}
+	
+		if ( `columnLayout -exists ( "ColNodes" + $groupName[0] + $shapeIndex )` )
+			deleteUI ( "ColNodes" + $groupName[0] + $shapeIndex );
+			
+		columnLayout -bgc 0.6 0.6 0.6 -p ("GridBlend"+ $groupName[0]) -h 40 -adjustableColumn false ( "ColNodes" + $groupName[0] + $shapeIndex );
+			columnLayout -bgc 0.6 0.6 0.6 -adjustableColumn false ( "ColIcon" + $groupName[0] + $shapeIndex );					
+				iconTextButton 	-l ( `substitute ( $FS3ShapeNode + "." ) $FS3Shapes[$shapeIndex] ""`)
+						-c ( "setAttr -type \"string\" " + $FS3node[0] + ".CurrentBlend \"" + $shapeIndex + "\"")
+						-dcc ("if (\`getAttr " + $FS3Shapes[$shapeIndex] + "\` == 1 ) { setAttr " + $FS3Shapes[$shapeIndex] + " 0; } else { setAttr " + $FS3Shapes[$shapeIndex] + " 1;}")
+						-ann ( `substitute ( $FS3ShapeNode + "." )$FS3Shapes[$shapeIndex] ""`)
+						-style "iconAndTextVertical" -w 87 -h 87
+						-image1 $shapeIcon
+				("BlendButton" + $groupName[0] + $shapeIndex );
+				setParent ..;
+																		
+			columnLayout -bgc 0.6 0.6 0.6 -adjustableColumn false;
+				attrFieldSliderGrp -bgc 0.6 0.6 0.6 -pre 2 -cw 1 1 -cw 2 30 -cw 3 55 -min 0 -max 1 -l "" -at $FS3Shapes[$shapeIndex] -cc ("setAttr -type \"string\" " + $FS3node[0] + ".CurrentBlend \"" + $shapeIndex +"\"") ("FSctrl" + $groupName[0] + $shapeIndex );	
+				rowLayout -nc 5 -cw5 15 15 15 15 15 -bgc 0.6 0.6 0.6 -p ( "ColNodes" + $groupName[0] + $shapeIndex );
+				separator -st none -w 10 -h 10 -bgc 0.6 0.6 0.6 ;
+				iconTextButton -w 15 -h 15 -bgc 1 0.3 0.3  -i1 ( `internalVar -upd`+ "icons/FaceStudio3/fs3_key.bmp") -ann "Add keyframe" -c ("setKeyframe " + $FS3Shapes[$shapeIndex]);
+				iconTextButton -w 15 -h 15 -bgc 0.8 0.7 0.7 -i1 ( `internalVar -upd`+ "icons/FaceStudio3/fs3_autokeyoff.bmp") -ann "Auto Key : off" -c ("FaceStudio3AutoKey " + $shapeIndex + " fs3_autokey" + $groupName[0] + $shapeIndex) ("fs3_autokey" + $groupName[0] + $shapeIndex);
+				iconTextButton -w 15 -h 15 -bgc 0.8 0.5 0.5 -i1 ( `internalVar -upd`+ "icons/FaceStudio3/fs3_removekey.bmp") -ann "Remove all shape keys" -c ("FaceStudio3DeleteKey " + $shapeIndex );
+				iconTextButton -w 15 -h 15 -bgc 0.9 0.9 1 -i1 ( `internalVar -upd`+ "icons/FaceStudio3/fs3_customize.bmp") -ann "Customize shape icon";
+			setParent ..;	
+	}
+}
+
+global proc FaceStudio3RemFromGroup ()
+{
+	global string $FaceStudio3MainWindow;
+
+	string $obj = `window -q -dtg $FaceStudio3MainWindow`;
+	string $FS3node[] = `listConnections ($obj + ".FaceStudio3Node")`;
+
+	string $FS3ShapeNode = `getAttr ($FS3node[0] + ".shape")`;	
+	string $FS3Shapes[] = `listAnimatable $FS3ShapeNode`;
+		
+	string $toRem[] = `textScrollList -q -si fs3_memberList`;
+	string $groupName[] = `textScrollList -q -si fs3_groupsList`;
+
+	string $groupMembers[] = `textScrollList -q -ai fs3_memberList`;
+	
+	for ($n=0;$n<size($groupMembers);$n++)
+	{
+		int $shapeIndex = `FaceStudio3GetShapeIndex $groupMembers[$n]`;		
+		if ( `columnLayout -exists ( "ColNodes" + $groupName[0] + $shapeIndex )` )
+			deleteUI ( "ColNodes" + $groupName[0] + $shapeIndex );
+	}
+	
+	textScrollList -e -ri $toRem[0] fs3_memberList;
+	$groupMembers = `textScrollList -q -ai fs3_memberList`;
+	string $members = stringArrayToString ( $groupMembers , " " );
+	setAttr -type "string" ( $FS3node[0] + ".g" + $groupName[0]) $members;
+
+	for ($n=0;$n<size($groupMembers);$n++)
+	{	
+		int $shapeIndex = `FaceStudio3GetShapeIndex $groupMembers[$n]`;
+		string $shapeIcon = `getAttr ( $FS3node[0] + ".ShapeIcon" + $shapeIndex)`;
+		if ( $shapeIcon == "" )
+		{
+			$shapeIcon = ( `internalVar -upd` + "icons/FaceStudio3/fs3_noIcon.bmp" );
+		}
+				
+		columnLayout -bgc 0.6 0.6 0.6 -p ("GridBlend"+ $groupName[0]) -h 40 -adjustableColumn false ( "ColNodes" + $groupName[0] + $shapeIndex );
+			columnLayout -bgc 0.6 0.6 0.6 -adjustableColumn false ( "ColIcon" + $groupName[0] + $shapeIndex );					
+				iconTextButton 	-l ( `substitute ( $FS3ShapeNode + "." ) $FS3Shapes[$shapeIndex] ""`)
+						-c ( "setAttr -type \"string\" " + $FS3node[0] + ".CurrentBlend \"" + $shapeIndex + "\"")
+						-dcc ("if (\`getAttr " + $FS3Shapes[$shapeIndex] + "\` == 1 ) { setAttr " + $FS3Shapes[$shapeIndex] + " 0; } else { setAttr " + $FS3Shapes[$shapeIndex] + " 1;}")
+						-ann ( `substitute ( $FS3ShapeNode + "." )$FS3Shapes[$shapeIndex] ""`)
+						-style "iconAndTextVertical" -w 87 -h 87
+						-image1 $shapeIcon
+				("BlendButton" + $groupName[0] + $shapeIndex );
+				setParent ..;
+																		
+			columnLayout -bgc 0.6 0.6 0.6 -adjustableColumn false;
+				attrFieldSliderGrp -bgc 0.6 0.6 0.6 -pre 2 -cw 1 1 -cw 2 30 -cw 3 55 -min 0 -max 1 -l "" -at $FS3Shapes[$shapeIndex] -cc ("setAttr -type \"string\" " + $FS3node[0] + ".CurrentBlend \"" + $shapeIndex +"\"") ("FSctrl" + $groupName[0] + $shapeIndex );	
+				rowLayout -nc 5 -cw5 15 15 15 15 15 -bgc 0.6 0.6 0.6 -p ( "ColNodes" + $groupName[0] + $shapeIndex );
+				separator -st none -w 10 -h 10 -bgc 0.6 0.6 0.6 ;
+				iconTextButton -w 15 -h 15 -bgc 1 0.3 0.3  -i1 ( `internalVar -upd`+ "icons/FaceStudio3/fs3_key.bmp") -ann "Add keyframe" -c ("setKeyframe " + $FS3Shapes[$shapeIndex]);
+				iconTextButton -w 15 -h 15 -bgc 0.8 0.7 0.7 -i1 ( `internalVar -upd`+ "icons/FaceStudio3/fs3_autokeyoff.bmp") -ann "Auto Key : off" -c ("FaceStudio3AutoKey " + $shapeIndex + " fs3_autokey" + $groupName[0] + $shapeIndex) ("fs3_autokey" + $groupName[0] + $shapeIndex);
+				iconTextButton -w 15 -h 15 -bgc 0.8 0.5 0.5 -i1 ( `internalVar -upd`+ "icons/FaceStudio3/fs3_removekey.bmp") -ann "Remove all shape keys" -c ("FaceStudio3DeleteKey " + $shapeIndex );
+				iconTextButton -w 15 -h 15 -bgc 0.9 0.9 1 -i1 ( `internalVar -upd`+ "icons/FaceStudio3/fs3_customize.bmp") -ann "Customize shape icon";
+			setParent ..;	
+	}	
+}
+
+global proc FaceStudio3ShowGroupList ()
+{
+	global string $FaceStudio3MainWindow;
+
+	string $obj = `window -q -dtg $FaceStudio3MainWindow`;
+	string $FS3node[] = `listConnections ($obj + ".FaceStudio3Node")`;
+		
+	string $selGroup[] = `textScrollList -q -si fs3_groupsList`;
+	string $gmembers = `getAttr ( $FS3node[0] + ".g" + $selGroup[0])`;
+	string $groupMembers[] = stringToStringArray ( $gmembers, " ");
+
+	textScrollList -e -ra fs3_memberList;
+	for ($i=0;$i<size($groupMembers);$i++)
+	{
+		textScrollList -e -append $groupMembers[$i] fs3_memberList;
+	}
+	
+}
+
+global proc FaceStudio3ShowGroupLayout (string $selgroup)
+{
+	global string $FaceStudio3MainWindow;
+
+	string $obj = `window -q -dtg $FaceStudio3MainWindow`;
+	string $FS3node[] = `listConnections ($obj + ".FaceStudio3Node")`;
+	
+	string $currentLayout = `getAttr ( $FS3node[0] + ".currentLayout")`;
+	string $gmembers = `getAttr ( $FS3node[0] + ".groupsList")`;
+	string $groupMembers[] = stringToStringArray ( $gmembers, " ");
+	
+	for ($i=0;$i<size($groupMembers);$i++)
+	{
+		iconTextButton -e -i1 ( `internalVar -upd` + "icons/FaceStudio3/fs3_unselgroup.bmp" ) ("groupButton" + $groupMembers[$i] );
+	}
+	iconTextButton -e -i1 ( `internalVar -upd` + "icons/FaceStudio3/fs3_unselgroup.bmp" ) ("groupButton1");
+	
+	frameLayout -e -vis off $currentLayout;	
+	frameLayout -e -vis on ("ShapeLayout" + $selgroup );
+	setAttr -type "string" ( $FS3node[0] + ".currentLayout") ("ShapeLayout" + $selgroup );
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+global proc FaceStudio3PickVideo ()
+{
+	global string $FaceStudio3MainWindow;
+	string $obj = `window -q -dtg $FaceStudio3MainWindow`;
+	string $FS3node[] = `listConnections ($obj + ".FaceStudio3Node")`;
+
+	string $video = `fileDialog -dm "*.tga; *.bmp; *.iff; *.tif"`;
+
+	if ( $video != "" )
+	{
+		textField -e -tx $video fs3_video;
+		setAttr -type "string" (  $FS3node[0] +".video" ) $video;
+	}
+}
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+global proc FaceStudio3PickSound ()
+{
+	global string $FaceStudio3MainWindow;
+	string $obj = `window -q -dtg $FaceStudio3MainWindow`;
+	string $FS3node[] = `listConnections ($obj + ".FaceStudio3Node")`;
+
+	string $sound = `fileDialog -dm "*.wav; *.aifff"`;
+	if ( $sound != "" )
+	{
+		textField -e -tx $sound fs3_sound;
+		setAttr -type "string" (  $FS3node[0] +".sound" ) $sound;
+	}
+}
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+global proc FaceStudio3Exit ()
+{
+	global string $FaceStudio3MainWindow;	
+	global string $gMainWindow;
+			
+	if (`window -exists $FaceStudio3MainWindow`)
+	{	
+		window -e -vis off $FaceStudio3MainWindow;
+	}			
+	
+	if (`objExists FaceStudio3View`)
+		delete FaceStudio3View;
+
+	if (`objExists FaceStudio3VideoCam`)
+		delete FaceStudio3VideoCam;
+
+	if (`objExists FaceStudio3Sound`)
+		delete FaceStudio3Sound;
+		
+	window -e -tlc 0 0 $gMainWindow;
+		
+	select -cl;
+	print "//FaceStudio3 : Closed...\n";
+}
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+global proc FaceStudio3MainMenu ()
+{
+	global string $gMainWindow;
+	if ( `menu -exists FaceStudio3Menu` ) deleteUI FaceStudio3Menu;
+	if ( $gMainWindow != "" )
+	{
+		setParent $gMainWindow;
+		menu -label "FaceStudio3" -tearOff true FaceStudio3Menu;
+			menuItem -label "Launch..." -command "FaceStudio3";
+			menuItem -d true;
+			menuItem -label "FaceStudio Objects" -subMenu true -pmc "FaceStudio3ListObjects" FS3menuListObj;
+				setParent ..;
+			menuItem -label "Clean Scene"  -command "FaceStudio3CleanDialog" -p  FaceStudio3Menu;
+			menuItem -d true -p  FaceStudio3Menu;
+ 			menuItem -label "Help" -c ( "launch -web ( \`internalVar -usd`\ + \"FaceStudio3/Documentation/FaceStudio3Manual.html\")" )  -p  FaceStudio3Menu;
+			menuItem -label "About..."  -command "FaceStudio3About" -p  FaceStudio3Menu;
+	}
+	
+	string $alljobs[] = `scriptJob -lj`;
+	for ($n=0;$n<size($alljobs);$n++)
+	{
+		string $test = `match "FaceStudio3CheckMode" $alljobs[$n]`;
+		if ( $test == "FaceStudio3CheckMode" )
+		{	
+			string $jobfind = `substitute ":.*" $alljobs[$n] ""`;
+			int $jobindex = $jobfind;
+			scriptJob -k $jobindex;
+		}
+	}
+	scriptJob -event "MenuModeChanged" FaceStudio3CheckMode;
+}	
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+global proc FaceStudio3CheckMode ()
+{
+	global string $gMayaMode;
+	if ( $gMayaMode == "Animation" )
+	{
+		menu -e -vis on FaceStudio3Menu;	
+	}
+	else
+	{
+		menu -e -vis off FaceStudio3Menu;	
+	}
+	
+}
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+global proc FaceStudio3ListObjects ()
+{
+	string $sel[] = `ls -sl`;
+	int $test = 0;
+	
+	if ( `objExists "FaceStudio3Attributes"` )
+	{
+		$test = 1;
+	}
+	
+	for ($i=1;$i<=100;$i++)
+	{
+		if ( `objExists ("FaceStudio3Attributes"+$i)` )
+		{
+			$test = 1;
+			break;
+		}
+	}
+	
+	if ( $test == 1 )
+	{
+		select -r "FaceStudio3Attribute*";
+		string $FS3nodes[] = `ls -sl`;
+		for ( $i=0;$i<=100;$i++)
+		{
+			if ( `menuItem -exists ("FS3menuMemberObj"+$i)` )
+				deleteUI ("FS3menuMemberObj"+$i);
+		}
+		for ( $i=0;$i<size($FS3nodes);$i++)
+		{
+			string $FSobj[] = `listConnections ( $FS3nodes[$i] + ".connection")` ;
+			menuItem -l $FSobj[0] -p FS3menuListObj -c ("select -r " + $FSobj[0] ) ("FS3menuMemberObj"+$i) ;	
+		}
+	}
+	else
+	{
+		if ( `menuItem -exists ("FS3menuMemberObj1")` )
+			deleteUI ("FS3menuMemberObj1");
+		menuItem -l "none" -p FS3menuListObj ("FS3menuMemberObj1");
+	}	
+	select -r $sel;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+global proc FaceStudio3Install ()
+{
+	global string $FaceStudio3Console;
+
+	FaceStudio3ConsoleMessage ("// Start install...");
+	string $usp = (`internalVar -usd` + "userSetup.mel" );
+	int $test = `filetest -r  $usp`;
+	if ( $test == 0 )
+	{
+		FaceStudio3ConsoleMessage ("// userSetup file doesn't exists. Creating new one...");	
+		$fileId=`fopen $usp "w"`;
+ 		fwrite $fileId "source FaceStudio3; FaceStudio3MainMenu;";
+ 		fclose $fileId;
+	}
+	else
+	{
+		FaceStudio3ConsoleMessage ("// userSetup file exists. Modifying it...");
+		$fileId=`fopen $usp "r"`;	
+		string $testExist = 0;
+		string $nextLine = `fgetline $fileId`;
+ 		while ( size( $nextLine ) > 0 )
+ 		{ 
+ 			string $isWrite = `match "FaceStudio3" $nextLine`;
+ 			if ( $isWrite == "FaceStudio3" )
+ 			{
+ 				FaceStudio3ConsoleMessage ("// FaceStudio already registered");
+ 				$testExist = 1;
+ 				break;
+ 			}
+ 			$nextLine = `fgetline $fileId`;
+ 		}	
+ 		fclose $fileId;
+ 		if ( $testExist == 0 )
+ 		{
+ 			FaceStudio3ConsoleMessage ("// Registering FaceStudio...");
+			$fileId=`fopen $usp "r"`;	
+			string $nextLine = `fgetline $fileId`;
+			string $record;
+	 		while ( size( $nextLine ) > 0 )
+	 		{ 
+	 			$record = ( $record + $nextLine );
+	 			$nextLine = `fgetline $fileId`;
+	 		}
+	 		fclose $fileId; 			
+			$record = ( $record + "source FaceStudio3; FaceStudio3MainMenu;" );
+			$fileId=`fopen $usp "w"`;
+ 			fwrite $fileId $record;
+ 			fclose $fileId;			
+ 		}
+	}
+	FaceStudio3ConsoleMessage ("// Menu added in Animation tab");
+	FaceStudio3MainMenu;
+	FaceStudio3ConsoleMessage ("// Install completed !");
+}

@@ -1,0 +1,6 @@
+cathegory,exec,label,annotation,image,command
+common,melc,toolLauncher,旧ツールランチャー,Gravite_Tools2014_old.bmp,Gravite_Tools2014
+common,melc,mbLauncher,よく開くシーンを登録呼び出し,s002170_mbLauncher.bmp,s002170_mbLauncher
+common,melc,FOP4,File_Opener_perforce,YAM_jsFileOpener_perforce.bmp,YAM_jsFileOpener_perforce
+common,py,paste2excell,外注ツール,yu_paste2excell.bmp,execfile ('D:/Projects/Gravite2/tools/maya/maya2014/scripts/python/yu_paste2excell.py')
+common,melc,swContour,G2シェーダーの輪郭線ONOFF,s002170_switchContour.bmp,s002170_switchContour

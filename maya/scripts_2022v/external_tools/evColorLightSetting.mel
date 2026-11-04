@@ -1,0 +1,753 @@
+//Creation	Co,
+//day		2004.11.16
+//WEB		http://www.d4.dion.ne.jp/~mosquito/index.html
+//mail		mosquito@d4.dion.ne.jp
+
+
+//クリック「tragetModel」ボタン------------------------------------------------------------------------------------------------
+global proc ClickTragetModel(){
+ string $fOBJ[]=`ls -sl`;
+ textFieldGrp -e -tx $fOBJ[0] fGetName;
+};
+
+
+//クリック「useMaterial」ボタン------------------------------------------------------------------------------------------------
+global proc ClickUseMaterial(){
+ string $sOBJ[]=`ls -sl`;
+ textFieldGrp -e -tx $sOBJ[0] sGetName;
+};
+
+//クリック「ClickRebuildTraget」ボタン------------------------------------------------------------------------------------------------
+global proc ClickRebuildTraget(){
+ string $sOBJ[]=`ls -sl`;
+ textFieldGrp -e -tx $sOBJ[0] tGetName;
+};
+
+
+//クリック「CreateLight」ボタン------------------------------------------------------------------------------------------------
+global proc CreateLight(){
+ global int $Creater;
+ 	if($Creater==0)
+ 	 evClolorLight_create;
+ 	else if($Creater==1)
+ 	 ParasolLight_create; 
+};
+
+
+//標準のevLightSettingを作成------------------------------------------------------------------------------------------------
+global proc evClolorLight_create(){
+global int $Creater;
+
+//ライトの種類＝0→ディレクショナル、1→スポット
+global int $Kind;
+
+//影の種類＝0→オフ、1→デプス、2→レイトレ
+global int $ShadowType;
+	
+ //ウインドウで決めた値を収納
+
+	string $MB = `textFieldGrp -q -text fGetName`;
+	string $MA = `textFieldGrp -q -text sGetName`;
+
+	int $TLI = `intSliderGrp -q -v TLintensity`;
+	int $ES = `checkBox -q -v eSpecular`;
+
+	int $CA = `intSliderGrp -q -v cAngle`;
+	float $PA = `floatSliderGrp -q -v pAngle`;
+	float $D = `floatSliderGrp -q -v Dropoff`;
+
+	int $DMS = `checkBox -q -v DMShadow`;
+	int $DR = `intSliderGrp -q -v DResolution`;
+	int $DFS = `intSliderGrp -q -v DFSize`;
+
+	int $RTS = `checkBox -q -v RTShadow`;
+	float $LR = `floatSliderGrp -q -v LRadius`;
+	int $SR = `intSliderGrp -q -v SRays`;
+	int $RD = `intSliderGrp -q -v RDLimit`;
+
+	string $MC = `textFieldGrp -q -text tGetName`;
+
+	//選択されたオブジェクトとマテリアルをリスト化
+	select -r $MB;
+	duplicate;
+	select -tgl$MA;
+	string $OBJ[];
+	$OBJ = `ls -sl`;
+
+	//オブジェクトのカラーリング-------------------------
+	//マテリアルのカラーに接続されているファイルノード名を取得
+	string $FileName[] = `listConnections -d off -s on $OBJ[1]`;
+
+	//ファイルのパス取得
+	string $FilePath = `getAttr ($FileName[0] + ".fileTextureName")`;
+
+	//頂点カラーの焼きこみ
+	select -r $OBJ[0];
+	PaintVertexColorTool;
+	artImportAttrMapCB artAttrPaintVertexCtx $FilePath "image";
+	MoveTool;
+
+
+	//intensityの値を決める------------------------------
+	//バーテックスを選択
+	select -r $OBJ[0];
+	PolySelectConvert 3;
+
+	//選択してる頂点と個数を求める。
+	string $sV[] = `filterExpand -sm 31`;
+	int $sVs = `size $sV`;
+
+	//ついでにライトのトータルintensityが2になるように個々の値を取得
+	float $intensity;
+	$intensity = $TLI;
+	$intensity /= $sVs;
+
+
+	//頂点の中心を求める---------------------------
+	//バーテックスを選択
+	select -r $OBJ[0];
+	PolySelectConvert 3;
+
+	//中心位置にクラスタを作成しrotateの値を中心値とする
+	string $CenV[] = `newCluster " -envelope 0"`;
+	float $CenP[] = `getAttr ($CenV[1] + ".rotatePivot")`;
+
+	//クラスタを削除
+	delete $CenV;
+
+	//ライトの配置と配色---------------------------
+	//中心となるロケーター制作
+	spaceLocator -p $CenP[0] $CenP[1] $CenP[2];
+	CenterPivot;
+	rename LightTarget_temp;
+
+	//改めてバーテックスのリスト化
+	select -r $OBJ[0];
+	PolySelectConvert 3;
+	string $sVertes[];
+	$sVertes = `ls -sl -fl`;
+
+	//お決まりのループ準備
+	int $roop = 0;
+	int $num = `size $sVertes`;
+
+	//ライトをいれるグループの制作
+	CreateEmptyGroup;
+	rename evColorLightGroup;
+	string $AllGup[];
+	$AllGup = `ls -sl -fl`;
+
+	while ( $roop < $num) { 
+		select -r $sVertes[$roop] ;
+		string $verT[];
+		$verT = `ls -sl -fl`;
+
+		float $pVer[];
+		$pVer = `pointPosition -w $verT[0]`;
+
+		float $verC[];
+		 $verC = `polyColorPerVertex -q -rgb $verT[0]`;
+
+		if($Kind==0){
+		 directionalLight -i $intensity -rgb $verC[0] $verC[1] $verC[2];
+		 setAttr ".emitSpecular" $ES;
+		};
+
+		if($Kind==1){
+		 spotLight -i $intensity -rgb $verC[0] $verC[1] $verC[2];
+		 setAttr ".scaleX" 0.1;
+		 setAttr ".scaleY" 0.1;
+		 setAttr ".scaleZ" 0.1;
+		 setAttr ".emitSpecular" $ES;
+		 setAttr ".coneAngle" $CA;
+		 setAttr ".penumbraAngle" $PA;
+		 setAttr ".dropoff" $D;
+		};
+
+		if($ShadowType==0){
+		 setAttr ".useDepthMapShadows" 0;
+		 setAttr ".useRayTraceShadows" 0;
+		};
+
+		 if($ShadowType==1){
+		 float $ShadowC;
+		 $ShadowC = ($verC[0] + $verC[1] + $verC[2]) ;
+		 $ShadowC =((($ShadowC/3-1)*-1)/3);
+
+		 setAttr ".useDepthMapShadows" $DMS;
+		 setAttr ".dmapResolution" $DR;
+		 setAttr ".dmapFilterSize" $DFS;
+		 setAttr ".shadowColor" $ShadowC $ShadowC $ShadowC ;
+		};
+
+		 if($ShadowType==2){
+		 float $ShadowC;
+		 $ShadowC = ($verC[0] + $verC[1] + $verC[2]) ;
+		 $ShadowC =((($ShadowC/3-1)*-1)/3);
+
+		 setAttr ".useRayTraceShadows" $RTS;
+		 setAttr ".lightRadius" $LR;
+		 setAttr ".shadowRays" $SR;
+		 setAttr ".rayDepthLimit" $RD;
+		};
+
+		move -rpr $pVer[0] $pVer[1] $pVer[2] ;
+		rename EVColorLight;
+		string $Lighten[];
+		$Lighten = `ls -sl`;
+
+		select -r LightTarget_temp;
+		select -tgl $Lighten[0];
+		aimConstraint -aimVector 0 0 -1 -upVector 0 1 0;
+		select -r $Lighten[0] ;
+		pickWalk -d down;
+		pickWalk -d right;
+		delete;
+
+		parent $Lighten $AllGup;
+		$roop++;
+	};
+	delete LightTarget_temp;
+	delete $OBJ[0];
+};
+
+
+
+//ParasolLightSetを作成------------------------------------------------------------------------------------------------
+global proc ParasolLight_create(){
+global int $Creater;
+global string $count;
+
+//ライトの種類＝0→ディレクショナル、1→スポット
+global int $Kind;
+
+//影の種類＝0→オフ、1→デプス、2→レイトレ
+global int $ShadowType;
+
+	//ウインドウで決めた値を収納
+	int $PC = `intSliderGrp -q -v polyCount`;
+
+	float $PLI = `floatSliderGrp -q -v PLintensity`;
+	int $ES = `checkBox -q -v eSpecular`;
+
+	int $CA = `intSliderGrp -q -v cAngle`;
+	float $PA = `floatSliderGrp -q -v pAngle`;
+	float $D = `floatSliderGrp -q -v Dropoff`;
+
+	int $DMS = `checkBox -q -v DMShadow`;
+	int $DR = `intSliderGrp -q -v DResolution`;
+	int $DFS = `intSliderGrp -q -v DFSize`;
+
+	int $RTS = `checkBox -q -v RTShadow`;
+	float $LR = `floatSliderGrp -q -v LRadius`;
+	int $SR = `intSliderGrp -q -v SRays`;
+	int $RD = `intSliderGrp -q -v RDLimit`;
+
+	string $MC = `textFieldGrp -q -text tGetName`;
+
+	//仮オブジェクトを作成------------------------------
+	sphere -p 0 0 0 -ax 0 1 0 -ssw 0 -esw 360 -r 1 -d 3 -ut 0 -tol 0.01 -s 8 -nsp 4 -ch 1;objectMoveCommand;
+	setAttr ".scaleX" 10;
+	setAttr ".scaleY" 10;
+	setAttr ".scaleZ" 10;
+	rename make_tempSphere;
+
+	detachSurface -ch 1 -rpo 1 make_tempSphere.u[2.1];
+
+	select -tgl make_tempSphere;
+	string $makeOBJ[];
+	$makeOBJ = `ls -sl`;
+
+	select -r $makeOBJ[0];
+	nurbsToPoly -f 0 -pt 1 -pc $PC;
+	rename make_tempLightPointOBJ;
+
+	defaultVolumeLight(1, 1,1,1, 0, 0, 0,0,0, 1);
+	setAttr ".translateY" 10;
+	setAttr ".scaleX" 14;
+	setAttr ".scaleY" 14;
+	setAttr ".scaleZ" 14;
+	rename make_tempVolumeLight;
+
+	select -tgl make_tempLightPointOBJ;
+	polyGeoSampler -bf -ids -lo -sf 1 -cmn 0 0 0 -amn 0 -cmx 1 1 1 -amx 1 -su -colorBlend "overwrite" -alphaBlend "none";
+
+	select -r make_tempLightPointOBJ;
+	polyNormal -normalMode 3 -ch 0;
+
+	select -r $makeOBJ make_tempVolumeLight;
+	delete;
+
+	//intensityの値を決める------------------------------
+	//バーテックスを選択
+	select -r make_tempLightPointOBJ;
+	PolySelectConvert 3;
+
+	//選択してる頂点と個数を求める。
+	string $sV[] = `filterExpand -sm 31`;
+	int $sVs = `size $sV`;
+
+	//ライトのの向きとなるロケーター作成---------------------------
+	//中心となるロケーター制作
+	spaceLocator -p 0 0 0;
+	CenterPivot;
+	rename LightTarget_temp;
+
+	//改めてバーテックスのリスト化
+	select -r make_tempLightPointOBJ;
+	PolySelectConvert 3;
+	string $sVertes[];
+	$sVertes = `ls -sl -fl`;
+
+	//お決まりのループ準備
+	int $roop = 0;
+	int $num = `size $sVertes`;
+
+	//ライトをいれるグループの制作
+	CreateEmptyGroup;
+	rename evColorLightGroup;
+	string $AllGup[];
+	$AllGup = `ls -sl -fl`;
+
+
+	while ( $roop < $num) { 
+		select -r $sVertes[$roop] ;
+		string $verT[];
+		$verT = `ls -sl -fl`;
+
+		float $pVer[];
+		$pVer = `pointPosition -w $verT[0]`;
+
+		float $verC[];
+		$verC = `polyColorPerVertex -q -rgb $verT[0]`;
+
+		float $int = ($verC[0] * $PLI);
+
+		if($Kind==0){
+		 directionalLight -i $int;
+		 setAttr ".emitSpecular" $ES;
+		};
+
+		if($Kind==1){
+		 spotLight -i $int;
+		 setAttr ".scaleX" 0.1;
+		 setAttr ".scaleY" 0.1;
+		 setAttr ".scaleZ" 0.1;
+		 setAttr ".emitSpecular" $ES;
+		 setAttr ".coneAngle" $CA;
+		 setAttr ".penumbraAngle" $PA;
+		 setAttr ".dropoff" $D;
+		};
+
+		if($ShadowType==0){
+		 setAttr ".useDepthMapShadows" 0;
+		 setAttr ".useRayTraceShadows" 0;
+		};
+
+		if($ShadowType==1){
+		 setAttr ".useDepthMapShadows" $DMS;
+		 setAttr ".dmapResolution" $DR;
+		 setAttr ".dmapFilterSize" $DFS;
+		};
+
+		if($ShadowType==2){
+		 setAttr ".useRayTraceShadows" $RTS;
+		 setAttr ".lightRadius" $LR;
+		 setAttr ".shadowRays" $SR;
+		 setAttr ".rayDepthLimit" $RD;
+		};
+
+
+		move -rpr $pVer[0] $pVer[1] $pVer[2] ;
+		rename EVColorLight;
+		string $Lighten[];
+		$Lighten = `ls -sl`;
+
+		select -r LightTarget_temp;
+		select -tgl $Lighten[0];
+		aimConstraint -aimVector 0 0 -1 -upVector 0 1 0;
+		select -r $Lighten[0] ;
+		pickWalk -d down;
+		pickWalk -d right;
+		delete;
+
+
+		parent $Lighten $AllGup;
+		$roop++;
+	};
+
+	delete LightTarget_temp;
+	delete make_tempLightPointOBJ;
+};
+
+
+
+
+
+
+
+
+
+//RebuildShadowSettingの実行文------------------------------------------------------------------------------------------------
+global proc RebuildShadowSetting()
+{
+global int $ShadowType;
+
+	//ウインドウで決めた値を収納
+	int $DMS = `checkBox -q -v DMShadow`;
+	int $DR = `intSliderGrp -q -v DResolution`;
+	int $DFS = `intSliderGrp -q -v DFSize`;
+
+	int $RTS = `checkBox -q -v RTShadow`;
+	float $LR = `floatSliderGrp -q -v LRadius`;
+	int $SR = `intSliderGrp -q -v SRays`;
+	int $RD = `intSliderGrp -q -v RDLimit`;
+
+	string $MC = `textFieldGrp -q -text tGetName`;
+
+	select -r $MC;
+	select -hi ;
+	pickWalk -d down;
+	pickWalk -d down;
+	pickWalk -d up;
+
+	string $Rebuild[];       		
+	$Rebuild = `ls -sl`;				
+	int $roop = 0;					
+	int $numnum = `size $Rebuild`;	
+		
+	while ( $roop < $numnum) { 
+
+		select -r $Rebuild[$roop];
+
+		if($ShadowType==0){
+		 setAttr ".useDepthMapShadows" 0;
+		 setAttr ".useRayTraceShadows" 0;
+		};
+
+		if($ShadowType==1){
+		 setAttr ".useDepthMapShadows" $DMS;
+		 setAttr ".dmapResolution" $DR;
+		 setAttr ".dmapFilterSize" $DFS;
+		};
+
+		if($ShadowType==2){
+		 setAttr ".useRayTraceShadows" $RTS;
+		 setAttr ".lightRadius" $LR;
+		 setAttr ".shadowRays" $SR;
+		 setAttr ".rayDepthLimit" $RD;
+		};
+		$roop++;
+	};
+};
+
+
+
+//ウインドウ作成------------------------------------------------------------------------------------------------
+global proc evColorLightSetting(){
+if((`window -ex colorLight`) == true)deleteUI colorLight;
+
+//作成するライトセットの種類
+global string $CreateSet;
+global string $evSet;
+global string $paraSet;
+global int $Creater = 0;
+global string $count;
+
+//ライトの種類＝0→ディレクショナル、1→スポット
+global string $LightKind;
+global int $Kind = 1;
+
+//影の種類＝0→オフ、1→デプス、2→レイトレ
+global string $Rs;
+global string $Ds;
+global int $ShadowType = 1;
+
+
+window
+ -wh 370 690
+ -t "evColorLightSetting Ver2.0"
+ -maximizeButton 0
+ -resizeToFitChildren 0
+ -menuBar true
+ -menuBarVisible true
+ -retain
+ colorLight;
+	menu
+	 -label "Edit"
+	 -tearOff false;
+	menuItem
+	 -label "Reset Settings"
+	 -c "deleteUI colorLight; evColorLightSetting";
+	menu
+	 -label "Help"
+	 -tearOff 0;
+	menuItem
+	  -label "HomePeage"
+	  -c "UnitBus"
+	 -ann "http://www.d4.dion.ne.jp/~mosquito/index.html";
+
+
+ scrollLayout scrollLayout;
+
+ columnLayout -cat "both" 5 -adjustableColumn true -rs 5 -cw 320 type;
+ rowLayout
+ -numberOfColumns 2
+ -cat 1 "left" 5
+ -columnWidth 1 120
+ -columnWidth 2 210;
+	checkBox
+	 -label "ParasolLightSet"
+	 -align "left"
+	 -value off
+	 -onc "$Creater=1; columnLayout -e -en 0 $CreateSet; intSliderGrp -e -vis true $count; floatSliderGrp -e -en 1  $paraSet; intSliderGrp -e -en 0 $evSet "
+	 -ofc "$Creater=0; columnLayout -e -en 1 $CreateSet; intSliderGrp -e -vis false $count; floatSliderGrp -e -en 0  $paraSet; intSliderGrp -e -en 1 $evSet"
+	 PLSet;
+
+	$count = `intSliderGrp -field true -vis false -fieldMinValue 4 -fieldMaxValue 200 -minValue 4 -maxValue 200 -cw 1 40 -cw 2 40 -value 20 polyCount`;
+ setParent ..;
+
+
+ $CreateSet = `columnLayout -cat "both" 5 -adjustableColumn true -rs 5 -cw 320 type`;
+ rowLayout
+  -numberOfColumns 2
+  -cat 1 "left" 5
+  -columnWidth 1 120
+  -columnWidth 2 210;
+	button
+	 -al "center" 
+	 -l "tragetModel"
+	 -w 110
+	 -c "ClickTragetModel";
+	textFieldGrp 
+	 -cw 1 200 
+	 fGetName;
+ setParent ..;
+
+ rowLayout
+  -numberOfColumns 2
+  -cat 1 "left" 5
+  -columnWidth 1 120
+  -columnWidth 2 210;
+	button
+	 -al "center" 
+	 -l "useMaterial"
+	 -w 110
+	 -c "ClickUseMaterial";
+	textFieldGrp 
+	 -cw 1 200 
+	 sGetName;
+ setParent ..;
+ setParent ..;
+
+ columnLayout -cat "both" 5 -adjustableColumn true -rs 5 -cw 320;
+ gridLayout -nc 1 -cellWidth 300 -cellHeight 14;
+	radioButtonGrp
+	 -nrb 2
+	 -sl 2
+	 -on1 "$Kind=0; columnLayout -e -en 0 $LightKind"
+	 -of1 "columnLayout -e -en 1 $LightKind"
+	 -on2 "$Kind=1"
+	 -labelArray2 "DirectionalLight" "SpotLight"
+	 -columnWidth2 130 130 LightType;
+ setParent ..;
+ setParent ..;
+
+
+ frameLayout -label "Options" -labelAlign "top" -cll true -w 320 option;
+  columnLayout;
+
+	 columnLayout;
+		$paraSet = `floatSliderGrp -label "Parasol Intensity"
+		 -field true
+		 -fieldMinValue 0.01
+		 -fieldMaxValue 3
+		 -minValue 0.01
+		 -maxValue 3
+		 -cw 1 100
+		 -cw 2 40
+		 -en 0
+		 -value 0.30
+		 PLintensity`;
+
+		$evSet = `intSliderGrp -label "Total Intensity"
+		 -field true
+		 -fieldMinValue 1
+		 -fieldMaxValue 30
+		 -minValue 1
+		 -maxValue 20
+		 -cw 1 100
+		 -cw 2 40
+		 -value 5
+		 TLintensity`;
+
+		checkBox
+		 -label "Emit Specular"
+		 -align "left"
+		 -value on
+		 eSpecular;
+	setParent ..;
+
+	frameLayout -label "Spot Light Attributes" -labelAlign "center" -cll true SLAFrame;
+	  $LightKind = `columnLayout`;
+
+			intSliderGrp -label "Cone Angle"
+			 -field true
+			 -fieldMinValue 1
+			 -fieldMaxValue 179
+			 -minValue 1
+			 -maxValue 179
+			 -cw 1 100
+			 -cw 2 40
+			 -value 165
+			 cAngle;
+
+			floatSliderGrp -label "Penumbra Angle"
+			 -field true
+			 -fieldMinValue -10
+			 -fieldMaxValue 10
+			 -minValue -10
+			 -maxValue 10
+			 -cw 1 100
+			 -cw 2 40
+			 -value 3
+			 pAngle;
+
+			floatSliderGrp -label "Dropoff"
+			 -field true
+			 -fieldMinValue 0
+			 -fieldMaxValue 255
+			 -minValue 0
+			 -maxValue 255
+			 -cw 1 100
+			 -cw 2 40
+			 -value 0.3
+			 Dropoff;
+	 setParent ..; 
+	setParent ..; 
+
+	frameLayout -label "shodow" -labelAlign "center" -cll true -cl false shadowFrame;
+	 columnLayout;
+
+		frameLayout -label "Depth Map Shadows Attributes" -labelAlign "center" -cll true -w 300 DshadowFrame;
+		 columnLayout;
+			$Ds=`checkBox
+			 -label "Use Depth Map Shadows"
+			 -onc "$ShadowType=1; checkBox -e -v off $Rs"
+			 -ofc "$ShadowType=0"
+			 -align "left"
+			 -value on
+			 DMShadow`;
+
+			intSliderGrp -label "DmapResolution"
+			 -field true
+			 -fieldMinValue 32
+			 -fieldMaxValue 2048
+			 -minValue 32
+			 -maxValue 2048
+			 -cw 1 100
+			 -cw 2 40
+			 -value 256
+			 DResolution;
+
+			intSliderGrp -label "DmapFilterSize"
+			 -field true
+			 -fieldMinValue 0
+			 -fieldMaxValue 5
+			 -minValue 0
+			 -maxValue 5
+			 -cw 1 100
+			 -cw 2 40
+			 -value 3
+			 DFSize;
+		 setParent ..;
+		setParent ..;
+
+		frameLayout -label "Raytrace Shadows Attributes" -labelAlign "center" -cll true -w 300 RshadowFrame;
+		 columnLayout;
+			$Rs=`checkBox
+			 -label "Use Ray Trace Shadows"
+			 -onc "$ShadowType=2; checkBox -e -v off $Ds"
+			 -ofc "$ShadowType=0"
+			 -align "left"
+			 -value off
+			 RTShadow`;
+
+			floatSliderGrp -label "Light Radius"
+			 -field true
+			 -fieldMinValue 0
+			 -fieldMaxValue 360
+			 -minValue 0
+			 -maxValue 360
+			 -cw 1 100
+			 -cw 2 40
+			 -value 0
+			 LRadius;
+
+			intSliderGrp -label "Shadow Rays"
+			 -field true
+			 -fieldMinValue 0
+			 -fieldMaxValue 40
+			 -minValue 0
+			 -maxValue 40
+			 -cw 1 100
+			 -cw 2 40
+			 -value 1
+			 SRays;
+
+			intSliderGrp -label "Ray Depth Limit"
+			 -field true
+			 -fieldMinValue 0
+			 -fieldMaxValue 10
+			 -minValue 0
+			 -maxValue 10
+			 -cw 1 100
+			 -cw 2 40
+			 -value 1
+			 RDLimit;
+		 setParent ..; 
+ 		setParent ..; 
+	 setParent ..; 
+ 	setParent ..; 
+  setParent ..; 
+ setParent ..; 
+
+
+
+ columnLayout -columnAttach "both" 5 -adjustableColumn true -rs 5 -cw 320;
+	 text -font boldLabelFont -label "Please select created LightGroup.";
+	 rowLayout
+	  -numberOfColumns 2
+	  -cat 1 "left" 5
+	  -columnWidth 1 120
+	  -columnWidth 2 210;
+		button
+		 -al "center" 
+		 -l "RebuildTraget"
+		 -w 110
+		 -c "ClickRebuildTraget";
+		textFieldGrp 
+		 -cw 1 200 
+		 tGetName;
+	 setParent ..;
+ setParent ..;
+
+ columnLayout -columnAttach "both" 5 -adjustableColumn true -rs 5 -cw 320;
+	  gridLayout -nc 2 -cellWidth 160 -cellHeight 30;
+		button -label "CreateLightSet" -align "center" -c "CreateLight";
+		button -label "RebuildShadowOption" -align "center" -c "RebuildShadowSetting";
+	  gridLayout -nc 1 -cellWidth 320 -cellHeight 30;
+		button -label "- Close -" -align "center" -c ("deleteUI -window colorLight");
+ setParent ..; 
+
+
+showWindow colorLight;
+};
+
+//URL------------------------------------------------------------------------------------------------
+global proc UnitBus(){
+string $link = "start explorer \"http://www.d4.dion.ne.jp/~mosquito/index.html\"";
+system($link);
+};
+
+evColorLightSetting;

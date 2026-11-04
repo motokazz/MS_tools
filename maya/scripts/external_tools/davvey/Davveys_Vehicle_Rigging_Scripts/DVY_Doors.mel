@@ -1,0 +1,295 @@
+/* This file downloaded from Highend3d.com
+''  
+''  Highend3d.com File Information:
+''  
+''    Script Name: Davveys Vehicle Rigging Scripts
+''    Author:  
+''    Last Updated: Jul 21, 2007
+''    Update/Change this file at:
+''    http://Highend3d.com/maya/downloads/mel_scripts/animation/4109.html
+''  
+''  Please do not alter any information above this line
+''  it is generated dynamically by Highend3d.com and will
+''  be changed automatically on any updates.
+*/
+
+//////////////////////////////////////////////////////////////////////////
+//					DVY_Doors Procedure
+//////////////////////////////////////////////////////////////////////////
+
+
+///////////////////////////////////////////////////////////////////////////////
+
+//============================================================================
+//	GLOBAL VARIABLES
+//============================================================================
+	global int $DVYDebug;
+
+// Integer Flag that allows print statements to be output to
+// message field for tracking purposes.
+
+//============================================================================
+
+global proc DVY_Doors()
+{
+	print "Start of DVY_Doors Procedure.\n";
+	
+// ******************************************************************************** //	
+//	Global Variables
+
+	global string $GroupV_A[], $GroupD_A[], $RigControlsA[], $DrControlsA[],
+				  $DVYHingeD[], $DVYHandleD[], $DVYWinBD[], $DVYWinTD[],
+				  $DVYHinge[], $DVYHandle[], $DVYWindB[], $DVYWindT[];
+	clear $DVYHinge; clear $DVYHandle;	clear $DVYWindB; clear $DVYWindT;
+	clear $DrControlsA; clear $DVYHingeD; clear $DVYHandleD;
+	clear $DVYWinBD; clear $DVYWinTD;
+	global string $DLocs[], $DJntsA[], $LocGroups[], $DVY_MuSuspGrp[];
+	global string $hier[], $LChier[], $JThier[];
+	
+	global string $DVY_VehName;
+	global int $On = 1;
+	
+	global float $DVYdata[];	
+
+// -------------------------------------------------------------------------------- //
+	
+// ******************************************************************************** //	
+//	Local Variables
+
+	string $Temp[], $Tmp[];
+	string $Side[] = {"LfFr_", "RtFr_", "LfRr_", "RtRr_"};
+	string $Name = "Door";
+	string $DNames[] = {"LfFr_Door", "RtFr_Door", "LfRr_Door", "RtRr_Door"};
+	
+	float $BDataA[], $TDataA[], $DDataA[];
+	float $Pos[], $WPos[];  
+	
+	int $a, $b, $c, $i, $j, $k, $q, $r, $s;	
+	
+// -------------------------------------------------------------------------------- //
+	
+// ******************************************************************************** //	
+//	Collect Global Vehicle Variables from UI.
+	
+	$GroupV_A[1] = `textField -q -tx VehicleBodyShellGrpTxField`;
+	$GroupV_A[2] = `textField -q -tx VehicleBodyShellTxField`;
+
+	$GroupV_A[6] = `textField -q -tx LfFr_WheelTxField`;
+	
+// -------------------------------------------------------------------------------- //
+	
+// ******************************************************************************** //	
+//	Collect Global Door and Window Variables from UI.
+	
+	$GroupD_A[0] = `textField -q -tx LfFr_DoorTxField`;
+	$GroupD_A[1] = `textField -q -tx RtFr_DoorTxField`;
+	$GroupD_A[2] = `textField -q -tx LfRr_DoorTxField`;
+	$GroupD_A[3] = `textField -q -tx RtRr_DoorTxField`;
+	$GroupD_A[4] = `textField -q -tx LfFr_WindowTxField`;
+	$GroupD_A[5] = `textField -q -tx RtFr_WindowTxField`;
+	$GroupD_A[6] = `textField -q -tx LfRr_WindowTxField`;
+	$GroupD_A[7] = `textField -q -tx RtRr_WindowTxField`;
+	
+// -------------------------------------------------------------------------------- //
+	
+// ******************************************************************************** //	
+	
+	int $SelF  = `radioButtonGrp -q -sl FrDoorRadioButtons`;
+	int $SelR  = `radioButtonGrp -q -sl RrDoorRadioButtons`;
+	
+// -------------------------------------------------------------------------------- //
+	
+// ******************************************************************************** //	
+	
+	$BDataA = `objectCenter ($GroupV_A[2])`;
+	$TDataA = `xform -q -bb ($GroupV_A[2])`;
+		for ($s = 3; $s < 9; $s++ )
+			{ $BDataA[$s] = $TDataA[($s-3)];}
+			
+// -------------------------------------------------------------------------------- //
+	
+// ******************************************************************************** //	
+			
+	$b = 0;
+	if(`checkBoxGrp -q -value1 DoorsOptionsCheck` == 1)
+		{
+		 for ($a=0; $a<2; $a++)
+			{
+				$DDataA = `objectCenter $GroupD_A[$a]`;
+				$TDataA = `xform -q -bb $GroupD_A[$a]`;
+					for ($s = 3; $s < 9; $s++ )
+						{ $DDataA[$s] = $TDataA[($s-3)];}
+				$DDataA[10] = `getAttr ($GroupD_A[$a] + ".boundingBoxSizeZ")`;	
+	
+				$WDataA = `objectCenter $GroupD_A[$a+4]`;
+				$TDataA = `xform -q -bb $GroupD_A[$a+4]`;
+					for ($s = 3; $s < 9; $s++ )
+						{ $WDataA[$s] = $TDataA[($s-3)];}
+				$WDataA[10] = `getAttr ($GroupD_A[$a+4] + ".boundingBoxSizeY")`;	
+						
+				if (($a % 2) == 0)
+					{$Pos[0] = ($DDataA[6]); $Pos[8] = $BDataA[6] * 1.2; $Pos[7] = $DDataA[2] + ($DDataA[10] * 0.25);
+					 $WPos[0] = $WDataA[6];}
+	
+				if (($a % 2) != 0)
+					{$Pos[0] = ($DDataA[3]); $Pos[8] = $BDataA[3] * 1.2; $Pos[7] = $DDataA[2]  + ($DDataA[10] * -0.25);
+					 $WPos[0] = $WDataA[3];}
+	
+				if ($SelF == 1)
+					{$Pos[1] = $DDataA[1];
+					 $Pos[2] = ($DDataA[8] * 1);
+					 $Pos[3] = 0;	
+					 $Pos[4] = 0;	
+					 $Pos[5] = ($DDataA[8] - $DDataA[5]) * -1;	
+				 	}
+				
+				if ($SelF == 2)
+					{$Pos[1] = $DDataA[1];
+					 $Pos[2] = ($DDataA[5] * 1);
+					 $Pos[3] = 0;	
+					 $Pos[4] = 0;	
+					 $Pos[5] = ($DDataA[8] - $DDataA[5]) * 1;	
+					}
+					 
+				if ($SelF == 3)
+					{$Pos[1] = $DDataA[7];
+					 $Pos[2] = ($DDataA[2] * 1);
+					 $Pos[3] = 0;	
+					 $Pos[4] = ($DDataA[7] - $DDataA[4]) * -1;	
+					 $Pos[5] = 0;	
+				 	}
+						
+				if ($SelF == 4)
+					{$Pos[1] = $DDataA[4];
+					 $Pos[2] = ($DDataA[2] * 1);
+					 $Pos[3] = 0;	
+					 $Pos[4] = ($DDataA[7] - $DDataA[4]) * 1;	
+					 $Pos[5] = 0;		
+				 	}
+						 
+					$Pos[6] = $WPos[6] = abs (($DDataA[8] - $DDataA[5]) * 0.025);	
+						DVY_Hinge($a, ($Side[$a] + "Door"), $Pos);
+					
+				//	Window set up				
+					$WPos[1] = $WDataA[4]; $WPos[2] = $WDataA[2];  $WPos[10] = $WDataA[10]; $Pos[13] = 90;
+					if (`checkBoxGrp -q -value3 DoorsOptionsCheck` == 1)
+						{ DVY_Window($a, $Side[$a], $WPos);}
+						
+				// Door and Window Controller Section
+					$Pos[12] = $BDataA[1] * 3;
+					$Temp = DVY_Control($a, $DNames[$a] , $Pos);
+						$DrControlsA[$a+$b] = `rename $Temp[0] ($DVY_VehName + $DNames[$a] + "_Control_1")`;
+						$DrControlsA[$a+$b+1] = `rename $Temp[1]($DVY_VehName + $DNames[$a] + "_Controller_1")`;
+						
+						if (`checkBoxGrp -q -value3 DoorsOptionsCheck` == 1)
+							{ $DrControlsA[$a+$b+2] = `rename $Temp[2]($DVY_VehName + $DNames[$a] + "Window_Control_1")`;
+							  $DrControlsA[$a+$b+3] = `rename $Temp[3]($DVY_VehName + $DNames[$a] + "Window_Controller_1")`;}
+							else {select -r $Temp[2]; delete;}					
+				$b = 3;
+			}
+		}
+// -------------------------------------------------------------------------------- //
+	
+// ******************************************************************************** //	
+	
+	if (`checkBoxGrp -q -value2 DoorsOptionsCheck` == 1)
+		{ $b = 6;		
+		 for ($a=2; $a<4; $a++)
+			{
+				$DDataA = `objectCenter $GroupD_A[$a]`;
+				$TDataA = `xform -q -bb $GroupD_A[$a]`;
+					for ($s = 3; $s < 9; $s++ )
+						{ $DDataA[$s] = $TDataA[($s-3)];}
+				$DDataA[10] = `getAttr ($GroupD_A[$a] + ".boundingBoxSizeZ")`;	
+				
+				$WDataA = `objectCenter $GroupD_A[$a+4]`;
+				$TDataA = `xform -q -bb $GroupD_A[$a+4]`;
+					for ($s = 3; $s < 9; $s++ )
+						{ $WDataA[$s] = $TDataA[($s-3)];}
+				$WDataA[10] = `getAttr ($GroupD_A[$a+4] + ".boundingBoxSizeY")`;	
+					
+				if (($a % 2) == 0)
+					{$Pos[0] = ($DDataA[6]); $Pos[8] = $BDataA[6] * 1.2; $Pos[7] = $DDataA[2] + ($DDataA[10] * 0.25);	
+					 $WPos[0] = $WDataA[6];}
+				if (($a % 2) != 0)
+					{$Pos[0] = ($DDataA[3]); $Pos[8] = $BDataA[3] * 1.2; $Pos[7] = $DDataA[2]  + ($DDataA[10] * -0.25);
+					 $WPos[0] = $WDataA[3];}
+	
+				if ($SelR == 1)
+					{$Pos[1] = $DDataA[1];
+					 $Pos[2] = ($DDataA[8] * 1);
+					 $Pos[3] = 0;	
+					 $Pos[4] = 0;	
+					 $Pos[5] = ($DDataA[8] - $DDataA[5]) * -1;
+				 	}
+				
+				if ($SelR == 2)
+					{$Pos[1] = $DDataA[1];
+					 $Pos[2] = ($DDataA[5] * 1);
+					 $Pos[3] = 0;	
+					 $Pos[4] = 0;	
+					 $Pos[5] = ($DDataA[8] - $DDataA[5]) * 1;	
+					}
+					 
+				if ($SelR == 3)
+					{$Pos[1] = $DDataA[7];
+					 $Pos[2] = ($DDataA[2] * 1);
+					 $Pos[3] = 0;	
+					 $Pos[4] = ($DDataA[7] - $DDataA[4]) * -1;	
+					 $Pos[5] = 0;	
+				 	}
+						
+				if ($SelR == 4)
+					{$Pos[1] = $DDataA[4];
+					 $Pos[2] = ($DDataA[2] * 1);
+					 $Pos[3] = 0;	
+					 $Pos[4] = ($DDataA[7] - $DDataA[4]) * 1;	
+					 $Pos[5] = 0;		
+				 	}
+						 
+					$Pos[6] = abs (($DDataA[8] - $DDataA[5]) * 0.025);	
+						DVY_Hinge($a, ($Side[$a] + "Door"), $Pos);
+						
+				//	Window set up				
+					$WPos[1] = $WDataA[4]; $WPos[2] = $WDataA[2];  $WPos[10] = $WDataA[10];  $Pos[13] = 90;
+					if (`checkBoxGrp -q -value4 DoorsOptionsCheck` == 1)
+						{ DVY_Window($a, $Side[$a], $WPos);}
+						
+				// Door and Window Controller Section
+					$Pos[12] = $BDataA[1] * 3;
+					$Temp = DVY_Control($a, $DNames[$a] , $Pos);
+						$DrControlsA[$a+$b] = `rename $Temp[0] ($DVY_VehName + $DNames[$a] + "_Control_1")`;
+						$DrControlsA[$a+$b+1] = `rename $Temp[1]($DVY_VehName + $DNames[$a] + "_Controller_1")`;
+						if (`checkBoxGrp -q -value4 DoorsOptionsCheck` == 1)
+							{ $DrControlsA[$a+$b+2] = `rename $Temp[2]($DVY_VehName + $DNames[$a] + "Window_Control_1")`;
+							  $DrControlsA[$a+$b+3] = `rename $Temp[3]($DVY_VehName + $DNames[$a] + "Window_Controller_1")`;}
+							else {select -r $Temp[2]; delete;}					
+				$b = 9;
+			}
+		}
+			
+// -------------------------------------------------------------------------------- //
+	
+// ******************************************************************************** //	
+
+	$i=0;	for ($each in $DVYHinge) {$DVYHingeD[$i++] = $each;} 
+	$i=0;	for ($each in $DVYHandle) {$DVYHandleD[$i++] = $each;}
+	$i=0;	for ($each in $DVYWindB) {$DVYWinBD[$i++] = $each;}
+	$i=0;	for ($each in $DVYWindT) {$DVYWinTD[$i++] = $each;}
+	
+// -------------------------------------------------------------------------------- //
+	
+// ******************************************************************************** //	
+/*
+	print $DVYHingeD;
+	print $DVYHandleD;
+	print $GroupD_A;
+	print $DVYWinBD;
+	print $DVYWinTD; print "\n";
+	print $Temp; print "\n";
+	print $DrControlsA;	
+*/
+
+	print "End of DVY_Doors Procedure.\n";
+	
+}

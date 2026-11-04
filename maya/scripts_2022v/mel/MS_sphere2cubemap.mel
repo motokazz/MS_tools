@@ -1,0 +1,94 @@
+global proc MS_sphere2cubemap(string $FILE){
+	//string $FILE="D:/_SHINAGAWA/panorama/MAYA_panorama/valleyfrances/texl/stiched/P1010667[660]_stitch.tga";
+	string $SPHERE[]=`polySphere -r 100 -sx 40 -sy 40 -cuv 2`;
+	polyNormal -normalMode 0 $SPHERE[0];
+	string $SHADER=`shadingNode -asShader lambert`;
+	
+	string $TEXTURE=`shadingNode -asTexture file`;
+	
+	// Result: ($TEXTURE+" // 
+	string $PLACE2DTEXTURE=`shadingNode -asUtility place2dTexture`;
+	// Result: ( $PLACE2DTEXTURE+" // 
+	connectAttr -f ( $PLACE2DTEXTURE+".coverage") ($TEXTURE+".coverage");
+	// Result: Connected ( $PLACE2DTEXTURE+".coverage to") ($TEXTURE+".coverage. // 
+	connectAttr -f ( $PLACE2DTEXTURE+".translateFrame") ($TEXTURE+".translateFrame");
+	// Result: Connected ( $PLACE2DTEXTURE+".translateFrame to") ($TEXTURE+".translateFrame. // 
+	connectAttr -f ( $PLACE2DTEXTURE+".rotateFrame") ($TEXTURE+".rotateFrame");
+	// Result: Connected ( $PLACE2DTEXTURE+".rotateFrame to") ($TEXTURE+".rotateFrame. // 
+	connectAttr -f ( $PLACE2DTEXTURE+".mirrorU") ($TEXTURE+".mirrorU");
+	// Result: Connected ( $PLACE2DTEXTURE+".mirrorU to") ($TEXTURE+".mirrorU. // 
+	connectAttr -f ( $PLACE2DTEXTURE+".mirrorV") ($TEXTURE+".mirrorV");
+	// Result: Connected ( $PLACE2DTEXTURE+".mirrorV to") ($TEXTURE+".mirrorV. // 
+	connectAttr -f ( $PLACE2DTEXTURE+".stagger") ($TEXTURE+".stagger");
+	// Result: Connected ( $PLACE2DTEXTURE+".stagger to") ($TEXTURE+".stagger. // 
+	connectAttr -f ( $PLACE2DTEXTURE+".wrapU") ($TEXTURE+".wrapU");
+	// Result: Connected ( $PLACE2DTEXTURE+".wrapU to") ($TEXTURE+".wrapU. // 
+	connectAttr -f ( $PLACE2DTEXTURE+".wrapV") ($TEXTURE+".wrapV");
+	// Result: Connected ( $PLACE2DTEXTURE+".wrapV to") ($TEXTURE+".wrapV. // 
+	connectAttr -f ( $PLACE2DTEXTURE+".repeatUV") ($TEXTURE+".repeatUV");
+	// Result: Connected ( $PLACE2DTEXTURE+".repeatUV to") ($TEXTURE+".repeatUV. // 
+	connectAttr -f ( $PLACE2DTEXTURE+".offset") ($TEXTURE+".offset");
+	// Result: Connected ( $PLACE2DTEXTURE+".offset to") ($TEXTURE+".offset. // 
+	connectAttr -f ( $PLACE2DTEXTURE+".rotateUV") ($TEXTURE+".rotateUV");
+	// Result: Connected ( $PLACE2DTEXTURE+".rotateUV to") ($TEXTURE+".rotateUV. // 
+	connectAttr -f ( $PLACE2DTEXTURE+".noiseUV") ($TEXTURE+".noiseUV");
+	// Result: Connected ( $PLACE2DTEXTURE+".noiseUV to") ($TEXTURE+".noiseUV. // 
+	connectAttr -f ( $PLACE2DTEXTURE+".vertexUvOne") ($TEXTURE+".vertexUvOne");
+	// Result: Connected ( $PLACE2DTEXTURE+".vertexUvOne to") ($TEXTURE+".vertexUvOne. // 
+	connectAttr -f ( $PLACE2DTEXTURE+".vertexUvTwo") ($TEXTURE+".vertexUvTwo");
+	// Result: Connected ( $PLACE2DTEXTURE+".vertexUvTwo to") ($TEXTURE+".vertexUvTwo. // 
+	connectAttr -f ( $PLACE2DTEXTURE+".vertexUvThree") ($TEXTURE+".vertexUvThree");
+	// Result: Connected ( $PLACE2DTEXTURE+".vertexUvThree to") ($TEXTURE+".vertexUvThree. // 
+	connectAttr -f ( $PLACE2DTEXTURE+".vertexCameraOne") ($TEXTURE+".vertexCameraOne");
+	// Result: Connected ( $PLACE2DTEXTURE+".vertexCameraOne to") ($TEXTURE+".vertexCameraOne. // 
+	connectAttr ( $PLACE2DTEXTURE+".outUV") ($TEXTURE+".uv");
+	// Result: Connected ( $PLACE2DTEXTURE+".outUV to") ($TEXTURE+".uvCoord. // 
+	connectAttr ( $PLACE2DTEXTURE+".outUvFilterSize") ($TEXTURE+".uvFilterSize");
+	// Result: Connected ( $PLACE2DTEXTURE+".outUvFilterSize to") ($TEXTURE+".uvFilterSize. // 
+	
+	connectAttr -force ($TEXTURE+".outColor") ($SHADER+".color");
+	AEassignTextureCB  ($TEXTURE+".fileTextureName") $FILE "image";
+	select -r $SPHERE;
+	hyperShade -assign $SHADER;
+}
+
+global proc MS_sphere2cubemap_camera_panoramaViewer(){
+	string $newcam[]=`camera -ar 1 -fcp 100000 -ncp 1 -p 0 15 0 -fl 12 -n "MS_cubemapcam"`;
+	string $camshape[]=`listRelatives -s $newcam[0]`;
+	setAttr ($camshape[0]+".horizontalFilmAperture") 0.945;
+	setAttr ($camshape[0]+".verticalFilmAperture") 0.945;
+	setAttr ($camshape[0]+".focalLength") 12;
+	
+	setKeyframe -t 1 -v 0 ($newcam[0]+".rx");
+	setKeyframe -t 1 -v 0 ($newcam[0]+".ry");
+	setKeyframe -t 1 -v 0 ($newcam[0]+".rz");
+	
+	setKeyframe -t 2 -v 0 ($newcam[0]+".rx");
+	setKeyframe -t 2 -v -90 ($newcam[0]+".ry");
+	setKeyframe -t 2 -v 0 ($newcam[0]+".rz");
+	
+	setKeyframe -t 3 -v 0 ($newcam[0]+".rx");
+	setKeyframe -t 3 -v 180 ($newcam[0]+".ry");
+	setKeyframe -t 3 -v 0 ($newcam[0]+".rz");
+	
+	setKeyframe -t 4 -v 0 ($newcam[0]+".rx");
+	setKeyframe -t 4 -v 90 ($newcam[0]+".ry");
+	setKeyframe -t 4 -v 0 ($newcam[0]+".rz");
+	
+	setKeyframe -t 5 -v 90 ($newcam[0]+".rx");
+	setKeyframe -t 5 -v 0 ($newcam[0]+".ry");
+	setKeyframe -t 5 -v 0 ($newcam[0]+".rz");
+	
+	setKeyframe -t 6 -v -90 ($newcam[0]+".rx");
+	setKeyframe -t 6 -v 0 ($newcam[0]+".ry");
+	setKeyframe -t 6 -v 0 ($newcam[0]+".rz");
+	
+	
+	lookThroughModelPanel $newcam[0] modelPanel4;
+}
+
+{
+MS_sphere2cubemap_camera_panoramaViewer;
+}
+
+

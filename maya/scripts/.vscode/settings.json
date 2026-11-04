@@ -1,0 +1,11 @@
+{
+    "python.linting.enabled": true,
+    "python.pythonPath": "C:/Program Files/Autodesk/Maya2017/bin/mayapy.exe",
+
+    "python.linting.pylintArgs": ["--disable=E0611"],
+    "python.autoComplete.extraPaths": [
+        "C:/Program Files/Autodesk/Maya2017/devkit/other/pymel/extras/completion/py"
+        ],
+    "python.linting.pep8Enabled": false,
+    "python.linting.pylintEnabled": true
+}

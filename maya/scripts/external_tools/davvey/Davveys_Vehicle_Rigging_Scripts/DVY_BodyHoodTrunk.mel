@@ -1,0 +1,457 @@
+/* This file downloaded from Highend3d.com
+''  
+''  Highend3d.com File Information:
+''  
+''    Script Name: Davveys Vehicle Rigging Scripts
+''    Author:  
+''    Last Updated: Jul 21, 2007
+''    Update/Change this file at:
+''    http://Highend3d.com/maya/downloads/mel_scripts/animation/4109.html
+''  
+''  Please do not alter any information above this line
+''  it is generated dynamically by Highend3d.com and will
+''  be changed automatically on any updates.
+*/
+
+///////////////////////////////////////////////////////////////////////////////
+//						DVY_BodyHoodTrunk Procedure
+///////////////////////////////////////////////////////////////////////////////
+/*
+							- DVY_BodyHoodTrunk -
+						
+*/
+///////////////////////////////////////////////////////////////////////////////
+
+//==============================================================================
+//	GLOBAL VARIABLES
+//==============================================================================
+	global int $DVYDebug;
+
+// Integer Flag that allows print statements to be output to
+// message field for tracking purposes.
+
+//==============================================================================
+
+global proc DVY_BodyHoodTrunk()
+{
+	print "Start of DVY_BodyHoodTrunk Procedure.\n";
+
+// ***************************************************************************** //	
+//	Global Variables
+
+	global string $GroupV_A[], $GroupHT_A[], $RigControlsA[], $HTControlsA[], $DVYHingeH[], $DVYHandleH[], $DVYWinBH[], $DVYWinTH[];
+	global string $DLocs[], $DJntsA[], $LocGroups[], $DVY_MuSuspGrp[];
+	global string $hier[], $LChier[], $JThier[];
+	
+	global string $DVY_VehName;
+	global int $On = 1;
+	
+	global float $DVYdata[];	
+	
+// ----------------------------------------------------------------------------- //
+	
+// ***************************************************************************** //	
+//	Local Variables
+
+	string $Temp[], $Tmp[], $HBody[];
+	string $Side[] = {"LfFr_", "RtFr_", "LfRr_", "RtRr_"};
+	string $Name = "Door";
+	string $JFaxis, $JRaxis;
+
+	float $Pos[], $DPos[], $DPos2[], $SPos[], $WPos[];  
+	int $a, $b, $c, $i, $j, $k, $q, $r, $s;	
+	
+	int $SelF  = `radioButtonGrp -q -sl FrHoodRadioButtons`;
+	int $SelR  = `radioButtonGrp -q -sl RrDoorRadioButtons`;
+	
+// ----------------------------------------------------------------------------- //
+	
+// ***************************************************************************** //	
+//	Find size of Global Array Variables of Joints and RigControls
+	
+	print $GroupHT_A;
+	
+	$r = `size $DJntsA`;
+		print ("$r is " + $r + "\n");
+		
+	$s = `size $RigControlsA`;
+		print ("$s is " + $s + "\n");
+// -------------------------------------------------------------------------------- //
+	
+// ******************************************************************************** //	
+//	If Windows required duplicate spheres and group the duplicates and rotate into position.
+		
+	if ((`checkBoxGrp -q -value3 HoodsOptionsCheck` == 1) && (`checkBox -q -value TailWindowEnableCheck` == 1) )
+		{
+			$GroupHT_A[9] = `group -em -name ($DVY_VehName + "RrTailgateWin_Grp_1")`; 
+			delete `pointConstraint -offset 0 0 0 -weight 1 $DVYWinBH[0] $GroupHT_A[9]`;
+			select -r $DVYWinBH[0];
+			$Temp = `duplicate -rr -renameChildren -un`;
+			print $Temp;
+			$DVYWinBH[1] = ($DVY_VehName + "Rr_TailgateBot_Window_2");
+			$DVYWinTH[1] = ($DVY_VehName + "Rr_TailgateTop_Window_2");
+			parent $Temp[0] $GroupHT_A[9];
+			setAttr ($GroupHT_A[9] + ".rx") 180;
+		}
+
+// -------------------------------------------------------------------------------- //
+	
+// ******************************************************************************** //	
+//	Find location of Spheres depending on Section to be set up. 
+//	Used to set Central Joint Positions.
+
+	$a = 0;
+
+//	Rear Trunk Spheres.	
+	if (`objExists $DVYHingeH[2]`) 
+		{
+			$Pos = `objectCenter $GroupHT_A[2]`;
+		 	$TDataA = `xform -q -bb $GroupHT_A[2]`;
+				for ($s = 3; $s < 9; $s++ )
+					{ $Pos[$s] = $TDataA[($s-3)];}
+		}
+		
+// Front Hood Spheres		
+	if (`objExists $DVYHingeH[0]`) 
+		{
+			$Pos = `objectCenter $GroupHT_A[0]`;
+		 	$TDataA = `xform -q -bb $GroupHT_A[0]`;
+				for ($s = 3; $s < 9; $s++ )
+					{ $Pos[$s] = $TDataA[($s-3)];}
+		}
+		
+// -------------------------------------------------------------------------------- //
+	
+// ******************************************************************************** //	
+//	Find location of Spheres depending on Section to be set up. 
+//	Used to set Front and Rear Central Joint Positions.
+		
+// Rear Tailgate spheres
+	if (`objExists $DVYHingeH[1]`) 
+		{
+			$DPos = `objectCenter $GroupHT_A[1]`;
+			$TDataA = `xform -q -bb $GroupHT_A[1]`;
+				for ($s = 3; $s < 9; $s++ )
+					{ $DPos[$s] = $TDataA[($s-3)];}
+		}
+		
+// Rear Split Doors		
+	if (`objExists $DVYHingeH[5]`) 
+		{
+			$DPos = `objectCenter $GroupHT_A[7]`;
+			$TDataA = `xform -q -bb $GroupHT_A[7]`;
+				for ($s = 3; $s < 9; $s++ )
+					{ $DPos[$s] = $TDataA[($s-3)];}
+					
+			$DPos2 = `objectCenter $GroupHT_A[8]`;
+			$TDataA = `xform -q -bb $GroupHT_A[8]`;
+				for ($s = 3; $s < 9; $s++ )
+					{ $DPos2[$s] = $TDataA[($s-3)];}
+				$DPos2[10] = ($DPos[1] + $DPos2[1]) * 0.5;		
+		}
+
+// Rear Split Tailgate		
+	if (`objExists $DVYHingeH[4]`) 
+		{
+			$DPos = `objectCenter $GroupHT_A[4]`;
+			$TDataA = `xform -q -bb $GroupHT_A[4]`;
+				for ($s = 3; $s < 9; $s++ )
+					{ $DPos[$s] = $TDataA[($s-3)];}
+					
+			$DPos2 = `objectCenter $GroupHT_A[6]`;
+			$TDataA = `xform -q -bb $GroupHT_A[6]`;
+				for ($s = 3; $s < 9; $s++ )
+					{ $DPos2[$s] = $TDataA[($s-3)];}
+				$DPos2[10] = ($DPos[1] + $DPos2[1]) * 0.5;		
+					
+		}
+//	Rear Trunk Spheres.	
+		
+	if (`objExists $DVYHingeH[2]`) 
+		{
+			$DPos = `objectCenter $GroupHT_A[2]`;
+			$TDataA = `xform -q -bb $GroupHT_A[2]`;
+				for ($s = 3; $s < 9; $s++ )
+					{ $DPos[$s] = $TDataA[($s-3)];}
+		}
+		
+// -------------------------------------------------------------------------------- //
+	
+// ******************************************************************************** //	
+//	Build and set Central Joint Positions.
+		
+	select -r $DJntsA[0];
+		$DJntsA[$r] = `joint -p 0 $Pos[1] 0 -name ($DVY_VehName + "Cn_HoodTrunk_JnT_1")`;
+		if (`checkBoxGrp -q -value1 HoodsOptionsCheck` == 1)	
+			{catch (`parent $HTControlsA[0] $RigControlsA[0]`);
+				select -r $DJntsA[$r];
+				$DJntsA[$r+1] = `joint -p 0 $Pos[1] $Pos[2] -name ($DVY_VehName + "CnFr_Hood_JnT_1")`;}
+					
+		if (`checkBoxGrp -q -value2 HoodsOptionsCheck` == 1)	
+			{catch (`parent $HTControlsA[2] $RigControlsA[0]`);
+				select -r $DJntsA[$r];
+				$DJntsA[$r+2] =  `joint -p 0 $DPos[1] $DPos[2] -name ($DVY_VehName + "CnRr_Trunk_JnT_1")`;}
+			
+		if (`checkBoxGrp -q -value3 HoodsOptionsCheck` == 1)	
+			{ catch (`parent $HTControlsA[4] $HTControlsA[8] $RigControlsA[0]`);
+				select -r $DJntsA[$r];
+				$DJntsA[$r+2] =  `joint -p 0 $DPos[1] $DPos[2] -name ($DVY_VehName + "CnRr_Tailgate_JnT_1")`;}
+			
+		if (`checkBoxGrp -q -value4 HoodsOptionsCheck` == 1)
+			{ catch (`parent $HTControlsA[4] $HTControlsA[8] $RigControlsA[0]`);
+				select -r $DJntsA[$r];
+				$DJntsA[$r+2] =  `joint -p 0 $DPos2[1] $DPos[2] -name ($DVY_VehName + "CnRr_Tailgate_JnT_1")`;}
+
+// -------------------------------------------------------------------------------- //
+	
+// ******************************************************************************** //	
+//	Build and set Front Hood Joint Positions.
+
+	if (`checkBoxGrp -q -value1 HoodsOptionsCheck` == 1)
+		{
+		  $Pos = `xform -q -ws -rp $DVYHingeH[0]`;
+		  $DPos = `xform -q -ws -rp $DVYHandleH[0]`;
+		  	select -r $DJntsA[$r+1];
+				$DJntsA[$r+3] = `joint -p $Pos[0] $Pos[1] $Pos[2] -name ($DVY_VehName + "Fr_Hood_JnT_1")`;
+				$DJntsA[$r+4] = `joint -p $DPos[0] $DPos[1] $DPos[2] -name ($DVY_VehName + "Fr_Hood_JnT_2")`;
+		}
+		
+// -------------------------------------------------------------------------------- //
+	
+// ******************************************************************************** //	
+//	Build and set Rear Trunklid Joint Positions.
+				
+	if (`checkBoxGrp -q -value2 HoodsOptionsCheck` == 1)
+		{
+		  $Pos = `xform -q -ws -rp $DVYHingeH[1]`;
+		  $DPos = `xform -q -ws -rp $DVYHandleH[1]`;
+			select -r $DJntsA[$r+2];
+				$DJntsA[$r+5] = `joint -p $Pos[0] $Pos[1] $Pos[2] -name ($DVY_VehName + "Rr_Trunk_JnT_1")`;
+					$DJntsA[$r+6] = `joint -p $DPos[0] $DPos[1] $DPos[2] -name ($DVY_VehName + "Rr_Trunk_JnT_2")`;
+		}
+// -------------------------------------------------------------------------------- //
+	
+// ******************************************************************************** //	
+//	Build and set Rear Tailgate Joint Positions.
+
+	if (`checkBoxGrp -q -value3 HoodsOptionsCheck` == 1)
+		{
+		  $Pos = `xform -q -ws -rp $DVYHingeH[2]`;
+		  $DPos = `xform -q -ws -rp $DVYHandleH[2]`;
+			select -r $DJntsA[$r+2];
+				$DJntsA[$r+5] = `joint -p $Pos[0] $Pos[1] $Pos[2] -name ($DVY_VehName + "Rr_Tailgate_JnT_1")`;
+					$DJntsA[$r+6] = `joint -p $DPos[0] $DPos[1] $DPos[2] -name ($DVY_VehName + "Rr_Tailgate_JnT_2")`;
+		}
+		
+// -------------------------------------------------------------------------------- //
+
+// ******************************************************************************** //	
+//	Build and set Split Tailgate Joint Positions.
+
+	if (`checkBoxGrp -q -value4 HoodsOptionsCheck` == 1)
+		{
+		 if ((`radioButtonGrp -q -sl RrSplitTailRadioButtons` == 1) || (`radioButtonGrp -q -sl RrSplitTailRadioButtons` == 2) || (`radioButtonGrp -q -sl RrSplitTailRadioButtons` == 3))
+			{ 
+			  $Pos = `xform -q -ws -rp $DVYHingeH[3]`;
+			  $DPos = `xform -q -ws -rp $DVYHandleH[3]`;
+			 	 select -r $DJntsA[$r+2];
+					$DJntsA[$r+5] = `joint -p $Pos[0] $Pos[1] $Pos[2] -name ($DVY_VehName + "Rr_TopTailgate_JnT_1")`;
+						$DJntsA[$r+6] = `joint -p $DPos[0] $DPos[1] $DPos[2] -name ($DVY_VehName + "Rr_TopTailgate_JnT_2")`;
+
+			  $Pos = `xform -q -ws -rp $DVYHingeH[4]`;
+			  $DPos = `xform -q -ws -rp $DVYHandleH[4]`;
+			 	 select -r $DJntsA[$r+2];
+					$DJntsA[$r+7] = `joint -p $Pos[0] $Pos[1] $Pos[2] -name ($DVY_VehName + "Rr_BotTailgate_JnT_1")`;
+						$DJntsA[$r+8] = `joint -p $DPos[0] $DPos[1] $DPos[2] -name ($DVY_VehName + "Rr_BotTailgate_JnT_2")`;
+			}
+			
+// -------------------------------------------------------------------------------- //
+	
+// ******************************************************************************** //	
+//	Build and set Rear Left and Right Door Joint Positions.
+						
+	 if (`radioButtonGrp -q -sl RrSplitTailRadioButtons` == 4)
+		{ 
+			$Pos = `xform -q -ws -rp $DVYHingeH[5]`;
+			$DPos = `xform -q -ws -rp $DVYHandleH[5]`;
+			 	select -r $DJntsA[$r+2];
+					$DJntsA[$r+5] = `joint -p $Pos[0] $Pos[1] $Pos[2] -name ($DVY_VehName + "Rr_LfDoor_JnT_1")`;
+						$DJntsA[$r+6] = `joint -p $DPos[0] $DPos[1] $DPos[2] -name ($DVY_VehName + "Rr_LfDoor_JnT_2")`;
+
+			$Pos = `xform -q -ws -rp $DVYHingeH[6]`;
+			$DPos = `xform -q -ws -rp $DVYHandleH[6]`;
+			 	select -r $DJntsA[$r+2];
+					$DJntsA[$r+7] = `joint -p $Pos[0] $Pos[1] $Pos[2] -name ($DVY_VehName + "Rr_RtDoor_JnT_1")`;
+						$DJntsA[$r+8] = `joint -p $DPos[0] $DPos[1] $DPos[2] -name ($DVY_VehName + "Rr_RtDoor_JnT_2")`;
+			}
+
+		}
+
+// -------------------------------------------------------------------------------- //
+	
+// ******************************************************************************** //	
+//	Orient Joint Chain from Main Central Hood Joint down.
+				
+	select -r $DJntsA[$r];
+		joint -e -oj xyz -secondaryAxisOrient yup -ch -zso;
+
+// -------------------------------------------------------------------------------- //
+	
+// ******************************************************************************** //	
+//	Parent Constrain Main Central Joint to BodyShell Group
+//	To ensure Joint Chain moves with BodySheel Group.
+
+	parentConstraint -mo -weight 1 $GroupV_A[2] $DJntsA[$r];
+	
+// -------------------------------------------------------------------------------- //
+	
+// ******************************************************************************** //	
+//	Re-Orient individual joints depending on Hinge Joint Positions.
+	
+//	$a = 0;
+//	Front Hood Joint.
+	if (`checkBoxGrp -q -value1 HoodsOptionsCheck` == 1)
+		{	//$a = 2;
+			select -r ($DJntsA[$r+3] + ".rotateAxis"); rotate -r -os 0 180 0;
+			parentConstraint -mo -weight 1 $DJntsA[$r+3] $GroupHT_A[0];
+			
+			$JFaxis = ".rz";
+			connectAttr -f ($HTControlsA[1] + ".ty") ($DJntsA[$r+3] + $JFaxis);
+		}
+
+//	Rear Trunklid Joint
+	if (`checkBoxGrp -q -value2 HoodsOptionsCheck` == 1)
+		{
+			select -r ($DJntsA[$r+5] + ".rotateAxis"); rotate -r -os 0 180 0;
+			parentConstraint -mo -weight 1 $DJntsA[$r+5] $GroupHT_A[1];
+			
+			$JRaxis = ".rz";
+			connectAttr -f ($HTControlsA[3] + ".ty") ($DJntsA[$r+5] + $JRaxis);
+		}
+		
+//	Rear Tailgate Joint
+	if (`checkBoxGrp -q -value3 HoodsOptionsCheck` == 1)
+		{
+			select -r ($DJntsA[$r+5] + ".rotateAxis"); rotate -r -os 0 180 0;
+			parentConstraint -mo -weight 1 $DJntsA[$r+5] $GroupHT_A[2];
+			
+			$JRaxis = ".rz";
+			connectAttr -f ($HTControlsA[3] + ".ty") ($DJntsA[$r+5] + $JRaxis);
+		}
+		
+// Rear Split Tailgate Joints.
+	if ((`checkBoxGrp -q -value4 HoodsOptionsCheck` == 1) && (`radioButtonGrp -q -sl RrSplitTailRadioButtons` < 3))
+		{
+			select -r ($DJntsA[$r+5] + ".rotateAxis"); rotate -r -os 0 180 0;
+			parentConstraint -mo -weight 1 $DJntsA[$r+5] $GroupHT_A[4];
+			
+			select -r ($DJntsA[$r+7] + ".rotateAxis"); rotate -r -os 0 180 0;
+			if (`radioButtonGrp -q -sl RrSplitTailRadioButtons` == 3)
+				{select -r ($DJntsA[$r+7] + ".rotateAxis"); rotate -r -os 180 0 0;}
+		
+			parentConstraint -mo -weight 1 $DJntsA[$r+7] $GroupHT_A[6];
+			
+			$JRaxis = ".rz";
+			connectAttr -f ($HTControlsA[5] + ".ty") ($DJntsA[$r+5] + $JRaxis);
+				if ((`radioButtonGrp -q -sl RrSplitTailRadioButtons` == 2) || (`radioButtonGrp -q -sl RrSplitTailRadioButtons` == 3))
+						{$JRaxis = ".ry";}
+						connectAttr -f ($HTControlsA[9] + ".ty") ($DJntsA[$r+7] + $JRaxis);
+		}
+
+//	Rear Left and Right Door Joints.
+	if ((`checkBoxGrp -q -value4 HoodsOptionsCheck` == 1) && (`radioButtonGrp -q -sl RrSplitTailRadioButtons` == 4))
+		{
+			select -r ($DJntsA[$r+5] + ".rotateAxis"); rotate -r -os 0 180 0;
+			parentConstraint -mo -weight 1 $DJntsA[$r+5] $GroupHT_A[7];
+			select -r ($DJntsA[$r+7] + ".rotateAxis"); rotate -r -os 180 0 0;
+			parentConstraint -mo -weight 1 $DJntsA[$r+7] $GroupHT_A[8];
+			
+			$JRaxis = ".ry";
+			connectAttr -f ($HTControlsA[6] + ".ty") ($DJntsA[$r+5] + $JRaxis);
+			connectAttr -f ($HTControlsA[9] + ".ty") ($DJntsA[$r+7] + $JRaxis);
+		}
+		
+// -------------------------------------------------------------------------------- //
+	
+// ******************************************************************************** //	
+	
+		print "$DVYWinBH\n";		print $DVYWinBH;
+		print "$DVYWinTH\n";		print $DVYWinTH;
+		print "$GroupHT_A\n";		print $GroupHT_A;
+		print "$HTControlsA\n";		print $HTControlsA;
+// -------------------------------------------------------------------------------- //
+	
+// ******************************************************************************** //	
+//	Window Set up section (not set up yet)
+/*		
+	if ((`checkBoxGrp -q -value3 HoodsOptionsCheck` == 1) && (`checkBox -q -value TailWindowEnableCheck` == 1) )
+		{
+			$Pos = `xform -q -ws -rp $DVYWinTH[1]`;
+			$DPos = `xform -q -ws -rp $DVYWinBH[0]`;
+			$WPos = `xform -q -ws -rp $DVYWinTH[0]`;
+				select -r $GroupHT_A[9];
+				scale 0.6 0.6 0.6;
+					$SPos = `xform -q -ws -rp $DVYWinTH[1]`;
+	
+				select $DJntsA[$r+3];
+					$DJntsA[$r+7] = `joint -p $Pos[0] $Pos[1] $Pos[2] -name ($DVY_VehName + "RrTailgate_Window_JnT_1")`;
+						$DJntsA[$r+8] = `joint -p $SPos[0] $SPos[1] $SPos[2] -name ($DVY_VehName + "RrTailgate_Window_JnT_2")`;
+						$DJntsA[$r+9] = `joint -p $WPos[0] $WPos[1] $WPos[2] -name ($DVY_VehName + "RrTailgate_Window_JnT_3")`;
+						select -r $DJntsA[$r+7]; joint -e -oj xyz -secondaryAxisOrient yup -ch -zso;
+					
+				parentConstraint -mo -weight 1 $DJntsA[$r+9] $GroupHT_A[3];
+				
+			$HBody[0] = `createNode multiplyDivide -name ($DVY_VehName + "Body_RrTailgate_Window_MultDvNA_1")`;
+			setAttr ($HBody[0] + ".op") 2;
+			setAttr ($HBody[0] + ".input1X") -10;
+				connectAttr -f -lock true ($HTControlsA[5] + ".ty") ($HBody[0] + ".input2X");
+				connectAttr -f -lock true ($HBody[0] + ".outputX") ($DJntsA[$r+8] + ".sx");
+
+		}
+			
+/*
+	$b = 0; $c = 0;
+	for ($a=0; $a<4; $a++)
+	{
+		$Pos = `xform -q -ws -rp $DVYWinTH[$a+4]`;
+		$DPos = `xform -q -ws -rp $DVYWinBH[$a]`;
+		$WPos = `xform -q -ws -rp $DVYWinTH[$a]`;
+			select -r $GroupHT_A[$a+9];
+			scale 0.6 0.6 0.6;
+		$SPos = `xform -q -ws -rp $DVYWinTH[$a+4]`;
+			print "\n";	print $Pos;
+			print "\n";	print $SPos;
+
+		select $DJntsA[$r+3+$c];
+			$DJntsA[$r+11+$b] = `joint -p $Pos[0] $Pos[1] $Pos[2] -name ($DVY_VehName + $Side[$a] + "_Window_JnT_1")`;
+				$DJntsA[$r+12+$b] = `joint -p $SPos[0] $SPos[1] $SPos[2] -name ($DVY_VehName + $Side[$a] + "_Window_JnT_2")`;
+				$DJntsA[$r+13+$b] = `joint -p $WPos[0] $WPos[1] $WPos[2] -name ($DVY_VehName + $Side[$a] + "_Window_JnT_3")`;
+				select -r $DJntsA[$r+11+$b]; joint -e -oj xyz -secondaryAxisOrient yup -ch -zso;
+			
+		parentConstraint -mo -weight 1 $DJntsA[$r+13+$b] $GroupHT_A[$a+4];
+		
+		$HBody[$a] = `createNode multiplyDivide -name ($DVY_VehName + "Body_" + $Side[$a] + "Window_MultDvNA_1")`;
+			setAttr ($HBody[$a] + ".op") 2;
+			setAttr ($HBody[$a] + ".input1X") -10;
+				connectAttr -f -lock true ($HTControlsA[($a*4)+3] + ".ty") ($HBody[$a] + ".input2X");
+				connectAttr -f -lock true ($HBody[$a] + ".outputX") ($DJntsA[$r+12+$b] + ".sx");
+				
+		$b = $b+3; $c = $c+2;	
+	}
+*/
+// -------------------------------------------------------------------------------- //
+	
+// ******************************************************************************** //	
+//	Delete items no longer required.
+
+	for ($each in $DVYHingeH) {if (`objExists $each`) {select $each; delete;}}
+	for ($each in $DVYWinBH)  {if (`objExists $each`) { select -r $each; delete;}}
+	
+		if (`objExists $GroupHT_A[9]`)  { select -r $GroupHT_A[9]; delete;}
+		if (`objExists $GroupHT_A[10]`) { select -r $GroupHT_A[10]; delete;}
+		if (`objExists $GroupHT_A[11]`) { select -r $GroupHT_A[11]; delete;}
+		if (`objExists $GroupHT_A[12]`) { select -r $GroupHT_A[12]; delete;}
+
+	print "End of DVY_BodyHoodTrunk Procedure Front and Rear Trunk\Tailgate or Doors have been Rigged.\n";
+	
+}

@@ -1,0 +1,16 @@
+global proc MS_setFilePath(string $newRoot){
+//シーン全体のfileノードのルートパスを設定しなおす
+	$file=`ls -typ file`;
+	for($each in $file){
+		$ftn=`getAttr ($each+".fileTextureName")`;
+		$nfn=stringToStringArray($ftn,"/");
+		string $fullpath=($newRoot+$nfn[size($nfn)-1]);
+		setAttr ($each+".fileTextureName") -typ "string" $fullpath;
+		print $nfn;
+		
+	}
+
+}
+
+//MS_setFilePath "texture/";
+

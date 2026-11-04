@@ -1,0 +1,50 @@
+
+
+global proc MS_setEmitter(string $EmitterName,int $StartFlame,int $AnimationTotal,int $BeforeFlame0,int $AfterFlame0,int $rnd1,int $noKey){
+	string $obj[]=`ls -sl`;
+	for($name in $obj){
+		
+		select -r $name;
+		setEmitterInfo;
+		
+		setAttr -type "string" ($name+".EmitterName") $EmitterName;
+		
+		if(!$noKey){
+		
+		
+		
+		$StartFlame=$StartFlame+rand ($rnd1);
+		
+		
+//スタートフレーム設定
+		if($BeforeFlame0){
+			
+			currentTime ($StartFlame-1);
+			setKeyframe -v 0 ($name+".EmitterVolume");
+		
+		}
+		currentTime $StartFlame ;
+		setKeyframe -v 1 ($name+".EmitterVolume");
+		
+		currentTime ($StartFlame+$AnimationTotal-1);
+		setKeyframe -v 1 ($name+".EmitterVolume");
+		
+//エンドフレーム設定
+		if($AfterFlame0){
+			
+			currentTime ($StartFlame+$AnimationTotal);
+			setKeyframe -v 0 ($name+".EmitterVolume");
+		
+		}
+
+		
+		keyTangent -ott step ($name+".EmitterVolume");
+		
+		currentTime ($StartFlame+$AnimationTotal-1);
+		
+		}
+	}
+}
+
+
+

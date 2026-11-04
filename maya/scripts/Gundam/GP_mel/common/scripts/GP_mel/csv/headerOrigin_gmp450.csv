@@ -1,0 +1,9 @@
+#ifdef GR_FILE_LINKED
+GR_FILE_LINKED( _basepose )
+GR_FILE_LINKED( motion_c100_gmp450_ex_auraburst_2_00_start )
+GR_FILE_LINKED( motion_c100_gmp450_ex_auraburst_2_01_loop )
+GR_FILE_LINKED( motion_c100_gmp450_ex_auraburst_2_02_action )
+GR_FILE_LINKED( motion_c100_gmp450_ex_auraburst_2_03_actionloop )
+GR_FILE_LINKED( motion_c100_gmp450_ex_auraburst_2_04_end )
+#undef GR_FILE_LINKED
+#endif // GR_FILE_LINKED

@@ -1,0 +1,153 @@
+/* This file downloaded from Highend3d.com
+''  
+''  Highend3d.com File Information:
+''  
+''    Script Name: Davveys Vehicle Rigging Scripts
+''    Author:  
+''    Last Updated: Jul 21, 2007
+''    Update/Change this file at:
+''    http://Highend3d.com/maya/downloads/mel_scripts/animation/4109.html
+''  
+''  Please do not alter any information above this line
+''  it is generated dynamically by Highend3d.com and will
+''  be changed automatically on any updates.
+*/
+
+
+//////////////////////////////////////////////////////////////////////////////
+/*			
+	Copyright © 2006 DVY_Steering. All rights reserved davvey@ntlworld.com
+
+						- DVY_Steering -
+
+///////////////////////////////////////////////////////////////////////////////
+	
+	This script is called by DVY_RigVehicle to set up steeing for both Front
+	and Rear axle sets. Each axle set is independantly steered nad can be
+	switched on	and off or reversed as required. Rear wheel can be set up t
+	follow the Front or set up to work in opposite direction.
+
+*/
+//////////////////////////////////////////////////////////////////////////////
+//					DVY_Steering Procedure
+//////////////////////////////////////////////////////////////////////////////
+
+//============================================================================
+//	GLOBAL VARIABLES
+//============================================================================
+	global int $DVYDebug;
+
+// Integer Flag that allows print statements to be output to
+// message field for tracking purposes.
+	
+//============================================================================
+	
+global proc DVY_Steering()
+ {
+	print "Starting DVY_Steering procedure.\n\n";
+
+	 
+// *******************************************************************************//	
+//	Global Variables
+
+	global string $RigControlsA[], $GroupV_A[];
+	global string $DVY_VehName;
+	global float $DVYdata[];
+	
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+//	Local Variables
+
+	float $VDataA[], $BDataA[], $SDataA[], $WDataFrA[],  $WDataRrA[], $TDataA[];
+	string $DJntsA[],$DLocs[], $Tmp[], $Groups[], $Sel[], $DSteer[];
+	int $i = 0, $j = 0, $k = 0, $l = 0, $q, $s = 0;
+	
+	string $DPrefixSp[] = {"LfFr_", "RtFr_", "LfRr_", "RtRr_"};
+	string $WJntA[] = {"Wheel_JnTA_", "Wheel_JnTB_", "Wheel_JnTC_", "Wheel_JnTD_", "Wheel_JnTE_"};
+	string $SJntA[] = {"Susp_JnTA_", "Susp_JnTB_", "Susp_JnTC_"};
+	string $WLocA[] = {"Wheel_LocA_", "Wheel_LocB_", "Wheel_LocC_", "Wheel_LocD_", "Wheel_LocE_"};
+	string $SLocA[] = {"Susp_LocA_", "Susp_LocB_", "Susp_LocC_", "Susp_LocD_", "Susp_LocE_", "Susp_LocGrd_"};
+	
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+	
+//	$DVYdata[10] = 1;
+	
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+
+	for ($i=0; $i<2; $i++)
+		{
+	 	$DSteer[$j + $i] = `createNode multDoubleLinear -name ($DVY_VehName + "Steer_" + $DPrefixSp[$i] + "_MultDvNA_1")`;
+			connectAttr -f -lock true ($RigControlsA[1] + ".rotateY") ($DSteer[$j+ $i] + ".input1");
+			connectAttr -f -lock true ($RigControlsA[1] + ".FrSteer") ($DSteer[$j + $i] + ".input2");
+	 	
+		$DSteer[$j + $i + 1] = `createNode multDoubleLinear -name ($DVY_VehName + "Steer_" + $DPrefixSp[$i] + "Ratio_MultDvNA_1")`;
+			connectAttr -f -lock true ($DSteer[$j + $i] + ".output") ($DSteer[$j +$i  + 1] + ".input1");
+			connectAttr -f -lock true ($RigControlsA[1] + ".FrSteerRatio") ($DSteer[$j + $i + 1] + ".input2");
+			for ($q=1; $q<$DVYdata[1]+1; $q++)
+			{ connectAttr -f -lock true ($DSteer[$j + $i+ 1] + ".output") ($DVY_VehName + $DPrefixSp[$i] + $WLocA[(2)] + $q + ".rotateY");}
+			
+		$j++; $j++;
+		}
+	
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+
+	for ($i=2; $i<4; $i++)
+		{
+ 		$DSteer[$j + $i] = `createNode multDoubleLinear -name ($DVY_VehName + "Steer_" + $DPrefixSp[$i] + "_MultDvNA_1")`;
+			connectAttr -f -lock true ($RigControlsA[1] + ".rotateY") ($DSteer[$j+ $i] + ".input1");
+			connectAttr -f -lock true ($RigControlsA[1] + ".RrSteer") ($DSteer[$j + $i] + ".input2");
+ 	
+		$DSteer[$j + $i + 1] = `createNode multDoubleLinear -name ($DVY_VehName + "Steer_" + $DPrefixSp[$i] + "Ratio_MultDvNA_1")`;
+			connectAttr -f -lock true ($DSteer[$j + $i] + ".output") ($DSteer[$j +$i  + 1] + ".input1");
+			connectAttr -f -lock true ($RigControlsA[1] + ".RrSteerRatio") ($DSteer[$j + $i + 1] + ".input2");
+			for ($q=1; $q<$DVYdata[2]+1; $q++)
+				{ connectAttr -f -lock true ($DSteer[$j + $i+ 1] + ".output") ($DVY_VehName + $DPrefixSp[$i] + $WLocA[(2)] + $q + ".rotateY");}
+		$j++; $j++;
+		}
+	
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+
+	 if ($DVYdata[10] > 0)
+		{
+ 	 	$DSteer[11] = `createNode multDoubleLinear -name ($DVY_VehName + "FrBogieSteer_" + "_MultDvNA_1")`;
+			connectAttr -f -lock true ($RigControlsA[1] + ".rotateY") ($DSteer[11] + ".input1");
+			connectAttr -f -lock true ($RigControlsA[1] + ".FrBogieSteer") ($DSteer[11] + ".input2");
+ 	
+		$DSteer[12] = `createNode multDoubleLinear -name ($DVY_VehName + "FrBogieSteer_" + "Ratio_MultDvNA_1")`;
+			connectAttr -f -lock true ($DSteer[11] + ".output") ($DSteer[12] + ".input1");
+			connectAttr -f -lock true ($RigControlsA[1] + ".FrBogieSteerRatio") ($DSteer[12] + ".input2");
+			connectAttr -f -lock true ($DSteer[12] + ".output") ($DVY_VehName + "Fr_Wheel_LocGrpN_1.rotateY");
+			connectAttr -f -lock true ($DSteer[12] + ".output") ($DVY_VehName + "CnFr_Wheel_JnT_1.rotateY");
+
+		$DSteer[13] = `createNode multDoubleLinear -name ($DVY_VehName + "RrBogieSteer_" + "_MultDvNA_1")`;
+			connectAttr -f -lock true ($RigControlsA[1] + ".rotateY") ($DSteer[13] + ".input1");
+			connectAttr -f -lock true ($RigControlsA[1] + ".RrBogieSteer") ($DSteer[13] + ".input2");
+ 	
+		$DSteer[14] = `createNode multDoubleLinear -name ($DVY_VehName + "RrBogieSteer_" + "Ratio_MultDvNA_1")`;
+			connectAttr -f -lock true ($DSteer[13] + ".output") ($DSteer[14] + ".input1");
+			connectAttr -f -lock true ($RigControlsA[1] + ".RrBogieSteerRatio") ($DSteer[14] + ".input2");
+			connectAttr -f -lock true ($DSteer[14] + ".output") ($DVY_VehName + "Rr_Wheel_LocGrpN_1.rotateY");
+				connectAttr -f -lock true ($DSteer[14] + ".output") ($DVY_VehName + "CnRr_Wheel_JnT_1.rotateY");
+		}	
+	
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+/*
+	print "\n Vehicle Steering Steer Nodes are..\n";
+	print $DSteer;
+	print "\n Davvey © 2006..\n";
+*/
+	
+	print "\n DVY_Steering has set up Nodes for steering front and rear wheels. See help file for more details. Davvey © 2006..\n\n";
+
+ }	// End of DVY_Steering proc

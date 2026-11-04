@@ -1,0 +1,187 @@
+
+global proc editRTDScene_for_Export(){
+	if( size(`ls -sl`) ){
+		string $camNode[] = `ls -sl`;
+		ImportAllReference();
+		renameCharacters();
+		setupRTD_camera1($camNode);
+		setupRTD_setRTDLocator();
+		setupRTD_bakeAnimation();
+	}else{
+		confirmDialog -m "カメラ・注視点・アップを選択してから実行してください。";
+	}
+}
+//リファレンスを読み込む
+
+global proc ImportAllReference(){
+	while ( true ){
+		string $_refs[] = `ls -type reference`;
+		string $refs[];
+		clear $refs;
+		for ( $ref in $_refs ){
+			if ( 0 == catchQuiet(`referenceQuery -referenceNode -topReference $ref`) ){
+				if ( 0 == `file -referenceNode $ref -q -deferReference` ){
+					$refs[`size $refs`] = $ref;
+				}
+			}
+		}
+		if ( 0 == `size $refs` ) break;
+		$refs[0] = `referenceQuery -referenceNode -topReference $refs[0]`;
+		file -importReference `referenceQuery -filename $refs[0]`;
+		//	同名ファイルへのリファレンスが複数存在する場合への対応
+		//	リファレンスノード指定でインポートする場合はこういう書き方をする
+		//file -importReference -referenceNode $refs[0];
+		flushUndo;
+	}
+}
+
+//出力用にリネーム
+global proc renameCharacters(){
+	string $assemblies[] = `ls -as`;
+	string $characters[],$temp[];
+	clear $characters;
+	string $characters[],$temp[];
+	int $i=0 , $j=0;
+	for($item in $assemblies){
+		if(endsWith($item,":root")){
+			tokenize $item ":" $temp;
+			for($j=0 ; $j<size($temp) -1 ; $j++){
+				$characters[$i] = ($characters[$i] + $temp[$j] + ":") ;
+			}
+			$i++;
+		}
+	}
+	print $characters[0];
+	string $names[];
+	int $i = 1;
+	for($item in $characters){
+		select -r -hi ($item + "root");
+		clear $names;
+		string $names[] = `ls -sl -sn`;
+		for($j = (size($names)-1 ); $j>0 ; $j--){
+			tokenize $names[$j] ":" $temp;
+//			print("ren:\t" + $names[$j] + "\t" + $temp[size($temp)-1] + "\r\n");	//////////////////////////
+			rename $names[$j] $temp[size($temp)-1];
+		}
+		string $rtname;
+		if($i<10){
+			$rtname = ("chara_00" + $i);
+		}else if($i<100){
+			$rtname = ("chara_0" + $i);
+		}else if($i<1000){
+			$rtname = ("chara_" + $i);
+		}else{
+			break;//正気に戻れ
+		}
+		rename ($item + "root") ($rtname + "_root");
+		$i++;
+	}
+	select -cl;
+}
+
+
+//カメラを出力用に整える
+global proc setupRTD_camera1( string $camNode[] ){
+		string $finalNames[] = {"camera1","camera1_aim","camera1_up","camera1_group"};
+		for($item in $finalNames){
+			if(size(`ls $item`)){
+				rename $item ($item + "_original");
+				if(stringArrayContains($item,$camNode)){
+					int $tgt = stringArrayFind($item , 0 , $camNode);
+					$camNode[$tgt] = ($item + "_original");
+				}
+			}
+		}
+		
+		camera -n "camera1" -centerOfInterest 5 -focalLength 35 -lensSqueezeRatio 1 -cameraScale 1 -horizontalFilmAperture 1.4173 -horizontalFilmOffset 0 -verticalFilmAperture 0.9449 -verticalFilmOffset 0 -filmFit Fill -overscan 1 -motionBlur 0 -shutterAngle 144 -nearClipPlane 0.1 -farClipPlane 10000 -orthographic 0 -orthographicWidth 30 -panZoomEnabled 0 -horizontalPan 0 -verticalPan 0 -zoom 1;
+		string $temp[] = `ls -sl`;
+		rename $temp[0] "camera1";
+		objectMoveCommand;
+		cameraMakeNode 3 "";
+		parent -w $finalNames[2];
+		parent -w $finalNames[1];
+		parent -w $finalNames[0];
+		for($i=0 ; $i<3 ; $i++){
+			select -r $camNode[$i] $finalNames[$i];
+			pointConstraint -o 0 0 0 -w 1;
+		}
+		select -cl;
+		//画角トレス
+		string $focal[] = `listConnections -d off -s on ($camNode[0] + ".focalLength")`;
+		if(size($focal)){
+			copyKey ($camNode[0] + ".focalLength");
+			pasteKey -option replaceCompletely -copies 1 -connect 0 -timeOffset 0 -floatOffset 0 -valueOffset 0 {$finalNames[0] + ".focalLength"};
+		}else{
+			float $focalAt = `getAttr ($camNode[0] + ".focalLength")`;
+			setAttr ($finalNames[0] + ".focalLength") $focalAt;
+		}
+		select -cl;
+}
+
+//rtdロケータを用意
+global proc setupRTD_setRTDLocator(){
+	select -cl;
+	string $temp[];
+	joint -p 0 0 0 -name "RTD_root";
+	joint -p 0 0 0 -name "camera";
+	select -r "|camera1" "|RTD_root|camera";
+	pointConstraint -o 0 0 0 -w 1;
+	orientConstraint -o 0 0 0 -w 1;
+	string $temp_rootNode[] = `ls -type joint "chara_*_root"`;
+	for($i=0 ; $i<size($temp_rootNode) ; $i++){
+		select -r "|RTD_root";
+		tokenize $temp_rootNode[$i] "_" $temp;
+		joint -p 0 0 0 -name ($temp[0] + "_" + $temp[1]);
+		select -r $temp_rootNode[$i] ("|RTD_root|" + $temp[0] + "_" + $temp[1]);
+		pointConstraint -o 0 0 0 -w 1;
+		orientConstraint -o 0 0 0 -w 1;
+	}
+}
+
+//モーションベイク
+global proc setupRTD_bakeAnimation(){
+	string $camera[] = {"camera1","camera1_aim","camera1_up"};
+	select -r -hi $camera "|RTD_root" "|chara_*_root";
+	float $st = `playbackOptions -q -min`;
+	float $ed = `playbackOptions -q -max`;
+	string $selections[] = `ls -sl`;
+	string $constraints[] = `ls -sl -type pointConstraint -type orientConstraint -type scaleConstraint`;
+
+	select -cl;
+
+	bakeResults -simulation true -t ($st + ":" + $ed) -hierarchy below -sampleBy 1 -disableImplicitControl true -preserveOutsideKeys true -sparseAnimCurveBake false -removeBakedAttributeFromLayer false -bakeOnOverrideLayer false -minimizeRotation true -controlPoints false -shape true $selections;
+	delete $constraints;
+	//亀が文句を言うが無視で
+	
+	//カーブに対してオイラーフィルタ
+	string $anmCvs[] = `ls -type animCurve`;
+	filterCurve -filter euler $anmCvs;
+}
+
+//手動調整、カットの切り替わりのタイミングのモーションカーブをステップにする
+
+
+global proc setFBXDirBtn(){
+	string $tempPath = `textField -q -text textField_setupRTD_for_Export_csv_fbx_exportPathTF0`;
+	string $prePath , $preName;
+	if($prePath != ""){
+		$preName = basename( $tempPath , "");
+		$prePath = `dirname $tempPath`;
+	}
+	
+	string $output_names[] = `fileDialog2 -fm 0 -cap "出力するFBXを指定" -ds 2 -dir $prePath -ff "*.fbx"`;
+	textField -e -text $output_names[0] textField_setupRTD_for_Export_csv_fbx_exportPathTF0;
+	
+}
+
+
+
+//exportFBX
+global proc Export_RTD_FBX(){
+	currentTime `playbackOptions -q -min`;
+	string $exportName = `textField -q -text textField_setupRTD_for_Export_csv_fbx_exportPathTF0`;
+	file -f -options "" -typ "FBX export" -ea $exportName;
+}
+
+
+

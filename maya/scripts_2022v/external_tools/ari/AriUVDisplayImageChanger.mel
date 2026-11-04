@@ -1,0 +1,117 @@
+//--------------------------------------------------------------------------
+//
+// ScriptName : AriUVDisplayImageChanger
+// Contents   : UVテクスチャエディタのバックグランドイメージを手軽に切り替えたり、範囲変更したりします。
+// Author     : Ari
+// URL        : http://cgjishu.net/
+// Since      : 2016/05/29
+// LastUpdate : 2016/05/30 UVエディタを開いてないとクラッシュするバグ修正。
+//--------------------------------------------------------------------------
+
+
+
+proc AriUVDisplayImageChanger_textScrolListAdd(string $addList[],string $uiName){
+	if(size($addList)==0)return;
+	string $evalString = "textScrollList -e";
+	for($text in $addList){
+		$evalString = $evalString +" -a \""+$text+ "\"";
+	}
+	$evalString = $evalString + $uiName;
+	eval $evalString;
+}
+proc AriUVDisplayImageChanger_GetTextureList(){
+	global string $AriUVDisplayImageChanger_textSc[3];
+	string $panelName="polyTexturePlacementPanel1";
+	string $menuList[] = `textureWindow -q -imageNames $panelName`;
+	textScrollList -e -ra $AriUVDisplayImageChanger_textSc[1];
+	AriUVDisplayImageChanger_textScrolListAdd($menuList,$AriUVDisplayImageChanger_textSc[1]);
+}
+global proc AriUVDisplayImageChanger_ImageRange(int $mode,float $val){
+	string $panelName="polyTexturePlacementPanel1";
+	if(!`textureWindow -ex -imageNames $panelName`)return;
+	string $menuList[] = `textureWindow -q -imageNames $panelName`;
+	if(size($menuList)==0){
+		return;
+	}
+	float $uvRange[]=`textureWindow -q -imageTileRange polyTexturePlacementPanel1`;
+	if($mode==5 && $val==0){
+		textureWindow -e -imageTileRange 0 0 1 1 polyTexturePlacementPanel1;
+		return;
+	}
+	if($mode==5 && $val==1){
+		textureWindow -e -imageTileRange $uvRange[0] $uvRange[1] 1 1  polyTexturePlacementPanel1;
+		return;
+	}
+	float $newRenge[]=$uvRange;
+	$newRenge[$mode]=$newRenge[$mode]+$val;
+	textureWindow -e -imageTileRange $newRenge[0] $newRenge[1] $newRenge[2] $newRenge[3]  polyTexturePlacementPanel1;
+}
+global proc AriUVDisplayImageChanger_selectTextureName(){
+	global string $AriUVDisplayImageChanger_textSc[3];
+	string $panelName="polyTexturePlacementPanel1";
+	int $indexs[];
+	$indexs =`textScrollList -q -sii $AriUVDisplayImageChanger_textSc[1]`;
+	int $index = $indexs[0] -1;
+	textureWindowSelectImage $index $panelName;
+}
+global proc AriUVDisplayImageChanger_scriptjob(){
+	AriUVDisplayImageChanger_GetTextureList();
+}
+global proc AriUVDisplayImageChanger(){
+	global string $AriUVDisplayImageChangerUI[10];
+	global string $AriUVDisplayImageChanger_textSc[3];
+	if((`window -ex  AriUVDisplayImageChanger`)==true)deleteUI AriUVDisplayImageChanger;
+	window -tlb 1 -title "AriUVDisplayImageChanger"  -w 200 -h 120  AriUVDisplayImageChanger;
+	string $formleft =`formLayout `;
+	$AriUVDisplayImageChanger_textSc[1]=`textScrollList -ams 1  -sc "AriUVDisplayImageChanger_selectTextureName()"`;
+	string $frame=`frameLayout -l "Image Range" -cl true -cll true`;
+	rowLayout -nc 3;
+	columnLayout;
+	rowLayout -nc 3;
+	button -w 20 -h 20 -l ""   -c "AriUVDisplayImageChanger_ImageRange(3,1); AriUVDisplayImageChanger_ImageRange(0,-1);";
+	button -w 20 -h 20 -l "↑" -c "AriUVDisplayImageChanger_ImageRange(3,1);";
+	button -w 20 -h 20 -l ""   -c "AriUVDisplayImageChanger_ImageRange(3,1); AriUVDisplayImageChanger_ImageRange(2,1);";
+	setParent..;
+	rowLayout -nc 3;
+	button -w 20 -h 20  -l "←" -c "AriUVDisplayImageChanger_ImageRange(0,-1);";
+	button -w 20 -h 20 -l "Re" -c "AriUVDisplayImageChanger_ImageRange(5,0);";
+	button -w 20 -h 20  -l "→" -c "AriUVDisplayImageChanger_ImageRange(2,1);";
+	setParent..;
+	rowLayout -nc 3;
+	button -w 20 -h 20 -l ""    -c "AriUVDisplayImageChanger_ImageRange(1,-1); AriUVDisplayImageChanger_ImageRange(0,-1);";
+	button -w 20 -h 20  -l "↓" -c "AriUVDisplayImageChanger_ImageRange(1,-1)";
+	button -w 20 -h 20 -l ""    -c "AriUVDisplayImageChanger_ImageRange(1,-1); AriUVDisplayImageChanger_ImageRange(2,1);";
+	setParent..;
+	setParent..;
+	columnLayout;
+	rowLayout -nc 3;
+	button -w 20 -h 20 -l ""   -c "AriUVDisplayImageChanger_ImageRange(3,-1); AriUVDisplayImageChanger_ImageRange(0,1);";
+	button -w 20 -h 20 -l "↓" -c "AriUVDisplayImageChanger_ImageRange(3,-1);";
+	button -w 20 -h 20 -l ""   -c "AriUVDisplayImageChanger_ImageRange(3,-1); AriUVDisplayImageChanger_ImageRange(2,-1);";
+	setParent..;
+	rowLayout -nc 3;
+	button -w 20 -h 20 -l "→" -c "AriUVDisplayImageChanger_ImageRange(0,1);";
+	button -w 20 -h 20 -l "Re" -c "AriUVDisplayImageChanger_ImageRange(5,0);";
+	button -w 20 -h 20 -l "←" -c "AriUVDisplayImageChanger_ImageRange(2,-1);";
+	setParent..;
+	rowLayout -nc 3;
+	button -w 20 -h 20 -l ""   -c "AriUVDisplayImageChanger_ImageRange(1,1); AriUVDisplayImageChanger_ImageRange(0,1);" ;
+	button -w 20 -h 20 -l "↑" -c "AriUVDisplayImageChanger_ImageRange(1,1);";
+	button -w 20 -h 20 -l ""   -c "AriUVDisplayImageChanger_ImageRange(1,1); AriUVDisplayImageChanger_ImageRange(2,-1);";
+	setParent..;
+	setParent..;
+	setParent..;
+	setParent..;
+	formLayout -e
+	-af $frame "left" 0
+	-af $frame "right" 0
+	-af $frame "bottom" 0
+	-af $AriUVDisplayImageChanger_textSc[1] "top"   0
+	-af $AriUVDisplayImageChanger_textSc[1] "left"   0
+	-ac $AriUVDisplayImageChanger_textSc[1] "bottom" 0 $frame
+	-af $AriUVDisplayImageChanger_textSc[1] "right" 0 
+	$formleft;
+	showWindow;
+	scriptJob -p "AriUVDisplayImageChanger" -event "SelectionChanged" "AriUVDisplayImageChanger_scriptjob()";
+	AriUVDisplayImageChanger_scriptjob;
+}

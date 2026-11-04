@@ -1,0 +1,104 @@
+2016/09/23 12:30:51.10 
+testword 
+Finished. 
+  
+2016/09/23 12:31:22.02 
+testword 
+Finished. 
+  
+2016/09/23 12:31:47.72 
+testword 
+Finished. 
+  
+2016/09/23 12:32:13.40 
+testword 
+Finished. 
+  
+2016/09/23 12:32:39.10 
+testword 
+Finished. 
+  
+2016/09/23 12:44:19.31 
+L:/motion/maya/rtd/gp3/FIX/_rtd200580_FIX.mb 
+Finished. 
+  
+2016/09/26 23:46:01.49 
+L:/motion/maya/rtd/gp3/rtd210633/rtd210633_FIX.mb 
+Finished. 
+  
+2016/09/28 22:20:27.99 
+L:/motion/maya/rtd/gp3/rtd210509/rtd210509_FIX.mb 
+Finished. 
+  
+2016/09/28 23:55:08.79 
+L:/motion/maya/rtd/gp3/rtd210511/rtd210511_FIX.mb 
+Finished. 
+  
+2016/09/29  1:54:04.09 
+L:/motion/maya/rtd/gp3/rtd210509/rtd210509_FIX.mb 
+Finished. 
+  
+2016/09/29  1:54:53.80 
+L:/motion/maya/rtd/gp3/rtd210511/rtd210511_FIX.mb 
+Finished. 
+  
+2016/09/29  2:33:01.73 
+L:/motion/maya/rtd/gp3/rtd210509/rtd210509_FIX.mb 
+Finished. 
+  
+2016/09/29  4:00:38.99 
+L:/motion/maya/rtd/gp3/rtd210511/rtd210511_FIX.mb 
+Finished. 
+  
+2016/09/29 20:49:53.55 
+L:/motion/maya/rtd/gp3/rtd210630/rtd210630_FIX.mb 
+Finished. 
+  
+2016/09/30 14:36:00.48 
+L:/motion/maya/rtd/gp3/rtd210513/rtd210513_FIX.mb 
+Finished. 
+  
+2016/10/15 18:13:39.93 
+L:/motion/maya/rtd/gp3/rtd210417/rtd210417_FIX.mb 
+Finished. 
+  
+2016/10/15 18:19:21.04 
+L:/motion/maya/rtd/gp3/rtd210635/rtd210635_FIX.mb 
+Finished. 
+  
+2016/10/15 18:19:56.15 
+L:/motion/maya/rtd/gp3/rtd210636/rtd210636_FIX.mb 
+Finished. 
+  
+2016/10/15 18:20:31.46 
+L:/motion/maya/rtd/gp3/rtd210637/rtd210637_FIX.mb 
+Finished. 
+  
+2016/10/16  5:51:39.00 
+L:/motion/maya/rtd/gp3/rtd210413/rtd210413_FIX.mb 
+Finished. 
+  
+2016/10/16  7:01:25.05 
+L:/motion/maya/rtd/gp3/rtd210632/rtd210632_FIX.mb 
+Finished. 
+  
+2016/10/16  7:05:07.63 
+L:/motion/maya/rtd/gp3/rtd210635/rtd210635_FIX.mb 
+Finished. 
+  
+2016/10/16  7:05:44.41 
+L:/motion/maya/rtd/gp3/rtd210636/rtd210636_FIX.mb 
+Finished. 
+  
+2016/10/16  7:06:24.02 
+L:/motion/maya/rtd/gp3/rtd210637/rtd210637_FIX.mb 
+Finished. 
+  
+2016/10/16 12:24:05.08 
+L:/motion/maya/rtd/gp3/rtd210417/rtd210417_FIX.mb 
+Finished. 
+  
+2016/10/16 12:38:01.48 
+L:/motion/maya/rtd/gp3/rtd210418/rtd210418_FIX.mb 
+Finished. 
+  

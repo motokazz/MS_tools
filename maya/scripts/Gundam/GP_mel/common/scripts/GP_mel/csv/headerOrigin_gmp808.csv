@@ -1,0 +1,9 @@
+#ifdef GR_FILE_LINKED
+
+GR_FILE_LINKED( _basepose )
+GR_FILE_LINKED( motion_c100_gmp808_beam_cannon_s5_00_start )
+GR_FILE_LINKED( motion_c100_gmp808_beam_cannon_s5_01_shot )
+GR_FILE_LINKED( motion_c100_gmp808_beam_cannon_s5_02_end )
+
+#undef GR_FILE_LINKED
+#endif // GR_FILE_LINKED

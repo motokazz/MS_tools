@@ -1,0 +1,41 @@
+#----------------------------------------------------------------------------------
+#UTF-8形式で保存してください
+#boolean(真偽値)のデフォルトはfalseです
+#記述者の名前が無いテスト用らしき記述は最適化の為削除する事があります
+#----------------------------------------------------------------------------------
+
+#----------------------------------------------------------------------------------
+#異次元3 az4_a 坂井
+az4_a_root:
+  root:     true
+
+az4_a_01:
+  occluder: "az4_a_01_occ"
+  low:      "az4_a_01_low"
+az4_a_02:
+  occluder: "az4_a_02_occ"
+  low:      "az4_a_02_low"
+az4_a_03:
+  occluder: "az4_a_03_occ"
+  low:      "az4_a_03_low"
+az4_a_04:
+  occluder: "az4_a_04_occ"
+  low:      "az4_a_04_low"
+az4_a_05:
+  occluder: "az4_a_05_occ"
+  low:      "az4_a_05_low"
+az4_a_06:
+  occluder: "az4_a_06_occ"
+  low:      "az4_a_06_low"
+az4_a_07:
+  occluder: "az4_a_07_occ"
+  low:      "az4_a_07_low"
+az4_a_08:
+  occluder: "az4_a_08_occ"
+  low:      "az4_a_08_low"
+az4_a_09:
+  occluder: "az4_a_09_occ"
+  low:      "az4_a_09_low"
+az4_a_10:
+  occluder: "az4_a_10_occ"
+  low:      "az4_a_10_low"

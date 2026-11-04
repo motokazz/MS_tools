@@ -1,0 +1,7 @@
+//mel‚ÌêŠ‚ğ’²‚×‚é
+global proc MS_MEL_MEMO(){
+whatIs userSetup.mel;
+
+
+
+}

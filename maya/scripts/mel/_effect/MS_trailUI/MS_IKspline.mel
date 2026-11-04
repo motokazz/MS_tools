@@ -1,0 +1,24 @@
+global proc string[] MS_IKspline(string $jparent,string $ikcurve,int $tangentConstraint){
+	string $child[]=`listRelatives -ad $jparent`;
+	string $ikn[0]=`ikHandle -sol ikSplineSolver -ccv false -roc false -cra true -pcv false -sj $jparent -ee $child[0] -c $ikcurve`;
+	string $ret[];
+	$ret[0]=$ikn[0];
+	string $prt[]=`listRelatives -p $jparent`;
+	$ret[1]=$prt[0];
+	if($tangentConstraint){
+		tangentConstraint 
+			-weight 1 
+			-aimVector 1 0 0 
+			-upVector 0 1 0 
+			-worldUpType "vector" 
+			-worldUpVector 0 1 0
+			$ikcurve
+			$jparent
+			;
+	}
+	return $ret;
+	
+}
+
+
+

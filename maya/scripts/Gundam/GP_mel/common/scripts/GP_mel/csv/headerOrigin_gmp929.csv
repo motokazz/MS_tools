@@ -1,0 +1,31 @@
+#ifdef GR_FILE_LINKED
+
+GR_FILE_LINKED( _basepose )
+GR_FILE_LINKED( motion_c100_gmp929_ex_funnel_0_00_start )
+GR_FILE_LINKED( motion_c100_gmp929_ex_funnel_0_01_loop )
+GR_FILE_LINKED( motion_c100_gmp929_ex_funnel_0_02_shoot )
+GR_FILE_LINKED( motion_c100_gmp929_ex_funnel_0_03_shootloop )
+GR_FILE_LINKED( motion_c100_gmp929_ex_funnel_0_04_end )
+GR_FILE_LINKED( motion_c100_gmp929_ex_funnel_1_00_start )
+GR_FILE_LINKED( motion_c100_gmp929_ex_funnel_1_01_loop )
+GR_FILE_LINKED( motion_c100_gmp929_ex_funnel_1_02_shoot )
+GR_FILE_LINKED( motion_c100_gmp929_ex_funnel_1_03_shootloop )
+GR_FILE_LINKED( motion_c100_gmp929_ex_funnel_1_04_end )
+GR_FILE_LINKED( motion_c100_gmp929_ex_funnel_2_00_start )
+GR_FILE_LINKED( motion_c100_gmp929_ex_funnel_2_01_loop )
+GR_FILE_LINKED( motion_c100_gmp929_ex_funnel_2_02_shoot )
+GR_FILE_LINKED( motion_c100_gmp929_ex_funnel_2_03_shootloop )
+GR_FILE_LINKED( motion_c100_gmp929_ex_funnel_2_04_end )
+GR_FILE_LINKED( motion_c100_gmp929_ex_funnel_3_00_start )
+GR_FILE_LINKED( motion_c100_gmp929_ex_funnel_3_01_loop )
+GR_FILE_LINKED( motion_c100_gmp929_ex_funnel_3_02_shoot )
+GR_FILE_LINKED( motion_c100_gmp929_ex_funnel_3_03_shootloop )
+GR_FILE_LINKED( motion_c100_gmp929_ex_funnel_3_04_end )
+GR_FILE_LINKED( motion_c100_gmp929_ex_funnel_4_00_start )
+GR_FILE_LINKED( motion_c100_gmp929_ex_funnel_4_01_loop )
+GR_FILE_LINKED( motion_c100_gmp929_ex_funnel_4_02_shoot )
+GR_FILE_LINKED( motion_c100_gmp929_ex_funnel_4_03_shootloop )
+GR_FILE_LINKED( motion_c100_gmp929_ex_funnel_4_04_end )
+
+#undef GR_FILE_LINKED
+#endif // GR_FILE_LINKED

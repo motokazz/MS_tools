@@ -1,0 +1,78 @@
+global proc MS_save(string $fileName,string $DATA){
+	//ファイル出力処理
+	int $fileId;
+	if(`filetest -f $fileName`){
+		$fileId=`fopen $fileName "w"`;
+	}else{
+		$fileId=`fopen $fileName`;
+	}
+ 	fprint $fileId $DATA;
+ 	fclose $fileId;
+}
+
+global proc MS_arraySave(string $fileName,string $DATA[]){
+	//配列ファイル出力処理
+	int $fileId;
+	if(`filetest -f $fileName`){
+		$fileId=`fopen $fileName "w"`;
+	}else{
+		$fileId=`fopen $fileName`;
+	}
+	for ($each in $DATA){
+		fprint $fileId $each;
+	}
+ 	fclose $fileId;
+	
+}
+
+global proc string MS_load(string $fileName){
+	//ファイル入力処理
+	int $fileId;
+	string $DATA;
+	if(`filetest -f $fileName`){
+		$fileId=`fopen $fileName "r"`;
+	}
+ 	$DATA=`fread $fileId $DATA`;
+ 	fclose $fileId;
+	return $DATA;
+}
+
+global proc string[] MS_arrayLoad(string $fileName){
+	//配列ファイル入力処理
+	int $fileId;
+	int $i;
+	string $nextLine;
+	string $DATA[];
+	if(`filetest -f $fileName`){
+		$fileId=`fopen $fileName "r"`;
+		
+		$i=0;
+		do{
+			$nextLine = `fgetline $fileId`;
+			$DATA[$i]=$nextLine;
+			$i++;
+		}
+		while ( size( $nextLine ) > 0 ) ;
+		fclose $fileId;
+	}
+	return $DATA;
+}
+
+/*
+{
+	//改行は「\r」推奨。
+	//利用サンプル
+	string $new="abcdefg+\r";
+	$new+="aaaaaaa\r";
+	$new+="bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\r";
+	$new+="XXXXXXXXXXXXXX\r";
+	
+	MS_save("D:/test.txt",$new);
+	string $s[]=MS_arrayLoad("D:/test.txt");
+	print $s;
+	MS_arraySave("D:/testar.txt",$s);
+	
+}
+*/
+
+

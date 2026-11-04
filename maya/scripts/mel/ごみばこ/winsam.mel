@@ -1,0 +1,42 @@
+global proc winsam()
+{
+	string $current_maya_path="C:/Documents and Settings/moto/My Documents/maya/7.0/";
+	string $sav_BANK1=("saveShelf BANK1 \""+$current_maya_path+"prefs/shelves/shelf_BANK1\"");
+	string $sav_BANK2=("saveShelf BANK2 \""+$current_maya_path+"prefs/shelves/shelf_BANK2\"");
+	string $sav_BANK3=("saveShelf BANK3 \""+$current_maya_path+"prefs/shelves/shelf_BANK3\"");
+
+	if(`window -exists MS_melpalette`){
+		deleteUI MS_melpalette;
+	}
+	window -title "MS_melpalette" MS_melpalette;
+	
+	columnLayout;
+	button -l "sav_BANK1" -command `eval $sav_BANK1`;
+	button -l "sav_BANK2" -command `eval $sav_BANK2`;
+	button -l "sav_BANK3" -command `eval $sav_BANK3`;
+	
+	//setParent ..;
+	
+	shelfTabLayout
+		-image "smallTrash.xpm"
+		-imageVisible true mainShelfTab;
+	
+		shelfLayout WorkWindow;
+	setParent ..;
+		shelfLayout BANK1;
+		shelf_BANK1;
+	setParent ..;
+		shelfLayout BANK2;
+		shelf_BANK2;
+	setParent ..;
+		shelfLayout BANK3;
+		shelf_BANK3;
+	setParent ..;
+		shelfLayout COMANDS;
+	setParent ..;
+
+	showWindow MS_melpalette;
+}
+
+winsam;
+

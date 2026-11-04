@@ -1,0 +1,52 @@
+{
+//ライトをぜんぶ見えるようにする。
+string $light_name[]=`ls -typ light`;
+showHidden -a $light_name;
+}
+
+
+ {
+//transferUV all
+//1st select sourceobject
+//2nd~ distination object 
+string $obj[]=`ls -sl`;
+for($i=1;$i<size($obj);$i++){
+select $obj[0] $obj[$i];
+performPolyTransfer 0;
+}
+}
+
+
+{
+//vcolor2a
+//頂点カラーRを頂点カラーAにコピー
+
+PolySelectConvert 3;
+
+string $vtx_name[]=`filterExpand -ex 1 -sm 31`;
+	for($value in $vtx_name){
+		float $val_vcol[] = `polyColorPerVertex -q -r $value`;
+		polyColorPerVertex -a $val_vcol[0] -cdo $value;
+		print ($value+"\n");
+	}
+}
+
+{
+//pivoResetter
+//ピボットの位置を原点にリセットする。
+
+	for($obj_name in `ls -sl`){
+		move -xyz 0 0 0 ($obj_name+".scalePivot") ($obj_name+".rotatePivot") ;
+	}
+}
+
+{
+//receiveShadows
+//オブジェクトのreceiveShadowsアトリビュートをまとめてoffにする。
+
+
+	for($obj_name in `ls -sl`){
+		setAttr ($obj_name+".receiveShadows") 0;
+	}
+}
+

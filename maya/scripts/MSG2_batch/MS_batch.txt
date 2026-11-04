@@ -1,0 +1,2 @@
+go_jailbridge_a,D:/Projects/Gravite2/graphic/bg/scenes/architecture/go_jailbridge_a.mb,
+go_jailbucket_a,D:/Projects/Gravite2/graphic/bg/scenes/objects/go_jailbucket_a.mb,D:/Projects/Gravite2/assets/bg/model//go_jailbucket_a.atgi

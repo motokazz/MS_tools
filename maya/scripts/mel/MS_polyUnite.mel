@@ -1,0 +1,28 @@
+global proc MS_polyUnite(){
+	string $obj_name[]=`ls -l -sl`;
+	string $SHORT_NAME[]=`ls $obj_name[0]`;
+	string $parent[]=`listRelatives -p $obj_name[0]`;
+	
+	string $UNITED[]=`polyUnite -ch 0 $obj_name`;
+	//MergeVertex
+	/*
+	for($each in $UNITED){
+		polyMergeVertex  -d 0.001 -am 1 -ch 1 $each;
+	}
+	*/
+	string $NEW_NAME=`rename $UNITED[0] $SHORT_NAME[0]`;
+	if(`objExists $parent[0]`){
+		parent $NEW_NAME $parent[0];
+	}
+}
+
+global proc MS_polySeparate(){
+	$comp = `filterExpand -sm 34 -ex 1`;
+	if (size($comp)){
+		polyChipOff -ch 1 -kft 1 -dup 0 -off 0;
+	}
+	performPolyShellSeparate;
+}
+
+
+

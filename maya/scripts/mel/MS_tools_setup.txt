@@ -1,0 +1,757 @@
+//MS_mel
+global proc MS_tools_setup(){
+global string $gMainWindow;
+global string $MS_tools_menu = "MS_tools_menu";
+
+string $MS_mel_path="D:/MS_tools/mel/";
+string $MS_icons_path="D:/MS_tools/MS_icons/";
+
+if ( $gMainWindow != "" ){
+	menu -p $gMainWindow -l "MS_tools" -tearOff true $MS_tools_menu; 
+}
+//Anim
+menuItem -p $MS_tools_menu -subMenu true -tearOff true -label "Anim" "MS_tools_menu_Anim";
+//MS_VFAUI
+string $MS_tools_item_name="MS_VFAUI";
+
+menuItem -p "MS_tools_menu_Anim" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+
+//MS_constraintMasterUI
+string $MS_tools_item_name="MS_constraintMasterUI";
+
+menuItem -p "MS_tools_menu_Anim" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+
+//MS_MFCUI
+string $MS_tools_item_name="MS_MFCUI";
+
+menuItem -p "MS_tools_menu_Anim" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+//MS_bakeAnimUI
+string $MS_tools_item_name="MS_bakeAnimUI";
+
+menuItem -p "MS_tools_menu_Anim" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+//MS_functionCurveSliderUI
+string $MS_tools_item_name="MS_functionCurveSliderUI";
+
+menuItem -p "MS_tools_menu_Anim" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+//MS_copyAnimEachSelfUI
+string $MS_tools_item_name="MS_copyAnimEachSelfUI";
+
+menuItem -p "MS_tools_menu_Anim" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+//MS_valueStepperFCUI
+string $MS_tools_item_name="MS_valueStepperFCUI";
+
+menuItem -p "MS_tools_menu_Anim" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+//MS_poseList
+string $MS_tools_item_name="MS_poseList";
+
+menuItem -p "MS_tools_menu_Anim" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+
+//MS_purupuru
+string $MS_tools_item_name="MS_purupuru";
+
+menuItem -p "MS_tools_menu_Anim" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+
+//UV
+menuItem -p $MS_tools_menu -subMenu true -tearOff true -label "UV" "MS_tools_menu_UV";
+//MS_UVsets
+string $MS_tools_item_name="MS_UVsets";
+
+menuItem -p "MS_tools_menu_UV" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+//MS_UVToolsUI
+string $MS_tools_item_name="MS_UVToolsUI";
+
+menuItem -p "MS_tools_menu_UV" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+//MS_createUVPanel
+string $MS_tools_item_name="MS_createUVPanel";
+
+menuItem -p "MS_tools_menu_UV" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+//MS_texturePatternAnimUI
+string $MS_tools_item_name="MS_texturePatternAnimUI";
+
+menuItem -p "MS_tools_menu_UV" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+//MS_transferAttributes
+string $MS_tools_item_name="MS_transferAttributes";
+
+menuItem -p "MS_tools_menu_UV" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+//Camera
+menuItem -p $MS_tools_menu -subMenu true -tearOff true -label "Camera" "MS_tools_menu_Camera";
+//MS_cameraNormalize
+string $MS_tools_item_name="MS_cameraNormalize";
+
+menuItem -p "MS_tools_menu_Camera" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+
+//CGFX
+menuItem -p $MS_tools_menu -subMenu true -tearOff true -label "CGFX" "MS_tools_menu_CGFX";
+//MS_connectHardwareShader
+string $MS_tools_item_name="MS_connectHardwareShader";
+
+menuItem -p "MS_tools_menu_CGFX" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+
+//MS_cubemap
+string $MS_tools_item_name="MS_cubemap";
+
+menuItem -p "MS_tools_menu_CGFX" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+
+//Common
+menuItem -p $MS_tools_menu -subMenu true -tearOff true -label "Common" "MS_tools_menu_Common";
+//MS_valueStepperUI
+string $MS_tools_item_name="MS_valueStepperUI";
+
+menuItem -p "MS_tools_menu_Common" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+
+//MS_locatorToCurveUI
+string $MS_tools_item_name="MS_locatorToCurveUI";
+
+menuItem -p "MS_tools_menu_Common" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+
+//MS_locaterUI
+string $MS_tools_item_name="MS_locaterUI";
+
+menuItem -p "MS_tools_menu_Common" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+
+//MS_copyAttr
+string $MS_tools_item_name="MS_copyAttr";
+
+menuItem -p "MS_tools_menu_Common" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+
+//MS_spaceLocatorBySceneNameUI
+string $MS_tools_item_name="MS_spaceLocatorBySceneNameUI";
+
+menuItem -p "MS_tools_menu_Common" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+
+//MS_Reverse
+string $MS_tools_item_name="MS_Reverse";
+
+menuItem -p "MS_tools_menu_Common" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+
+//MS_vertexcountFilteringUI
+string $MS_tools_item_name="MS_vertexcountFilteringUI";
+
+menuItem -p "MS_tools_menu_Common" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+
+//MS_functionalRenamer
+string $MS_tools_item_name="MS_functionalRenamer";
+
+menuItem -p "MS_tools_menu_Common" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+
+//MS_averageUI
+string $MS_tools_item_name="MS_averageUI";
+
+menuItem -p "MS_tools_menu_Common" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+
+//MS_forUI
+string $MS_tools_item_name="MS_forUI";
+
+menuItem -p "MS_tools_menu_Common" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+
+//MS_attrSetScriptUI
+string $MS_tools_item_name="MS_attrSetScriptUI";
+
+menuItem -p "MS_tools_menu_Common" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+
+//Effect
+menuItem -p $MS_tools_menu -subMenu true -tearOff true -label "Effect" "MS_tools_menu_Effect";
+//MS_effectMasterUI
+string $MS_tools_item_name="MS_effectMasterUI";
+
+menuItem -p "MS_tools_menu_Effect" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+
+//MS_setEmitterUI
+string $MS_tools_item_name="MS_setEmitterUI";
+
+menuItem -p "MS_tools_menu_Effect" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+
+//MS_trailUI
+string $MS_tools_item_name="MS_trailUI";
+
+menuItem -p "MS_tools_menu_Effect" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+
+//MS_efxConfigUI
+string $MS_tools_item_name="MS_efxConfigUI";
+
+menuItem -p "MS_tools_menu_Effect" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+
+//MS_publishEffectDBUI
+string $MS_tools_item_name="MS_publishEffectDBUI";
+
+menuItem -p "MS_tools_menu_Effect" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+
+//EOJ
+menuItem -p $MS_tools_menu -subMenu true -tearOff true -label "EOJ" "MS_tools_menu_EOJ";
+//EOJcamConv
+string $MS_tools_item_name="EOJcamConv";
+
+menuItem -p "MS_tools_menu_EOJ" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+
+//MS_EOJ_fogEditor
+string $MS_tools_item_name="MS_EOJ_fogEditor";
+
+menuItem -p "MS_tools_menu_EOJ" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+
+//MS_EOJ_priorityTool
+string $MS_tools_item_name="MS_EOJ_priorityTool";
+
+menuItem -p "MS_tools_menu_EOJ" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+
+//MS_EOJ_fogchecker
+string $MS_tools_item_name="MS_EOJ_fogchecker";
+
+menuItem -p "MS_tools_menu_EOJ" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+
+//File
+menuItem -p $MS_tools_menu -subMenu true -tearOff true -label "File" "MS_tools_menu_File";
+//ÅöÅöÅöMS_HRC_XFF_ExportUI
+string $MS_tools_item_name="MS_HRC_XFF_ExportUI";
+
+menuItem -p "MS_tools_menu_File" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+
+//ÅöÅöÅöMS_backUPUI
+string $MS_tools_item_name="MS_backUPUI";
+
+menuItem -p "MS_tools_menu_File" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+//ÅöÅöÅöMS_BatchRefference
+string $MS_tools_item_name="MS_BatchRefference";
+
+menuItem -p "MS_tools_menu_File" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+
+//ÅöÅöÅöMS_COLLADAExportUI
+string $MS_tools_item_name="MS_COLLADAExportUI";
+
+menuItem -p "MS_tools_menu_File" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+
+//MS_mayaAscii_ExportUI
+string $MS_tools_item_name="MS_mayaAscii_ExportUI";
+
+menuItem -p "MS_tools_menu_File" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+
+//Light
+menuItem -p $MS_tools_menu -subMenu true -tearOff true -label "Light" "MS_tools_menu_Light";
+//MS_DirectionalLight
+string $MS_tools_item_name="MS_DirectionalLight";
+
+menuItem -p "MS_tools_menu_Light" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+
+//Matter
+menuItem -p $MS_tools_menu -subMenu true -tearOff true -label "Matter" "MS_tools_menu_Matter";
+//MS_vtxtool
+string $MS_tools_item_name="MS_vtxtool";
+
+menuItem -p "MS_tools_menu_Matter" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+
+//MS_groupVcolorUI
+string $MS_tools_item_name="MS_groupVcolorUI";
+
+menuItem -p "MS_tools_menu_Matter" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+
+//Model
+menuItem -p $MS_tools_menu -subMenu true -tearOff true -label "Model" "MS_tools_menu_Model";
+//MS_tunagime_v2
+string $MS_tools_item_name="MS_tunagime_v2";
+
+menuItem -p "MS_tools_menu_Model" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+
+//MS_reduce
+string $MS_tools_item_name="MS_reduce";
+
+menuItem -p "MS_tools_menu_Model" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+
+//MS_polyUnite
+string $MS_tools_item_name="MS_polyUnite";
+
+menuItem -p "MS_tools_menu_Model" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+
+//MS_KillPlannerFace
+string $MS_tools_item_name="MS_KillPlannerFace";
+
+menuItem -p "MS_tools_menu_Model" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+
+//MS_boolset
+string $MS_tools_item_name="MS_boolset";
+
+menuItem -p "MS_tools_menu_Model" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+
+//System
+menuItem -p $MS_tools_menu -subMenu true -tearOff true -label "System" "MS_tools_menu_System";
+//MS_shelfMasterUI
+string $MS_tools_item_name="MS_shelfMasterUI";
+
+menuItem -p "MS_tools_menu_System" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+
+//MS_commandCollection
+string $MS_tools_item_name="MS_commandCollection";
+
+menuItem -p "MS_tools_menu_System" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+
+//Skin
+menuItem -p $MS_tools_menu -subMenu true -tearOff true -label "Skin" "MS_tools_menu_Skin";
+//MS_groupSkinWeightUI
+string $MS_tools_item_name="MS_groupSkinWeightUI";
+
+menuItem -p "MS_tools_menu_Skin" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+
+//Texture
+menuItem -p $MS_tools_menu -subMenu true -tearOff true -label "Texture" "MS_tools_menu_Texture";
+//MS_TexRepTools
+string $MS_tools_item_name="MS_TexRepTools";
+
+menuItem -p "MS_tools_menu_Texture" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+
+//MS_texCleanUI
+string $MS_tools_item_name="MS_texCleanUI";
+
+menuItem -p "MS_tools_menu_Texture" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+
+//MS_planeFromImageUI
+string $MS_tools_item_name="MS_planeFromImageUI";
+
+menuItem -p "MS_tools_menu_Texture" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+
+//Dynamics
+menuItem -p $MS_tools_menu -subMenu true -tearOff true -label "Dynamics" "MS_tools_menu_Dynamics";
+//MS_bakeDynamicsUI
+string $MS_tools_item_name="MS_bakeDynamicsUI";
+
+menuItem -p "MS_tools_menu_Dynamics" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+
+//MS_dynagareki
+string $MS_tools_item_name="MS_dynagareki";
+
+menuItem -p "MS_tools_menu_Dynamics" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+
+//Extra
+menuItem -p $MS_tools_menu -subMenu true -tearOff true -label "Extra" "MS_tools_menu_Extra";
+//MS_Particle2Tube
+string $MS_tools_item_name="MS_Particle2Tube";
+
+menuItem -p "MS_tools_menu_Extra" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+
+//MS_Particle2Curve
+string $MS_tools_item_name="MS_Particle2Curve";
+
+menuItem -p "MS_tools_menu_Extra" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+
+//MS_krash
+string $MS_tools_item_name="MS_krash";
+
+menuItem -p "MS_tools_menu_Extra" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+
+/*ñ¢êÆóù
+
+//MS_skinWeight
+string $MS_tools_item_name="MS_VFAUI";
+
+menuItem -p "MS_tools_menu_Anim" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+
+//MS_skinWeightV2
+string $MS_tools_item_name="MS_VFAUI";
+
+menuItem -p "MS_tools_menu_Anim" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+
+//MS_Batch
+string $MS_tools_item_name="MS_VFAUI";
+
+menuItem -p "MS_tools_menu_Anim" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+
+//MS_BakeShadowSetting_all
+string $MS_tools_item_name="MS_VFAUI";
+
+menuItem -p "MS_tools_menu_Anim" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+
+//MS_BakeShadowSetting
+string $MS_tools_item_name="MS_VFAUI";
+
+menuItem -p "MS_tools_menu_Anim" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+
+//MS_visibleChecker
+string $MS_tools_item_name="MS_VFAUI";
+
+menuItem -p "MS_tools_menu_Anim" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+
+//MS_install
+string $MS_tools_item_name="MS_VFAUI";
+
+menuItem -p "MS_tools_menu_Anim" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+
+//MS_createIcon
+string $MS_tools_item_name="MS_VFAUI";
+
+menuItem -p "MS_tools_menu_Anim" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+
+//MS_SelVtxCol
+string $MS_tools_item_name="MS_VFAUI";
+
+menuItem -p "MS_tools_menu_Anim" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+
+//MS_selectSG
+string $MS_tools_item_name="MS_VFAUI";
+
+menuItem -p "MS_tools_menu_Anim" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+
+//MS_SelByPolyCount
+string $MS_tools_item_name="MS_VFAUI";
+
+menuItem -p "MS_tools_menu_Anim" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+
+//MS_rotator
+string $MS_tools_item_name="MS_VFAUI";
+
+menuItem -p "MS_tools_menu_Anim" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+
+//MS_RenzokuMergeVertex
+string $MS_tools_item_name="MS_VFAUI";
+
+menuItem -p "MS_tools_menu_Anim" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+
+//MS_PolyAngleCheck
+string $MS_tools_item_name="MS_VFAUI";
+
+menuItem -p "MS_tools_menu_Anim" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+
+//MS_locater_dupVER
+string $MS_tools_item_name="MS_VFAUI";
+
+menuItem -p "MS_tools_menu_Anim" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+
+//MS_copyTransform
+string $MS_tools_item_name="MS_VFAUI";
+
+menuItem -p "MS_tools_menu_Anim" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+
+//MS_AttachCurves
+string $MS_tools_item_name="MS_VFAUI";
+
+menuItem -p "MS_tools_menu_Anim" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+
+//MS_AngleCheck
+string $MS_tools_item_name="MS_VFAUI";
+
+menuItem -p "MS_tools_menu_Anim" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+
+//MS_Batchtexclean
+string $MS_tools_item_name="MS_VFAUI";
+
+menuItem -p "MS_tools_menu_Anim" 
+	-label $MS_tools_item_name
+	-annotation $MS_tools_item_name
+	-i ($MS_icons_path+$MS_tools_item_name+".bmp")
+	-c ("source \""+$MS_mel_path+$MS_tools_item_name+".mel\";"+$MS_tools_item_name+";");
+
+*/
+}
+MS_tools_setup;

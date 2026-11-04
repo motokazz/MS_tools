@@ -1,0 +1,294 @@
+
+
+///////////////////////////////////////////////////////////////////////////////
+/*			
+				
+	Copyright © 2006 WingRotate2. All rights reserved davvey@ntlworld.com
+					
+
+					- WingRotate2 -
+					
+	Directions:-
+	
+		Script assumes butterfly is set up along X Z planes i.e. head facing along
+	Z axis with head at Positive Z.
+	
+		To use just run script then adjust FrAutoFlapX ,Y, Z and also FrRotateX, Y, Z
+	will adjsut rotaion is variuos directions.
+	
+		The joint placement can be adjusted in first section of script or use your own
+	and modify script to suit.
+	
+		After running script the joints position can be adjusted using scaling and
+	script will still work OK. Speed of flapping can be adjusted in the keyframe
+	section of the script or by scaling keys after running script.
+	
+	Any probs let me know.
+					
+///////////////////////////////////////////////////////////////////////////////
+*/			
+					
+						  
+	resetTool jointContext;
+
+	group -em -name JointsGrpN_1;
+	group -em -name RotatorGrpN_1;
+	group -em -name ButterFlyGrpN_1;	
+	parent Butterfly pfxToon1 JointsGrpN_1 RotatorGrpN_1 ButterFlyGrpN_1;
+	
+	select -cl;
+	
+		polyCube -w 0.5 -h 0.5 -d 0.5 -sx 1 -sy 1 -sz 1 -ax 0 1 0 -tx 1 -ch 0 -name WingRotator_1;
+		setAttr "WingRotator_1.translateY" 1;
+		makeIdentity -apply true -t 1 -r 1 -s 1 -n 0;
+		
+	select -cl ;
+		
+		joint -p 0 0.069 1.5 -name FrCn_WingJnT;
+		select -cl ;
+		
+		joint -p 1 0.069 1.5 -name FrLf_WingJnTA;
+		joint -p 3.6 0.069 4 -name FrLf_WingJnTB;
+		joint -p 4.8 0.069 5.6 -name FrLf_WingJnTC;
+		joint -p 6.4 0.069 7.2 -name FrLf_WingJnTD;
+		joint -p 8.4 0.069 8.8 -name FRLf_WingJnTE;
+		joint -p 10 0.069 9.6 -name FRLf_WingJnTF;
+
+		select -r FrLf_WingJnTA;
+		makeIdentity -apply true -t 1 -r 1 -s 1 -n 0;
+		mirrorJoint -mirrorYZ -mirrorBehavior -searchReplace "Lf" "Rt";
+		parent FrLf_WingJnTA FrCn_WingJnT;
+		
+		parent FrRt_WingJnTA FrCn_WingJnT;
+		select -r FrCn_WingJnT ;
+
+
+	select -cl ;
+		
+		joint -p 0 0.069 0.7 -name Cn_WingJnT;
+		select -cl ;
+		
+		joint -p 1 0.069 0.7 -name Lf_WingJnTA;
+		joint -p 3.6 0.069 1.6 -name LfFr_WingJnTB;
+		joint -p 4.8 0.069 2.2 -name LfFr_WingJnTC;
+		joint -p 6.4 0.069 3.2 -name LfFr_WingJnTD;
+		joint -p 8.4 0.069 4.4 -name LfFr_WingJnTE;
+		joint -p 10 0.069 5.4 -name LfFr_WingJnTF;
+		
+		select -r Lf_WingJnTA;
+		
+		joint -p 3.6 0.069 -0.4 -name LfRr_WingJnTB;
+		joint -p 4.8 0.069 -1.2 -name LfRr_WingJnTC;
+		joint -p 6.4 0.069 -2.2 -name LfRr_WingJnTD;
+		joint -p 8.4 0.069 -3.0 -name LfRr_WingJnTE;
+		
+		select -r Lf_WingJnTA;
+		
+		makeIdentity -apply true -t 1 -r 1 -s 1 -n 0;
+		mirrorJoint -mirrorYZ -mirrorBehavior -searchReplace "Lf" "Rt";
+		parent Lf_WingJnTA Cn_WingJnT;
+		
+		parent Rt_WingJnTA Cn_WingJnT;
+		select -r Cn_WingJnT ;
+		
+		select -cl ;
+		
+		joint -p 0 0.069 -0.1 -name RrCn_WingJnT;
+		select -cl ;
+		
+		joint -p 1 0.069 -0.1 -name RrLf_WingJnTA;
+		joint -p 3.6 0.069 -2.8 -name RrLf_WingJnTB;
+		joint -p 4.8 0.069 -4.4 -name RrLf_WingJnTC;
+		joint -p 6.4 0.069 -6.4 -name RrLf_WingJnTD;
+		joint -p 8.4 0.069 -8.4 -name RrLf_WingJnTE;
+		joint -p 9.6 0.069 -9.2 -name RrLf_WingJnTF;
+
+		select -r RrLf_WingJnTA;
+		makeIdentity -apply true -t 1 -r 1 -s 1 -n 0;
+		mirrorJoint -mirrorYZ -mirrorBehavior -searchReplace "Lf" "Rt";
+		parent RrLf_WingJnTA RrCn_WingJnT;
+		
+		parent RrRt_WingJnTA RrCn_WingJnT;
+		select -r RrCn_WingJnT ;
+
+	select -r FrCn_WingJnT ;
+	select -add RrCn_WingJnT ;
+	select -add Cn_WingJnT ;
+	
+	parent Cn_WingJnT JointsGrpN_1;
+	parent WingRotator_1 RotatorGrpN_1;
+	
+	select -cl ;
+
+	WingRotate2;
+	
+global proc WingRotate2()
+ {
+		 
+	 addAttr -keyable true -ln FrAutoFlapX -at double -min 0 -max 1 -dv 0 WingRotator_1;
+	 addAttr -keyable true -ln FrAutoFlapY -at double -min 0 -max 1 -dv 0 WingRotator_1;
+	 addAttr -keyable true -ln FrAutoFlapZ -at double -min 0 -max 1 -dv 0.5 WingRotator_1;
+
+	 addAttr -keyable true -ln FrRotateX -at double -min -10 -max 10 -dv 0 WingRotator_1;
+	 addAttr -keyable true -ln FrRotateY -at double -min -10 -max 10 -dv 0 WingRotator_1;
+	 addAttr -keyable true -ln FrRotateZ -at double -min -10 -max 10 -dv 2.5 WingRotator_1;
+	 
+				
+		setAttr " WingRotator_1.rotateX" 0;
+		setAttr " WingRotator_1.rotateY" 0;
+		setAttr " WingRotator_1.rotateZ" 0;
+		setKeyframe -t 0 " WingRotator_1.rx"; 
+		setKeyframe -t 0 " WingRotator_1.ry"; 
+		setKeyframe -t 0 " WingRotator_1.rz";
+			
+		setAttr " WingRotator_1.rotateX" 45;
+		setAttr " WingRotator_1.rotateY" 45;
+		setAttr " WingRotator_1.rotateZ" 45;
+		setKeyframe -t 40 " WingRotator_1.rx"; 
+		setKeyframe -t 40 " WingRotator_1.ry";
+		setKeyframe -t 40 " WingRotator_1.rz";
+			
+		setAttr " WingRotator_1.rotateX" 0;
+		setAttr " WingRotator_1.rotateY" 0;
+		setAttr " WingRotator_1.rotateZ" 0;
+		setKeyframe -t 80 " WingRotator_1.rx"; 
+		setKeyframe -t 80 " WingRotator_1.ry";
+		setKeyframe -t 80 " WingRotator_1.rz";
+			
+		setAttr " WingRotator_1.rotateX" -45;
+		setAttr " WingRotator_1.rotateY" -45;
+		setAttr " WingRotator_1.rotateZ" -45;
+		setKeyframe -t 120 " WingRotator_1.rx"; 
+		setKeyframe -t 120 " WingRotator_1.ry";
+		setKeyframe -t 120 " WingRotator_1.rz";
+			
+		setAttr " WingRotator_1.rotateX" 0;
+		setAttr " WingRotator_1.rotateY" 0;
+		setAttr " WingRotator_1.rotateZ" 0;
+		setKeyframe -t 160 " WingRotator_1.rx"; 
+		setKeyframe -t 160 " WingRotator_1.ry";
+		setKeyframe -t 160 " WingRotator_1.rz";
+			
+	currentTime -e 0;
+		
+		setAttr  WingRotator_1_rotateX.postInfinity 3;
+		setAttr  WingRotator_1_rotateY.postInfinity 3;
+		setAttr  WingRotator_1_rotateZ.postInfinity 3;	
+		
+	string $DVYMultiplydN  = `shadingNode -asUtility multiplyDivide -name DVYwitchN_1`;
+		connectAttr -f  WingRotator_1.rotate ($DVYMultiplydN + ".input1");
+		connectAttr -f  WingRotator_1.FrRotateX  ($DVYMultiplydN + ".input2X");
+		connectAttr -f  WingRotator_1.FrRotateY  ($DVYMultiplydN + ".input2Y");
+		connectAttr -f  WingRotator_1.FrRotateZ  ($DVYMultiplydN + ".input2Z");
+		
+	string $MultNodeR = `shadingNode -asUtility multiplyDivide -name WingRotator`;
+		setAttr ($MultNodeR + ".operation") 1;	
+	
+		connectAttr -f ($DVYMultiplydN + ".outputX") ($MultNodeR + ".input1X");
+		connectAttr -f ($DVYMultiplydN + ".outputY") ($MultNodeR + ".input1Y");
+		connectAttr -f ($DVYMultiplydN + ".outputZ") ($MultNodeR + ".input1Z");
+		
+		connectAttr -f "WingRotator_1.FrAutoFlapX" ($MultNodeR + ".input2X");
+		connectAttr -f "WingRotator_1.FrAutoFlapY" ($MultNodeR + ".input2Y");
+		connectAttr -f "WingRotator_1.FrAutoFlapZ" ($MultNodeR + ".input2Z");
+		
+		connectAttr -f ($MultNodeR + ".output") "FrLf_WingJnTA .rotate";
+		connectAttr -f ($MultNodeR + ".output") "RrLf_WingJnTA .rotate";
+		connectAttr -f ($MultNodeR + ".output") "FrRt_WingJnTA .rotate";
+		connectAttr -f ($MultNodeR + ".output") "RrRt_WingJnTA .rotate";
+		connectAttr -f ($MultNodeR + ".output") "Lf_WingJnTA .rotate";
+		connectAttr -f ($MultNodeR + ".output") "Rt_WingJnTA .rotate";
+	
+	
+	string $MultNodeA = `shadingNode -asUtility multiplyDivide -name WingRotatorA`;
+		setAttr ($MultNodeA + ".operation") 1;	
+		
+		connectAttr -f "Lf_WingJnTA.rotate" ($MultNodeA + ".input1");
+		connectAttr -f "WingRotator_1.FrAutoFlapX" ($MultNodeA + ".input2X");
+		connectAttr -f "WingRotator_1.FrAutoFlapY" ($MultNodeA + ".input2Y");
+		connectAttr -f "WingRotator_1.FrAutoFlapZ" ($MultNodeA + ".input2Z");
+		
+		connectAttr -f ($MultNodeA + ".output") "FrLf_WingJnTB .rotate";
+		connectAttr -f ($MultNodeA + ".output") "RrLf_WingJnTB .rotate";
+		connectAttr -f ($MultNodeA + ".output") "LfFr_WingJnTB .rotate";
+		connectAttr -f ($MultNodeA + ".output") "LfRr_WingJnTB .rotate";
+		
+	string $MultNodeB = `shadingNode -asUtility multiplyDivide -name WingRotatorB`;
+		setAttr ($MultNodeB + ".operation") 1;	
+		
+		connectAttr -f "LfFr_WingJnTB.rotate" ($MultNodeB + ".input1");
+		connectAttr -f "WingRotator_1.FrAutoFlapX" ($MultNodeB + ".input2X");
+		connectAttr -f "WingRotator_1.FrAutoFlapY" ($MultNodeB + ".input2Y");
+		connectAttr -f "WingRotator_1.FrAutoFlapZ" ($MultNodeB + ".input2Z");
+		connectAttr -f ($MultNodeB + ".output") "FrLf_WingJnTC .rotate";
+		connectAttr -f ($MultNodeB + ".output") "RrLf_WingJnTC .rotate";
+		connectAttr -f ($MultNodeB + ".output") "LfFr_WingJnTC .rotate";
+		connectAttr -f ($MultNodeB + ".output") "LfRr_WingJnTC .rotate";
+	
+	string $MultNodeC = `shadingNode -asUtility multiplyDivide -name WingRotatorC`;
+		setAttr ($MultNodeC + ".operation") 1;	
+		
+		connectAttr -f "LfFr_WingJnTC.rotate" ($MultNodeC + ".input1");
+		connectAttr -f "WingRotator_1.FrAutoFlapX" ($MultNodeC + ".input2X");
+		connectAttr -f "WingRotator_1.FrAutoFlapY" ($MultNodeC + ".input2Y");
+		connectAttr -f "WingRotator_1.FrAutoFlapZ" ($MultNodeC + ".input2Z");
+		connectAttr -f ($MultNodeC + ".output") "FrLf_WingJnTD .rotate";
+		connectAttr -f ($MultNodeC + ".output") "RrLf_WingJnTD .rotate";
+		connectAttr -f ($MultNodeC + ".output") "LfFr_WingJnTD .rotate";
+		connectAttr -f ($MultNodeC + ".output") "LfRr_WingJnTD .rotate";
+	
+	string $WingRevA = `shadingNode -asUtility multiplyDivide -name WingA_Rev`;
+		setAttr ($WingRevA + ".operation") 1;	
+		
+		setAttr ($WingRevA + ".input1X") -1;
+		setAttr ($WingRevA + ".input1Y") -1;
+		setAttr ($WingRevA + ".input1Z") 1;
+		
+		connectAttr -f  "Lf_WingJnTA.rotate" ($WingRevA + ".input2");
+		connectAttr -f  ($WingRevA + ".output") "FrRt_WingJnTA.rotate" ;
+		connectAttr -f  ($WingRevA + ".output") "RrRt_WingJnTA.rotate" ;
+		connectAttr -f  ($WingRevA + ".output") "Rt_WingJnTA.rotate" ;
+	
+	string $WingRevB = `shadingNode -asUtility multiplyDivide -name WingB_Rev`;
+		setAttr ($WingRevB + ".operation") 1;	
+		
+		setAttr ($WingRevB + ".input1X") -1;
+		setAttr ($WingRevB + ".input1Y") -1;
+		setAttr ($WingRevB + ".input1Z") 1;
+		
+		connectAttr -f  "LfFr_WingJnTB.rotate" ($WingRevB + ".input2");
+		connectAttr -f  ($WingRevB + ".output") "FrRt_WingJnTB.rotate" ;
+		connectAttr -f  ($WingRevB + ".output") "RrRt_WingJnTB.rotate" ;
+		connectAttr -f  ($WingRevB + ".output") "RtFr_WingJnTB.rotate" ;
+		connectAttr -f  ($WingRevB + ".output") "RtRr_WingJnTB.rotate" ;
+	
+	string $WingRevC = `shadingNode -asUtility multiplyDivide -name WingC_Rev`;
+		setAttr ($WingRevC + ".operation") 1;	
+		
+		setAttr ($WingRevC + ".input1X") -1;
+		setAttr ($WingRevC + ".input1Y") -1;
+		setAttr ($WingRevC + ".input1Z") 1;
+		
+		connectAttr -f  "LfFr_WingJnTC.rotate" ($WingRevC + ".input2");
+		connectAttr -f  ($WingRevC + ".output") "FrRt_WingJnTC.rotate" ;
+		connectAttr -f  ($WingRevC + ".output") "RrRt_WingJnTC.rotate" ;
+		connectAttr -f  ($WingRevC + ".output") "RtFr_WingJnTC.rotate" ;
+		connectAttr -f  ($WingRevC + ".output") "RtRr_WingJnTC.rotate" ;
+	
+	string $WingRevD = `shadingNode -asUtility multiplyDivide -name WingD_Rev`;
+		setAttr ($WingRevD + ".operation") 1;	
+		
+		setAttr ($WingRevD + ".input1X") -1;
+		setAttr ($WingRevD + ".input1Y") -1;
+		setAttr ($WingRevD + ".input1Z") 1;
+		
+		connectAttr -f  "LfFr_WingJnTD.rotate" ($WingRevD + ".input2");
+		connectAttr -f  ($WingRevD + ".output") "FrRt_WingJnTD.rotate" ;
+		connectAttr -f  ($WingRevD + ".output") "RrRt_WingJnTD.rotate" ;
+		connectAttr -f  ($WingRevD + ".output") "RtFr_WingJnTD.rotate" ;
+		connectAttr -f  ($WingRevD + ".output") "RtRr_WingJnTD.rotate" ;
+			
+		parent FrCn_WingJnT Cn_WingJnT;
+		parent RrCn_WingJnT Cn_WingJnT;
+	
+ }

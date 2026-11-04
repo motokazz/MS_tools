@@ -1,0 +1,11 @@
+
+Version 1.1.0
+Script modified to allow Davvey's Spring Generator script pack to interact with the
+completed piston and automatically generate the correct size Spring
+
+Version 1.0.1
+Corrected error in Script which stopped correct scaling of finished Piston Group.
+Corrected error in Lock Off of Attributes which locked wrong Attributes on Group Top Node.
+ 
+Version 1.0
+First Release

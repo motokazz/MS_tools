@@ -1,0 +1,3 @@
+//vasg/Mproject/graphic/outsource/99_vasg/from_vasg/
+//vasg/Mproject/graphic/bg/texture/render
+//vasg/Mproject/graphic/bg/render

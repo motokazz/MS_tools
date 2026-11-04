@@ -1,0 +1,121 @@
+proc string createSHLNode()
+{
+	string $trs = `createNode transform -name SHLight`;
+	shadingNode -asLight SHLNode -parent $trs;
+	string $ret[] = `ls -dag -type SHLNode $trs`;
+	
+	return $ret[0];
+}
+
+proc string CreateSHLDirectionalNode( string $dl )
+{
+	string $shld = `shadingNode -asLight SHLDirectional`;
+	connectAttr -f ($dl+".worldMatrix[0]") ($shld+".worldMatrix");
+	connectAttr -f ($dl+".intensity") ($shld+".intensity");
+	connectAttr -f ($dl+".color") ($shld+".color");
+	return $shld;	
+}
+
+proc string CreateSHLPointNode( string $pl )
+{
+	string $shld = `shadingNode -asLight SHLPoint`;
+	connectAttr -f ($pl+".worldMatrix[0]") ($shld+".worldMatrix");
+	connectAttr -f ($pl+".intensity") ($shld+".intensity");
+	connectAttr -f ($pl+".color") ($shld+".color");
+	return $shld;	
+}
+
+proc string CreateSHLAmbientNode( string $al )
+{
+	string $shld = `shadingNode -asLight SHLAmbient`;
+	connectAttr -f ($al+".worldMatrix[0]") ($shld+".worldMatrix");
+	connectAttr -f ($al+".intensity") ($shld+".intensity");
+	connectAttr -f ($al+".color") ($shld+".color");
+	connectAttr -f ($al+".ambientShade") ($shld+".ambientShade");
+
+	return $shld;	
+}
+
+global proc SHLConnect()
+{
+	// 最初にリストを保存しないとノード作成時セレクションリストが変更される
+	string $shlNodes[] = `ls -sl -dag -type SHLNode`;
+	string $shLights[] = `ls -sl -dag -type light`;
+	string $cgfxs[] = `ls -sl -type cgfxShader`;
+	
+	if( size( $shlNodes) ==0 && size( $shLights)>0)
+	{
+		$shlNodes[0] = createSHLNode();
+	} 
+	
+	if( size( $shlNodes)>0)
+	{
+		string $shlNode = $shlNodes[0];
+		string $shLight;
+
+		for( $shLight in $shLights)
+		{
+			string $light_type = `nodeType $shLight`;
+			string $light_sh;
+			
+			if( $light_type == "directionalLight")
+			{
+				$light_sh = CreateSHLDirectionalNode( $shLight);
+				connectAttr -f -na ($light_sh+".outSHLCoef") ($shlNode+".ishc");
+			}
+			else if( $light_type == "pointLight")
+			{
+				$light_sh = CreateSHLPointNode( $shLight);
+				connectAttr -f -na ($light_sh+".outSHLCoef") ($shlNode+".ishc");
+			}
+			else if( $light_type == "ambientLight")
+			{
+				$light_sh = CreateSHLAmbientNode( $shLight);
+				connectAttr -f -na ($light_sh+".outSHLCoef") ($shlNode+".ishc");
+			}
+			else
+			{
+				warning ("Unsuported light " + $shLight + "... ignore");
+			}
+		}
+		
+		string $cg;
+		
+		for( $cg in $cgfxs)
+		{
+			connectAttr ($shlNode + ".ocgarx") ($cg +".SHcArX");
+			connectAttr ($shlNode + ".ocgary") ($cg +".SHcArY");
+			connectAttr ($shlNode + ".ocgarz") ($cg +".SHcArZ");
+			connectAttr ($shlNode + ".ocgarw") ($cg +".SHcArW");
+			
+			connectAttr ($shlNode + ".ocgagx") ($cg +".SHcAgX");
+			connectAttr ($shlNode + ".ocgagy") ($cg +".SHcAgY");
+			connectAttr ($shlNode + ".ocgagz") ($cg +".SHcAgZ");
+			connectAttr ($shlNode + ".ocgagw") ($cg +".SHcAgW");
+			
+			connectAttr ($shlNode + ".ocgabx") ($cg +".SHcAbX");
+			connectAttr ($shlNode + ".ocgaby") ($cg +".SHcAbY");
+			connectAttr ($shlNode + ".ocgabz") ($cg +".SHcAbZ");
+			connectAttr ($shlNode + ".ocgabw") ($cg +".SHcAbW");
+
+			connectAttr ($shlNode + ".ocgbrx") ($cg +".SHcBrX");
+			connectAttr ($shlNode + ".ocgbry") ($cg +".SHcBrY");
+			connectAttr ($shlNode + ".ocgbrz") ($cg +".SHcBrZ");
+			connectAttr ($shlNode + ".ocgbrw") ($cg +".SHcBrW");
+			
+			connectAttr ($shlNode + ".ocgbgx") ($cg +".SHcBgX");
+			connectAttr ($shlNode + ".ocgbgy") ($cg +".SHcBgY");
+			connectAttr ($shlNode + ".ocgbgz") ($cg +".SHcBgZ");
+			connectAttr ($shlNode + ".ocgbgw") ($cg +".SHcBgW");
+			
+			connectAttr ($shlNode + ".ocgbbx") ($cg +".SHcBbX");
+			connectAttr ($shlNode + ".ocgbby") ($cg +".SHcBbY");
+			connectAttr ($shlNode + ".ocgbbz") ($cg +".SHcBbZ");
+			connectAttr ($shlNode + ".ocgbbw") ($cg +".SHcBbW");
+			
+			connectAttr ($shlNode + ".ocgcx") ($cg +".SHcCX");
+			connectAttr ($shlNode + ".ocgcy") ($cg +".SHcCY");
+			connectAttr ($shlNode + ".ocgcz") ($cg +".SHcCZ");
+		}
+	}
+}

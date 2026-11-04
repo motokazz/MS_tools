@@ -1,0 +1,150 @@
+=*=*=*=*=*=*=*=*=* up_a_02_brk_01 =*=*=*=*=*=*=*=*=*
+[True]
+
+TimeSetting=OK
+D:/Projects/Gravite2/assets/bg/model/up_a_02_brk_01.atgi
+D:/Projects/Gravite2/assets_local/up_a_02_brk_01/bg/model/up_a_02_brk_01.atgi COPY---> D:/Projects/Gravite2/assets/bg/model/up_a_02_brk_01.atgi
+COPY SUCCESS! : D:/Projects/Gravite2/assets/bg/model/up_a_02_brk_01.atgi
+D:/Projects/Gravite2/assets/bg/collision/up_a_02_brk_01.hkx
+D:/Projects/Gravite2/assets_local/up_a_02_brk_01/bg/collision/up_a_02_brk_01.hkx COPY---> D:/Projects/Gravite2/assets/bg/collision/up_a_02_brk_01.hkx
+COPY SUCCESS! : D:/Projects/Gravite2/assets/bg/collision/up_a_02_brk_01.hkx
+=*=*=*=*=*=*=*=*=* up_a_02_brk_02 =*=*=*=*=*=*=*=*=*
+[True]
+
+TimeSetting=OK
+D:/Projects/Gravite2/assets/bg/model/up_a_02_brk_02.atgi
+D:/Projects/Gravite2/assets_local/up_a_02_brk_02/bg/model/up_a_02_brk_02.atgi COPY---> D:/Projects/Gravite2/assets/bg/model/up_a_02_brk_02.atgi
+COPY SUCCESS! : D:/Projects/Gravite2/assets/bg/model/up_a_02_brk_02.atgi
+D:/Projects/Gravite2/assets/bg/collision/up_a_02_brk_02.hkx
+D:/Projects/Gravite2/assets_local/up_a_02_brk_02/bg/collision/up_a_02_brk_02.hkx COPY---> D:/Projects/Gravite2/assets/bg/collision/up_a_02_brk_02.hkx
+COPY SUCCESS! : D:/Projects/Gravite2/assets/bg/collision/up_a_02_brk_02.hkx
+=*=*=*=*=*=*=*=*=* up_a_02_brk_03 =*=*=*=*=*=*=*=*=*
+[True]
+
+TimeSetting=OK
+D:/Projects/Gravite2/assets/bg/model/up_a_02_brk_03.atgi
+D:/Projects/Gravite2/assets_local/up_a_02_brk_03/bg/model/up_a_02_brk_03.atgi COPY---> D:/Projects/Gravite2/assets/bg/model/up_a_02_brk_03.atgi
+COPY SUCCESS! : D:/Projects/Gravite2/assets/bg/model/up_a_02_brk_03.atgi
+D:/Projects/Gravite2/assets/bg/collision/up_a_02_brk_03.hkx
+D:/Projects/Gravite2/assets_local/up_a_02_brk_03/bg/collision/up_a_02_brk_03.hkx COPY---> D:/Projects/Gravite2/assets/bg/collision/up_a_02_brk_03.hkx
+COPY SUCCESS! : D:/Projects/Gravite2/assets/bg/collision/up_a_02_brk_03.hkx
+=*=*=*=*=*=*=*=*=* up_a_02_brk_04 =*=*=*=*=*=*=*=*=*
+[True]
+
+TimeSetting=OK
+D:/Projects/Gravite2/assets/bg/model/up_a_02_brk_04.atgi
+D:/Projects/Gravite2/assets_local/up_a_02_brk_04/bg/model/up_a_02_brk_04.atgi COPY---> D:/Projects/Gravite2/assets/bg/model/up_a_02_brk_04.atgi
+COPY SUCCESS! : D:/Projects/Gravite2/assets/bg/model/up_a_02_brk_04.atgi
+D:/Projects/Gravite2/assets/bg/collision/up_a_02_brk_04.hkx
+D:/Projects/Gravite2/assets_local/up_a_02_brk_04/bg/collision/up_a_02_brk_04.hkx COPY---> D:/Projects/Gravite2/assets/bg/collision/up_a_02_brk_04.hkx
+COPY SUCCESS! : D:/Projects/Gravite2/assets/bg/collision/up_a_02_brk_04.hkx
+=*=*=*=*=*=*=*=*=* up_a_02_brk_05 =*=*=*=*=*=*=*=*=*
+[True]
+
+TimeSetting=OK
+D:/Projects/Gravite2/assets/bg/model/up_a_02_brk_05.atgi
+D:/Projects/Gravite2/assets_local/up_a_02_brk_05/bg/model/up_a_02_brk_05.atgi COPY---> D:/Projects/Gravite2/assets/bg/model/up_a_02_brk_05.atgi
+COPY SUCCESS! : D:/Projects/Gravite2/assets/bg/model/up_a_02_brk_05.atgi
+D:/Projects/Gravite2/assets/bg/collision/up_a_02_brk_05.hkx
+D:/Projects/Gravite2/assets_local/up_a_02_brk_05/bg/collision/up_a_02_brk_05.hkx COPY---> D:/Projects/Gravite2/assets/bg/collision/up_a_02_brk_05.hkx
+COPY SUCCESS! : D:/Projects/Gravite2/assets/bg/collision/up_a_02_brk_05.hkx
+=*=*=*=*=*=*=*=*=* up_a_02_brk_06 =*=*=*=*=*=*=*=*=*
+[True]
+
+TimeSetting=OK
+D:/Projects/Gravite2/assets/bg/model/up_a_02_brk_06.atgi
+D:/Projects/Gravite2/assets_local/up_a_02_brk_06/bg/model/up_a_02_brk_06.atgi COPY---> D:/Projects/Gravite2/assets/bg/model/up_a_02_brk_06.atgi
+COPY SUCCESS! : D:/Projects/Gravite2/assets/bg/model/up_a_02_brk_06.atgi
+D:/Projects/Gravite2/assets/bg/collision/up_a_02_brk_06.hkx
+D:/Projects/Gravite2/assets_local/up_a_02_brk_06/bg/collision/up_a_02_brk_06.hkx COPY---> D:/Projects/Gravite2/assets/bg/collision/up_a_02_brk_06.hkx
+COPY SUCCESS! : D:/Projects/Gravite2/assets/bg/collision/up_a_02_brk_06.hkx
+=*=*=*=*=*=*=*=*=* up_a_02_brk_07 =*=*=*=*=*=*=*=*=*
+[True]
+
+TimeSetting=OK
+D:/Projects/Gravite2/assets/bg/model/up_a_02_brk_07.atgi
+D:/Projects/Gravite2/assets_local/up_a_02_brk_07/bg/model/up_a_02_brk_07.atgi COPY---> D:/Projects/Gravite2/assets/bg/model/up_a_02_brk_07.atgi
+COPY SUCCESS! : D:/Projects/Gravite2/assets/bg/model/up_a_02_brk_07.atgi
+D:/Projects/Gravite2/assets/bg/collision/up_a_02_brk_07.hkx
+D:/Projects/Gravite2/assets_local/up_a_02_brk_07/bg/collision/up_a_02_brk_07.hkx COPY---> D:/Projects/Gravite2/assets/bg/collision/up_a_02_brk_07.hkx
+COPY SUCCESS! : D:/Projects/Gravite2/assets/bg/collision/up_a_02_brk_07.hkx
+=*=*=*=*=*=*=*=*=* up_a_02_brk_08 =*=*=*=*=*=*=*=*=*
+[True]
+
+TimeSetting=OK
+D:/Projects/Gravite2/assets/bg/model/up_a_02_brk_08.atgi
+D:/Projects/Gravite2/assets_local/up_a_02_brk_08/bg/model/up_a_02_brk_08.atgi COPY---> D:/Projects/Gravite2/assets/bg/model/up_a_02_brk_08.atgi
+COPY SUCCESS! : D:/Projects/Gravite2/assets/bg/model/up_a_02_brk_08.atgi
+D:/Projects/Gravite2/assets/bg/collision/up_a_02_brk_08.hkx
+D:/Projects/Gravite2/assets_local/up_a_02_brk_08/bg/collision/up_a_02_brk_08.hkx COPY---> D:/Projects/Gravite2/assets/bg/collision/up_a_02_brk_08.hkx
+COPY SUCCESS! : D:/Projects/Gravite2/assets/bg/collision/up_a_02_brk_08.hkx
+=*=*=*=*=*=*=*=*=* up_a_02_brk_09 =*=*=*=*=*=*=*=*=*
+[True]
+
+TimeSetting=OK
+D:/Projects/Gravite2/assets/bg/model/up_a_02_brk_09.atgi
+D:/Projects/Gravite2/assets_local/up_a_02_brk_09/bg/model/up_a_02_brk_09.atgi COPY---> D:/Projects/Gravite2/assets/bg/model/up_a_02_brk_09.atgi
+COPY SUCCESS! : D:/Projects/Gravite2/assets/bg/model/up_a_02_brk_09.atgi
+D:/Projects/Gravite2/assets/bg/collision/up_a_02_brk_09.hkx
+D:/Projects/Gravite2/assets_local/up_a_02_brk_09/bg/collision/up_a_02_brk_09.hkx COPY---> D:/Projects/Gravite2/assets/bg/collision/up_a_02_brk_09.hkx
+COPY SUCCESS! : D:/Projects/Gravite2/assets/bg/collision/up_a_02_brk_09.hkx
+=*=*=*=*=*=*=*=*=* up_a_02_brk_10 =*=*=*=*=*=*=*=*=*
+[True]
+
+TimeSetting=OK
+D:/Projects/Gravite2/assets/bg/model/up_a_02_brk_10.atgi
+D:/Projects/Gravite2/assets_local/up_a_02_brk_10/bg/model/up_a_02_brk_10.atgi COPY---> D:/Projects/Gravite2/assets/bg/model/up_a_02_brk_10.atgi
+COPY SUCCESS! : D:/Projects/Gravite2/assets/bg/model/up_a_02_brk_10.atgi
+D:/Projects/Gravite2/assets/bg/collision/up_a_02_brk_10.hkx
+D:/Projects/Gravite2/assets_local/up_a_02_brk_10/bg/collision/up_a_02_brk_10.hkx COPY---> D:/Projects/Gravite2/assets/bg/collision/up_a_02_brk_10.hkx
+COPY SUCCESS! : D:/Projects/Gravite2/assets/bg/collision/up_a_02_brk_10.hkx
+=*=*=*=*=*=*=*=*=* up_a_02_brk_11 =*=*=*=*=*=*=*=*=*
+[True]
+
+TimeSetting=OK
+D:/Projects/Gravite2/assets/bg/model/up_a_02_brk_11.atgi
+D:/Projects/Gravite2/assets_local/up_a_02_brk_11/bg/model/up_a_02_brk_11.atgi COPY---> D:/Projects/Gravite2/assets/bg/model/up_a_02_brk_11.atgi
+COPY SUCCESS! : D:/Projects/Gravite2/assets/bg/model/up_a_02_brk_11.atgi
+D:/Projects/Gravite2/assets/bg/collision/up_a_02_brk_11.hkx
+D:/Projects/Gravite2/assets_local/up_a_02_brk_11/bg/collision/up_a_02_brk_11.hkx COPY---> D:/Projects/Gravite2/assets/bg/collision/up_a_02_brk_11.hkx
+COPY SUCCESS! : D:/Projects/Gravite2/assets/bg/collision/up_a_02_brk_11.hkx
+=*=*=*=*=*=*=*=*=* up_a_02_brk_12 =*=*=*=*=*=*=*=*=*
+[True]
+
+TimeSetting=OK
+D:/Projects/Gravite2/assets/bg/model/up_a_02_brk_12.atgi
+D:/Projects/Gravite2/assets_local/up_a_02_brk_12/bg/model/up_a_02_brk_12.atgi COPY---> D:/Projects/Gravite2/assets/bg/model/up_a_02_brk_12.atgi
+COPY SUCCESS! : D:/Projects/Gravite2/assets/bg/model/up_a_02_brk_12.atgi
+D:/Projects/Gravite2/assets/bg/collision/up_a_02_brk_12.hkx
+D:/Projects/Gravite2/assets_local/up_a_02_brk_12/bg/collision/up_a_02_brk_12.hkx COPY---> D:/Projects/Gravite2/assets/bg/collision/up_a_02_brk_12.hkx
+COPY SUCCESS! : D:/Projects/Gravite2/assets/bg/collision/up_a_02_brk_12.hkx
+=*=*=*=*=*=*=*=*=* up_a_02_brk_13 =*=*=*=*=*=*=*=*=*
+[True]
+
+TimeSetting=OK
+D:/Projects/Gravite2/assets/bg/model/up_a_02_brk_13.atgi
+D:/Projects/Gravite2/assets_local/up_a_02_brk_13/bg/model/up_a_02_brk_13.atgi COPY---> D:/Projects/Gravite2/assets/bg/model/up_a_02_brk_13.atgi
+COPY SUCCESS! : D:/Projects/Gravite2/assets/bg/model/up_a_02_brk_13.atgi
+D:/Projects/Gravite2/assets/bg/collision/up_a_02_brk_13.hkx
+D:/Projects/Gravite2/assets_local/up_a_02_brk_13/bg/collision/up_a_02_brk_13.hkx COPY---> D:/Projects/Gravite2/assets/bg/collision/up_a_02_brk_13.hkx
+COPY SUCCESS! : D:/Projects/Gravite2/assets/bg/collision/up_a_02_brk_13.hkx
+=*=*=*=*=*=*=*=*=* up_a_02_brk_14 =*=*=*=*=*=*=*=*=*
+[True]
+
+TimeSetting=OK
+D:/Projects/Gravite2/assets/bg/model/up_a_02_brk_14.atgi
+D:/Projects/Gravite2/assets_local/up_a_02_brk_14/bg/model/up_a_02_brk_14.atgi COPY---> D:/Projects/Gravite2/assets/bg/model/up_a_02_brk_14.atgi
+COPY SUCCESS! : D:/Projects/Gravite2/assets/bg/model/up_a_02_brk_14.atgi
+D:/Projects/Gravite2/assets/bg/collision/up_a_02_brk_14.hkx
+D:/Projects/Gravite2/assets_local/up_a_02_brk_14/bg/collision/up_a_02_brk_14.hkx COPY---> D:/Projects/Gravite2/assets/bg/collision/up_a_02_brk_14.hkx
+COPY SUCCESS! : D:/Projects/Gravite2/assets/bg/collision/up_a_02_brk_14.hkx
+=*=*=*=*=*=*=*=*=* up_a_02_brk_15 =*=*=*=*=*=*=*=*=*
+[True]
+
+TimeSetting=OK
+D:/Projects/Gravite2/assets/bg/model/up_a_02_brk_15.atgi
+D:/Projects/Gravite2/assets_local/up_a_02_brk_15/bg/model/up_a_02_brk_15.atgi COPY---> D:/Projects/Gravite2/assets/bg/model/up_a_02_brk_15.atgi
+COPY SUCCESS! : D:/Projects/Gravite2/assets/bg/model/up_a_02_brk_15.atgi
+D:/Projects/Gravite2/assets/bg/collision/up_a_02_brk_15.hkx
+D:/Projects/Gravite2/assets_local/up_a_02_brk_15/bg/collision/up_a_02_brk_15.hkx COPY---> D:/Projects/Gravite2/assets/bg/collision/up_a_02_brk_15.hkx
+COPY SUCCESS! : D:/Projects/Gravite2/assets/bg/collision/up_a_02_brk_15.hkx

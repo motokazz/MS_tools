@@ -1,0 +1,31 @@
+global proc MS_HRC_XFF_Export_TexExtRep_All(int $val_radio)
+{
+
+	string $ext_name[]={"dummy",".dds",".tga",".tif",".jpg"};
+
+	string $rec_obj[]=`ls -sl`;
+
+	select -all;
+
+	string $obj_name[]=`ls -sl -typ file`;
+
+	
+	for($each in $obj_name){
+	
+	string $name=`getAttr ($each+".fileTextureName")`;
+	
+	
+	//ƒsƒŠƒIƒh‚Å•ªŠ„
+	string $buffer[];
+	tokenize $name "." $buffer;
+	
+	
+		setAttr -type "string" ($each+".fileTextureName") ($buffer[0]+$ext_name[$val_radio]);
+	
+	}
+	if($rec_obj[0]==""){
+		select -cl;
+	}else{
+		select -r $rec_obj;
+	}
+}

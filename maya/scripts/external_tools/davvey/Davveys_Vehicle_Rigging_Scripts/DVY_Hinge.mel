@@ -1,0 +1,145 @@
+/* This file downloaded from Highend3d.com
+''  
+''  Highend3d.com File Information:
+''  
+''    Script Name: Davveys Vehicle Rigging Scripts
+''    Author:  
+''    Last Updated: Jul 21, 2007
+''    Update/Change this file at:
+''    http://Highend3d.com/maya/downloads/mel_scripts/animation/4109.html
+''  
+''  Please do not alter any information above this line
+''  it is generated dynamically by Highend3d.com and will
+''  be changed automatically on any updates.
+*/
+
+
+//////////////////////////////////////////////////////////////////////////
+//					DVY_Hinge Procedure
+//////////////////////////////////////////////////////////////////////////
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+
+//============================================================================
+//	GLOBAL VARIABLES
+//============================================================================
+	global int $DVYDebug;
+
+// Integer Flag that allows print statements to be output to
+// message field for tracking purposes.
+
+//============================================================================
+	
+global proc DVY_Hinge(int $N, string $Name, float $HPos[])
+{
+	 print "Start of DVY_Hinge Procedure. \n";
+// ******************************************************************************** //	
+//	Global Variables
+
+	global string $GroupV_A[], $RigControlsA[], $DrControlsA[], $DVYHinge[], $DVYHandle[];
+	global string $DLocs[], $DJntsA[], $LocGroups[], $DVY_MuSuspGrp[];
+	global string $hier[], $LChier[], $JThier[];
+	
+	global string $DVY_VehName;
+	global int $On = 1;
+	
+	global float $DVYdata[];	
+	
+// -------------------------------------------------------------------------------- //
+	
+// ******************************************************************************** //	
+//	Local Variables
+
+	string $ShaderName,$NameOfShader, $Shader[], $Name, $Temp[];
+	float $DVYColour[], $DVYSpColour[], $DVYDiffColour[], $WhSz[];
+	int $SelF  = `radioButtonGrp -q -sl FrDoorRadioButtons`;
+	int $SelR  = `radioButtonGrp -q -sl RrDoorRadioButtons`;
+	
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+//	Section to get position and size of Vehicle (used to set scale of Spheres)
+	
+		if (`objExists $GroupV_A[6]`)
+		{
+			$WhSz[0] = `getAttr ($GroupV_A[6] + ".boundingBoxSizeX")` * 0.1;
+			$WhSz[1] = `getAttr ($GroupV_A[6] + ".boundingBoxSizeY")` * 0.1;
+			$WhSz[2] = `getAttr ($GroupV_A[6] + ".boundingBoxSizeZ")` * 0.1;
+			print "$WhSz is \n";
+			print $WhSz;
+		}
+		else{ $WhSz[0] = 10; $WhSz[1] = 10; $WhSz[2] = 10; }
+
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+//	Section to generate simple Blue and Red Shaders for Door and or Hood Spheres.
+	
+	$ShaderName = "BlueSphere";	
+	if (`objExists($ShaderName + "_SH")`) {$Shader[0] = ($ShaderName + "_SH");}
+		else{
+				$DVYColour = {0.0, 0.0, 1.0};
+				$DVYSpColour = {0.1, 0.1, 0.1};
+				$DVYDiffColour = {0.6, 0.6, 0.6};
+			
+					$NameOfShader = `shadingNode -asShader blinn`;
+					$NameOfShader = `rename $NameOfShader ($ShaderName + "_SH")`;
+						setAttr ($NameOfShader + ".colorR") $DVYColour[0] ;
+						setAttr ($NameOfShader + ".colorG") $DVYColour[1] ;
+						setAttr ($NameOfShader + ".colorB") $DVYColour[2] ;
+					$Shader[0] = $NameOfShader;
+			}
+				
+	$ShaderName = "RedSphere";	
+	if (`objExists($ShaderName + "_SH")`){$Shader[1] = ($ShaderName + "_SH");}
+		else{
+				$DVYColour = {1.0, 0.0, 0.0};
+				$DVYSpColour = {0.1, 0.1, 0.1};
+				$DVYDiffColour = {0.6, 0.6, 0.6};
+			
+					$NameOfShader = `shadingNode -asShader blinn`;
+					$NameOfShader = `rename $NameOfShader ($ShaderName + "_SH")`;
+						setAttr ($NameOfShader + ".colorR") $DVYColour[0] ;
+						setAttr ($NameOfShader + ".colorG") $DVYColour[1] ;
+						setAttr ($NameOfShader + ".colorB") $DVYColour[2] ;
+					$Shader[1] = $NameOfShader;
+			}
+				
+//	print "$Shaders are \n";
+//	print $Shader;
+	
+	string $DAttrBA[], $DAttrRA[], $Att;
+	$DAttrBA = {".sx", ".sy", ".sz"};
+	$DAttrRA = {".ry", ".rz", ".sx", ".sy", ".sz"};
+	
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+//	Section to generate and initially Position Door or Hood Location Spheres.	
+
+		$Temp = `polySphere -r 1 -sx 8 -sy 8 -ax 0 1 0 -tx 1 -ch 0 -name Blue`;
+		scale $WhSz[0] $WhSz[0] $WhSz[0];
+		for ($Att in $DAttrBA) {setAttr -l true - k false ("Blue" + $Att);}
+		$DVYHinge[$N] = `rename $Temp[0] ($DVY_VehName + $Name + "Hinge_1")`;
+			select -r $DVYHinge[$N];
+			hyperShade -assign "initialShadingGroup";
+			hyperShade -assign $Shader[0];
+
+		$Temp = `polySphere -r 1 -sx 8 -sy 8 -ax 0 1 0 -tx 1 -ch 0 -name Red`;
+			for ($Att in $DAttrRA) {setAttr -l true - k false ("Red" + $Att);} 
+			$DVYHandle[$N] = `rename $Temp[0] ($DVY_VehName + $Name + "Handle_1")`;
+			move -r $HPos[3] $HPos[4] $HPos[5] ;
+			select -r $DVYHandle[$N];
+			hyperShade -assign "initialShadingGroup";
+			hyperShade -assign $Shader[1];
+		
+		parent $DVYHandle[$N] $DVYHinge[$N];
+		select -r $DVYHinge[$N];
+		move -r $HPos[0] $HPos[1] $HPos[2] $DVYHinge[$N];
+		
+		
+	print "End of DVY_Hinge Procedure. \n";
+		
+}			

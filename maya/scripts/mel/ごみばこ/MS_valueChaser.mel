@@ -1,0 +1,20 @@
+global proc MS_valueChaser(){
+/*
+一番親から、移動値を加算してグローバル値を求める
+*/
+
+	string $top[]=`ls -l -sl`;
+	string $test[];
+	tokenize $top[0] "|" $test;
+	float $tx=0;
+	$i=0;
+	string $name="";
+	for($i=0;$i<size($test);$i++){
+		$name=($name+"|"+$test[$i]);
+		$tx+=`getAttr ($name+".tx")`;
+		print ($name+"\n");
+	}
+	print $tx;
+}
+
+

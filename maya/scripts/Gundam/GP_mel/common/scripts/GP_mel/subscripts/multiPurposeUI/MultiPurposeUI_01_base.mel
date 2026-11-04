@@ -1,0 +1,345 @@
+//---------------------------------------------------------------------------------------------------------
+//基礎部分
+//---------------------------------------------------------------------------------------------------------
+global proc string GP2_dMPU_queFilePath(){
+	string $res = (`getenv GP_MAYA_ROOT` + "/common/scripts/GP_mel/subscripts/devMultiUI");
+	return $res;
+}
+
+global proc string dMPU_getVer(){
+	string $ver = "0_72_130726";
+	return $ver;
+}
+
+global proc string GP2_dMPU_loadData(string $fullPath , string $tgtData){
+	string $res;
+	string $temp[];
+
+	$fileId = `fopen $fullPath "r"`;
+	string $nextLine = `fgetline $fileId`;
+	while ( size( $nextLine ) > 0 ) {
+		if(gmatch( $nextLine , ($tgtData + "*"))){
+			$res = $nextLine;
+			break;
+		}
+		$nextLine = `fgetline $fileId`;
+	}
+	fclose $fileId;
+	tokenize $res "," $temp;
+	$res = $temp[1];
+	return $res;
+}
+
+global proc string[] GP2_dMPU_loadArrayData(string $fullPath , string $tgtData){
+	string $res[];
+
+	$fileId = `fopen $fullPath "r"`;
+	string $nextLine = `fgetline $fileId`;
+	int $i , $flag;
+
+	while ( size( $nextLine ) > 0 ) {
+		if(gmatch( $nextLine , ("end of " + $tgtData + "*"))){
+			$flag = 0;
+		}else if($flag == 1){
+			$res[$i] = $nextLine;
+			$i++;
+		}else if(gmatch( $nextLine , ($tgtData + "*"))){
+			$flag = 1;
+		}
+		$nextLine = `fgetline $fileId`;
+	}
+	fclose $fileId;
+	return $res;
+}
+
+global proc string dMPU_getUIObjectType(string $tgt){
+	string $temp[];
+	tokenize $tgt "_" $temp;
+	return $temp[0];
+}
+
+global proc int dMPU_checkOptUseable(string $cmdUI , string $opt){
+	string $helpMes = `help $cmdUI`;
+	int $res = 0;
+	if(gmatch($helpMes,("*" + $opt + " *"))){
+		$res = 1;
+	}
+	if($cmdUI == "canvas" && $opt == "-dgc")	$res = 0;	//「ヘルプはあるっ・・・！ヘルプはあるがっ・・・！
+	if($cmdUI == "canvas" && $opt == "-dpc")	$res = 0;	//　使用出来ないコマンドにもあえて記述しているっ・・・！」ふざくんな自動机爆発しろ
+	return $res;
+}
+
+
+global proc dMPU_recolSetting(){
+	int $reColorJob;
+	string $ver = dMPU_getVer();
+	string $windowName = ("EditableUIWindow_" + $ver);
+
+	if(`iconTextCheckBox -q -v dMPU_reColSettingBtn`){
+		$reColorJob = `scriptJob -parent $windowName -e "SelectionChanged" "dMPU_rePaintBySelection"`;
+		intField -e -v $reColorJob dMPU_reColedJobIntFld;
+	}else{
+		$reColorJob = `intField -q -v dMPU_reColedJobIntFld`;
+		scriptJob -kill $reColorJob -force;
+	}
+}
+
+
+global proc GP2_dMPU_makeBG(string $filePath , string $srcFile , string $BGfile){
+	$srcFile = `basenameEx($srcFile)`;
+	string $temp[];
+	tokenize $BGfile ":" $temp;
+	int $x = int($temp[1]);
+	int $y = int($temp[2]);
+
+	string $bgImage = `image -image ($filePath + "\\" + $temp[0]) -w $x -h $y ("BG_" + $srcFile)`;
+
+	image -e 
+		-dragCallback GP2_dMPU_DragCB 
+		-dropCallback GP2_dMPU_DropCB 
+		$bgImage;
+	string $form = `image -q -parent ("BG_" + $srcFile)`;
+	formLayout -e -attachForm $bgImage "left" 0 $form;
+	formLayout -e -attachForm $bgImage "top" 0 $form;
+
+	columnLayout -vis (`checkBox -q -v dMPU_debugFlag`) ("BG_" + $srcFile + "posManageColLayout");
+		rowLayout -nc 2 ("BG_" + $srcFile + "pMRow_00");
+			intField -ann ("BG_" + $srcFile + "_aPXIF") -w 65 ("BG_" + $srcFile + "_aPXIF");
+			intField -ann ("BG_" + $srcFile + "_aPYIF") -w 65 ("BG_" + $srcFile + "_aPYIF");
+		setParent ..;
+	setParent ..;
+}
+
+
+
+global proc GP2_dMPU_makeNewUI_2(string $name , string $type , int $posX , int $posY , int $sizeX , int $sizeY , string $command , string $image , float $col[] , string $ann){
+
+	string $parentLayout = `setParent -q`;
+	string $addOpt;
+	int $i;
+
+	string $optList[] = {"-c","-i","-w","-h","-bgc","-dgc","-dpc","-ann","-field"};
+	string $optData[] = {("\"" + $command + "\""),fromNativePath("\"" + $image + "\""),$sizeX,$sizeY,($col[0] + " " + $col[1] + " " + $col[2]),"GP2_dMPU_DragFromUICB","GP2_dMPU_DroprToUICB",("\"" + $ann + "\""),true};
+	for($i=0;$i<size($optList);$i++){
+		if(dMPU_checkOptUseable($type , $optList[$i])){
+			$addOpt = ($addOpt + " " + $optList[$i] + " " + $optData[$i]);
+		}
+	}
+
+	string $UIcom = ($type + " " + $addOpt + " " + $name + ";");
+	if(`checkBox -q -v dMPU_debugFlag`) print ($UIcom + "\r\n");
+	eval $UIcom;
+
+	string $ctrls[] = `layout -q -ca $parentLayout`;
+	string $btn = $ctrls[size($ctrls) - 1];
+
+	formLayout -e -attachForm $btn "left" $posX $parentLayout;
+	formLayout -e -attachForm $btn "top" $posY $parentLayout;
+
+	string $temp[] = `layout -q -ca $parentLayout`;
+
+	setParent $temp[1];
+		rowLayout -nc 5 ("posManageRow_" + $name);
+			intField -w 65 -v $posX -ann ($name + "_posX") ($name + "_posX");
+			intField -w 65 -v $posY -ann ($name + "_posY") ($name + "_posY");
+			textField -w 65 -tx ($col[0] + "," + $col[1] + "," + $col[2]) -ann ($name + "_color") ($name + "_color");
+			checkBox -w 65 -ann ($name + "_selected") ($name + "_selected");
+			checkBox -w 65 -ann ($name + "_deleted") ($name + "_deleted");
+	setParent $parentLayout;
+}
+
+
+/*
+global proc GP2_dMPU_makeNewUI(string $name , int $posX , int $posY , int $sizeX , int $sizeY , string $command , string $image , float $col[]){
+
+	string $btn;
+	string $ctrls[];
+
+	string $mode = dMPU_getCondition();
+
+
+	$ctrls = `textScrollList -q -si addCtrlSelList`;
+	if(`checkBox -q -v dMPU_addSizeLk`){
+		$sizeX = `floatField -q -v dMPU_addSizeX`;
+		$sizeY = `floatField -q -v dMPU_addSizeY`;
+	}
+	GP2_dMPU_makeNewUI_2($name , $ctrls[0] , $posX , $posY , $sizeX , $sizeY , $command , $image , $col , $name);
+}
+
+
+global proc GP2_dMPU_makeRigPick(string $filePath , string $srcFile , string $rigPicker[]){
+	string $temp[];
+	string $name , $command , $image;
+	int $posX , $posY , $sizeX , $sizeY;
+	for($i=0 ; $i < size($rigPicker) ; $i++){
+		tokenize $rigPicker[$i] "," $temp;
+		$name = (`basenameEx($srcFile)` + "_picker_" + $temp[0]);
+		$posX = int($temp[1]);
+		$posY = int($temp[2]);
+		$sizeX = int($temp[3]);
+		$sizeY = int($temp[4]);
+		$command = ("select -r " + $temp[0]);
+		$image = ($filePath + "\\icon\\pickerTrial_00" + $temp[5] + ".bmp");
+		//float $col[] = { 0.3984 , 0.6953 , 0.4013};
+		float $col[] = { 0.2656 , 0.2656 , 0.2656};
+
+		GP2_dMPU_makeNewUI($name ,$posX , $posY , $sizeX , $sizeY , $command , $image , $col);
+	}
+}
+*/
+
+//立ち上げ時のUI構築
+
+global proc GP2_dMPU_makeAddUI(string $filePath , string $srcFile , string $addUI[]){
+	string $temp[];
+	string $name , $type , $color , $ann , $command , $image;
+	int $posX , $posY , $sizeX , $sizeY;
+	for($i=0 ; $i < size($addUI) ; $i++){
+		tokenize $addUI[$i] "@" $temp;
+		$name = $temp[0];
+		$type = $temp[1];
+		$posX = int($temp[2]);
+		$posY = int($temp[3]);
+		$sizeX = int($temp[4]);
+		$sizeY = int($temp[5]);
+		$color = $temp[6];
+		$ann = $temp[7];
+		$image = $temp[8];
+		$command = $temp[9];
+
+			tokenize $color "," $temp;
+			float $col[];
+			$col[0] = float($temp[0]);
+			$col[1] = float($temp[1]);
+			$col[2] = float($temp[2]);
+		GP2_dMPU_makeNewUI_2($name , $type , $posX , $posY , $sizeX , $sizeY , $command , $image , $col , $ann);
+	}
+}
+
+global proc GP2_dMPU_buildTab( string $filePath , string $srcFile){
+	string $fullPath = $filePath + "\\" + $srcFile;
+	string $tabTitle = GP2_dMPU_loadData($fullPath , "title");
+	string $tabBG = GP2_dMPU_loadData($fullPath , "use_BGImage");
+//	string $rigPicker[] = GP2_dMPU_loadArrayData($fullPath , "controller");
+	string $addAction[] = GP2_dMPU_loadArrayData($fullPath , "addAction");
+
+	GP2_dMPU_makeBG($filePath , $srcFile , $tabBG);
+//	GP2_dMPU_makeRigPick( $filePath , $srcFile , $rigPicker);
+	GP2_dMPU_makeAddUI( $filePath , $srcFile , $addAction);
+}
+
+global proc GP2_dMPU_primalAct( string $filePath , string $srcFile ){
+	string $actFile = ( `basenameEx($srcFile)` + "_primalAct" );
+	string $fullPath = $filePath + "\\primalAct\\" + $actFile + ".mel";
+	if(`filetest -r $fullPath`){
+		eval( "source \"" + $actFile + "\"" );
+//		source($actFile);
+		eval($actFile);
+	}
+}
+
+global proc GP2_dMPU_makeSavedUI(string $filePath){
+	string $tabFileList[] = `getFileList -folder ($filePath + "\\") -filespec "*.csv"`;
+	string $innerTabForm[];
+	int $i;
+	for($i=0 ; $i<size($tabFileList) ; $i++){
+		$innerTabForm[$i] = `formLayout $tabFileList[$i]`;
+		GP2_dMPU_buildTab( $filePath , $tabFileList[$i] );
+		GP2_dMPU_primalAct( $filePath , $tabFileList[$i] );
+		setParent ..;
+	}
+}
+
+
+global proc GP2_devMultiPurposeUI(){
+	string $filePath = GP2_dMPU_queFilePath();
+	string $ver = dMPU_getVer();
+	string $windowName = ("EditableUIWindow_" + $ver);
+	if(`window -q -exists $windowName`){
+		deleteUI -window $windowName;
+	}
+	window -h 640 -w 640 $windowName;
+	string $menuLay = `menuBarLayout`;
+		menu -label "File";
+		menuItem -label "New" -c "GP2_dMPU_makeNewTabWindow()";
+		menuItem -label "Save" -c "dMPU_saveTabCondition()";
+//		menuItem -label "Open";
+//		menuItem -label "Close tab";
+		menu -label "mode";
+		menuItem -label "Act" -c "dMPU_cleanSubwindow()";
+		menuItem -label "Add" -c "addCtrlSelectWindow()";
+		menuItem -label "Edit" -c "dMPU_editCtrlSortWindow()";
+		menu -label "Help" -helpMenu true;
+		menuItem -label "About...";
+	setParent ..;
+
+	string $form = `formLayout dMPU_globalForm`;
+		string $menuForm = `formLayout dMPU_globalForm`;
+			string $sep1 = `separator -hr 1 -st "in" -h 2`;
+
+			string $iconLayout = `flowLayout -visible true -h 26 dMPU_toolIconList`;
+
+//---------------------------------------------------------------------------------------------------------
+				//デバッグ用フラグ
+//---------------------------------------------------------------------------------------------------------
+
+				checkBox -vis 0 -v 0 dMPU_debugFlag;
+
+//---------------------------------------------------------------------------------------------------------
+
+				iconTextButton -i ($filePath + "\\icon\\sysIcon_0.bmp") -c "GP2_dMPU_makeNewTabWindow()" dMPU_newFileBtn;
+				iconTextButton -i ($filePath + "\\icon\\sysIcon_1.bmp") -c "dMPU_saveTabCondition()" dMPU_saveFileBtn;
+				separator -hr 0 -st "in" -h 24 -w 2;
+				iconTextRadioCollection dMPU_activeMode;
+				iconTextRadioButton -i ($filePath + "\\icon\\sysIcon_10.bmp") -sl -onc "dMPU_cleanSubwindow()" dMPU_actUIBtn;
+				iconTextRadioButton -i ($filePath + "\\icon\\sysIcon_11.bmp") -onc "addCtrlSelectWindow()" dMPU_addUIBtn;
+				iconTextRadioButton -i ($filePath + "\\icon\\sysIcon_12.bmp") -onc "dMPU_editCtrlSortWindow()" dMPU_editUIBtn;
+				separator -hr 0 -st "in" -h 24 -w 2;
+				iconTextButton -i ($filePath + "\\icon\\sysIcon_20.bmp") -c "GP2_dMPU_getNewBGPath(1)" dMPU_changeBGBtn;
+				separator -hr 0 -st "in" -h 24 -w 2;
+				iconTextCheckBox -i ($filePath + "\\icon\\sysIcon_30.bmp") -cc "dMPU_recolSetting()" dMPU_reColSettingBtn;
+				intField -v 0 -vis 0 dMPU_reColedJobIntFld;
+				setParent ..;
+
+			string $db = `iconTextButton -i ($filePath + "\\icon\\sysIcon_99.bmp") -dpc "GP2_dMPU_DropToDustBoxCB" dMPU_dustUIIcon`;
+			string $sep2 = `separator -hr 1 -st "in" -h 2`;
+		setParent ..;
+
+		string $tabs = `tabLayout -cc "dMPU_reMakeECSWindow()" -innerMarginWidth 5 -innerMarginHeight 5 dMPU_globalTab`;
+		formLayout -edit
+			-attachForm $sep1 "top"     0
+			 -attachForm $sep1 "left"   0
+			 -attachNone $sep1 "bottom"
+			 -attachForm $sep1 "right"  0
+
+			-attachControl $iconLayout "top" 0 $sep1
+			 -attachForm $iconLayout "left"  0
+			 -attachNone $iconLayout "bottom"
+			 -attachControl $iconLayout "right" 0 $db
+
+			-attachControl $db "top"   0 $sep1
+			 -attachNone $db "left"
+			 -attachNone $db "bottom"
+			 -attachForm $db "right"   0
+
+			-attachControl $sep2 "top"  0 $iconLayout
+			 -attachForm $sep2 "left"   0
+			 -attachForm $sep2 "bottom" 0
+			 -attachForm $sep2 "right"  0
+			$menuForm;
+
+		formLayout -edit
+			-attachForm $menuForm "top"     0
+			 -attachForm $menuForm "left"   0
+			 -attachNone $menuForm "bottom"
+			 -attachForm $menuForm "right"  0
+
+			-attachControl $tabs "top"  0 $menuForm
+			 -attachForm $tabs "left"   0
+			 -attachForm $tabs "bottom" 0
+			 -attachForm $tabs "right"  0
+			 $form;
+		GP2_dMPU_makeSavedUI($filePath);
+	scriptJob -uiDeleted $windowName "dMPU_cleanSubwindow();";
+ 	showWindow $windowName;
+}

@@ -1,0 +1,28 @@
+global proc MS_texCleanAll(){
+
+	string $fileTexturez[]=`MS_listAllTextureFiles`;
+	
+string $filez[]=`ls -typ file`;
+
+
+
+for($each1 in $fileTexturez){
+	$i=0;
+	for($each2 in $filez){
+		
+		string $temp[];
+		if(`getAttr ($each2+".fileTextureName")`==$each1){
+			$temp[$i]=$each2;
+			$i++;
+			//select -r $temp;
+			MS_texClean $temp;
+		}
+	}
+}
+
+$uc = `ls -typ unitConversion`;
+delete $uc;
+}
+
+
+

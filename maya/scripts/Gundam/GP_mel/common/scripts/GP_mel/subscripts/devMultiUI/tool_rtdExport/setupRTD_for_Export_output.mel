@@ -1,0 +1,550 @@
+//setupRTD_for_Export_output.mel
+
+global proc remakeCsvBaseposeInfo(string $saveDataFileName , string $RTDID , string $tgtInfo[]){
+	int $fileId = `fopen $saveDataFileName "r"`;
+	string $line ;
+	$line = `fgetline $fileId`;
+	int $i=0;
+	string $loadedItems[];
+
+	while ( size( $line ) > 0 ){
+		string $temp[];
+		$temp = tokenize_adv($line , ",");
+		if($temp[1] == "basepose"){
+			$loadedItems[$i] = ($RTDID + "_" + $tgtInfo[3] + "_basepose.fbx,basepose,1,,,,,,,,");
+		}else{
+			$loadedItems[$i] = $line;
+		}
+		$line = `fgetline $fileId`;
+		$i++;
+	}
+
+	$fileId=`fopen $saveDataFileName "w"`;
+	for ($loadedItem in $loadedItems){
+		if (endsWith($loadedItem,"\n") == 0){
+			$loadedItem = ($loadedItem + "\n");
+		}
+		fprint $fileId ($loadedItem);
+	}
+	fclose $fileId;
+}
+
+global proc rtdExportBasepose_multiScenes(){
+	source "setupRTD_for_Export_setting";
+	string $tgtListUI = "textScrollList_setupRTD_for_Export4_csv_MSExport_scnList0";
+	string $tgtList[] = `textScrollList -q -si $tgtListUI`;
+	for($item in $tgtList){
+		file -force -options "v=0;" -loadReferenceDepth "all"  -typ "mayaBinary" -open $item;
+		rtdExpt_loadSettings("RTDSetting_saveData");
+		exportRTDBasepose();
+	}
+}
+global proc exportRTDBasepose(){
+	int $num , $ch;
+	string $charaID[] , $sceneName[] , $infos[] , $topNode[];
+	string $charaListData[] = `textScrollList -q -ai textScrollList_setupRTD_for_Export3_csv_RTDconverter_charaList0`;
+	string $RTDID = `getAttr (" RTDSetting_saveData.rtdID")`;
+
+	for($num=0 ; $num < size($charaListData) ; $num++){
+		$infos = tokenize_adv($charaListData[$num],"\t");
+		$charaID[$num] = $infos[0];
+		$sceneName[$num] = ($infos[1] + ":" + $infos[2]);
+		$sceneName[$num] = `referenceQuery -filename $sceneName[$num] `;
+		$topNode[$num] = $infos[2];
+	}
+	
+	for($ch=0 ; $ch < size($sceneName) ; $ch++){
+		$infos = tokenize_adv($charaListData[$ch],"\t");
+		file -f -options "v=0;" -loadReferenceDepth "none" -typ "mayaBinary" -o $sceneName[$ch];
+		$newName = ($charaID[$ch] + "_" + $topNode[$ch]);
+		rename $topNode[$ch] $newName;
+		ExportBasepose_RTD_FBX_ver2( $infos , $charaID[$ch] , $RTDID);
+	}
+}
+
+global proc ExportBasepose_RTD_FBX_ver2(string $tgtInfo[] , string $tgtChara , string $RTDID){
+	currentTime `playbackOptions -q -min`;
+	string $basePath = "L:\\motion\\export";
+	string $typePath;
+	string $exportName , $infoCSVName;
+
+	if($tgtChara == "rtdLocator"){
+		$exportName = $basePath + "\\rtdLocator\\" + $RTDID + "\\" + $RTDID + ".fbx";
+	}else if($tgtChara == "camera"){
+		$exportName = $basePath + "\\camera\\" + $RTDID + "\\" + $RTDID + ".fbx";
+	}else{
+		if(startsWith($tgtInfo[3],"ms")){
+			$typePath = "ms";
+		}else if(startsWith($tgtInfo[3],"ma")){
+			$typePath = "ma";
+		}else if(startsWith($tgtInfo[3],"gim")){
+			$typePath = "gimmick";
+		}else if(startsWith($tgtInfo[3],"eq")){
+			$typePath = "equip";
+		}else{
+			$typePath = "avatar";
+		}
+		$exportName = $basePath + "\\" + $typePath + "\\" + $RTDID + "_" + $tgtInfo[3] + "\\" + $RTDID + "_" + $tgtInfo[3] + "_basepose.fbx";
+		$infoCSVName = $basePath + "\\" + $typePath + "\\" + $RTDID + "_" + $tgtInfo[3] + "\\" + $RTDID + "_" + $tgtInfo[3] + ".csv";
+	}
+	sysFile -md `dirname $exportName`;
+
+	string $previousVersion = `FBXExportFileVersion -q`;
+	FBXExportFileVersion -v "FBX201400";
+	file -f -options "" -typ "FBX export" -ea $exportName;
+	FBXExportFileVersion -v $previousVersion;
+
+	remakeCsvBaseposeInfo($infoCSVName , $RTDID , $tgtInfo);
+}
+
+
+
+
+
+global proc rtdConvert_multiScenes(){
+	source "setupRTD_for_Export_setting";
+	string $tgtListUI = "textScrollList_setupRTD_for_Export4_csv_MSExport_scnList0";
+	string $tgtList[] = `textScrollList -q -si $tgtListUI`;
+	for($item in $tgtList){
+		file -force -options "v=0;" -loadReferenceDepth "none"  -typ "mayaBinary" -open $item;
+		rtdExpt_loadSettings("RTDSetting_saveData");
+		convert_RTDSet();
+	}
+}
+
+
+
+
+//sync List
+global proc rtdExpt_syncTgtList(){
+	string $command = "selectFromtgtList";
+	string $tgtListUI = "textScrollList_setupRTD_for_Export4_csv_rtdExpt_tgtList0";
+	string $srcListUI = "textScrollList_setupRTD_for_Export3_csv_RTDconverter_charaList0";
+	textScrollList -e -ra -ams 1 -sc $command $tgtListUI;
+	string $chrList[] = `textScrollList -q -ai $srcListUI`;
+	textScrollList -e -a "rtdLocator" $tgtListUI;
+	textScrollList -e -a "camera" $tgtListUI;
+	for($item in $chrList){
+		textScrollList -e -a $item $tgtListUI;
+	}
+}
+
+global proc selectFromtgtList(){
+	
+}
+
+
+//選択したキャラクターを返す
+global proc string[] getExptList(){
+	string $exptList[];
+	string $tgtListUI = "textScrollList_setupRTD_for_Export4_csv_rtdExpt_tgtList0";
+	string $tgtList[] = `textScrollList -q -si $tgtListUI`;
+	string $temp[];
+
+	for($item in $tgtList){
+		tokenize $item "\t" $temp;
+		$exptList[size($exptList)] = $temp[0];
+	}
+
+	return($exptList);
+}
+
+//選択ベースでの出力
+global proc rtd_selectedExpt(){
+	string $sPath = `file -q -sn`;
+	string $exptList[] = getExptList();
+	for($item in $exptList){
+		RTD_singleTGT_export($item);
+		file -force -loadReferenceDepth "all" -open $sPath;
+	}
+}
+
+//MSのみの出力
+global proc rtd_MSExpt(){
+	source "setupRTD_for_Export_setting";
+	string $tgtListUI = "textScrollList_setupRTD_for_Export4_csv_MSExport_scnList0";
+	string $tgtList[] = `textScrollList -q -si $tgtListUI`;
+	
+	if(`checkBox -q -v ("checkBox_setupRTD_for_Export4_csv_bindTgt_MS0")` == 1){
+		string $batpath = "%GP_MAYA_ROOT%\\common\\scripts\\GP_mel\\subscripts\\FBXExporter_for_RTD_chr000000\\mayabatch_multifile.bat";
+		for($item in $tgtList){
+			system($batpath + " " + $item);
+		}
+	}
+	
+	for($item in $tgtList){
+		file -force -loadReferenceDepth "all" -open $item;
+		rtdExpt_loadSettings("RTDSetting_saveData");
+		rtdExpt_syncTgtList();
+		rtdExpt_Tgtchr();
+		rtd_selectedExpt();
+	}
+}
+
+global proc rtdExpt_Tgtchr(){
+	source "GP2_Ut";
+	string $tgtListUI = "textScrollList_setupRTD_for_Export4_csv_rtdExpt_tgtList0";
+	string $tgtList[] = `textScrollList -q -ai $tgtListUI`;
+	string $temp[];
+	int $i,$j;
+	string $chrType[] = {"MS","MSX","MA","Gimmick","Equip","Avatar"};
+	string $chrCall[] = {"ms01","ms","ma","gim","eq","avt"};
+	for($j=1 ; $j<size($chrType) ; $j++){
+		if(`checkBox -q -v ("checkBox_setupRTD_for_Export4_csv_bindTgt_" + $chrType[$j] + "0")` == 0){continue;}
+		for($i = 0 ; $i<size($tgtList) ; $i++){
+			$temp = tokenize_adv($tgtList[$i],"\t");
+			if(startsWith( $temp[3] , $chrCall[$j] )){
+				if($chrCall[$j] == "ms" && startsWith( $temp[3] , "ms01" )){continue;}
+				textScrollList -e -si $tgtList[$i] $tgtListUI;
+			}
+		}
+	}
+	string $nodeType[] = {"RTDloc","camera"};
+	string $nodeCall[] = {"rtdLocator","camera"};
+	for($j=0 ; $j<size($nodeType) ; $j++){
+		if(`checkBox -q -v ("checkBox_setupRTD_for_Export4_csv_bindTgt_" + $nodeType[$j] + "0")` == 0){continue;}
+		for($i = 0 ; $i<size($tgtList) ; $i++){
+			$temp = tokenize_adv($tgtList[$i],"\t");
+			if(startsWith( $temp[0] , $nodeCall[$j] )){
+				textScrollList -e -si $tgtList[$i] $tgtListUI;
+			}
+		}
+	}
+}
+
+global proc string[] getTgtInfo(string $tgtChara){
+	string $res[];
+	string $tgtListUI = "textScrollList_setupRTD_for_Export4_csv_rtdExpt_tgtList0";
+	string $tgtList[] = `textScrollList -q -ai $tgtListUI`;
+	string $temp[];
+	for($item in $tgtList){
+		if(startsWith($item , $tgtChara)){
+			string $kakikae = substituteAllString($item , "\t" , "\t@");
+			tokenize $kakikae "\t" $temp;
+			$res[0] = $tgtChara + "_root";
+			$res[1] = substituteAllString($temp[1] , "@", "" );
+			$res[2] = substituteAllString($temp[2] , "@", "" );
+			$res[3] = substituteAllString($temp[3] , "@", "" );
+			break;
+		}
+	}
+	return $res;
+}
+
+
+global proc RTD_singleTGT_export(string $tgtChara){
+	string $tgtInfo[];	//0:トップノード名、1:ネームスペース、2:旧トップノード名、3:分類ID
+	$tgtInfo = getTgtInfo($tgtChara);
+	string $camNode[];
+	$camNode[0] = `getAttr "RTDSetting_saveData.camera"`;
+	$camNode[1] = `getAttr "RTDSetting_saveData.camera_aim"`;
+	$camNode[2] = `getAttr "RTDSetting_saveData.camera_up"`;
+
+	ImportAllReference();	//リファレンスの全読み込み
+//	removeMesh($tgtInfo[1] , $tgtInfo[2]);	//不要なメッシュの削除
+
+	if(startsWith($tgtChara , "chara_")){
+		renameCharacters_ver2($tgtInfo[0] , $tgtInfo[1] , $tgtInfo[2]);		//ターゲットのリネーム
+
+	}else if($tgtChara == "rtdLocator"){
+		setupRTD_setRTDLocator_ver2($camNode);	//RTDロケータの構築
+
+	}else{
+		setupRTD_camera1($camNode);	//カメラの構築
+
+	}
+	setupRTD_bakeAnimation_ver2($tgtChara , $tgtInfo);	//対象のベイク
+
+	if($tgtChara == "camera"){
+		rtdExpt_getCameraFocalLength($camNode);
+	}
+
+	cleanUP_rig($tgtChara , $tgtInfo[2]);	//不要なノードの削除
+	rtdExpt_stepMotionCurve($tgtChara);//モーションカーブの調整
+	Export_RTD_FBX_ver2($tgtInfo,$tgtChara);	//fbxファイルの出力
+}
+
+global proc rtdExpt_stepMotionCurve(string $tgtChara){
+	string $cutTiming = `getAttr "RTDSetting_saveData.cut"`;
+	string $temp[];
+	tokenize $cutTiming "," $temp;
+	catch(`selectKey -clear`);
+	int $i;
+
+	if(size($temp) > 1){
+		for($i=1 ; $i<size($temp) ; $i++){
+			float $t = float($temp[$i]);
+			selectKey -add -k -t ($t -1) "*" ;
+		}
+		keyTangent -ott step;
+		selectKey -clear ;
+	}
+	if($tgtChara == "rtdLocator"){
+		//RTDロケータ・カメラエイム用調整
+		selectKey -add -k -t ":" ("|RTD_root|camera");
+		for($i=0 ; $i<size($temp) ; $i++){
+			float $t = float($temp[$i]);
+			selectKey -rm -k -t $t ("|RTD_root|camera");
+		}
+		cutKey -animation keys -clear;
+	}
+}
+
+
+global proc cleanUP_rig(string $avoidName , string $topName){
+	if( $avoidName == "rtdLocator"){
+		$avoidName = "RTD_root";
+	}else if($avoidName == "camera" ){
+		$avoidName ="camera1*";
+	}else if($topName == "root"){
+		$avoidName = $avoidName + "_root";
+	}else{
+		$avoidName = $topName;
+	}
+	string $allnode[] = `ls -as`;
+	select -r $allnode;
+	select -d $avoidName persp top front side RTDSetting_saveData;
+	doDelete;
+}
+
+global proc removeMesh(string $nameSpace , string $topNodeName){
+	source "setupRTD_for_Export_setting";
+	string $partsNodes[] = getMultiNameSpace("parts");
+
+	for($item in $partsNodes){
+		if($topNodeName == "root" || $item != ( $nameSpace + ":")){
+			select -r ($item + "parts");
+			doDelete;
+		}
+	}
+}
+
+
+//リファレンスを読み込む
+global proc ImportAllReference(){
+	while ( true ){
+		string $_refs[] = `ls -type reference`;
+		string $refs[];
+		clear $refs;
+		for ( $ref in $_refs ){
+			if ( 0 == catchQuiet(`referenceQuery -referenceNode -topReference $ref`) ){
+				if ( 0 == `file -referenceNode $ref -q -deferReference` ){
+					$refs[`size $refs`] = $ref;
+				}
+			}
+		}
+		if ( 0 == `size $refs` ) break;
+		$refs[0] = `referenceQuery -referenceNode -topReference $refs[0]`;
+		file -importReference `referenceQuery -filename $refs[0]`;
+		//	同名ファイルへのリファレンスが複数存在する場合への対応
+		//	リファレンスノード指定でインポートする場合はこういう書き方をする
+		//file -importReference -referenceNode $refs[0];
+		flushUndo;
+	}
+}
+
+//出力用にリネーム
+global proc renameCharacters_ver2(string $charaID , string $tgtNameSpace , string $rootName){
+
+	if($tgtNameSpace != "" || $rootName == "root" ){
+		select -r -hi ($tgtNameSpace + ":" + $rootName);
+		string $names[] = `ls -sl -sn`;
+		string $temp[];
+		for($j = (size($names)-1 ); $j>0 ; $j--){
+			tokenize $names[$j] ":" $temp;
+			rename $names[$j] $temp[size($temp)-1];
+		}
+
+		if($rootName == "root"){
+			if(size(`ls $charaID`) != 0){
+				rename $charaID ("conflicted_" + $charaID);
+			}
+			rename ($tgtNameSpace + ":" + $rootName) $charaID;
+		}else{
+			if(size(`ls $rootName`) != 0){
+				rename $rootName ("conflicted_" + $rootName);
+			}
+			rename ($tgtNameSpace + ":" + $rootName) $rootName;
+		}
+	}
+	select -cl;
+}
+
+
+//カメラを出力用に整える
+global proc setupRTD_camera1( string $camNode[] ){
+		string $finalNames[] = {"camera1","camera1_aim","camera1_up","camera1_group"};
+		for($item in $finalNames){
+			if(size(`ls $item`)){
+				rename $item ($item + "_original");
+				if(stringArrayContains($item,$camNode)){
+					int $tgt = stringArrayFind($item , 0 , $camNode);
+					$camNode[$tgt] = ($item + "_original");
+				}
+			}
+		}
+		
+		camera -n "camera1" -centerOfInterest 5 -focalLength 35 -lensSqueezeRatio 1 -cameraScale 1 -horizontalFilmAperture 1.4173 -horizontalFilmOffset 0 -verticalFilmAperture 0.9449 -verticalFilmOffset 0 -filmFit Fill -overscan 1 -motionBlur 0 -shutterAngle 144 -nearClipPlane 0.1 -farClipPlane 10000 -orthographic 0 -orthographicWidth 30 -panZoomEnabled 0 -horizontalPan 0 -verticalPan 0 -zoom 1;
+		string $temp[] = `ls -sl`;
+		rename $temp[0] "camera1";
+		objectMoveCommand;
+		cameraMakeNode 3 "";
+		parent -w $finalNames[2];
+		parent -w $finalNames[1];
+		parent -w $finalNames[0];
+		for($i=0 ; $i<3 ; $i++){
+			select -r $camNode[$i] $finalNames[$i];
+			pointConstraint -o 0 0 0 -w 1;
+		}
+		select -cl;
+}
+global proc rtdExpt_getCameraFocalLength(string $camNode[]){
+	string $finalNames[] = {"camera1","camera1_aim","camera1_up","camera1_group"};
+	//画角トレス
+	string $focal[] = `listConnections -d off -s on ($camNode[0] + ".focalLength")`;
+	if(size($focal)){
+		copyKey ($camNode[0] + ".focalLength");
+		pasteKey -option replaceCompletely -copies 1 -connect 0 -timeOffset 0 -floatOffset 0 -valueOffset 0 {$finalNames[0] + ".focalLength"};
+	}else{
+		float $focalAt = `getAttr ($camNode[0] + ".focalLength")`;
+		setAttr ($finalNames[0] + ".focalLength") $focalAt;
+	}
+	select -cl;
+}
+
+
+//rtdロケータを用意
+global proc setupRTD_setRTDLocator_ver2(string $cameraNode[]){
+	source "GP2_Ut";
+	select -cl;
+	string $temp[];
+	joint -p 0 0 0 -name "RTD_root";
+	joint -p 0 0 0 -name "camera";
+	select -r $cameraNode[1] "|RTD_root|camera";
+	pointConstraint -o 0 0 0 -w 1;
+	orientConstraint -o 0 0 0 -w 1;
+
+	string $tgtListUI = "textScrollList_setupRTD_for_Export4_csv_rtdExpt_tgtList0";
+	string $tgtList[] = `textScrollList -q -ai $tgtListUI`;
+
+	for($i=2 ; $i<size($tgtList) ; $i++){
+		select -r "|RTD_root";
+		$temp = tokenize_adv( $tgtList[$i] , "\t" );
+		joint -p 0 0 0 -name $temp[0];
+		select -r ($temp[1] + ":" + $temp[2]) ("|RTD_root|" + $temp[0] );
+		pointConstraint -o 0 0 0 -w 1;
+		orientConstraint -o 0 0 0 -w 1;
+	}
+}
+
+//モーションベイク
+global proc setupRTD_bakeAnimation_ver2(string $topNode , string $nodeInfo[]){
+
+	switch($topNode){
+		case "rtdLocator" :
+			select -r -hi "|RTD_root";
+		break;
+		case "camera" :
+			string $basecam = `getAttr "RTDSetting_saveData.camera"`;
+			string $camera[] = {"camera1","camera1_aim","camera1_up"};
+			select -r -hi $camera;
+			select -add $basecam;
+			break;
+		default :
+			//通常アニメかノードアニメか
+			if($nodeInfo[2] == "root"){
+				select -r -hi $nodeInfo[0];
+			}else{
+				select -r -hi $nodeInfo[2];
+			}
+	}
+
+	float $st = `playbackOptions -q -min`;
+	float $ed = `playbackOptions -q -max`;
+	string $selections[] = `ls -sl`;
+	string $constraints[] = `ls -sl -type pointConstraint -type orientConstraint -type scaleConstraint -type parentConstraint`;
+
+	select -cl;
+
+	string $allnode[] = `ls -as`;
+	for($item in $allnode){
+		setAttr ($item + ".visibility") 0;
+	}
+
+	if($topNode == "camera"){
+		bakeResults -simulation true -t ($st + ":" + $ed) -hierarchy below -sampleBy 1 -disableImplicitControl true -preserveOutsideKeys true -sparseAnimCurveBake false -removeBakedAttributeFromLayer false -bakeOnOverrideLayer false -minimizeRotation true -controlPoints false -shape true $selections;
+	}else{
+		bakeResults -simulation true -t ($st + ":" + $ed) -hierarchy below -sampleBy 1 -disableImplicitControl true -preserveOutsideKeys true -sparseAnimCurveBake false -removeBakedAttributeFromLayer false -bakeOnOverrideLayer false -minimizeRotation true -controlPoints false -shape true -at "tx" -at "ty" -at "tz" -at "rx" -at "ry" -at "rz" -at "sx" -at "sy" -at "sz" $selections;
+	}
+	delete $constraints;
+	//亀が文句を言うが無視で
+	
+	//カーブに対してオイラーフィルタ
+	string $anmCvs[] = `ls -type animCurve`;
+	filterCurve -filter euler $anmCvs;
+}
+
+//手動調整、カットの切り替わりのタイミングのモーションカーブをステップにする
+
+
+global proc setFBXDirBtn(){
+	string $tempPath = `textField -q -text textField_setupRTD_for_Export_csv_fbx_exportPathTF0`;
+	string $prePath , $preName;
+	if($prePath != ""){
+		$preName = basename( $tempPath , "");
+		$prePath = `dirname $tempPath`;
+	}
+	
+	string $output_names[] = `fileDialog2 -fm 0 -cap "出力するFBXを指定" -ds 2 -dir $prePath -ff "*.fbx"`;
+	textField -e -text $output_names[0] textField_setupRTD_for_Export_csv_fbx_exportPathTF0;
+	
+}
+
+
+
+//exportFBX
+global proc Export_RTD_FBX_ver2(string $tgtInfo[] , string $tgtChara){
+	currentTime `playbackOptions -q -min`;
+	string $basePath = "L:\\motion\\export";
+	string $RTDID = `getAttr (" RTDSetting_saveData.rtdID")`;
+	string $typePath;
+	string $exportName;
+
+	if($tgtChara == "rtdLocator"){
+		$exportName = $basePath + "\\rtdLocator\\" + $RTDID + "\\" + $RTDID + ".fbx";
+	}else if($tgtChara == "camera"){
+		$exportName = $basePath + "\\camera\\" + $RTDID + "\\" + $RTDID + ".fbx";
+	}else{
+		if(startsWith($tgtInfo[3],"ms")){
+			$typePath = "ms";
+		}else if(startsWith($tgtInfo[3],"ma")){
+			$typePath = "ma";
+		}else if(startsWith($tgtInfo[3],"gim")){
+			$typePath = "gimmick";
+		}else if(startsWith($tgtInfo[3],"eq")){
+			$typePath = "equip";
+		}else{
+			$typePath = "avatar";
+		}
+		$exportName = $basePath + "\\" + $typePath + "\\" + $RTDID + "_" + $tgtInfo[3] + "\\" + $RTDID + "_" + $tgtInfo[3] + ".fbx";
+	}
+	sysFile -md `dirname $exportName`;
+
+	string $previousVersion = `FBXExportFileVersion -q`;
+	FBXExportFileVersion -v "FBX201400";
+	file -f -options "" -typ "FBX export" -ea $exportName;
+	FBXExportFileVersion -v $previousVersion;
+
+}
+
+
+global proc setExptFileBtn(){
+	textScrollList -e -ams 1 textScrollList_setupRTD_for_Export4_csv_MSExport_scnList0;
+	string $tgtListUI = "textScrollList_setupRTD_for_Export4_csv_MSExport_scnList0";
+	string $prePath = "L:\\motion\\maya\\rtd";
+	string $output_names[] = `fileDialog2 -fm 4 -cap "出力を行うファイルを指定" -ds 0 -dir $prePath -ff "*.mb"`;
+	for($item in $output_names){
+		textScrollList -e -a $item $tgtListUI;
+	}
+}
+

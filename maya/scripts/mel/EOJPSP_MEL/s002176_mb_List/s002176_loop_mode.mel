@@ -1,0 +1,32 @@
+global proc s002176_loop_mode()
+{
+string $objhantei = `selectMode -q -object`;
+string $comphantei_v = `selectType -q -v`;
+string $comphantei_e = `selectType -q -edge`;
+string $comphantei_f = `selectType -q -fc`;
+if($objhantei==1)
+{
+	selectMode -component;
+	setComponentPickMask "Point" 1;
+	//print ("v‚«‚½"+"\n");
+}
+else if($comphantei_v==1)
+	{
+	setComponentPickMask "Line" 1;
+	//print ("e‚«‚½"+"\n");
+	}	
+	else if($comphantei_e==1)
+	{
+	setComponentPickMask "Facet" 1;
+	//print ("f‚«‚½"+"\n");
+	}
+	else if($comphantei_f==1)
+	{
+	selectMode -object;
+	//print ("obj‚«‚½"+"\n");
+	}	
+	else
+	{
+	setComponentPickMask "Point" 1;
+	}
+}

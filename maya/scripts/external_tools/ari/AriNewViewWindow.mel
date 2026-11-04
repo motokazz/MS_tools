@@ -1,0 +1,21 @@
+//--------------------------------------------------------------------------
+//
+// ScriptName : AriNewViewWindow
+// Contents   : 新しいパネルビューを開きます。
+// Author     : Ari
+// Since      : 2016/09
+// Update     : 
+// Note       : 短いコマンドですが、管理をしやすくするため、MEL化しました。
+//               
+//--------------------------------------------------------------------------
+
+
+
+global proc AriNewViewWindow(){
+	if(`window -ex NewViewWindow`)	deleteUI NewViewWindow;
+	window -title "window" NewViewWindow;
+	paneLayout;
+	modelPanel;
+	
+	showWindow;
+}

@@ -1,0 +1,53 @@
+//--------------------------------------------------------------------------
+//
+// ScriptName : AriWindowPositionReset
+// Contents   : Mayaで使用しているWindowをすべてMayaメインの左上に移動させます。
+// Author     : A-RI
+// Since      : 2016/02
+// LastUpdate : 2016/02/17 AriCompactToolSettingsと同時に使うとエラーを回避
+//                         dockコントロールを一体化する機能追加
+//
+//--------------------------------------------------------------------------
+
+
+
+global proc AriWindowPositionReset(){
+	string $windowList[] =`lsUI -windows`;
+	string $dockControlList[] =`lsUI -typ "dockControl"`;
+	print("\ndock--------------------\n\n");
+	for($dock in $dockControlList){
+		print ($dock+"   ");
+		if(!`dockControl -ex $dock`){
+			print("<not exist>\n");
+			continue;
+		}
+		print (`dockControl -q -l $dock`);
+		dockControl -e -fl false $dock;
+		print " ok \n";
+	}
+	print("\nwindow--------------------\n");
+	int $xy[2];
+	for($win in $windowList){
+		if($win == "MayaWindow"){
+			$xy = `window -q -tlc $win`;
+			print ($win+" "+$xy[0]+","+$xy[1]+ "\n\n");
+			break;
+		}
+	}
+	for($win in $windowList){
+		print ($win+"   ");
+		if(!`window -ex $win`){
+			print("<not exist> \n");
+			continue;
+		}
+		if($win != "MayaWindow" && $win != "learningMoviesLaunchWnd" && $win != "ColorEditor"
+			&& $win != "CommandWindow" && $win != "gozwin" && $win != "nexFloatWindow" && $win != "AriCompactToolSettingsWindow" ){
+				print `window -q -t $win`;
+				window -e -tlc $xy[0] $xy[1] $win;
+				print " ok\n";
+		}
+		else{
+			print "skip\n";
+		}
+	}
+}

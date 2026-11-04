@@ -1,0 +1,20 @@
+//stringFirstWord, by Julian Love, julian@lightmail.com. Part of the StringTools set.
+//
+//description:	returns the first word in the supplied string based on the word character
+//
+//usage:		stringFirstChar string[source string] string[character that separates words];
+//
+//examples:		stringFirstChar "hello world." " ";
+//				// Result: hello //
+//
+//				stringFirstChar "left_wrist_controller" "_";
+//				// Result: left //
+
+
+global proc string stringFirstWord (string $item, string $wordChar){
+	string $wordList[];
+	
+	tokenize $item $wordChar $wordList;
+	
+	return $wordList[0];
+}

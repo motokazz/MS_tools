@@ -1,0 +1,61 @@
+//  Name: uiDesigner2006
+//Modify: Leson lai
+//   Msn: TNTII1981@hotmail.com
+//Thanks for original uiDesigner.
+
+global proc MS_fogchecker(){
+	if(`window -q -ex MS_fogchecker_core`)deleteUI MS_fogchecker_core;
+	window MS_fogchecker_core;
+	columnLayout;
+	string $obj[]=`ls -typ "cgfxShader" -sl`;
+	//if((size($obj))==0){string $obj[]=`ls -typ "cgfxShader"`;}
+	
+	for($each in $obj){
+		
+		text -l $each;
+		separator -w 100;
+		
+		text -l "Near    : ";
+		textField -w 100 -tx `getAttr ($each+".fogNear")`;
+		text -l "Far     : ";
+		textField -w 100 -tx `getAttr ($each+".fogFar")`;
+		text -l "ColorR  : ";
+		textField -w 100 -tx `getAttr ($each+".fogColorX")`;
+		text -l "ColorG  : ";
+		textField -w 100 -tx `getAttr ($each+".fogColorY")`;
+		text -l "ColorB  : ";
+		textField -w 100 -tx `getAttr ($each+".fogColorZ")`;
+		
+		text -l "Density : ";
+		textField -tx `getAttr ($each+".fogDensity")`;
+		
+		print `getAttr ($each+".fogColor")`;
+	}
+	showWindow MS_fogchecker_core;
+}
+/*
+global proc MS_fogchecker()
+{
+if(`window -q -ex MS_fogchecker`)deleteUI MS_fogchecker;
+window MS_fogchecker;
+formLayout MS_fogchecker;
+//--DataPart--//
+separator -width 100 "separator19" ;//Data//
+text -docTag "title" -label "MS_fogchecker" "title" ;//Data//
+button -command "MS_fogchecker" -backgroundColor 1 0.8383163214 0.7339999676 "MS_fogchecker_core" ;//Data//
+formLayout -e
+	-af "separator19" "left" 0//Data//
+	-af "separator19" "top" 32//Data//
+	-af "title" "left" 16//Data//
+	-af "title" "top" 16//Data//
+	-af "MS_fogchecker" "left" 16//Data//
+	-af "MS_fogchecker" "top" 48//Data//
+//--DataPart--//
+MS_fogchecker;
+showWindow MS_fogchecker;
+}
+*/
+
+MS_fogchecker;
+
+

@@ -1,0 +1,50 @@
+global proc string[] MS_selectFilter(){
+
+/*
+‚æ‚è•ª‚¯‘I‘ð
+*/
+
+	string $objz[];
+	
+	$objz=`filterExpand
+		-sm 0  //Handle
+		-sm 9  //NurbsCurves
+		-sm 10 //NurbsSurfaces
+		-sm 11 //NurbsCurvesOnSurface
+		-sm 12 //Polygon
+		-sm 22 //LocatorXYZ
+		-sm 23 //OrientationLocator
+		-sm 24 //LocatorUV
+		-sm 28 //ControlVertices(CVs)
+		-sm 30 //EditPoints
+		-sm 31 //PolygonVertices
+		-sm 32 //PolygonEdges
+		-sm 34 //PolygonFace
+		-sm 35 //PolygonUVs
+		-sm 36 //SubdivisionMeshPoints
+		-sm 37 //SubdivisionMeshEdges
+		-sm 38 //SubdivisionMeshFaces
+		-sm 39 //CurveParameterPoints
+		-sm 40 //CurveKnot
+		-sm 41 //SurfaceParameterPoints
+		-sm 42 //SurfaceKnot
+		-sm 43 //SurfaceRange
+		-sm 44 //TrimSurfaceEdge
+		-sm 45 //SurfaceIsoparms
+		-sm 46 //LatticePoints
+		-sm 47 //Particles
+		-sm 49 //ScalePivots
+		-sm 50 //RotatePivots
+		-sm 51 //SelectHandles
+		-sm 68 //SubdivisionSurface
+		-sm 70 //PolygonVertexFace
+		-sm 72 //NURBSSurfaceFace
+		-sm 73 //SubdivisionMeshUVs
+	 `;
+
+return $objz;
+
+}
+
+
+

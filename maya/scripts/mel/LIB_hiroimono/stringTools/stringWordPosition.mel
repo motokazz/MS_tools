@@ -1,0 +1,44 @@
+//stringWordPosition, by Julian Love, julian@lightmail.com. Part of the StringTools set.
+//
+//description:	returns the position of the match word in the source string based on
+//				the word character. Positions start at 1.
+//
+//usage:		stringWordPosition string[source string] string[match string] string[character that separates words];
+//
+//examples:		stringWordPosition "hello world" "world" " ";
+///				// Result: 2 //
+//
+//				stringWordPosition "left_wrist_controller" "controller" "_";
+//				// Result: 3 //
+//
+//				stringWordPosition "left_wrist_controller" "key" "_";
+//				// result: 0//	the result is 0 because the word "key" doesn't
+//				appear in the source string.
+
+
+proc int itemNthString (string $item, string $array[])
+{
+	int $x;
+	int $theIndex = -1;
+
+	for ($x=0; $x<size($array); $x++)
+	{
+		if ($array[$x] == $item)
+		{
+			$theIndex = $x;
+			break;
+		}
+	}
+
+	return ($theIndex);
+}
+
+global proc int stringWordPosition (string $item, string $matchString, string $wordChar){
+	string	$tokenList[];
+	int		$position;
+	
+	tokenize $item $wordChar $tokenList;
+	$position = (`itemNthString $matchString $tokenList` + 1);
+	
+	return $position;
+}

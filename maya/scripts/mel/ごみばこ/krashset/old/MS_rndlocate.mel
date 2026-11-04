@@ -1,0 +1,83 @@
+proc ms_cr(string $obj_a){
+
+
+string $obj_a_tx=$obj_a+".tx";
+string $obj_a_ty=$obj_a+".ty";
+string $obj_a_tz=$obj_a+".tz";
+
+string $obj_a_rpx=$obj_a+".rotatePivotX";
+string $obj_a_rpy=$obj_a+".rotatePivotY";
+string $obj_a_rpz=$obj_a+".rotatePivotZ";
+
+float $orgx=`getAttr $obj_a_tx`;
+float $orgy=`getAttr $obj_a_ty`;
+float $orgz=`getAttr $obj_a_tz`;
+float $flpx=`getAttr $obj_a_rpx`;
+float $flpy=`getAttr $obj_a_rpy`;
+float $flpz=`getAttr $obj_a_rpz`;
+
+setAttr $obj_a_tx (-$flpx);
+setAttr $obj_a_ty (-$flpy);
+setAttr $obj_a_tz (-$flpz);
+
+makeIdentity -apply true -t 1 -r 1 -s 0 -n 0;
+
+setAttr $obj_a_tx ($orgx+$flpx);
+setAttr $obj_a_ty ($orgy+$flpy);
+setAttr $obj_a_tz ($orgz+$flpz);
+
+}
+
+
+global proc MS_rndlocate(int $value){
+	$objz=`ls -sl`;
+	
+	int $i;
+	for($i=0;$i<size($objz);$i++){
+		
+		ms_cr $objz[$i];
+		
+		$rndtx=`rand $value`-($value/2);
+		$rndty=`rand $value`-($value/2);
+		$rndtz=`rand $value`-($value/2);
+
+		move -a -ws $rndtx 200 $rndtz $objz[$i];
+		
+		
+		$rndrx=`rand 360-180`;
+		$rndry=`rand 360-180`;
+		$rndrz=`rand 360-180`;
+		
+		rotate $rndrx $rndry $rndrz $objz[$i];
+		
+	}
+}
+
+
+global proc MS_slider()
+{
+	if(`window -exists MS_slider`){
+		deleteUI MS_slider;
+	}
+
+	window -title "Slider for testobj" MS_slider;
+	columnLayout ;
+
+	intSliderGrp -field true -min 1 -max 1000 -v 1000 rndval;
+	int $rnd=`intSliderGrp -q -v rndval`;
+	button -l "do" -command `MS_rndlocate $rnd` ;
+
+	showWindow MS_slider;
+
+}
+
+
+
+//MS_rndlocate 1000;
+
+MS_slider;
+
+
+
+
+

@@ -1,0 +1,44 @@
+global proc string[] MS_emitterCheck(){
+	
+	string $obj[]=`ls -typ transform`;
+	if (!size($obj)){
+		$obj=`ls -typ transform`;
+	}
+	
+	string $result[];
+	string $all_emitter[];
+	
+	int $i=0;
+	for ($each in $obj){
+		if(`attributeExists "EmitterName" $each`){
+			$all_emitter[$i]=`getAttr ($each+".EmitterName")`;
+			$i++;
+		}
+	}
+	
+	$result=`stringArrayRemoveDuplicates($all_emitter)`;
+	
+	return $result;
+}
+
+global proc MS_emitterCheckWindow(){
+	
+	$baseList=`MS_emitterCheck`;
+	string $list=stringArrayToString($baseList,"\n");
+
+	//Create Window
+	if(`window -exists MS_emitterCheck`){
+		deleteUI MS_emitterCheck;
+	}
+	window -title "MS_emitterCheck" MS_emitterCheck;
+	columnLayout;
+	scrollField -en 1 -w 200 -h 200 -tx $list;
+	setParent ..;
+	
+	window -e -w 210 -h 230 -sizeable 0 MS_emitterCheck;
+	
+	showWindow MS_emitterCheck;
+	
+}
+
+

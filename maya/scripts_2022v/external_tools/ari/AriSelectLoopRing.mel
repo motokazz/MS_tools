@@ -1,0 +1,608 @@
+//--------------------------------------------------------------------------
+//
+// ScriptName : AriSelectLoopRing
+// Contents   : エッジをリング状に拡張選択します。
+// Author     : Ari
+// URL        : http://cgjishu.net/
+// Since      : 2016/10
+// LastUpdate : 2022/01/10 AriSelectLoopRingに名称変更 フェースに対応 連続選択に対応
+//              2019/07/30 AriSelectEdgeLoopRingに名称変更 ループ機能追加 Option廃止
+// Help       : http://cgjishu.net/blog-entry-282.html
+//
+//--------------------------------------------------------------------------
+
+
+proc float distanceVer(string $ver1,string $ver2)
+{
+		float $dis;
+		float $verPos0[]=`pointPosition $ver1`;
+		float $verPos1[]=`pointPosition $ver2`;
+		$dis=	 ($verPos1[0]-$verPos0[0])*($verPos1[0]-$verPos0[0])
+						+($verPos1[1]-$verPos0[1])*($verPos1[1]-$verPos0[1])
+						+($verPos1[2]-$verPos0[2])*($verPos1[2]-$verPos0[2]);
+		$dis=sqrt ($dis);
+		return $dis;
+}
+proc string[] AriGetEdgeList(string  $getList_edges[],int $ringTrue, int $verMode){
+	string $getList_vartex[];
+	for($i=0;$i<size($getList_edges);$i++){
+		string $edgeToVer[];
+		if($ringTrue){
+			$edgeToVer = `polyListComponentConversion -tf $getList_edges[$i]`;
+			$edgeToVer = `filterExpand -selectionMask 34 $edgeToVer`;
+		}
+		else{
+			$edgeToVer = `polyListComponentConversion -tv $getList_edges[$i]`;
+			$edgeToVer = `filterExpand -selectionMask 31 $edgeToVer`;
+		}
+		$getList_vartex = stringArrayCatenate( $getList_vartex, $edgeToVer );
+	}
+	int $maxVal = size($getList_edges);
+	int $breakTrue = false;
+	string $sort_edgeList[];
+	string $sort_vertexList[];
+	int $count=0;
+	for($i=0; $i<size($getList_edges); $i++){
+		if(stringArrayContains($getList_edges[$i], $sort_edgeList))continue;
+		int $verNum1=$i*2;
+		string $nowEdge;
+		string $workEdgeList[];
+		string $workVertexList[];
+		clear $workEdgeList;
+		clear $workVertexList;
+		int $workEdgeListCounter=0;
+		string $leadEdge;
+		int $loopTrue = false;
+		for($k=0;$k<2;$k++){
+			$nowEdge   = $getList_edges[$i];
+			$nowVertex = $getList_vartex[$i*2+$k];
+			int $n=0;
+			if(!stringArrayContains($nowVertex,$sort_vertexList)){
+				$workVertexList[0] = $nowVertex;
+				string $beforeEdge=$nowVertex;
+				while($n<100000){
+					for($j=0;$j<size($getList_edges);$j++){
+						if(                    $getList_edges[$j] == $nowEdge  )continue;
+						if(stringArrayContains($getList_edges[$j],   $workEdgeList))continue;
+						if(stringArrayContains($getList_edges[$j],   $sort_edgeList))continue;
+						int $verNum2=$j*2;
+						if($nowVertex == $getList_vartex[$verNum2]){
+							$nowEdge   = $getList_edges[$j];
+							$nowVertex = $getList_vartex[$verNum2+1];
+							if(!stringArrayContains($nowVertex,$workVertexList)){
+								$workEdgeList[$workEdgeListCounter]     = $nowEdge;
+								$workVertexList[$workEdgeListCounter+1] = $nowVertex;
+								$workEdgeListCounter++;
+							}
+							else{
+								$loopTrue = true;
+							}
+							break;
+						}
+						if($nowVertex == $getList_vartex[$verNum2+1]){
+							$nowEdge   = $getList_edges[$j];
+							$nowVertex = $getList_vartex[$verNum2];
+							if(!stringArrayContains($nowVertex,$workVertexList)){
+								$workEdgeList[$workEdgeListCounter]     = $nowEdge;
+								$workVertexList[$workEdgeListCounter+1] = $nowVertex;
+								$workEdgeListCounter++;
+							}
+							else{
+								$loopTrue = true;
+							}
+							break;
+						}
+					}
+					if($beforeEdge == $nowVertex)break;
+					$beforeEdge=$nowVertex;
+					$n++;
+				}
+			}
+			string $plusEdge_Work[]   = $workEdgeList;
+			string $plusVertex_Work[] = $workVertexList;
+			if($k==0){
+				for($j=0;$j<size($workEdgeList);$j++){
+					$plusEdge_Work[(size($workEdgeList))-$j-1] = $workEdgeList[$j];
+				}
+				for($j=0;$j<size($workVertexList);$j++){
+					$plusVertex_Work[(size($workVertexList))-$j-1] = $workVertexList[$j];
+				}
+			}
+			$sort_edgeList   = stringArrayCatenate( $sort_edgeList,   $plusEdge_Work );
+			$sort_vertexList = stringArrayCatenate( $sort_vertexList, $plusVertex_Work );
+			if($k==0){
+				if($plusEdge_Work[0] != $getList_edges[$i]){
+					$sort_edgeList[size($sort_edgeList)]=$getList_edges[$i];
+				}
+				else{
+					$loopTrue = true;
+				}
+			}
+			else{
+				string $sepaString="--";
+				if($loopTrue)$sepaString="--Loop";
+				$sort_edgeList[size($sort_edgeList)]     = $sepaString;
+				$sort_vertexList[size($sort_vertexList)] = $sepaString;
+			}
+			clear $workEdgeList;
+			clear $workVertexList;
+			$workEdgeListCounter=0;
+			int $sortSize = size($sort_edgeList);
+		}
+		if($breakTrue)break;
+	}
+	if($verMode) return $sort_vertexList;
+	else         return $sort_edgeList;
+}
+proc string[] ArrayLeadSort(string $array[],string $lead){
+	string $sortArray[];
+	int $i=0;
+	int $inputTrue = false;
+	for($string in $array){
+		if($string == $lead){
+			$inputTrue=true;
+		}
+		if($inputTrue){
+			$sortArray[$i] = $string;
+			$i++;
+		}
+	}
+	for($string in $array){
+		if($string == $lead){
+			break;
+		}
+		if($inputTrue){
+			$sortArray[$i] = $string;
+			$i++;
+		}
+	}
+	return $sortArray;
+}
+proc int extractNumber(string $component){
+	string $sepa[];
+	tokenize $component "." $sepa;
+	string  $thisEdgeNumString = substring ($sepa[1],3,size($sepa[1])-1);
+	int $thisEdgeNum = int($thisEdgeNumString);
+	return $thisEdgeNum;
+}
+proc string extractObject(string $component){
+	string $sepa[];
+	tokenize $component "." $sepa;
+	string $objName = $sepa[0];
+	return $objName;
+}
+proc string getNextEdge(string $edge, string $faceOrVer, int $mode){
+	int $thisEdgeNum = extractNumber($edge);
+	string $objName  = extractObject($edge);
+	string $edgeListString[];
+	if($mode==0){
+		$edgeListString = `polyInfo -vertexToEdge $faceOrVer`;
+	}
+	if($mode==1){
+		$edgeListString = `polyInfo -faceToEdge $faceOrVer`;
+	}
+	string $sepa[];
+	tokenize $edgeListString[0] " " $sepa;
+	string $edgeNumList[];
+	clear $edgeNumList;
+	for($j=2; $j<size($sepa)-1; $j++){
+		$edgeNumList[$j-2] = $sepa[$j];
+	}
+	string  $nextEdge;
+	if(size($edgeNumList) == 4 ){
+		for($j=0; $j<size($edgeNumList); $j++){
+			if($thisEdgeNum == $edgeNumList[$j]){
+				int $num = $j;
+				$num = $num+2;
+				$num = $num%4;
+				$nextEdge = ($objName + ".e[" + $edgeNumList[$num] + "]");
+			}
+		}
+	}
+	if(size($edgeNumList) == 3 && $mode==0){
+		string $edgeToFaces_1[] = `polyListComponentConversion -tf $edge`;
+		$edgeToFaces_1 = `filterExpand -selectionMask 34 $edgeToFaces_1`;
+		if(size($edgeToFaces_1)==1){
+			for($j=0; $j<size($edgeNumList); $j++){
+				if($thisEdgeNum == $edgeNumList[$j])continue;
+				string $edgeName = ($objName + ".e[" + $edgeNumList[$j] + "]");
+				string $edgeToFaces_2[] = `polyListComponentConversion -tf $edgeName`;
+				$edgeToFaces_2 = `filterExpand -selectionMask 34 $edgeToFaces_2`;
+				if(size($edgeToFaces_2)==1){
+					$nextEdge = $edgeName;
+				}
+			}
+		}
+	}
+	return $nextEdge;
+}
+proc AriSelectLoopRingOptions_Save(){
+	global string $AriSelectLoopRing_UI_loopValIF;
+	global string $AriSelectLoopRing_UI_loopJumpIF;
+	global string $AriSelectLoopRing_UI_loopRevCB;
+	global string $AriSelectLoopRing_UI_ringValIF;
+	global string $AriSelectLoopRing_UI_ringJumpIF;
+	global string $AriSelectLoopRing_UI_ringRevCB;
+	int $loop_repeat = `intSliderGrp -q -v $AriSelectLoopRing_UI_loopValIF`;
+	int $loop_jump   = `intSliderGrp -q -v $AriSelectLoopRing_UI_loopJumpIF`;
+	int $loop_rev    = `checkBox     -q -v $AriSelectLoopRing_UI_loopRevCB`;
+	int $ring_repeat = `intSliderGrp -q -v $AriSelectLoopRing_UI_ringValIF`;
+	int $ring_jump   = `intSliderGrp -q -v $AriSelectLoopRing_UI_ringJumpIF`;
+	int $ring_rev    = `checkBox     -q -v $AriSelectLoopRing_UI_ringRevCB`;
+	optionVar -intValue "AriSelectLoopRing_loopRepeat" $loop_repeat;
+	optionVar -intValue "AriSelectLoopRing_loopJump"   $loop_jump;
+	optionVar -intValue "AriSelectLoopRing_loopRev"    $loop_rev;
+	optionVar -intValue "AriSelectLoopRing_ringRepeat" $ring_repeat;
+	optionVar -intValue "AriSelectLoopRing_ringJump"   $ring_jump;
+	optionVar -intValue "AriSelectLoopRing_ringRev"    $ring_rev;
+}
+global proc AriSelectLoopRingOptions_GO(){
+	AriSelectLoopRingOptions_Save();
+}
+global proc AriSelectLoopRing_GO(int $mode){
+	int $ringMode = $mode;
+	int $conti = 2;
+	global string $AriSelectLoopRing_UI_loopValIF;
+	global string $AriSelectLoopRing_UI_loopJumpIF;
+	global string $AriSelectLoopRing_UI_loopRevCB;
+	global string $AriSelectLoopRing_UI_loopMaxIF;
+	global string $AriSelectLoopRing_UI_ringValIF;
+	global string $AriSelectLoopRing_UI_ringJumpIF;
+	global string $AriSelectLoopRing_UI_ringRevCB;
+	global string $AriSelectLoopRing_UI_ringMaxIF;
+	AriSelectLoopRingOptions_Save();
+	intField -e -bgc 0 0 0 $AriSelectLoopRing_UI_ringMaxIF;
+	intField -e -bgc 0 0 0 $AriSelectLoopRing_UI_loopMaxIF;
+	int $loop_repeat = `intSliderGrp -q -v $AriSelectLoopRing_UI_loopValIF`;
+	int $loop_jump   = `intSliderGrp -q -v $AriSelectLoopRing_UI_loopJumpIF`;
+	int $loop_rev    = `checkBox     -q -v $AriSelectLoopRing_UI_loopRevCB`;
+	int $loop_max    = `intField     -q -v $AriSelectLoopRing_UI_loopMaxIF`;
+	int $ring_repeat = `intSliderGrp -q -v $AriSelectLoopRing_UI_ringValIF`;
+	int $ring_jump   = `intSliderGrp -q -v $AriSelectLoopRing_UI_ringJumpIF`;
+	int $ring_rev    = `checkBox     -q -v $AriSelectLoopRing_UI_ringRevCB`;
+	int $ring_max    = `intField     -q -v $AriSelectLoopRing_UI_ringMaxIF`;
+	if($loop_repeat  < 1) $loop_repeat = 1;
+	if($loop_jump < 0) $loop_jump = 0;
+	if($ring_repeat  < 1) $ring_repeat = 1;
+	if($ring_jump < 0) $ring_jump = 0;
+	int $repeat = $loop_repeat;
+	int $jump   = $loop_jump;
+	int $reverse = $loop_rev;
+	int $max    = $loop_max;
+	if($mode == 1){
+		$repeat = $ring_repeat;
+		$jump   = $ring_jump;
+		$reverse = $ring_rev;
+		$max    = $ring_max;
+	}
+	float $time = `timerX`;
+	string $processedEdgeList[];        
+	string $nextEdgeList[]; 
+	string $processedEdgeList_final[]; 
+	string $processedFaceList[]; 
+	string $processedFaceList_final[]; 
+	string $sortEdgeList[];
+	string $selects[] = `ls -sl`;
+	if(!size($selects))return;
+	string $selectedEdgeList[] = `filterExpand -selectionMask 32 $selects`;
+	string $selectedFaceList[] = `filterExpand -selectionMask 34 $selects`;
+	string $selectFaceList[] = $selectedFaceList;
+	if(!size($selectedEdgeList) && !size($selectedFaceList))return;
+	string $borderEdgeList[];
+	int $faceTrue = false;
+	if(size($selectedFaceList)){
+		$mode = 1;
+		$faceTrue = true;
+		$selectedEdgeList = `polyListComponentConversion -te $selectedFaceList`;
+		$selectedEdgeList = `filterExpand -selectionMask 32 $selectedEdgeList`;
+		if(!$reverse)$processedFaceList_final = $selectedFaceList;
+		string $selectedEdgeList[] = `polyListComponentConversion -toEdge $selectedFaceList`;
+		$selectedEdgeList = `filterExpand -selectionMask 32 $selectedEdgeList`;
+		string $borderEdges[];
+		for($edge in $selectedEdgeList){
+			string $toFaces[] = `polyListComponentConversion -tf $edge`;
+			$toFaces = `filterExpand -selectionMask 34 $toFaces`;
+			if(size($toFaces)==1){
+				$borderEdges[size($borderEdges)] = $edge;
+			}
+		}
+		ConvertSelectionToEdgePerimeter;
+		select -add $borderEdges;
+		$borderEdgeList = `ls -sl`;
+		$borderEdgeList = `filterExpand -selectionMask 32 $borderEdgeList`;
+		select -cl;
+		SelectFacetMask;
+		if($max < size($borderEdgeList)){
+			print (size($borderEdgeList) + " Edges");
+			if( $ringMode)	intField -e -bgc 1 0 0 $AriSelectLoopRing_UI_ringMaxIF;
+			else			intField -e -bgc 1 0 0 $AriSelectLoopRing_UI_loopMaxIF;
+			return;
+		}
+		$borderEdgeList = AriGetEdgeList($borderEdgeList,0,0);
+	}
+	else{
+		if($max < size($selectedEdgeList)){
+			print (size($selectedEdgeList) + " Edges");
+			if( $ringMode)	intField -e -bgc 1 0 0 $AriSelectLoopRing_UI_ringMaxIF;
+			else			intField -e -bgc 1 0 0 $AriSelectLoopRing_UI_loopMaxIF;
+			return;
+		}
+		$borderEdgeList = AriGetEdgeList($selectedEdgeList,$mode,0);
+	}
+	$processedEdgeList = $selectedEdgeList;
+	if(!$reverse)$processedEdgeList_final = $selectedEdgeList;
+	string $borderEdgeGroup[];
+	for($borderEdge in $borderEdgeList){
+		if($borderEdge != "--" && $borderEdge != "--Loop"){
+			$borderEdgeGroup[size($borderEdgeGroup)] = $borderEdge;
+		}
+		else{
+			if(size($selectedFaceList)){
+				string $borderToFace[] = `polyListComponentConversion -tf $borderEdgeGroup`;
+				$borderToFace = `filterExpand -selectionMask 34 $borderToFace`;				
+				string $removeFace[] = stringArrayRemove($selectedFaceList, $borderToFace);
+				string $innerFace[]  = stringArrayRemove($removeFace, $borderToFace);
+				string $corner2_Edge[];
+				string $corner3_Edge[];
+				string $corner4_Edge[];
+				for($face in $innerFace){
+					string $faceToEdges[] = `polyListComponentConversion -te $face`;
+					$faceToEdges = `filterExpand -selectionMask 32 $faceToEdges`;
+					if(size($faceToEdges)!=4) continue;
+					string $removeEdges[] = stringArrayRemove($borderEdgeGroup, $faceToEdges);
+					$faceToEdges = stringArrayRemove($removeEdges, $faceToEdges);
+					if(size($faceToEdges)==2){
+						$corner2_Edge = stringArrayCatenate($corner2_Edge, $faceToEdges);
+					}
+					if(size($faceToEdges)==3){
+						string $faceToEdgesSort[] = AriGetEdgeList($faceToEdges,0,0);
+						$corner3_Edge[size($corner3_Edge)] = $faceToEdgesSort[1];
+					}
+					if(size($faceToEdges)==4){
+						$corner4_Edge = $faceToEdges;
+					}
+				}
+				int $corner2_true = false;
+				int $corner3_true = false;
+				int $oneface_true = false;
+				if(size($corner2_Edge)==8 && size($corner3_Edge)==0)	$corner2_true = true;
+				if(size($corner3_Edge)==2 && $corner2_true==false)		$corner3_true = true;
+				if(size($corner4_Edge)==4) 								$oneface_true = true;
+				if($corner2_true==false && $corner3_true==false && $oneface_true==false){
+					clear $borderEdgeGroup;
+					continue;
+				}
+				if($corner2_true==true){
+					string $startEdge;
+					int $countFg = 0;
+					for($borderEdge in $borderEdgeGroup){
+						if(stringArrayContains($borderEdge,$corner2_Edge)){
+							$countFg++;
+							if($countFg==2){
+								$startEdge = $borderEdge;
+							}
+							continue;
+						}
+						$countFg = 0;
+					}
+					$borderEdgeGroup = ArrayLeadSort($borderEdgeGroup,$startEdge);
+					string $horizonEdgeGroupA[];
+					string $horizonEdgeGroupB[];
+					int $count = -1;
+					for($borderEdge in $borderEdgeGroup){
+						if(stringArrayContains($borderEdge, $corner2_Edge))$count++;
+						if($count==0 || $count==1) $horizonEdgeGroupA[size($horizonEdgeGroupA)] = $borderEdge;
+						if($count==2 || $count==3) $horizonEdgeGroupB[size($horizonEdgeGroupB)] = $borderEdge;
+						if($count==4 || $count==5) $horizonEdgeGroupA[size($horizonEdgeGroupA)] = $borderEdge;
+						if($count==6 || $count==7) $horizonEdgeGroupB[size($horizonEdgeGroupB)] = $borderEdge;
+					}
+					int $manyTrue = true;
+					if(size($horizonEdgeGroupA) <= size($horizonEdgeGroupB)){
+						if($ringMode)	$manyTrue = true;
+						else 			$manyTrue = false;
+					}
+					else{
+						if($ringMode)	$manyTrue = false;
+						else 			$manyTrue = true;
+					}
+					if($manyTrue){
+						$conti = size($horizonEdgeGroupA)/2;
+						$selectedEdgeList = $horizonEdgeGroupB;
+					}
+					else{
+						$conti = size($horizonEdgeGroupB)/2;
+						$selectedEdgeList = $horizonEdgeGroupA;
+					}
+				}
+				if($corner3_true==true){
+					string $horizonEdgeGroupA[];
+					string $horizonEdgeGroupB[];
+					$corner3_Edge = AriGetEdgeList($corner3_Edge,0,0);
+					$horizonEdgeGroupA[0] = $corner3_Edge[0];
+					$horizonEdgeGroupA[1] = $corner3_Edge[2];
+					$horizonEdgeGroupB = stringArrayRemove($horizonEdgeGroupA, $borderEdgeGroup);
+					int $manyTrue = false;
+					if($ringMode)	$manyTrue = true;
+					if($manyTrue){
+						$selectedEdgeList = $horizonEdgeGroupB;
+						$conti = 1;
+					}
+					else{
+						$selectedEdgeList = $horizonEdgeGroupA;
+						$conti = size($horizonEdgeGroupB)/2;
+					}
+				}
+				if($oneface_true){
+					string $horizonEdgeGroupA[];
+					string $horizonEdgeGroupB[];
+					string $faceToEdges[] = $corner4_Edge;
+					$faceToEdges = AriGetEdgeList($faceToEdges,0,0);
+					$horizonEdgeGroupA[0] = $faceToEdges[0];
+					$horizonEdgeGroupA[1] = $faceToEdges[2];
+					$horizonEdgeGroupB[0] = $faceToEdges[1];
+					$horizonEdgeGroupB[1] = $faceToEdges[3];
+					string $versA[] = `polyListComponentConversion -tv $horizonEdgeGroupA[0]`;
+					$versA = `filterExpand -selectionMask 31 $versA`;
+					float $distanceA = distanceVer($versA[0],$versA[1]);
+					string $versB[] = `polyListComponentConversion -tv $horizonEdgeGroupB[0]`;
+					$versB = `filterExpand -selectionMask 31 $versB`;
+					float $distanceB = distanceVer($versB[0],$versB[1]);
+					int $manyTrue = false;
+					if($distanceB >= $distanceA){
+						if($ringMode)	$manyTrue = true;
+						else			$manyTrue = false;
+					}
+					else{
+						if($ringMode)	$manyTrue = false;
+						else			$manyTrue = true;
+					}
+					$conti = 1;
+					if($manyTrue)	$selectedEdgeList = $horizonEdgeGroupB;
+					else			$selectedEdgeList = $horizonEdgeGroupA;
+				}
+				$sortEdgeList = $selectedEdgeList;
+				$sortEdgeList[size($sortEdgeList)] = "--";
+			}
+			else{
+				$sortEdgeList = $borderEdgeGroup;
+			}
+			if(!$faceTrue)$conti = size($sortEdgeList);
+			string $nowEdgeList[] = $sortEdgeList;
+			int $beforeSize;
+			int $nn = 0;
+			int $k = 0;
+			while($nn < $repeat){
+				if($beforeSize == size($processedEdgeList))break;
+				$beforeSize = size($processedEdgeList);
+				clear $nextEdgeList;
+				for($edge in $nowEdgeList){
+					if($edge=="--")continue;
+					string $faceOrVers[];
+					if($mode==0){
+						$faceOrVers = `polyListComponentConversion -tv $edge`;
+						$faceOrVers = `filterExpand -selectionMask 31 $faceOrVers`;
+					}
+					else{
+						$faceOrVers = `polyListComponentConversion -tf $edge`;
+						$faceOrVers = `filterExpand -selectionMask 34 $faceOrVers`;
+					}
+					for($faceOrVer in $faceOrVers){
+						if(stringArrayContains($faceOrVer, $selectFaceList))continue;
+						if(stringArrayContains($faceOrVer, $processedFaceList))continue;
+						$processedFaceList[size($processedFaceList)] = $faceOrVer; 
+						string  $nextEdge = getNextEdge($edge, $faceOrVer, $mode);
+						if($nextEdge=="")continue;
+							$processedEdgeList[size($processedEdgeList)] = $nextEdge;
+							$nextEdgeList[size($nextEdgeList)] = $nextEdge;
+							if(($nn+$conti)%($conti+$jump) < $conti){
+								if(!$reverse){
+									$processedEdgeList_final[size($processedEdgeList_final)] = $nextEdge;
+									$processedFaceList_final[size($processedFaceList_final)] = $faceOrVer; 
+								}
+							}
+							else{
+								if($reverse){
+									$processedEdgeList_final[size($processedEdgeList_final)] = $nextEdge;
+									$processedFaceList_final[size($processedFaceList_final)] = $faceOrVer; 
+								}
+							}
+					}
+				}
+				$nowEdgeList = $nextEdgeList;
+				$nn++;
+			}
+			clear $borderEdgeGroup;
+			clear $processedFaceList;
+		}
+	}
+	if($faceTrue){
+		select $processedFaceList_final;
+	}
+	else{
+		select $processedEdgeList_final;
+	}
+}
+global proc AriSelectLoopRing_windowSize(){
+	window -e -h 50  AriSelectLoopRing;
+}
+global proc AriSelectLoopRing(){
+	global string $AriSelectLoopRing_UI_loopValIF;
+	global string $AriSelectLoopRing_UI_loopJumpIF;
+	global string $AriSelectLoopRing_UI_loopRevCB;
+	global string $AriSelectLoopRing_UI_loopMaxIF;
+	global string $AriSelectLoopRing_UI_ringValIF;
+	global string $AriSelectLoopRing_UI_ringJumpIF;
+	global string $AriSelectLoopRing_UI_ringRevCB;
+	global string $AriSelectLoopRing_UI_ringMaxIF;
+	int $loop_repeat  = 10;
+	int $loop_jump = 0;
+	int $loop_rev  = false;
+	int $ring_repeat  = 10;
+	int $ring_jump = 0;
+	int $ring_rev  = false;
+	if(`optionVar -exists "AriSelectLoopRing_loopRepeat"`)	$loop_repeat  = `optionVar -q "AriSelectLoopRing_loopRepeat"`;
+	if(`optionVar -exists "AriSelectLoopRing_loopJump"`)	$loop_jump    = `optionVar -q "AriSelectLoopRing_loopJump"`;
+	if(`optionVar -exists "AriSelectLoopRing_loopRev"`)		$loop_rev     = `optionVar -q "AriSelectLoopRing_loopRev"`;
+	if(`optionVar -exists "AriSelectLoopRing_ringRepeat"`)	$ring_repeat  = `optionVar -q "AriSelectLoopRing_ringRepeat"`;
+	if(`optionVar -exists "AriSelectLoopRing_ringJump"`)	$ring_jump    = `optionVar -q "AriSelectLoopRing_ringJump"`;
+	if(`optionVar -exists "AriSelectLoopRing_ringRev"`)		$ring_rev     = `optionVar -q "AriSelectLoopRing_ringRev"`;
+	if((`window -ex  AriSelectLoopRing`)==true)deleteUI AriSelectLoopRing;
+	window -title "AriSelectLoopRing" -tlb true -w 200 -h 50 AriSelectLoopRing;
+	string $form = `columnLayout -adj true`;
+	string $frameLoop = `frameLayout -cll true -l "Loop" -bgc 0.2 0 0  -cc "AriSelectLoopRing_windowSize()"`;
+	columnLayout -adj true -bgc 0.2 0.1 0.1 ;
+	rowLayout -nc 2 -adj 2;
+	text -w 54 -l "Repeat:" -al "left";
+	$AriSelectLoopRing_UI_loopValIF  = `intSliderGrp -field true -v $loop_repeat -min 1 -max 100 -fmx 10000 -cw 1 40 -w 50`;
+	setParent..;
+	rowLayout -nc 2 -adj 2;
+	text -w 54 -l "Jump:" -al "left";
+	$AriSelectLoopRing_UI_loopJumpIF = `intSliderGrp -field true -v $loop_jump -min 0 -max 10 -fmx 1000 -cw 1 40 -w 50`;
+	setParent..;
+	rowLayout -nc 5 -adj 2;
+	$AriSelectLoopRing_UI_loopRevCB = `checkBox -l "Reversal" -v $loop_rev`;
+	text -l "";
+	text -l "Max:";
+	$AriSelectLoopRing_UI_loopMaxIF = `intField -v 500 -w 42`;
+	button -h 20 -w 48 -bgc 0.2 0.2 0.2 -l "Undo" -c "Undo;";
+	setParent..;
+	text -h 4 -l "";
+	button -h 30 -l "Select Edge Loop"  -bgc 0.35 0.1 0.1 -c "AriSelectLoopRing_GO(0)";
+	setParent..;
+	setParent..;
+	string $frameRing = `frameLayout -cll true -l "Ring" -bgc 0 0.2 0 -cc "AriSelectLoopRing_windowSize()"`;
+	columnLayout -adj true -bgc 0.1 0.2 0.1 ;
+	rowLayout -nc 2 -adj 2;
+	text -w 54 -l "Repeat:" -al "left";
+	$AriSelectLoopRing_UI_ringValIF = `intSliderGrp -field true -v $ring_repeat -min 1 -max 100 -fmx 10000 -cw 1 40 -w 50`;
+	setParent..;
+	rowLayout -nc 2 -adj 2;
+	text -w 54 -l "Jump:" -al "left";
+	$AriSelectLoopRing_UI_ringJumpIF = `intSliderGrp -field true -v $ring_jump -min 0 -max 10 -fmx 1000 -cw 1 40 -w 50`;
+	setParent..;
+	rowLayout -nc 5 -adj 2;
+	$AriSelectLoopRing_UI_ringRevCB = `checkBox -l "Reversal" -v $ring_rev`;
+	text -l "";
+	text -l "Max:";
+	$AriSelectLoopRing_UI_ringMaxIF = `intField -v 500 -w 42`;
+	button -h 20 -w 48 -bgc 0.2 0.2 0.2 -l "Undo" -c "Undo;";
+	setParent..;
+	text -h 4 -l "";
+	button -h 30 -l "Select Edge Ring"  -bgc 0.1 0.35 0.1 -c "AriSelectLoopRing_GO(1)";
+	setParent..;
+	setParent..;
+	setParent..;
+	/*
+	formLayout -e
+		-af $frameLoop "left"  0
+		-af $frameLoop "right" 0
+		-af $frameLoop "top"   0
+		-ap $frameLoop "bottom" 0 50
+		-af $frameRing "left" 0
+		-af $frameRing "right" 0
+		-af $frameRing "bottom" 0
+		-ac $frameRing "top" 0 $frameLoop
+	$form;
+	*/
+	showWindow;
+}

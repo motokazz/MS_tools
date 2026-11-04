@@ -1,0 +1,87 @@
+
+global proc MS_jointLoft(){
+	string $new[];
+	$obj=`ls -l -sl`;
+	for ($i=0;$i<(size($obj)-1);$i++){
+		
+		string $jntA[]=`listRelatives -ad -f -typ joint $obj[$i]`;
+		
+		string $jntB[]=`listRelatives -ad -f -typ joint $obj[($i+1)]`;
+		
+		if(`nodeType $obj[$i]`=="joint"){
+			$jntA[size($jntA)]=$obj[$i];
+		}
+		if(`nodeType $obj[$i+1]`=="joint"){
+			$jntB[size($jntB)]=$obj[$i+1];
+		}
+
+		
+		string $com="polyCreateFacet -ch on -tx 1 -s 1 ";
+		
+		string $newj[]=`MS_arrayInvert $jntB`;
+		
+		string $allJoints[]=`stringArrayCatenate $jntA $newj`;
+		
+		for ($each in $allJoints){
+			float $loc[]=`xform -q -ws -t $each`;
+			$com=($com+"-p "+$loc[0]+" "+$loc[1]+" "+$loc[2]+" ");
+		}
+		
+		//トレイルのポリゴン作成
+		$new=`eval $com`;
+		
+		//スキニング
+		select -r $new[0] $jntA $jntB;
+		SmoothBindSkin;
+		
+		//頂点カラー
+		
+		float $step=(2.0/(size($allJoints)));
+		print $step;
+		print "\n";
+		for($j=0;$j<size($jntA);$j++){
+			string $vtxname=($new[0]+".vtx["+$j+"]");
+			float $colval=($step*$j);
+			print $colval;
+			print "\n";
+			polyColorPerVertex -r $colval -g $colval -b $colval -a $colval $vtxname ;
+		}
+		
+		for($j=0;$j<size($jntB);$j++){
+			int $k=size($jntA)+$j;
+			string $vtxname=($new[0]+".vtx["+$k+"]");
+			float $colval=($step*(size($jntA)+size($jntB)-$k));
+			print $colval;
+			print "\n";
+			polyColorPerVertex -r $colval -g $colval -b $colval -a $colval $vtxname ;
+		}
+		
+	}
+	
+	//シェーダー作成＆割付
+	createEF_1;
+	
+	string $shad[]=`ls -sl`;
+	string $sg[]=`listConnections -t shadingEngine`;
+	string $cgfx[]=`listConnections -t cgfxShader`;
+	
+	select -r $new;
+	sets -e -forceElement $sg[0];
+	
+	
+	//MS_VFA
+
+	MS_VFA_Float(
+	`playbackOptions -q -min`,
+	`playbackOptions -q -max`,
+	0,
+	1,
+	$obj[0],
+	$cgfx,
+	{"baseColorAlpha"}
+	
+	);
+	
+}
+
+

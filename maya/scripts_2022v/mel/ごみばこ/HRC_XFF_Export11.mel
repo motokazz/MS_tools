@@ -1,0 +1,247 @@
+/*
+HRC_XFF_Export.mel
+v1.1
+◆概要
+選択したトップLOCATERの名前をつけて、その子供を全てXFFファイル出力
+
+◆使用方法
+
+１・準備
+出力先の基本となるディレクトリ、
+D:/DATA/xff/
+を作成するとよい。
+
+２・オプション設定
+---チェックボックス---
+ExportModel
+ExportAnim
+ExportMatanim
+IgnoreBindpose
+IgnoreRefferencenode
+※上記チェックボックスは、onで各項目有効
+
+AnimNameIsMotion
+※このチェックボックスがONになっていると、出力されるアニメーション名が「motion」になる。（BG用）
+　OFFのときは、親locaterの名前＋「additionalAnimationName」が有効になる。
+
+---名前入力---
+additionalModelName
+additionalAnimationName
+ここに入力した名前が、親locaterの名前にプラスされて出力される。
+
+---出力パス設定---
+filePath
+ここに入力したPATHに出力される。「Brouse」ボタンでブラウザによるディレクトリ選択が可能。
+
+---各種ボタン---
+Camera
+カメラ出力が出来る。出力ファイル名は「additionalAnimationName」＋”.camera.pcxff”になる。
+
+Export
+オブジェクトのエキスポートが出来る。
+出力ファイル名は、親locater名＋「additionalAnimationName」＋”.pcxff”になる。
+出力アニメーション名は、親locater名＋「additionalAnimationName」になる。（AnimNameIsMotionにチェック無しの場合）
+
+Exit
+ウインドウを閉じる。
+
+３・実行
+出力したいオブジェクトを選択して、ボタンを押す。
+
+
+◆詳細
+選択したグループの名前でラベルを作成して、グループごとにファイルを出力します。
+ファイル名もグループの名前で出力されます。
+
+出力前に、テクスチャーファイルを全て.ddsファイルに張り替えます。（fileノードの拡張子記述を強制的に.ddsに書き換えています。）
+
+基本出力先は、このスクリプトを直接いじっていただければ変更できます・・・
+
+
+*/
+
+global proc HRC_XFF_Camera_Export(){
+	string $path=`textField -q -fileName "filePath"`;
+	string $ModelName=`textField -q -tx "ModelName"`;//Data//
+	$full_path=($path+$ModelName+".camera.pcxff");
+	XFFexport -f $full_path -ce;
+//cameraAnimExport $full_path "Best Guess";
+}
+
+global proc HRC_XFF_Export_core(){
+	$path=`textField -q -fileName "filePath"`;
+	//$path="D:/DATA/xff/";//出力パス
+	
+	string $AnimationName=`textField -q -tx "AnimationName"` ;//Data//
+	string $ModelName=`textField -q -tx "ModelName"`;//Data//
+	string $newAnimName;
+	
+	//if(`radioButtonGrp -q -sl smp_radio`){
+	int $chkAnim=`checkBox -q -v "AnimNameIsMotion"` ;//Data//
+	
+	int $ir=`checkBox -q -v "IgnoreReferencenode"` ;//Data//
+	int $ip=`checkBox -q -v "IgnoreBindpose"` ;//Data//
+	int $ex=`checkBox -q -v "ExportMatAnim"` ;//Data//
+	int $ea=`checkBox -q -v "ExportAnim" `;//Data//
+	int $em=`checkBox -q -v "ExportModel"` ;//Data//
+	
+	if($em){$em=0;}else{$em=1;}
+	if($ea){$ea=0;}else{$ea=1;}
+	if($ex){$ex=0;}else{$ex=1;}
+	
+	
+	string $obj_name[]=`ls -as -sl`;
+	
+	$i=0;
+	for($i=0;$i<size($obj_name);$i++){
+		select -r $obj_name[$i];
+		
+		
+		if(!$chkAnim){
+			$newAnimName=($obj_name[$i]+$AnimationName);
+		}else{
+			$newAnimName="motion";
+		}
+		
+		
+		$full_p_name=($path+$obj_name[$i]+$ModelName);
+		$operation=(
+			"em="+$em+
+			";ea="+$ea+
+			";ex="+$ex+
+			";ip="+$ip+
+			";name="+$newAnimName+
+			";obj="+$obj_name[$i]+$ModelName+";"
+		);
+		
+		
+		print $operation;
+		print $full_p_name;
+		print "\n";
+		
+		
+		file -op $operation -typ "XFFExport" -pr -es $full_p_name;
+	}
+}
+
+global proc MS_HRC_XFF_Export_TexExtRep_All(int $val_radio)
+{
+
+	string $ext_name[]={"dummy",".dds",".tga",".tif",".jpg"};
+	//int $val_radio=`radioButtonGrp -q -sl smp_radio`;
+
+	string $rec_obj[]=`ls -sl`;
+
+	select -all;
+
+	string $obj_name[]=`ls -sl -typ file`;
+
+	$i=0;
+	
+	for($i=0;$i<size($obj_name);$i++){
+	
+	string $name=`getAttr ($obj_name[$i]+".fileTextureName")`;
+
+
+	//ピリオドで分割
+	string $buffer[];
+	tokenize $name "." $buffer;
+
+	
+		setAttr -type "string" ($obj_name[$i]+".fileTextureName") ($buffer[0]+$ext_name[$val_radio]);
+	
+	}
+	
+	select -r $rec_obj;
+}
+
+
+
+
+
+global proc MS_HRC_XFF_Export(){
+
+	MS_HRC_XFF_Export_TexExtRep_All 1;
+	HRC_XFF_Export_core;
+//	MS_HRC_XFF_Export_TexExtRep_All 2;
+
+}
+
+
+global proc HRC_XFF_Export_get_dir(string $exp_dir,string $dummy){
+
+	textField -e -fileName ($exp_dir+"/") "filePath";
+
+}
+
+
+//  Name: uiDesigner2006
+//Modify: Leson lai
+//   Msn: TNTII1981@hotmail.com
+//Thanks for original uiDesigner.
+global proc HRC_XFF_Export()
+{
+if(`window -q -ex MyTools_HRC_XFF_Export`)deleteUI MyTools_HRC_XFF_Export;
+window MyTools_HRC_XFF_Export;
+formLayout myUIFormLayout;
+//--DataPart--//
+text -label "filePath" "tex10" ;//Data//
+textField -fileName "D:/DATA/xff/" -width 200 "filePath" ;//Data//
+button -label "Brouse" -c "fileBrowser \"HRC_XFF_Export_get_dir\" \"Select Directory\" \"\" 4" "Brouse";
+text -label "additional ModelName" "text7" ;//Data//
+text -label "additional AnimationName" "text6" ;//Data//
+separator -width 300 "separator9" ;//Data//
+button -backgroundColor 0.9411966801 1 0.7639999986 -label "exit" -width 48 -recomputeSize 0 -command "deleteUI MyTools_HRC_XFF_Export" "exit" ;//Data//
+button -width 80 -backgroundColor 1 0.8368660212 0.7720000148 -label "Export" -recomputeSize 0 -command "MS_HRC_XFF_Export" "Export" ;//Data//
+button -width 48 -backgroundColor 0.7720000148 0.8368660212 1 -label "Camera" -recomputeSize 0 -command "HRC_XFF_Camera_Export" "CameraExport" ;//Data//
+separator -width 300 -height 2 "separator8" ;//Data//
+textField -width 100 "AnimationName" ;//Data//
+textField -width 100 "ModelName";//Data//
+checkBox -recomputeSize 0 -v 1 -label "AnimNameIsMotion" -width 128 "AnimNameIsMotion" ;//Data//
+checkBox -recomputeSize 0 -v 0 -label "IgnoreReferencenode" -width 128 "IgnoreReferencenode" ;//Data//
+checkBox -recomputeSize 0 -v 0 -label "IgnoreBindpose" -width 128 "IgnoreBindpose" ;//Data//
+checkBox -recomputeSize 0 -v 1 -label "ExportMatAnim" -width 128 "ExportMatAnim" ;//Data//
+checkBox -recomputeSize 0 -v 1 -label "ExportAnim" -width 128 "ExportAnim" ;//Data//
+checkBox -recomputeSize 0 -v 1 -label "ExportModel" -width 128 "ExportModel" ;//Data//
+formLayout -e
+	-af "tex10" "left" 0//Data//
+	-af "tex10" "top" 128//Data//
+	-af "filePath" "left" 0//Data//
+	-af "filePath" "top" 144//Data//
+	-af "Brouse" "left" 224//Data//
+	-af "Brouse" "top" 144//Data//
+	-af "text7" "left" 176//Data//
+	-af "text7" "top" 32//Data//
+	-af "text6" "left" 176//Data//
+	-af "text6" "top" 64//Data//
+	-af "separator9" "left" 0//Data//
+	-af "separator9" "top" 176//Data//
+	-af "exit" "left" 256//Data//
+	-af "exit" "top" 192//Data//
+	-af "Export" "left" 160//Data//
+	-af "Export" "top" 192//Data//
+	-af "CameraExport" "left" 16//Data//
+	-af "CameraExport" "top" 192//Data//
+	-af "separator8" "left" 0//Data//
+	-af "separator8" "top" 112//Data//
+	-af "AnimationName" "left" 176//Data//
+	-af "AnimationName" "top" 80//Data//
+	-af "ModelName" "left" 176//Data//
+	-af "ModelName" "top" 48//Data//
+	-af "AnimNameIsMotion" "left" 16//Data//
+	-af "AnimNameIsMotion" "top" 96//Data//
+	-af "IgnoreReferencenode" "left" 16//Data//
+	-af "IgnoreReferencenode" "top" 80//Data//
+	-af "IgnoreBindpose" "left" 16//Data//
+	-af "IgnoreBindpose" "top" 64//Data//
+	-af "ExportMatAnim" "left" 16//Data//
+	-af "ExportMatAnim" "top" 48//Data//
+	-af "ExportAnim" "left" 16//Data//
+	-af "ExportAnim" "top" 32//Data//
+	-af "ExportModel" "left" 16//Data//
+	-af "ExportModel" "top" 16//Data//
+//--DataPart--//
+myUIFormLayout;
+showWindow MyTools_HRC_XFF_Export;
+}
+HRC_XFF_Export;

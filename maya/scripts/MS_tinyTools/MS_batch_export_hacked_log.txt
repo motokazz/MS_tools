@@ -1,0 +1,54 @@
+=*=*=*=*=*=*=*=*=* garden_01 =*=*=*=*=*=*=*=*=*
+[['D:/Projects/Gravite2/graphic/bg/scenes/organic/garden_01.mb...', '---p4checkout complete---']]
+success : G_BG_Main2 to G2_BG_Main1
+success : G_BG_Main4 to G2_BG_Main2
+
+TimeSetting=OK
+SAVE succes !
+D:/Projects/Gravite2/assets/bg/model/garden_01.atgi
+D:/Projects/Gravite2/assets_local/garden_01/bg/model/garden_01.atgi COPY---> D:/Projects/Gravite2/assets/bg/model/garden_01.atgi
+COPY SUCCESS! : D:/Projects/Gravite2/assets/bg/model/garden_01.atgi
+Low Model Catched !
+D:/Projects/Gravite2/assets/bg/model/garden_01_low.atgi
+D:/Projects/Gravite2/assets_local/garden_01/bg/model/garden_01_low.atgi COPY---> D:/Projects/Gravite2/assets/bg/model/garden_01_low.atgi
+COPY SUCCESS! : D:/Projects/Gravite2/assets/bg/model/garden_01_low.atgi
+=*=*=*=*=*=*=*=*=* garden_02 =*=*=*=*=*=*=*=*=*
+[['D:/Projects/Gravite2/graphic/bg/scenes/organic/garden_02.mb...', 'file not Checkout : ', '---p4checkout complete---']]
+success : G_BG_Main2 to G2_BG_Main1
+success : G_BG_Main4 to G2_BG_Main2
+
+TimeSetting=OK
+SAVE succes !
+D:/Projects/Gravite2/assets/bg/model/garden_02.atgi
+D:/Projects/Gravite2/assets_local/garden_02/bg/model/garden_02.atgi COPY---> D:/Projects/Gravite2/assets/bg/model/garden_02.atgi
+COPY SUCCESS! : D:/Projects/Gravite2/assets/bg/model/garden_02.atgi
+Low Model Catched !
+D:/Projects/Gravite2/assets/bg/model/garden_02_low.atgi
+D:/Projects/Gravite2/assets_local/garden_02/bg/model/garden_02_low.atgi COPY---> D:/Projects/Gravite2/assets/bg/model/garden_02_low.atgi
+COPY SUCCESS! : D:/Projects/Gravite2/assets/bg/model/garden_02_low.atgi
+=*=*=*=*=*=*=*=*=* garden_03 =*=*=*=*=*=*=*=*=*
+[['D:/Projects/Gravite2/graphic/bg/scenes/organic/garden_03.mb...', 'file not Checkout : ', '---p4checkout complete---']]
+success : G_BG_Main2 to G2_BG_Main1
+
+TimeSetting=OK
+SAVE succes !
+D:/Projects/Gravite2/assets/bg/model/garden_03.atgi
+D:/Projects/Gravite2/assets_local/garden_03/bg/model/garden_03.atgi COPY---> D:/Projects/Gravite2/assets/bg/model/garden_03.atgi
+COPY SUCCESS! : D:/Projects/Gravite2/assets/bg/model/garden_03.atgi
+Low Model Catched !
+D:/Projects/Gravite2/assets/bg/model/garden_03_low.atgi
+D:/Projects/Gravite2/assets_local/garden_03/bg/model/garden_03_low.atgi COPY---> D:/Projects/Gravite2/assets/bg/model/garden_03_low.atgi
+COPY SUCCESS! : D:/Projects/Gravite2/assets/bg/model/garden_03_low.atgi
+=*=*=*=*=*=*=*=*=* garden_04 =*=*=*=*=*=*=*=*=*
+[['D:/Projects/Gravite2/graphic/bg/scenes/organic/garden_04.mb...', 'file not Checkout : ', '---p4checkout complete---']]
+success : G_BG_Main2 to G2_BG_Main1
+
+TimeSetting=OK
+SAVE succes !
+D:/Projects/Gravite2/assets/bg/model/garden_04.atgi
+D:/Projects/Gravite2/assets_local/garden_04/bg/model/garden_04.atgi COPY---> D:/Projects/Gravite2/assets/bg/model/garden_04.atgi
+COPY SUCCESS! : D:/Projects/Gravite2/assets/bg/model/garden_04.atgi
+Low Model Catched !
+D:/Projects/Gravite2/assets/bg/model/garden_04_low.atgi
+D:/Projects/Gravite2/assets_local/garden_04/bg/model/garden_04_low.atgi COPY---> D:/Projects/Gravite2/assets/bg/model/garden_04_low.atgi
+COPY SUCCESS! : D:/Projects/Gravite2/assets/bg/model/garden_04_low.atgi

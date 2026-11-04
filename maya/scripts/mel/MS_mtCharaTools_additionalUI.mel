@@ -1,0 +1,288 @@
+global proc MS_mtCharaTools_additional_textureCopy(){
+	string $exportPath=`textField -q -fi "exportPath"`;
+	string $file[]=`ls -typ file`;
+	string $name[];
+	int $i=0;
+	string $fileTextureName[];
+	for($each in $file){
+		if(!`gmatch $each "*:*"`){//リファレンスチェック
+		//シーン内で使用しているテクスチャーをコピー
+		$fileTextureName[$i]=`getAttr ($each+".fileTextureName")`;
+		tokenize($fileTextureName[$i],"/",$name);
+		sysFile -copy ($exportPath+$name[size($name)-1]) $fileTextureName[$i];
+		$i++;
+		//シーン内のファイルテクスチャーノードを書き換え
+		setAttr ($each+".fileTextureName") -type "string" $name[size($name)-1];
+		}
+	}
+	print $fileTextureName;
+	
+}
+
+global proc MS_mtCharaTools_additional_getDir_poseListPath(string $exp_dir,string $dummy){
+	textField -e -fileName ($exp_dir+"/") "poseListPath";
+	MS_mtCharaTools_additional_storeRecallUI "store";
+}
+
+global proc MS_mtCharaTools_additional_getDir_exportPath(string $exp_dir,string $dummy){
+	textField -e -fileName ($exp_dir+"/") "exportPath";
+	MS_mtCharaTools_additional_storeRecallUI "store";
+}
+
+global proc MS_mtCharaTools_additional_fileBrowser(string $command,string $controlID){
+	global string $gDefaultFileBrowserDir;
+	string $orgpath=$gDefaultFileBrowserDir;
+	string $path=`textField -q -fileName $controlID`;
+	eval("global string $gDefaultFileBrowserDir=\""+$path+"\"");
+	fileBrowser $command "Select Directory" "" 4 ;
+	eval("global string $gDefaultFileBrowserDir=\""+$orgpath+"\"");
+}
+global proc MS_mtCharaTools_additional_colladaExport_Model( string $outName ,int $mode){
+	string $OPTION=("bakeTransforms=1;exportPolygonMeshes=1;bakeLighting=0;isSampling=1;"
+	+"curveConstrainSampling=0;removeStaticCurves=1;exportCameraAsLookat=0;"
+	+"exportLights=0;exportCameras=0;exportJointsAndSkin=1;"
+	+"exportAnimations=0;exportTriangles=1;exportInvisibleNodes=0;"
+	+"exportNormals=1;exportTexCoords=1;"
+	+"exportVertexColors=0;exportVertexColorsAnimation=0;exportTangents=0;"
+	+"exportTexTangents=1;exportConstraints=0;exportPhysics=0;exportXRefs=1;instanceDuplicateCurves=0;"
+	+"dereferenceXRefs=0;cameraXFov=0;cameraYFov=1");
+	
+	switch ($mode){
+		case 0:
+			file -op $OPTION -typ "COLLADA exporter" -pr -ea $outName;
+		break;
+		case 1:
+			file -op $OPTION -typ "COLLADA exporter" -pr -es -ch 0 -chn 0 -con 0 -exp 0 -sh 1 $outName;
+		break;
+	}
+}
+
+
+global proc MS_mtCharaTools_additional_core(){
+	string $obj[]=`ls -sl`;
+	string $exportPath=`textField -q -fileName "exportPath"`;
+	string $sourceDir=`textField -q -fileName "poseListPath"`;
+	string $melfiles[] = `getFileList -folder $sourceDir -filespec "*.mel"`;
+	int $i=0;
+	for($each in $melfiles){
+			//MAYABINARY
+		if($each!="workspace.mel"){
+			if(`checkBox -q -v ("fileList_"+$i)`){
+				//ポージングmel
+				string $commands=("source \""+$sourceDir+$each+"\"");
+				eval $commands;
+				//エキスポート
+				string $filename[];
+				tokenize ($each,".",$filename);
+				select -r $obj;
+				delete -ch;
+				MS_mtCharaTools_additional_colladaExport_Model(($exportPath+$filename[0]),1);
+				file -op "v=0" -typ "mayaAscii" -pr -es -ch 0 -chn 0 -con 0 -exp 0 -sh 1 ($exportPath+$filename[0]);
+				file -op "groups=1;ptgroups=1;materials=1;smoothing=1;normals=1;" -typ "OBJexport" -pr -es ($exportPath+$filename[0]);
+				undo ;
+			}
+		}
+		$i++;
+	}
+	confirmDialog -bgc 1.0 0.8 0.5 -m "====== export finish ! =====";
+}
+
+
+global proc MS_mtCharaTools_additional_storeRecallUI( string $mode ){
+
+	string $prefix="MS_mtCharaTools_additionalUI";
+	
+	string $floatFieldList[] = {
+		};
+
+	string $intFieldList[] = {
+		};
+
+	string $floatSliderGrpList[] = {
+		};
+
+	string $intSliderGrpList[] = {
+		};
+
+	string $checkBoxList[] = {
+		};
+
+	string $radioButtonGrpList[] = {
+		};
+
+	string $frameLayoutList[] = {
+		};
+
+	string $textFieldList[] = {
+		};
+
+	string $textFieldList_file[] = {
+		"poseListPath",
+		"exportPath"
+		};
+
+	int $cnt;
+
+	if ( $mode == "store" )
+	{
+		for ( $each in $floatFieldList)
+			optionVar -floatValue ($prefix+$each) `floatField -q -value $each`;
+
+		for ( $each in $intFieldList)
+			optionVar -intValue ($prefix+$each) `intField -q -value $each`;
+
+		for ( $each in $floatSliderGrpList)
+			optionVar -floatValue ($prefix+$each) `floatSliderGrp -q -value $each`;
+
+		for ( $each in $intSliderGrpList)
+			optionVar -intValue ($prefix+$each) `intSliderGrp -q -value $each`;
+
+		for ( $each in $checkBoxList)
+			optionVar -intValue ($prefix+$each) `checkBox -q -value $each`;
+
+		for ( $each in $radioButtonGrpList)
+			optionVar -intValue ($prefix+$each) `radioButtonGrp -q -select $each`;
+
+		for ( $each in $frameLayoutList)
+			optionVar -intValue ($prefix+$each) `frameLayout -q -collapse $each`;
+
+		for ( $each in $textFieldList)
+			optionVar -stringValue ($prefix+$each) `textField -q -tx $each`;
+
+		for ( $each in $textFieldList_file)
+			optionVar -stringValue ($prefix+$each) `textField -q -fileName $each`;
+	}
+
+	if ( $mode == "recall" )
+	{
+		for ( $each in $floatFieldList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				floatField -e -value `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $intFieldList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				intField -e -value `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $floatSliderGrpList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				floatSliderGrp -e -value `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $intSliderGrpList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				intSliderGrp -e -value `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $checkBoxList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				checkBox -e -value `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $radioButtonGrpList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				radioButtonGrp -e -select `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $frameLayoutList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				frameLayout -e -collapse `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $textFieldList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				textField -e -tx `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $textFieldList_file)
+			if ( `optionVar -exists ($prefix+$each)` )
+				textField -e -fileName `optionVar -q ($prefix+$each)` $each;
+
+	}
+
+	if ( $mode == "reset" )
+	{
+		for ( $each in $floatFieldList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $intFieldList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $floatSliderGrpList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $intSliderGrpList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $checkBoxList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $radioButtonGrpList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $frameLayoutList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $textFieldList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $textFieldList_file)
+			optionVar -remove ($prefix+$each);
+	}
+}
+
+global proc MS_mtCharaTools_additional_setAnimSet(){
+	string $OBJZ[]=`listRelatives -ad -typ transform`;
+	if(size($OBJZ)){
+		sets -n "char_anm_sets" $OBJZ;
+	}
+}
+
+global proc MS_mtCharaTools_additionalUI(){
+	//string $sourceDir=`textField -q -fileName "refferencePath"`;
+	
+	if(`window -q -ex MS_mtCharaTools_additionalUI`)deleteUI MS_mtCharaTools_additionalUI;
+	window MS_mtCharaTools_additionalUI;
+	columnLayout;
+	text -bgc 0.8 0.7 0.7 -width 200 -font boldLabelFont -label "poseListPath" ;//Data//
+	rowLayout -nc 2 -cw2 150 50;
+	textField -w 150 -fileName `workspace -q -rd` "poseListPath";
+	button-width 50 -label "Brouse"  -c "MS_mtCharaTools_additional_fileBrowser MS_mtCharaTools_additional_getDir_poseListPath poseListPath;MS_mtCharaTools_additionalUI;";
+	setParent ..;
+	//ファイルリスト作成
+	setParent..;
+	string $scrollLayout=`scrollLayout`;
+	columnLayout "poseList";
+
+	setParent..;
+	setParent..;
+	columnLayout;
+	
+	text -bgc 0.8 0.7 0.7 -width 200 -font boldLabelFont -label "exportPath" ;//Data//
+	rowLayout -nc 2 -cw2 150 50;
+	textField -fileName `workspace -q -rd` -width 150 "exportPath" ;//Data//
+	button -width 50 -label "Brouse" -c "MS_mtCharaTools_additional_fileBrowser MS_mtCharaTools_additional_getDir_exportPath exportPath";
+	setParent ..;
+	
+	button -width 200 -bgc 0.8 0.9 0.8 -label "EXPORT" -c "MS_mtCharaTools_additional_core";
+	
+	separator -h 30;
+	
+	button -width 200 -h 18 -bgc 1.0 1.0 1.0 -l "createCharSets" -c "MS_mtCharaTools_additional_setAnimSet" ;
+	
+	MS_mtCharaTools_additional_storeRecallUI "recall";
+	
+	//顔リスト作成
+	int $i;
+	string $name[];
+	string $sourceDir=`textField -q -fileName "poseListPath"`;
+	string $melFiles[] = `getFileList -folder $sourceDir -filespec "*.mel"`;
+	for($each in $melFiles){
+		tokenize($each,"/",$name);
+		if(($name[size($name)-1])!="workspace.mel"){
+			checkBox -p "poseList" -v 1 -l ($name[size($name)-1]) ("fileList_"+$i);
+		}
+		$i++;
+	}
+	
+	scrollLayout -e -w 200 -h 200 $scrollLayout;
+	window -edit -width 208  -h 400 MS_mtCharaTools_additionalUI;
+	window -e -s false MS_mtCharaTools_additionalUI;
+	showWindow MS_mtCharaTools_additionalUI;
+	
+}
+
+MS_mtCharaTools_additionalUI;

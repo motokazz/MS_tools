@@ -1,0 +1,16 @@
+global proc string MS_createJoint(int $step,float $length){
+
+
+	string $jname=`joint -a -p 0 0 0 -sc 0 `;
+	float $span=($length/$step);
+	float $val=0;
+	while($val<$length){
+		$val=$val+$span;
+		joint -a -p 0 0 (-$val) -sc 0 ;
+	}
+	
+	return $jname;
+}
+
+
+

@@ -1,0 +1,80 @@
+//#############################################################################
+//MS_megabool
+//Created by Motokazz
+//2005/8/17
+//たくさんのオブジェクトを一気にブーリアンする。
+//#############################################################################
+
+
+global proc megabool(int $bl_flag){
+	$objz=`ls -sl`;
+	
+	polyBoolOp -n "MS_Bool_dist" -op $bl_flag -ch 0 $objz[0] $objz[1];
+	$i=0;
+	for($i=2;$i<size($objz);$i++){
+	polyBoolOp -n "MS_Bool_source" -op $bl_flag -ch 0 MS_Bool_dist $objz[$i];
+	rename MS_Bool_source MS_Bool_dist;
+	}
+	
+	rename MS_Bool_dist MS_megabooled;
+}
+
+global proc MS_megabool()
+{
+	if(`window -exists MS_megabool`){
+		deleteUI MS_megabool;
+	}
+	
+	window -title "MS_megabool" MS_megabool;	
+	
+	$form = `formLayout`;
+
+	setParent $form;
+	$sep=`separator`;
+
+
+
+	$com_uni=`button -l "union" -command "megabool(1)" `;
+	$com_dif=`button -l "difference" -command "megabool(2)" `;
+	$com_int=`button -l "intersect" -command "megabool(3)" `;
+	$com_und=`button -l "undo" -command "Undo" `;
+	$com_ext=`button -l "exit" -command "deleteUI MS_megabool" `;
+
+
+	formLayout -e
+
+	-af $com_uni "top" 10
+        -af $com_uni "left" 5
+        -ap $com_uni "right" 0 33
+        -an $com_uni "bottom"
+
+        -af $com_dif "top" 10
+        -ap $com_dif "left" 0 33
+        -ap $com_dif "right" 0 66
+        -an $com_dif "bottom"
+
+        -af $com_int "top" 10
+        -ap $com_int "left" 0 66
+        -ap $com_int "right" 0 98
+        -an $com_int "bottom"
+
+        -af $com_und "top" 50
+        -ap $com_und "left" 0 40
+        -ap $com_und "right" 0 70
+        -an $com_und "bottom"
+
+        -af $com_ext "top" 50
+        -ap $com_ext "left" 0 70
+        -ap $com_ext "right" 0 99
+        -an $com_ext "bottom"
+
+	$form;
+	
+	showWindow MS_megabool;
+	
+
+}
+
+
+MS_megabool;
+

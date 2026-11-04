@@ -1,0 +1,124 @@
+
+global proc MS_HRC_XFF_Export_core(int $mode){
+	
+	$path=`textField -q -fileName "filePath"`;//出力パス
+	
+	string $AnimationName=`textField -q -tx "AnimationName"` ;//Data//
+	string $ModelName=`textField -q -tx "ModelName"`;//Data//
+	
+	int $ir=`checkBox -q -v "IgnoreReferencenode"` ;//Data//
+	int $ip=`checkBox -q -v "IgnoreBindpose"` ;//Data//
+	int $ex=`checkBox -q -v "ExportMatAnim"` ;//Data//
+	int $ea=`checkBox -q -v "ExportAnim" `;//Data//
+	int $em=`checkBox -q -v "ExportModel"` ;//Data//
+	int $le=`checkBox -q -v "ExportLight"` ;//Data//
+	int $pi=`checkBox -q -v "PlacementInfo"` ;//Data//
+	
+	
+	if($em){$em=0;}else{$em=1;}
+	if($ea){$ea=0;}else{$ea=1;}
+	if($ex){$ex=0;}else{$ex=1;}
+	
+	//モードよりわけ
+	
+	string $obj_name[];
+	
+	//コマンド作成
+	
+	if($mode){
+		$obj_name=`ls -as -sl`;
+
+	//ExportSelected
+		for($each in $obj_name){
+			
+			//たまにオブジェクト名の頭にわけのわからない「｜」がついているのを回避。
+			int $headcheck=startsWith($each,"|");
+			if ($headcheck){$each=endString($each, (size($each)-1));}
+			
+			select -r $each;
+			
+			$full_p_name=($path+$each);
+			
+			//モデル名が空だったらロケーターの名前をモデル名として使う
+			if ($ModelName==""){
+				$ModelName=$each;
+			}
+			//アニメーションの名前が入力されていなければ「motion」を使う
+			if ($AnimationName==""){
+				$AnimationName="motion";
+			}
+			//ライトのエキスポート
+			if($le){
+				$operation=(
+				"em="+$em+
+				";ea="+$ea+
+				";ex="+$ex+
+				";ip="+$ip+
+				";le="+$le+
+				";pi="+$pi+
+				";name="+$AnimationName+
+				";obj="+$ModelName+";"
+				);
+				print ("file -op "+$operation+" -typ \"XFFExport\" -pr -ea "+$full_p_name+";");
+				file -op $operation -typ "XFFExport" -pr -es $full_p_name;
+			
+			}
+
+			
+			$operation=(
+				"em="+$em+
+				";ea="+$ea+
+				";ex="+$ex+
+				";ip="+$ip+
+				";le=0"+
+				";pi="+$pi+
+				";name="+$AnimationName+
+				";obj="+$ModelName+";"
+			);
+			
+			print ("file -op "+$operation+" -typ \"XFFExport\" -pr -ea "+$full_p_name+";");
+			file -op $operation -typ "XFFExport" -pr -es $full_p_name;
+			
+
+		}
+		
+		select -r $obj_name;
+		
+	}else{
+		//ExportAll
+		
+		select -cl;
+		string $sn=`file -sn -q`;
+		string $arrey[];
+		string $scenename[];
+		tokenize $sn "/" $arrey ;
+		tokenize ($arrey[size($arrey)-1]) "." $scenename;
+		
+		
+		
+		if($ModelName==""){
+			$ModelName="model";
+		}
+		
+		$full_p_name=($path+$scenename[0]);
+		$operation=(
+			"em="+$em+
+			";ea="+$ea+
+			";ex="+$ex+
+			";ip="+$ip+
+			";le="+$le+
+			";pi="+$pi+
+			";name="+$AnimationName+
+			";obj="+$ModelName+";"
+		);
+		
+		print ("file -op "+$operation+" -typ \"XFFExport\" -pr -ea "+$full_p_name+";");
+		
+		file -op $operation -typ "XFFExport" -pr -ea $full_p_name;
+		
+	}
+	
+	
+	
+	
+}

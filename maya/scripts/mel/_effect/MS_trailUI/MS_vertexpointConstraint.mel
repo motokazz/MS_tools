@@ -1,0 +1,36 @@
+global proc MS_trail_vertexpointConstraint(string $src[],string $dist){
+	string $a;
+	$a=($a+"{\n");
+	
+	string $obj=stringArrayToString($src,"\",\"");
+	
+	$a=($a+"string $objz[]={\""+$obj+"\"};\n");
+	$a=($a+"float $totalX=0;\n");
+	$a=($a+"float $totalY=0;\n");
+	$a=($a+"float $totalZ=0;\n");
+	
+	//ボリューム中心検出
+	$a=($a+"for ($each in $objz){\n");
+			
+	$a=($a+"vector $location=`xform -q -ws -t $each`;\n");
+
+	$a=($a+"$totalX=$totalX+($location.x);\n");
+	$a=($a+"$totalY=$totalY+($location.y);\n");
+	$a=($a+"$totalZ=$totalZ+($location.z);\n");
+			
+	$a=($a+"}\n");
+
+	$a=($a+"//xform -ws -t ($totalX/size($objz)) ($totalY/size($objz)) ($totalZ/size($objz)) "+$dist+";\n");
+	
+	$a=($a+$dist+".translateX=($totalX/size($objz));\n");
+	$a=($a+$dist+".translateY=($totalY/size($objz));\n");
+	$a=($a+$dist+".translateZ=($totalZ/size($objz));\n");
+	
+	$a=($a+"}\n");
+	
+	print $a;
+	expression -n "MS_vertexpointConstraint_Expression"-o $dist -s $a;
+}
+
+
+

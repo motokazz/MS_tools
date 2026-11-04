@@ -1,0 +1,6 @@
+
+Version 1.1
+Options now include adding a simple shader for Steel, Stainless,  Black, Aluminium, Brass  and Copper shaders.
+
+Version 1.0
+Original release

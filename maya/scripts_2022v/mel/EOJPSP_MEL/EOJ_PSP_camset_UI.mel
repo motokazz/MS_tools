@@ -1,0 +1,185 @@
+global proc EOJ_duel_ui_camera_Set(){//EOJPSPゲーム画面カメラ（出力用）
+	setAttr ".nearClipPlane" 10;
+	setAttr ".farClipPlane" 1000000;
+	
+	setAttr -lock false ".tx";
+	setAttr -lock false ".ty";
+	setAttr -lock false ".tz";
+	setAttr -lock false ".rx";
+	setAttr -lock false ".ry";
+	setAttr -lock false ".rz";
+	setAttr -lock false ".sx";
+	setAttr -lock false ".sy";
+	setAttr -lock false ".sz";
+	setAttr -lock false ".v";
+	setAttr -lock false ".hfa";
+	setAttr -lock false ".vfa";
+	setAttr -lock false ".fl";
+	setAttr -lock false ".lsr";
+	setAttr -lock false ".fs";
+	setAttr -lock false ".fd";
+	setAttr -lock false ".sa";
+	setAttr -lock false ".coi";
+	setAttr -lock false .cameraScale;
+	
+	setAttr -lock 1 .tx 0;
+	setAttr -lock 1 .ty 7757.385004;
+	setAttr -lock 1 .tz -3.740548422e-013;
+	setAttr -lock 1 .rx -90;
+	setAttr -lock 1 .ry 0;
+	setAttr -lock 1 .rz 0;
+	setAttr -lock 1 .sx 1;
+	setAttr -lock 1 .sy 1;
+	setAttr -lock 1 .sz 1;
+	setAttr -lock 1 .v 1;
+	setAttr -lock 1 .hfa 1.41732;
+	setAttr -lock 1 .vfa 0.94488;
+	setAttr -lock 1 .fl 1031.218867;
+	setAttr -lock 1 .lsr 1;
+	setAttr -lock 1 .fs 5.6;
+	setAttr -lock 1 .fd 5;
+	setAttr -lock 1 .sa 144;
+	setAttr -lock 1 .coi 5520.378489;
+	setAttr -lock 1 .cameraScale 1.775;
+	
+	setAttr -lock true ".tx";
+	setAttr -lock true ".ty";
+	setAttr -lock true ".tz";
+	setAttr -lock true ".rx";
+	setAttr -lock true ".ry";
+	setAttr -lock true ".rz";
+	setAttr -lock true ".sx";
+	setAttr -lock true ".sy";
+	setAttr -lock true ".sz";
+	setAttr -lock true ".v";
+	setAttr -lock true ".hfa";
+	setAttr -lock true ".vfa";
+	setAttr -lock true ".fl";
+	setAttr -lock true ".lsr";
+	setAttr -lock true ".fs";
+	setAttr -lock true ".fd";
+	setAttr -lock true ".sa";
+	setAttr -lock true ".coi";
+	setAttr -lock 1 .cameraScale;
+}
+
+global proc EOJ_duel_3d_camera_Set(){//EOJPSPゲーム画面カメラ（出力用）
+	setAttr ".nearClipPlane" 10;
+	setAttr ".farClipPlane" 1000000;
+	
+	setAttr -lock false ".tx";
+	setAttr -lock false ".ty";
+	setAttr -lock false ".tz";
+	setAttr -lock false ".rx";
+	setAttr -lock false ".ry";
+	setAttr -lock false ".rz";
+	setAttr -lock false ".sx";
+	setAttr -lock false ".sy";
+	setAttr -lock false ".sz";
+	setAttr -lock false ".v";
+	setAttr -lock false ".hfa";
+	setAttr -lock false ".vfa";
+	setAttr -lock false ".fl";
+	setAttr -lock false ".lsr";
+	setAttr -lock false ".fs";
+	setAttr -lock false ".fd";
+	setAttr -lock false ".sa";
+	setAttr -lock false ".coi";
+	setAttr -lock false .cameraScale;
+	
+	setAttr -lock 0 .tx 0;
+	setAttr -lock 0 .ty 351.9005383;
+	setAttr -lock 0 .tz 219.2743167;
+	setAttr -lock 0 .rx -59.07352206;
+	setAttr -lock 0 .ry -0;
+	setAttr -lock 0 .rz 0;
+	setAttr -lock 0 .sx 1;
+	setAttr -lock 0 .sy 1;
+	setAttr -lock 0 .sz 1;
+	setAttr -lock 0 .v 1;
+	setAttr -lock 0 .hfa 1.41732;
+	setAttr -lock 0 .vfa 0.94488;
+	setAttr -lock 0 .fl 43.45582344;
+	setAttr -lock 0 .lsr 1;
+	setAttr -lock 0 .fs 5.6;
+	setAttr -lock 0 .fd 5;
+	setAttr -lock 0 .sa 144;
+	setAttr -lock 0 .coi 359.9481607;
+	setAttr -lock 0 .cameraScale 1.775;
+	
+	setAttr -lock true ".tx";
+	setAttr -lock true ".ty";
+	setAttr -lock true ".tz";
+	setAttr -lock true ".rx";
+	setAttr -lock true ".ry";
+	setAttr -lock true ".rz";
+	setAttr -lock true ".sx";
+	setAttr -lock true ".sy";
+	setAttr -lock true ".sz";
+	setAttr -lock true ".v";
+	setAttr -lock true ".hfa";
+	setAttr -lock true ".vfa";
+	setAttr -lock true ".fl";
+	setAttr -lock true ".lsr";
+	setAttr -lock true ".fs";
+	setAttr -lock true ".fd";
+	setAttr -lock true ".sa";
+	setAttr -lock true ".coi";
+	setAttr -lock 1 .cameraScale;
+}
+
+global proc EOJPSP_resolution_setup(){
+	string $cam[]=`ls -typ transform -sl`;
+	if (size($cam)){
+		setAttr defaultResolution.width 480;
+		setAttr defaultResolution.height 272;
+		setAttr "defaultResolution.deviceAspectRatio" 1.7647;
+		setAttr "defaultResolution.pixelAspect" 1;
+		camera -e -displayFilmGate off -displayResolution on -overscan 1.3 $cam[0];
+	}
+	
+}
+
+
+global proc EOJ_camera_unlock(){//カメラロック解除（出力用）
+	setAttr -lock false ".tx";
+	setAttr -lock false ".ty";
+	setAttr -lock false ".tz";
+	setAttr -lock false ".rx";
+	setAttr -lock false ".ry";
+	setAttr -lock false ".rz";
+	setAttr -lock false ".sx";
+	setAttr -lock false ".sy";
+	setAttr -lock false ".sz";
+	setAttr -lock false ".v";
+	setAttr -lock false ".hfa";
+	setAttr -lock false ".vfa";
+	setAttr -lock false ".fl";
+	setAttr -lock false ".lsr";
+	setAttr -lock false ".fs";
+	setAttr -lock false ".fd";
+	setAttr -lock false ".sa";
+	setAttr -lock false ".coi";
+}
+
+global proc EOJ_PSP_camset_UI(){
+	if(`window -q -ex EOJ_PSP_camset_UI`)deleteUI EOJ_PSP_camset_UI;
+	window EOJ_PSP_camset_UI;
+	columnLayout ;
+	text -l "1.select camera";
+	text -l "2.push following button.";
+	separator -w 100;
+	button -l "DUEL 3D camera Set" -c "EOJ_duel_3d_camera_Set";
+	button -l "DUEL UI camera Set" -c "EOJ_duel_ui_camera_Set";
+	separator -w 100;
+	button -l "camera unlock" -c "EOJ_camera_unlock";
+	separator -w 100;
+	button -l "resolution setup" -c "EOJPSP_resolution_setup";
+	showWindow EOJ_PSP_camset_UI;
+}
+
+
+//EOJ_PSP_camset_UI;
+
+
+

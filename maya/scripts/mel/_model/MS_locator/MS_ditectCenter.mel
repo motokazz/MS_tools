@@ -1,0 +1,57 @@
+
+global proc vector MS_ditectCenter(int $mode){
+	/*
+	0　バウンディングボックス中心検出
+	1　ボリューム中心検出
+	
+	戻り値：vector
+	*/
+	
+	//より分け選択
+	string $objz[];
+	
+	if(`selectMode -q -co`){
+		$objz=`filterExpand -sm 31 -sm 32 -sm 34 -sm 46`;
+	}else{
+		$objz=`ls -tr -sl`;
+	}	
+	
+	
+	vector $loc;
+	string $locatorList[];
+	string $temp[];
+	
+	float $totalX;
+	float $totalY;
+	float $totalZ;
+	
+	if ($mode==0){
+		
+		//バウンディングボックス中心検出
+		
+		float $bbox[6] = `exactWorldBoundingBox $objz`;
+		$loc=<<(($bbox[3]+$bbox[0])/2),(($bbox[4]+$bbox[1])/2),(($bbox[5]+$bbox[2])/2)>>;
+		
+		
+	}else if ($mode==1){
+		
+		//ボリューム中心検出
+		for ($each in $objz){
+			
+			vector $location=`xform -q -ws -t $each`;
+
+			$totalX=$totalX+($location.x);
+			$totalY=$totalY+($location.y);
+			$totalZ=$totalZ+($location.z);
+			
+		}
+		
+		$loc=<<($totalX/size($objz)),($totalY/size($objz)),($totalZ/size($objz))>>;
+	}
+	
+	return $loc;
+
+}
+
+
+

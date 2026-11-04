@@ -1,0 +1,29 @@
+global proc MS_faceToolUI(){
+	string $PATH="D:/MS_tools/";
+	
+	string $script[]={
+		"MS_curveCreator",
+		"MS_splineRigger",
+		"MS_createCluster"
+	};
+	
+	if(`window -exists MS_faceToolUI`){
+		deleteUI MS_faceToolUI;
+	}
+	
+	window -title "MS_faceToolUI" "MS_faceToolUI";
+	
+	columnLayout;
+	for ($each in $script){
+		button -bgc 0.8 0.8 0.7 -w 200
+		-l $each
+		-c ("source \""+$PATH+$each+".mel\";"+$each+";");
+	}
+	window -e -w 210 -h 100 "MS_faceToolUI";
+	showWindow "MS_faceToolUI";
+	
+}
+
+MS_faceToolUI;
+
+

@@ -1,0 +1,426 @@
+#----------------------------------------------------------------------------------
+#UTF-8形式で保存してください
+#boolean(真偽値)のデフォルトはfalseです
+#記述者の名前が無いテスト用らしき記述は最適化の為削除する事があります
+#----------------------------------------------------------------------------------
+
+#----------------------------------------------------------------------------------
+#ヘキサビル・ダウンタウン　dt_a 茂木
+dt_a_root:
+  root:     true
+  occluder: "dt_a_root_occ"
+  low:      "dt_a_root_low"
+
+dt_b_root:                        #DLC版前作ステージ
+  root:     true
+  occluder: "dt_b_root_occ"
+  low:      "dt_b_root_low"
+
+dt_c_root:                        #ラストバトルバージョン
+  root:     true
+  occluder: "dt_c_root_occ"
+  low:      "dt_c_root_low"
+
+dt_a_01:
+  low:      "dt_a_01"
+
+g1_base_dt_a1_road_01:
+  low:      "g1_base_dt_a1_road_01_low"
+  part:     true
+g1_base_dt_a1_road_02:
+  low:      "g1_base_dt_a1_road_02_low"
+  part:     true
+g1_base_dt_a2_road:
+  low:      "g1_base_dt_a2_road_low"
+  part:     true
+g1_base_dt_b1_road_01:
+  low:      "g1_base_dt_b1_road_01_low"
+  part:     true
+g1_base_dt_b1_road_02:
+  low:      "g1_base_dt_b1_road_02_low"
+  part:     true
+g1_base_dt_b2_road:
+  low:      "g1_base_dt_b2_road_low"
+  part:     true
+g1_base_dt_c1_road_01:
+  low:      "g1_base_dt_c1_road_01_low"
+  part:     true
+g1_base_dt_c1_road_02:
+  low:      "g1_base_dt_c1_road_02_low"
+  part:     true
+g1_base_dt_c2_road:
+  low:      "g1_base_dt_c2_road_low"
+  part:     true
+g1_base_dt_d1_road_01:
+  low:      "g1_base_dt_d1_road_01_low"
+  part:     true
+g1_base_dt_d1_road_02:
+  low:      "g1_base_dt_d1_road_02_low"
+  part:     true
+g1_base_dt_d2_road:
+  low:      "g1_base_dt_d2_road_low"
+  part:     true
+g1_base_dt_e1_road_01:
+  low:      "g1_base_dt_e1_road_01_low"
+  part:     true
+g1_base_dt_e1_road_02:
+  low:      "g1_base_dt_e1_road_02_low"
+  part:     true
+g1_base_dt_e2_road:
+  low:      "g1_base_dt_e2_road_low"
+  part:     true
+g1_base_dt_f1_road_01:
+  low:      "g1_base_dt_f1_road_01_low"
+  part:     true
+g1_base_dt_f1_road_02:
+  low:      "g1_base_dt_f1_road_02_low"
+  part:     true
+g1_base_dt_f2_road:
+  low:      "g1_base_dt_f2_road_low"
+  part:     true
+g1_base_dt_g1_road_01:
+  low:      "g1_base_dt_g1_road_01_low"
+  part:     true
+g1_base_dt_g1_road_02:
+  low:      "g1_base_dt_g1_road_02_low"
+  part:     true
+g1_base_dt_g2_road:
+  low:      "g1_base_dt_g2_road_low"
+  part:     true
+g1_base_dt_h1_road_01:
+  low:      "g1_base_dt_h1_road_01_low"
+  part:     true
+g1_base_dt_h1_road_02:
+  low:      "g1_base_dt_h1_road_02_low"
+  part:     true
+g1_base_dt_h1_road_03:
+  low:      "g1_base_dt_h1_road_03_low"
+  part:     true
+g1_base_dt_h2_road:
+  low:      "g1_base_dt_h2_road_low"
+  part:     true
+g1_base_dt_i1_road:
+  low:      "g1_base_dt_i1_road_low"
+  part:     true
+g1_base_dt_i2_road:
+  low:      "g1_base_dt_i2_road_low"
+  part:     true
+g1_base_dt_j1_road_01:
+  low:      "g1_base_dt_j1_road_01_low"
+  part:     true
+g1_base_dt_j1_road_02:
+  low:      "g1_base_dt_j1_road_02_low"
+  part:     true
+g1_base_dt_j2_road:
+  low:      "g1_base_dt_j2_road_low"
+  part:     true
+g1_base_dt_k1_road_01:
+  low:      "g1_base_dt_k1_road_01_low"
+  part:     true
+g1_base_dt_k1_road_02:
+  low:      "g1_base_dt_k1_road_02_low"
+  part:     true
+g1_base_dt_k1_road_03:
+  low:      "g1_base_dt_k1_road_03_low"
+  part:     true
+g1_base_dt_k2_road_01:
+  low:      "g1_base_dt_k2_road_01_low"
+  part:     true
+g1_base_dt_k2_road_02:
+  low:      "g1_base_dt_k2_road_02_low"
+  part:     true
+g1_base_dt_l1_road_01:
+  low:      "g1_base_dt_l1_road_01_low"
+  part:     true
+g1_base_dt_l1_road_02:
+  low:      "g1_base_dt_l1_road_02_low"
+  part:     true
+g1_base_dt_l2_road:
+  low:      "g1_base_dt_l2_road_low"
+  part:     true
+
+#lowのlow
+g1_base_dt_a1_road_01_lod2:
+  low:      "g1_base_dt_a1_road_01_lod2_low"
+  navmesh:  false
+  part:     true
+
+g1_base_dt_a1_road_02_lod2:
+  low:      "g1_base_dt_a1_road_02_lod2_low"
+  navmesh:  false
+  part:     true
+
+g1_base_dt_a2_road_lod2:
+  low:      "g1_base_dt_a2_road_lod2_low"
+  navmesh:  false
+  part:     true
+
+g1_base_dt_b1_road_01_lod2:
+  low:      "g1_base_dt_b1_road_01_lod2_low"
+  navmesh:  false
+  part:     true
+
+g1_base_dt_b1_road_02_lod2:
+  low:      "g1_base_dt_b1_road_02_lod2_low"
+  navmesh:  false
+  part:     true
+
+g1_base_dt_b2_road_lod2:
+  low:      "g1_base_dt_b2_road_lod2_low"
+  navmesh:  false
+  part:     true
+
+g1_base_dt_b2_road_lod2:
+  low:      "g1_base_dt_b2_road_lod2_low"
+  navmesh:  false
+  part:     true
+
+g1_base_dt_c1_road_01_lod2:
+  low:      "g1_base_dt_c1_road_01_lod2_low"
+  navmesh:  false
+  part:     true
+
+g1_base_dt_c1_road_02_lod2:
+  low:      "g1_base_dt_c1_road_02_lod2_low"
+  navmesh:  false
+  part:     true
+
+g1_base_dt_c2_road_lod2:
+  low:      "g1_base_dt_c2_road_lod2_low"
+  navmesh:  false
+  part:     true
+
+g1_base_dt_d1_road_01_lod2:
+  low:      "g1_base_dt_d1_road_01_lod2_low"
+  navmesh:  false
+  part:     true
+
+g1_base_dt_d1_road_02_lod2:
+  low:      "g1_base_dt_d1_road_02_lod2_low"
+  navmesh:  false
+  part:     true
+
+g1_base_dt_d2_road_lod2:
+  low:      "g1_base_dt_d2_road_lod2_low"
+  navmesh:  false
+  part:     true
+
+g1_base_dt_d2_road_lod2:
+  low:      "g1_base_dt_d2_road_lod2_low"
+  navmesh:  false
+  part:     true
+
+g1_base_dt_e1_road_01_lod2:
+  low:      "g1_base_dt_e1_road_01_lod2_low"
+  navmesh:  false
+  part:     true
+
+g1_base_dt_e1_road_02_lod2:
+  low:      "g1_base_dt_e1_road_02_lod2_low"
+  navmesh:  false
+  part:     true
+
+g1_base_dt_e2_road_lod2:
+  low:      "g1_base_dt_e2_road_lod2_low"
+  navmesh:  false
+  part:     true
+
+g1_base_dt_f1_road_01_lod2:
+  low:      "g1_base_dt_f1_road_01_lod2_low"
+  navmesh:  false
+  part:     true
+
+g1_base_dt_f1_road_02_lod2:
+  low:      "g1_base_dt_f1_road_02_lod2_low"
+  navmesh:  false
+  part:     true
+
+g1_base_dt_f2_road_lod2:
+  low:      "g1_base_dt_f2_road_lod2_low"
+  navmesh:  false
+  part:     true
+
+g1_base_dt_g1_road_01_lod2:
+  low:      "g1_base_dt_g1_road_01_lod2_low"
+  navmesh:  false
+  part:     true
+
+g1_base_dt_g1_road_02_lod2:
+  low:      "g1_base_dt_g1_road_02_lod2_low"
+  navmesh:  false
+  part:     true
+
+g1_base_dt_g2_road_lod2:
+  low:      "g1_base_dt_g2_road_lod2_low"
+  navmesh:  false
+  part:     true
+
+g1_base_dt_h1_road_01_lod2:
+  low:      "g1_base_dt_h1_road_01_lod2_low"
+  navmesh:  false
+  part:     true
+
+g1_base_dt_h1_road_02_lod2:
+  low:      "g1_base_dt_h1_road_02_lod2_low"
+  navmesh:  false
+  part:     true
+
+g1_base_dt_h1_road_03_lod2:
+  low:      "g1_base_dt_h1_road_03_lod2_low"
+  navmesh:  false
+  part:     true
+
+g1_base_dt_h2_road_lod2:
+  low:      "g1_base_dt_h2_road_lod2_low"
+  navmesh:  false
+  part:     true
+
+g1_base_dt_i1_road_lod2:
+  low:      "g1_base_dt_i1_road_lod2_low"
+  navmesh:  false
+  part:     true
+
+g1_base_dt_i2_road_lod2:
+  low:      "g1_base_dt_i2_road_lod2_low"
+  navmesh:  false
+  part:     true
+
+g1_base_dt_j1_road_01_lod2:
+  low:      "g1_base_dt_j1_road_01_lod2_low"
+  navmesh:  false
+  part:     true
+
+g1_base_dt_j1_road_02_lod2:
+  low:      "g1_base_dt_j1_road_02_lod2_low"
+  navmesh:  false
+  part:     true
+
+g1_base_dt_j2_road_lod2:
+  low:      "g1_base_dt_j2_road_lod2_low"
+  navmesh:  false
+  part:     true
+
+g1_base_dt_k1_road_01_lod2:
+  low:      "g1_base_dt_k1_road_01_lod2_low"
+  navmesh:  false
+  part:     true
+
+g1_base_dt_k1_road_02_lod2:
+  low:      "g1_base_dt_k1_road_02_lod2_low"
+  navmesh:  false
+  part:     true
+
+g1_base_dt_k1_road_03_lod2:
+  low:      "g1_base_dt_k1_road_03_lod2_low"
+  navmesh:  false
+  part:     true
+
+g1_base_dt_k2_road_01_lod2:
+  low:      "g1_base_dt_k2_road_01_lod2_low"
+  navmesh:  false
+  part:     true
+
+g1_base_dt_k2_road_02_lod2:
+  low:      "g1_base_dt_k2_road_02_lod2_low"
+  navmesh:  false
+  part:     true
+
+g1_base_dt_l1_road_02_lod2:
+  low:      "g1_base_dt_l1_road_02_lod2_low"
+  navmesh:  false
+  part:     true
+
+g1_base_dt_l2_road_lod2:
+  low:      "g1_base_dt_l2_road_lod2_low"
+  navmesh:  false
+  part:     true
+
+g1_base_dt_railway_lod2:
+  low:      "g1_base_dt_railway_lod2_low"
+  navmesh:  false
+  part:     true
+
+g1_base_dt_under_road_c_lod2:
+  low:      "g1_base_dt_under_road_c_lod2_low"
+  navmesh:  false
+  part:     true
+
+g1_base_dt_under_road_b_lod2:
+  low:      "g1_base_dt_under_road_b_lod2_low"
+  navmesh:  false
+  part:     true
+
+g1_base_dt_under_road_a_lod2:
+  low:      "g1_base_dt_under_road_a_lod2_low"
+  navmesh:  false
+  part:     true
+
+g1_base_dt_f1_road_01_brk_lod2:
+  low:      "g1_base_dt_f1_road_01_brk_lod2_low"
+  navmesh:  false
+  part:     true
+
+g1_base_dt_g1_road_01_brk_lod2:
+  low:      "g1_base_dt_g1_road_01_brk_lod2_low"
+  navmesh:  false
+  part:     true
+
+g1_base_dt_h1_road_01_brk_lod2:
+  low:      "g1_base_dt_h1_road_01_brk_lod2_low"
+  navmesh:  false
+  part:     true
+
+g1_base_dt_g1_road_02_brk_lod2:
+  low:      "g1_base_dt_g1_road_02_brk_lod2_low"
+  navmesh:  false
+  part:     true
+
+g1_base_dt_k1_road_03_brk_lod2:
+  low:      "g1_base_dt_k1_road_03_brk_lod2_low"
+  navmesh:  false
+  part:     true
+
+g1_base_dt_j1_road_02_brk_lod2:
+  low:      "g1_base_dt_j1_road_02_brk_lod2_low"
+  navmesh:  false
+  part:     true
+
+
+
+
+#ブレフマン政権の旗
+g1_base_dt_sign:
+  root:     true
+
+#壊れる前の時計塔
+g1_base_dt_f1_clocktower:
+  root:     true
+  occluder: "g1_base_dt_f1_clocktower_occ"
+  low:      "g1_base_dt_f1_clocktower_low"
+
+#壊れた時計塔
+g1_base_dt_f1_clocktower_af:
+  root:     true
+  occluder: "g1_base_dt_f1_clocktower_af_occ"
+  low:      "g1_base_dt_f1_clocktower_af_low"
+
+#dt_c_rootで一部壊れを配置しているエリア
+g1_base_dt_f1_road_01_brk:
+  low:      "g1_base_dt_f1_road_01_brk_low"
+  part:     true
+g1_base_dt_g1_road_01_brk:
+  low:      "g1_base_dt_g1_road_01_brk_low"
+  part:     true
+g1_base_dt_h1_road_01_brk:
+  low:      "g1_base_dt_h1_road_01_brk_low"
+  part:     true
+g1_base_dt_g1_road_02_brk:
+  low:      "g1_base_dt_g1_road_02_brk_low"
+  part:     true
+g1_base_dt_k1_road_03_brk:
+  low:      "g1_base_dt_k1_road_03_brk_low"
+  part:     true
+g1_base_dt_j1_road_02_brk:
+  low:      "g1_base_dt_j1_road_02_brk_low"
+  part:     true
+

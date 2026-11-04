@@ -1,0 +1,18 @@
+global proc MS_splineRigger(){
+	string $curve[]=`filterExpand -sm 9`;
+	string $fe[]=`filterExpand -sm 10 -sm 11 -sm 12 -sm 13 -sm 22`;
+	string $joint[]=`ls -typ joint -sl`;
+	string $obj[]=stringArrayCatenate($fe,$joint);
+	int $i=0;
+	for($each in $obj){
+		float $val;
+		string $loc[]=`spaceLocator`;
+		$val=($i/float(size($obj)-1));
+		string $motionPath=`pathAnimation -c $curve[0] $loc[0]`;
+		cutKey -cl -t ":" -f ":" -at "u" $motionPath;
+		setAttr ($motionPath+".uValue") $val;
+		parentConstraint -mo -weight 1 $loc[0] $each ;
+		$i++;
+	}
+
+}

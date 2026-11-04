@@ -1,0 +1,40 @@
+//stringInsertWordNth, by Julian Love, julian@lightmail.com. Part of the StringTools set.
+//
+//description:	inserts a word (any supplied text) into the supplied at the word
+//				position based on the word char. Index starts with at 1.
+//
+//usage:		stringInsertWordNth string[source string] string[string to insert] int[position] string[character that separates words];
+//
+//examples:		stringInsertWordNth "hello world." "cruel" 2 " ";
+//				// Result: hello cruel world. //
+//
+//				stringInsertWordNth "hello world." "cruel" 1 " "
+//				// Result: cruel hello world. //
+//
+//				stringInsertWordNth "wrist_controller" "left" 1 "_";
+//				// Result: left_wrist_controller //
+
+
+global proc string stringInsertWordNth (string $item, string $insert, int $position, string $wordChar){
+	string	$tokenList[];
+	string	$returnString;
+	int		$x, $y;
+	
+	tokenize $item $wordChar $tokenList;
+	$y = size($tokenList);
+	
+	if ($position <= $y){
+		if ($position > 0){
+			for ($x=0; $x<$y; $x++){
+				if ($x == ($position - 1))
+					{$returnString += ($insert + $wordChar);}
+				if ($x != ($y-1))
+					{$returnString += ($tokenList[$x] + $wordChar);}
+				else
+					{$returnString += $tokenList[$x];}	
+			}	
+		}
+	}
+	
+	return $returnString;
+}

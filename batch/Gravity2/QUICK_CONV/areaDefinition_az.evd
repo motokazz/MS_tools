@@ -1,0 +1,43 @@
+#----------------------------------------------------------------------------------
+#UTF-8形式で保存してください
+#boolean(真偽値)のデフォルトはfalseです
+#記述者の名前が無いテスト用らしき記述は最適化の為削除する事があります
+#----------------------------------------------------------------------------------
+
+#----------------------------------------------------------------------------------
+#異次元１　坂井
+az_a_root:
+  root:     true
+az_z_root:                         #無限採掘試作用 増谷
+  root:     true
+
+az_a_01:
+  occluder: "az_a_01_occ"
+  low:      "az_a_01"
+az_a_02:
+  occluder: "az_a_02_occ"
+  low:      "az_a_02"
+az_a_03:
+  occluder: "az_a_03_occ"
+  low:      "az_a_03"
+az_a_04:
+  occluder: "az_a_04_occ"
+  low:      "az_a_04"
+az_a_05:
+  occluder: "az_a_05_occ"
+  low:      "az_a_05"
+az_a_06:
+  occluder: "az_a_06_occ"
+  low:      "az_a_06"
+az_a_07:
+  occluder: "az_a_07_occ"
+  low:      "az_a_07"
+az_a_08:
+  occluder: "az_a_08_occ"
+  low:      "az_a_08"
+az_a_09:
+  occluder: "az_a_09_occ"
+  low:      "az_a_09"
+az_a_10:
+  occluder: "az_a_10_occ"
+  low:      "az_a_10"

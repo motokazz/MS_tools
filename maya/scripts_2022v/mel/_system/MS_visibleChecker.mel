@@ -1,0 +1,25 @@
+/*
+20070315
+MS_visibleChecker
+シーン内の不可視状態のオジェクトを選択する。
+
+*/
+
+
+global proc MS_visibleChecker(){
+	
+	string $objz[]=`ls -typ transform`;
+	string $visible[];
+	int $i=0;
+	for($name in $objz){
+		if(!`getAttr ($name+".visibility")`){
+			$visible[$i]=$name;
+			$i++;
+		}
+	}
+	select -r $visible;
+	
+}
+
+
+

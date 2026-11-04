@@ -1,0 +1,52 @@
+#----------------------------------------------------------------------------------
+#UTF-8形式で保存してください
+#boolean(真偽値)のデフォルトはfalseです
+#記述者の名前が無いテスト用らしき記述は最適化の為削除する事があります
+#----------------------------------------------------------------------------------
+
+#----------------------------------------------------------------------------------
+#ガレ場 wa_a 茂木
+wa_a_root:
+  root:     true
+wa_b_root:                    #ガレ場（採掘場版） wa_b 大倉追加（誰か管理よろしくです）
+  root:     true
+wa_c_root:                    #ep04用　工藤
+  root:     true
+wa_m_root:                    #無限採掘用　川崎
+  root:     true
+wa_z_root:                    #無限採掘試作用　増谷　←　削除するとの事だったので
+  root:     true
+
+wa_a_01:
+  occluder: "wa_a_01_occ"
+  low:      "wa_a_01_low"
+wa_a_02:
+  occluder: "wa_a_02_occ"
+  low:      "wa_a_02_low"
+wa_a_03:
+  occluder: "wa_a_03_occ"
+  low:      "wa_a_03_low"
+wa_a_04:
+  occluder: "wa_a_04_occ"
+  low:      "wa_a_04_low"
+wa_a_05:
+  occluder: "wa_a_05_occ"
+  low:      "wa_a_05_low"
+wa_a_06:
+  occluder: "wa_a_06_occ"
+  low:      "wa_a_06_low"
+wa_a_07:
+  occluder: "wa_a_07_occ"
+  low:      "wa_a_07_low"
+wa_a_08:
+  occluder: "wa_a_08_occ"
+  low:      "wa_a_08_low"
+wa_a_09:
+  occluder: "wa_a_09_occ"
+  low:      "wa_a_09_low"
+wa_a_10:
+  occluder: "wa_a_10_occ"
+  low:      "wa_a_10_low"
+wa_a_11:
+  occluder: "wa_a_11_occ"
+  low:      "wa_a_11_low"

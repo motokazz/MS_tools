@@ -1,0 +1,71 @@
+#----------------------------------------------------------------------------------
+#UTF-8形式で保存してください
+#boolean(真偽値)のデフォルトはfalseです
+#記述者の名前が無いテスト用らしき記述は最適化の為削除する事があります
+#----------------------------------------------------------------------------------
+
+
+#----------------------------------------------------------------------------------
+#バンガ集落
+bu_a_root:              #ガレ場に接岸
+  root:     true
+bu_d_root:              #ジルガ・パラ・ラオ接岸後
+  root:     true
+  low:      "bu_d_root_low"
+bu_e_root:              #ジルガ・パラ・ラオ接岸前
+  root:     true
+bu_f_root:              #ep04用　工藤
+  root:     true
+
+bu_a_01:                #bu_f_rootのみ２つとか聞いたけど統一したい
+  occluder: "bu_a_01_occ"
+  low:      "bu_a_01_low"
+bu_a_02:
+  occluder: "bu_a_02_occ"
+  low:      "bu_a_02_low"
+bu_a_03:
+  occluder: "bu_a_03_occ"
+  low:      "bu_a_03_low"
+bu_a_04:
+  occluder: "bu_a_04_occ"
+  low:      "bu_a_04_low"
+bu_a_05:
+  occluder: "bu_a_05_occ"
+  low:      "bu_a_05_low"
+bu_a_07:
+  occluder: "bu_a_07_occ"
+  low:      "bu_a_07_low"
+bu_a_08:
+  occluder: "bu_a_08_occ"
+  low:      "bu_a_08_low"
+bu_a_09:
+  occluder: "bu_a_09_occ"
+  low:      "bu_a_09_low"
+bu_a_10:               #bu_a_root、bu_f_root
+  occluder: "bu_a_10_occ"
+  low:      "bu_a_10_low"    #モデルないけど一応記述
+bu_a_11:
+  occluder: "bu_a_11_occ"
+  low:      "bu_a_11_low"
+bu_a_12:
+  occluder: "bu_a_12_occ"
+  low:      "bu_a_12_low"
+bu_a_13:               #bu_a_root、bu_f_root
+  occluder: "bu_a_13_occ"
+  low:      "bu_a_13_low"    #モデルないけど一応記述
+bu_a_14:
+  occluder: "bu_a_14_occ"
+  low:      "bu_a_14_low"
+bu_a_15:
+  occluder: "bu_a_15_occ"
+  low:      "bu_a_15_low"
+bu_a_17:               #bu_a_root、bu_f_root
+  occluder: "bu_a_17_occ"
+  low:      "bu_a_17_low"    #モデルないけど一応記述
+bu_a_18:
+  occluder: "bu_a_18_occ"
+  low:      "bu_a_18_low"
+bu_a_19:               #bu_a_root、bu_f_root
+  occluder: "bu_a_19_occ"
+  low:      "bu_a_19_low"    #モデルないけど一応記述
+

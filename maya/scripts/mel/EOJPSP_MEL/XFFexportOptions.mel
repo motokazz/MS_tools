@@ -1,0 +1,571 @@
+
+/* エクスポートの設定が存在する場合、そちらの設定を見るように変更した */
+global proc XFF_RestoreExportSetting()
+{
+	/* 見えないエクスポート設定用のノードが存在しない場合、標準設定のまま */
+	string $exportSettingNodes[] = `ls -type transform XFF_EXPORT_SETTING`;
+	if( size( $exportSettingNodes ) == 0 )
+	{
+		return;
+	}
+	
+	/* アトリビュートの設定を行う */
+	if( `attributeExists "ModelName" "XFF_EXPORT_SETTING"` )
+	{
+		string $exportModelName = `getAttr XFF_EXPORT_SETTING.ModelName`;
+		textField -edit -text $exportModelName xffModelName;
+	}
+	
+	if( `attributeExists "AnimationName" "XFF_EXPORT_SETTING"` )
+	{
+		string $exportAnimName = `getAttr XFF_EXPORT_SETTING.AnimationName`;
+		textField -edit -text $exportAnimName xffExportName;
+	}
+	
+	if( `attributeExists "ExportModel" "XFF_EXPORT_SETTING"` )
+	{
+		int $exportModel = `getAttr XFF_EXPORT_SETTING.ExportModel`;
+		if( $exportModel )
+		{
+			radioButtonGrp -e -sl 1 xffExModel;
+		}
+		else
+		{
+			radioButtonGrp -e -sl 2 xffExModel;
+		}
+	}
+	
+	if( `attributeExists "ExportAnim" "XFF_EXPORT_SETTING"` )
+	{
+		int $exportAnim = `getAttr XFF_EXPORT_SETTING.ExportAnim`;
+		if( $exportAnim )
+		{
+			radioButtonGrp -e -sl 1 xffExAnim;
+		}
+		else
+		{
+			radioButtonGrp -e -sl 2 xffExAnim;
+		}
+	}
+	
+	if( `attributeExists "ExportMatanim" "XFF_EXPORT_SETTING"` )
+	{
+		int $exportMatanim = `getAttr XFF_EXPORT_SETTING.ExportMatanim`;
+		if( $exportMatanim )
+		{
+			radioButtonGrp -e -sl 1 xffExMatanim;
+		}
+		else
+		{
+			radioButtonGrp -e -sl 2 xffExMatanim;
+		}
+	}
+	
+	if( `attributeExists "IgnoreBindpose" "XFF_EXPORT_SETTING"` )
+	{
+		int $ignoreBindpose = `getAttr XFF_EXPORT_SETTING.IgnoreBindpose`;
+		if( $ignoreBindpose )
+		{
+			radioButtonGrp -e -sl 1 xffIgnorePose;
+		}
+		else
+		{
+			radioButtonGrp -e -sl 2 xffIgnorePose;
+		}
+	}
+	
+	if( `attributeExists "IgnoreReference" "XFF_EXPORT_SETTING"` )
+	{
+		int $ignoreReference = `getAttr XFF_EXPORT_SETTING.IgnoreReference`;
+		if( $ignoreReference )
+		{
+			radioButtonGrp -e -sl 1 xffIgnoreReference;
+		}
+		else
+		{
+			radioButtonGrp -e -sl 2 xffIgnoreReference;
+		}
+	}
+	
+	if( `attributeExists "LightExport" "XFF_EXPORT_SETTING"` )
+	{
+		int $lightExport = `getAttr XFF_EXPORT_SETTING.LightExport`;
+		if( $lightExport )
+		{
+			radioButtonGrp -e -sl 1 xffLightExport;
+		}
+		else
+		{
+			radioButtonGrp -e -sl 2 xffLightExport;
+		}
+	}
+	if( `attributeExists "PlacementInfoExport" "XFF_EXPORT_SETTING"` )
+	{
+		int $placementInfoExport = `getAttr XFF_EXPORT_SETTING.PlacementInfoExport`;
+		if( $placementInfoExport )
+		{
+			radioButtonGrp -e -sl 1 xffPlacementInfoExport;
+		}
+		else
+		{
+			radioButtonGrp -e -sl 2 xffPlacementInfoExport;
+		}
+	}
+	if( `attributeExists "BreakHierarchy" "XFF_EXPORT_SETTING"` )
+	{
+		int $breakHierarchy = `getAttr XFF_EXPORT_SETTING.BreakHierarchy`;
+		if( $breakHierarchy )
+		{
+			radioButtonGrp -e -sl 1 xffBreakHierarchy;
+		}
+		else
+		{
+			radioButtonGrp -e -sl 2 xffBreakHierarchy;
+		}
+	}
+}
+
+/* エクスポートの設定をダミーのノードに保存する */
+global proc XFF_CreateExportSetting()
+{
+	string $exportSettingNodes[] = `ls -type transform XFF_EXPORT_SETTING`;
+	
+	/* 見えないエクスポート設定用のノードを作成する */
+	if( size( $exportSettingNodes ) == 0 )
+	{
+		createNode "transform" -n "XFF_EXPORT_SETTING";
+		setAttr "XFF_EXPORT_SETTING.visibility" 0;
+		setAttr -l true "XFF_EXPORT_SETTING.visibility";
+	}
+	
+	/* アトリビュートが存在しない場合、アトリビュートを設定する */
+	if( !`attributeExists "ExportModel" "XFF_EXPORT_SETTING"` )
+	{
+		addAttr -ln "ExportModel" -at bool  "XFF_EXPORT_SETTING";
+	}
+	if( !`attributeExists "ExportAnim" "XFF_EXPORT_SETTING"` )
+	{
+		addAttr -ln "ExportAnim" -at bool  "XFF_EXPORT_SETTING";
+	}
+	if( !`attributeExists "ExportMatanim" "XFF_EXPORT_SETTING"` )
+	{
+		addAttr -ln "ExportMatanim" -at bool  "XFF_EXPORT_SETTING";
+	}
+	if( !`attributeExists "ExportMatanim" "XFF_EXPORT_SETTING"` )
+	{
+		addAttr -ln "ExportMatanim" -at bool  "XFF_EXPORT_SETTING";
+	}
+	if( !`attributeExists "IgnoreBindpose" "XFF_EXPORT_SETTING"` )
+	{
+		addAttr -ln "IgnoreBindpose" -at bool  "XFF_EXPORT_SETTING";
+	}
+	if( !`attributeExists "ModelName" "XFF_EXPORT_SETTING"` )
+	{
+		addAttr -ln ModelName -dt "string"  "XFF_EXPORT_SETTING";
+	}
+	if( !`attributeExists "AnimationName" "XFF_EXPORT_SETTING"` )
+	{
+		addAttr -ln AnimationName -dt "string"  "XFF_EXPORT_SETTING";
+	}
+	if( !`attributeExists "IgnoreReference" "XFF_EXPORT_SETTING"` )
+	{
+		addAttr -ln IgnoreReference -at bool  "XFF_EXPORT_SETTING";
+	}
+	if( !`attributeExists "LightExport" "XFF_EXPORT_SETTING"` )
+	{
+		addAttr -ln LightExport -at bool  "XFF_EXPORT_SETTING";
+	}
+	if( !`attributeExists "PlacementInfoExport" "XFF_EXPORT_SETTING"` )
+	{
+		addAttr -ln PlacementInfoExport -at bool  "XFF_EXPORT_SETTING";
+	}
+	if( !`attributeExists "BreakHierarchy" "XFF_EXPORT_SETTING"` )
+	{
+		addAttr -ln BreakHierarchy -at bool  "XFF_EXPORT_SETTING";
+	}
+	
+	// model export 
+	if( `radioButtonGrp -q -sl xffExModel` == 1 )
+	{
+		setAttr "XFF_EXPORT_SETTING.ExportModel" 1;
+	}
+	else if( `radioButtonGrp -q -sl xffExModel` == 2 )
+	{
+		setAttr "XFF_EXPORT_SETTING.ExportModel" 0;
+	}
+	
+	// anim export 
+	if( `radioButtonGrp -q -sl xffExAnim` == 1 )
+	{
+		setAttr "XFF_EXPORT_SETTING.ExportAnim" 1;
+	}
+	else if( `radioButtonGrp -q -sl xffExAnim` == 2 )
+	{
+		setAttr "XFF_EXPORT_SETTING.ExportAnim" 0;
+	}
+	
+	// matanim export 
+	if( `radioButtonGrp -q -sl xffExMatanim` == 1 )
+	{
+		setAttr "XFF_EXPORT_SETTING.ExportMatanim" 1;
+	}
+	else if( `radioButtonGrp -q -sl xffExMatanim` == 2 )
+	{
+		setAttr "XFF_EXPORT_SETTING.ExportMatanim" 0;
+	}
+	
+	// ignore bindpose 
+	if( `radioButtonGrp -q -sl xffIgnorePose` == 1 )
+	{
+		setAttr "XFF_EXPORT_SETTING.IgnoreBindpose" 1;
+	}
+	else if( `radioButtonGrp -q -sl xffIgnorePose` == 2 )
+	{
+		setAttr "XFF_EXPORT_SETTING.IgnoreBindpose" 0;
+	}
+	
+	// ignore reference 
+	if( `radioButtonGrp -q -sl xffIgnoreReference` == 1 )
+	{
+		setAttr "XFF_EXPORT_SETTING.IgnoreReference" 1;
+	}
+	else if( `radioButtonGrp -q -sl xffIgnoreReference` == 2 )
+	{
+		setAttr "XFF_EXPORT_SETTING.IgnoreReference" 0;
+	}
+	
+	// light export 
+	if( `radioButtonGrp -q -sl xffLightExport` == 1 )
+	{
+		setAttr "XFF_EXPORT_SETTING.LightExport" 1;
+	}
+	else if( `radioButtonGrp -q -sl xffLightExport` == 2 )
+	{
+		setAttr "XFF_EXPORT_SETTING.LightExport" 0;
+	}
+	
+	// light export 
+	if( `radioButtonGrp -q -sl xffPlacementInfoExport` == 1 )
+	{
+		setAttr "XFF_EXPORT_SETTING.PlacementInfoExport" 1;
+	}
+	else if( `radioButtonGrp -q -sl xffPlacementInfoExport` == 2 )
+	{
+		setAttr "XFF_EXPORT_SETTING.PlacementInfoExport" 0;
+	}
+	
+	// break hierarchy  
+	if( `radioButtonGrp -q -sl xffBreakHierarchy` == 1 )
+	{
+		setAttr "XFF_EXPORT_SETTING.BreakHierarchy" 1;
+	}
+	else if( `radioButtonGrp -q -sl xffBreakHierarchy` == 2 )
+	{
+		setAttr "XFF_EXPORT_SETTING.BreakHierarchy" 0;
+	}
+
+	// model name 
+	string $currentModelName = `textField -query -text xffModelName`;
+	setAttr -type "string" XFF_EXPORT_SETTING.ModelName $currentModelName;
+	
+	// animation name 
+	string $currentAnimationName = `textField -query -text xffExportName`;
+	setAttr -type "string" XFF_EXPORT_SETTING.AnimationName $currentAnimationName;
+	
+	// 選択のクリア 
+	select -d XFF_EXPORT_SETTING;
+}
+
+global proc int XFFexportOptions( string $parent,
+								  string $action,
+								  string $initialSettings,
+								  string $resultCallback )
+{
+	int		$bResult;
+	string	$currentOptions;
+	string	$optionList[];
+	string	$optionBreakDown[];
+	int		$index;
+	
+	if( $action == "post" )
+	{	// エクスポートオプションの設定 
+		setParent $parent;
+		
+		columnLayout -adj true xffTypeCol;
+			
+			radioButtonGrp
+				-l "Export Model"
+				-nrb 2 -cw2 175 75
+				-la2 "yes" "no" xffExModel;
+			
+			radioButtonGrp
+				-l "Export Anim"
+				-nrb 2 -cw2 175 75
+				-la2 "yes" "no" xffExAnim;
+			
+			radioButtonGrp
+				-l "Export Matanim"
+				-nrb 2 -cw2 175 75
+				-la2 "yes" "no" xffExMatanim;
+			
+			radioButtonGrp
+				-l "Ignore Bindpose"
+				-nrb 2 -cw2 175 75
+				-la2 "yes" "no" xffIgnorePose;
+			
+			radioButtonGrp
+				-l "Ignore Referencenode"
+				-nrb 2 -cw2 175 75
+				-la2 "yes" "no" xffIgnoreReference;
+			
+			radioButtonGrp
+				-l "Export Light(exclusive)"
+				-nrb 2 -cw2 175 75
+				-la2 "yes" "no" xffLightExport;
+			
+			radioButtonGrp
+				-l "Export Placement Info(exclusive)"
+				-nrb 2 -cw2 175 75
+				-la2 "yes" "no" xffPlacementInfoExport;
+
+			radioButtonGrp
+				-l "Break Hierarchy"
+				-nrb 2 -cw2 175 75
+				-la2 "yes" "no" xffBreakHierarchy;
+			
+			text -label "ModelName:" -align "left";
+			textField -editable true xffModelName;
+			
+			text -label "AnimationName:" -align "left";
+			textField -editable true xffExportName;
+		
+		// Now set to current settings. 
+		$currentOptions = $initialSettings;
+		
+		if( size( $currentOptions ) > 0 )
+		{
+			tokenize( $currentOptions, ";", $optionList);
+			
+			for( $index = 0; $index<size( $optionList ); $index++ )
+			{
+				tokenize($optionList[$index], "=", $optionBreakDown);
+				
+				if( $optionBreakDown[0] == "em" )
+				{
+					if ($optionBreakDown[1] == "0")
+					{
+						radioButtonGrp -e -sl 1 xffExModel;
+					}
+					else if ($optionBreakDown[1] == "1")
+					{
+						radioButtonGrp -e -sl 2 xffExModel;
+					}
+				}
+				else if( $optionBreakDown[0] == "ea" )
+				{
+					if ($optionBreakDown[1] == "0")
+					{
+						radioButtonGrp -e -sl 1 xffExAnim;
+					}
+					else if ($optionBreakDown[1] == "1")
+					{
+						radioButtonGrp -e -sl 2 xffExAnim;
+					}
+				}
+				else if( $optionBreakDown[0] == "ex" )
+				{
+					if ($optionBreakDown[1] == "0")
+					{
+						radioButtonGrp -e -sl 1 xffExMatanim;
+					}
+					else if ($optionBreakDown[1] == "1")
+					{
+						radioButtonGrp -e -sl 2 xffExMatanim;
+					}
+				}
+				else if( $optionBreakDown[0] == "name" )
+				{
+					textField -edit -text $optionBreakDown[1] xffExportName;
+				}
+				else if( $optionBreakDown[0] == "obj" )
+				{
+					textField -edit -text $optionBreakDown[1] xffModelName;
+				}
+				else if( $optionBreakDown[0] == "ip" )
+				{
+					if( $optionBreakDown[1] == "0" )
+					{
+						radioButtonGrp -e -sl 2 xffIgnorePose;
+					}
+					else
+					{
+						radioButtonGrp -e -sl 1 xffIgnorePose;
+					}
+				}
+				else if( $optionBreakDown[0] == "ir" )
+				{
+					if( $optionBreakDown[1] == "0" )
+					{
+						radioButtonGrp -e -sl 2 xffIgnoreReference;
+					}
+					else
+					{
+						radioButtonGrp -e -sl 1 xffIgnoreReference;
+					}
+				}
+				else if( $optionBreakDown[0] == "le" )
+				{
+					if( $optionBreakDown[1] == "0" )
+					{
+						radioButtonGrp -e -sl 2 xffLightExport;
+					}
+					else
+					{
+						radioButtonGrp -e -sl 1 xffLightExport;
+					}
+				}
+				else if( $optionBreakDown[0] == "pi" )
+				{
+					if( $optionBreakDown[1] == "0" )
+					{
+						radioButtonGrp -e -sl 2 xffPlacementInfoExport;
+					}
+					else
+					{
+						radioButtonGrp -e -sl 1 xffPlacementInfoExport;
+					}
+				}
+				else if( $optionBreakDown[0] == "bh" )
+				{
+					if( $optionBreakDown[1] == "0" )
+					{
+						radioButtonGrp -e -sl 2 xffBreakHierarchy;
+					}
+					else
+					{
+						radioButtonGrp -e -sl 1 xffBreakHierarchy;
+					}
+				}
+			}
+			
+			XFF_RestoreExportSetting();
+		}
+		$bResult = 1;
+	}
+	else if( $action == "query" )
+	{
+		// エクスポートの設定の保存 
+		XFF_CreateExportSetting;
+		
+		// エクスポートオプションの取得 
+		$currentOptions = "";
+		
+		// model export 
+		if( `radioButtonGrp -q -sl xffExModel` == 1 )
+		{
+			$currentOptions = $currentOptions + "em=0;";
+		}
+		else if( `radioButtonGrp -q -sl xffExModel` == 2 )
+		{
+			$currentOptions = $currentOptions + "em=1;";
+		}
+		
+		// anim export 
+		if( `radioButtonGrp -q -sl xffExAnim` == 1 )
+		{
+			$currentOptions = $currentOptions + "ea=0;";
+		}
+		else if( `radioButtonGrp -q -sl xffExAnim` == 2 )
+		{
+			$currentOptions = $currentOptions + "ea=1;";
+		}
+		
+		// matanim export 
+		if( `radioButtonGrp -q -sl xffExMatanim` == 1 )
+		{
+			$currentOptions = $currentOptions + "ex=0;";
+		}
+		else if( `radioButtonGrp -q -sl xffExMatanim` == 2 )
+		{
+			$currentOptions = $currentOptions + "ex=1;";
+		}
+		
+		// ignore bindpose 
+		if( `radioButtonGrp -q -sl xffIgnorePose` == 2 )
+		{
+			$currentOptions = $currentOptions + "ip=0;";
+		}
+		else if( `radioButtonGrp -q -sl xffIgnorePose` == 1 )
+		{
+			$currentOptions = $currentOptions + "ip=1;";
+		}
+		
+		// ignore reference nodes 
+		if( `radioButtonGrp -q -sl xffIgnoreReference` == 2 )
+		{
+			$currentOptions = $currentOptions + "ir=0;";
+		}
+		else if( `radioButtonGrp -q -sl xffIgnoreReference` == 1 )
+		{
+			$currentOptions = $currentOptions + "ir=1;";
+		}
+		
+		// light export 
+		if( `radioButtonGrp -q -sl xffLightExport` == 2 )
+		{
+			$currentOptions = $currentOptions + "le=0;";
+		}
+		else if( `radioButtonGrp -q -sl xffLightExport` == 1 )
+		{
+			$currentOptions = $currentOptions + "le=1;";
+		}
+		
+		// placement info 
+		if( `radioButtonGrp -q -sl xffPlacementInfoExport` == 2 )
+		{
+			$currentOptions = $currentOptions + "pi=0;";
+		}
+		else if( `radioButtonGrp -q -sl xffPlacementInfoExport` == 1 )
+		{
+			$currentOptions = $currentOptions + "pi=1;";
+		}
+		// break hierarchy 
+		if( `radioButtonGrp -q -sl xffBreakHierarchy` == 2 )
+		{
+			$currentOptions = $currentOptions + "bh=0;";
+		}
+		else if( `radioButtonGrp -q -sl xffBreakHierarchy` == 1 )
+		{
+			$currentOptions = $currentOptions + "bh=1;";
+		}
+		
+		// misc 
+		$currentOptions    = $currentOptions + "name=";
+		
+		string $currentAnimTextBox = `textField -query -text xffExportName`;
+		string $currentOptionsEnd  = ";";
+		
+		$currentOptions =
+			$currentOptions + 
+			$currentAnimTextBox + 
+			$currentOptionsEnd;
+		
+		$currentOptions    = $currentOptions + "obj=";
+		string $currentMdlTextBox  = `textField -query -text xffModelName`;
+		$currentOptions =
+			$currentOptions + 
+			$currentMdlTextBox + 
+			$currentOptionsEnd;
+		
+		eval( $resultCallback + " \"" + $currentOptions + "\"" );
+		
+		$bResult = 1;
+	}
+	else
+	{
+		$bResult = 0;
+	}
+	
+	return $bResult;
+}
+

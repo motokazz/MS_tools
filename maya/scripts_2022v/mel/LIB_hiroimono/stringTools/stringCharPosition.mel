@@ -1,0 +1,45 @@
+//stringCharPosition, by Julian Love, julian@lightmail.com. Part of the StringTools set.
+//
+//description:	returns an int of the position of the first instance 
+//				of the test character in the source string. Position 
+//				count starts with 1. Only accepts single character test
+//				strings. If you supply more than one character, only the
+//				first character will be used.
+//
+//usage:		stringCharPosition string[source string] string[test string];
+//
+//examples:		stringCharPosition "hello world." ".";
+//				// Result: 12 //
+//
+//				stringCharPosition "hello world." "llo";
+//				// Result: 3 //
+
+
+proc string[] stringTokenizeChars (string $item){
+	string 	$charList[];
+	int		$x;
+	
+	for ($x=1; $x<(size($item) + 1); $x++)
+		{$charList[size($charList)] = `substring $item $x $x`;}
+	
+	return $charList;
+}
+
+
+global proc int stringCharPosition (string $item, string $testCharacter){
+	string	$charList[] = `stringTokenizeChars $item`;
+	int		$returnInt = 0; 
+	int		$x;
+	
+	if (size($testCharacter) != 1)
+		{$testCharacter = `stringFirstChar $testCharacter`;}
+
+	for ($x=0; $x<size($item); $x++){
+		if ($charList[$x] == $testCharacter){
+			$returnInt = ($x + 1);
+			break;
+		}
+	}
+	
+	return $returnInt;
+}

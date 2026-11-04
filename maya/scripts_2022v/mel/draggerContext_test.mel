@@ -1,0 +1,39 @@
+// Procedure called on press
+global proc sampleContextPress()
+{
+    float $pressPosition[] = `draggerContext -query -pr -anchorPoint sampleContext`;
+	string $sp = `draggerContext -query -sp -ap sampleContext`;
+    print ("Press: " + $pressPosition[0] + " " + $pressPosition[1] + " "
+        + $pressPosition[2] + "\n");
+	print $sp;
+		
+}
+
+
+
+// Procedure called on drag
+global proc sampleContextDrag()
+{
+    float  $dragPosition[] = `draggerContext -query -dragPoint sampleContext`;
+    int    $button     = `draggerContext -query -button sampleContext`;
+    string $modifier   = `draggerContext -query -modifier sampleContext`;
+	
+    print ("Drag: " + $dragPosition[0] + " " + $dragPosition[1] + " "
+        + $dragPosition[2]
+        + "  Button is " + $button + "  Modifier is " + $modifier + "\n");
+	
+    string $message = ($dragPosition[0] + ", " + $dragPosition[1]);
+    draggerContext -edit -drawString $message sampleContext;
+}
+
+// Create the dragger context
+draggerContext
+    -pressCommand "sampleContextPress"
+    -dragCommand  "sampleContextDrag"
+    -cursor       "hand"
+    sampleContext;
+
+// Set current tool to use the sample context created.
+// Results can be seen by dragging mouse in main window
+setToolTo sampleContext;
+

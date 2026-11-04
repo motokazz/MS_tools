@@ -1,0 +1,8 @@
+#ifdef GR_FILE_LINKED
+GR_FILE_LINKED( _basepose )
+GR_FILE_LINKED( motion_c100_gmp445_ex_hypertrans_1_00_start )
+GR_FILE_LINKED( motion_c100_gmp445_ex_hypertrans_1_01_loop )
+GR_FILE_LINKED( motion_c100_gmp445_ex_hypertrans_1_02_actionloop )
+GR_FILE_LINKED( motion_c100_gmp445_ex_hypertrans_1_03_end )
+#undef GR_FILE_LINKED
+#endif // GR_FILE_LINKED

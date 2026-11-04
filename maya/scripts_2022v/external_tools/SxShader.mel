@@ -1,0 +1,170 @@
+//------------------------------------------------------------------
+//	
+//
+//
+//------------------------------------------------------------------
+
+proc CheckColorSet( string $matName)
+{
+	// マテリアルを使っているシェイプを選択
+	hyperShade -objects $matName;
+	
+	string $shapes[] = `ls -sl`; // シェイプをリストアップ
+	string $shape;
+	
+	for( $shape in $shapes )
+	{
+		string $sets[] = `polyColorSet -q -allColorSets $shape`;
+		
+		// カラーセットが無い場合
+		if( size( $sets ) == 0)
+		{
+			confirmDialog -title "カラーセットの作成" -message "このシェーダにはカラーセットが必要です。デフォルトカラーセットを作成します。" -button "了解！";
+			
+			// カラーセットを作成する
+			polyColorSet -create -colorSet colorSet1 $shape;
+			
+			// 真っ白にしておく
+			polyColorPerVertex -rgb 1 1 1 -alpha 1 $shape;
+		}
+	}
+}
+
+proc SetColorSetAttribute( string $cgfx)
+{
+	string $atts[] = `getAttr ( $cgfx + ".vertexAttributeSource")`;
+	
+	// ちょい面倒なので空白のアトリビュートをカラーにしてしまう
+	int $i;
+	for( $i =0 ; $i < size( $atts) ; $i++)
+	{
+		if( $atts[$i] == "")
+		{
+			$atts[$i] = "color:colorSet1";
+		}
+	}
+	
+	string $arr = stringArrayToString( $atts, " ");
+	string $com= "setAttr " + $cgfx + ".vertexAttributeSource"+ " -type stringArray " + size($atts) +" " + $arr;
+
+	eval( $com);
+
+}
+
+
+proc SetVertexAttribute( string $cgfx , int $idx, string $src)
+{
+	string $atts[] = `getAttr ( $cgfx + ".vertexAttributeSource")`;
+	
+	$atts[$idx] = $src;
+	
+	string $arr = stringArrayToString( $atts, " ");
+	string $com= "setAttr " + $cgfx + ".vertexAttributeSource"+ " -type stringArray " + size($atts) +" " + $arr;
+
+	eval( $com);
+}
+
+proc SetLayerGroundAttribute( string $cgfx, string $lgmat)
+{
+	string $atts[] = `getAttr ( $cgfx + ".vertexAttributeSource")`;
+	
+	$atts[2] = "tangent:uvs_color";
+	$atts[3] = "binormal:uvs_color";
+	$atts[4] = "uv:uvs_color";
+	$atts[5] = "uv:uvs_color2";
+	$atts[6] = "uv:uvs_alpha";
+	$atts[7] = "uv:uvs_amb1";
+	
+	string $arr = stringArrayToString( $atts, " ");
+	string $com= "setAttr " + $cgfx + ".vertexAttributeSource"+ " -type stringArray " + size($atts) +" " + $arr;
+
+	eval( $com);
+
+	string $cnodes[] = `listConnections ( $lgmat + ".color")`;
+	if( size($cnodes) > 0)
+	{
+		if( `nodeType $cnodes[0]` == "layeredTexture")
+		{
+			string $cfiles[] = `listConnections -type file $cnodes[0]`;
+			
+			$com = "connectAttr -force " + $cfiles[0] + ".outColor " + $cgfx + ".groundHighMapSampler";
+			eval( $com);
+			
+			$com = "connectAttr -force " + $cfiles[1] + ".outColor " + $cgfx + ".groundAlphaMapSampler";
+			eval( $com);
+			
+			$com = "connectAttr -force " + $cfiles[2] + ".outColor " + $cgfx + ".groundLowMapSampler";
+			eval( $com);
+		}
+	}
+	
+	string $anodes[] = `listConnections -type file ( $lgmat + ".ambientColor")`;
+	if( size($anodes) > 0)
+	{
+		$com = "connectAttr -force " + $anodes[0] + ".outColor " + $cgfx + ".groundLightMapSampler";
+		eval( $com);
+	}
+	
+	string $nnodes[] = `listConnections ( $lgmat + ".normalCamera")`;
+	if( size($nnodes) > 0)
+	{
+		if( `nodeType $nnodes[0]` == "bump2d")
+		{
+			string $layTex[] = `listConnections -type layeredTexture $nnodes[0]`;
+			if( size( $layTex) > 0)
+			{
+				string $cfiles[] = `listConnections -type file $layTex[0]`;
+			
+				$com = "connectAttr -force " + $cfiles[0] + ".outColor " + $cgfx + ".groundHighNormalMapSampler";
+				eval( $com);
+				
+				$com = "connectAttr -force " + $cfiles[2] + ".outColor " + $cgfx + ".groundLowNormalMapSampler";
+				eval( $com);
+			}
+		}
+	}
+}
+
+//	MakeCGFXの後に呼ばれる
+global proc AfterMakeCgfx (string $ShaderName, string $LegacyMatName, string $CgfxMatName)
+{
+	print "calling : AfterMakeCgfx\n	";
+	print $ShaderName;		print "\n	";
+	print $LegacyMatName;	print "\n	";
+	print $CgfxMatName;		print "\n";
+	
+	switch( $ShaderName )
+	{
+		case "MetalBumpyC":
+		case "WaterFlowBG":
+			SetColorSetAttribute( $CgfxMatName);
+		break;
+		case "LayerGroundB":
+			SetLayerGroundAttribute( $CgfxMatName, $LegacyMatName);
+		break;
+		case "TileBumpy":
+			SetVertexAttribute( $CgfxMatName, 5 , "uv:uvs_amb1");
+		break;
+	}
+}
+
+//------------------------------------------------------------------
+//	レガシーマテリアルにシェーダーがアサインされた後に呼ばれる
+global proc AfterAssignShader (string $ShaderName, string $LegacyMatName)
+{
+	print "calling : AfterAssignShader\n	";
+	print $ShaderName;		print "\n	";
+	print $LegacyMatName;	print "\n	";
+	
+	switch( $ShaderName )
+	{
+		case "MetalBumpyC":
+			CheckColorSet( $LegacyMatName);
+		break;
+		case "WaterFlowBG":
+			CheckColorSet( $LegacyMatName);
+		break;
+	}
+}
+//------------------------------------------------------------------
+

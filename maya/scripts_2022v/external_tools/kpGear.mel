@@ -1,0 +1,162 @@
+//kpGear.mel
+//Written by K.Proudfoot c.2005
+//Special Thanks to D.Shears for help with troubleshooting.
+//
+//This script creates a primitive gear shape. You can adjust the amount of gear
+//'teeth', the length, width, and profile 'taper' of each tooth, as well as the 
+//option to put a hole in the center of the gear. This script makes a standard
+//sized gear, you can scale it after creation (that was easier than adding in
+//a global size option!)
+//
+//IMPORTANT: 
+//Put this script in your "\My Documents\maya\6.0\scripts" folder 
+//and in the command line type:   
+//                                                          kpGear;
+//
+
+
+global proc kpGearz()
+{
+//grab values from the text fields.
+int   $kpToothCount = `intField -q -v kpFld1`; 
+float $kpToothLength = `floatField -q -v kpFld2`;
+float $kpToothWidth =  `floatField -q -v kpFld3`;
+float $kpToothTaper =  `floatField -q -v kpFld4`;
+int   $kpHoleYN = `checkBox -q -v kpChkBx1`;
+float $kpHole =  `floatField -q -v kpFld5`;
+
+//create gear shape
+int $kpCylinderSides = $kpToothCount*2;
+polyCylinder -r 1 -h 0.35 -sx $kpCylinderSides -n Gear;
+
+//
+for ($i=0;$i<($kpToothCount);$i++)
+      {
+	int $kpSideFaces=$kpSideFaces+1;
+	select -r Gear.f[$kpSideFaces];
+	polyExtrudeFacet -ltz $kpToothLength -lsx $kpToothWidth -lsy $kpToothTaper Gear.f[$kpSideFaces];
+	$kpSideFaces=$kpSideFaces+1;
+       }
+
+//if 'make Hole' checkbox checked, make hole:
+if ($kpHoleYN==1){
+   //making hole: make cylinder, select both parts, delete history, boolean then delte history again.
+   polyCylinder -r $kpHole -h 1 -sx $kpCylinderSides -n Hole;
+   select -r "Gear"; select -add "Hole";
+   delete -ch;
+   polyBoolOp -op 2 -ch 1 Gear Hole;
+   rename "Gear_1";
+   delete -ch;
+   select -cl;
+  }else{
+   rename "Gear" "Gear_1";
+   select -cl;
+}
+
+}
+
+//make window and fill with default values
+global proc kpGear()
+{
+int   $kpVal01;
+float $kpVal02;
+float $kpVal03;
+float $kpVal04;
+int   $kpHoler=1;
+float $kpVal05;
+
+string $kpUserDir = `internalVar -usd`;
+string $kpMainImage=($kpUserDir+"\\kpGear.bmp");
+
+  if ( `window -exists kpGearWindow2005` )
+    deleteUI -window kpGearWindow2005;
+
+  string $kpGearWindow = `window -title "kpGear v2.0" -width 304 -height 190
+         -sizeable false kpGearWindow2005`;
+
+    // Create a formLayout
+    string $kpForm = `formLayout -numberOfDivisions 280`;
+
+	// Adding controls
+	string $kpTeethField = `intField -ann "How many gear teeth do you want?" -w 60 -v 8 -cc "$kpVal01 = `intField -q -v kpFld1`;" kpFld1`;
+	string $kpTxtTeeth = `text -bgc 1.0 1.0 1.0 -ann "How many gear teeth do you want?" -label "Teeth: " -align "right"`;
+	string $kpLengthField  = `floatField -ann "How long do you want each tooth?" -v 0.2 -precision 1 -cc "$kpVal02 = `floatField -q -v kpFld2`;" kpFld2`;
+	string $kpTxtLength = `text -bgc 1.0 1.0 1.0 -ann "How long do you want each tooth?" -label "Length: " -align "right"`;
+	string $kpWidthField = `floatField -ann "How wide is the tip of each tooth?" -v 0.7 -precision 1 -cc "$kpVal03 = `floatField -q -v kpFld3`;" kpFld3`;
+	string $kpTxtWidth = `text -bgc 1.0 1.0 1.0 -ann "How wide is the tip of each tooth?" -label "Width: " -align "right"`;
+	string $kpTaperField = `floatField -ann "What is the profile taper of each tooth?" -v 0.7 -precision 1 -cc "$kpVal04 = `floatField -q -v kpFld4`;" kpFld4`;
+	string $kpTxtTaper = `text -bgc 1.0 1.0 1.0 -ann "What is the profile taper of each tooth?" -label "Taper: " -align "right"`;
+	string $kpRadiusField  = `floatField -ann "Choose the radius of the gear's hole. This is basically a percentage of the total diameter of the gear." -v 0.6 -precision 1 -cc "$kpVal05 = `floatField -q -v kpFld5`;" kpFld5`;
+	string $kpTxtRadius = `text -bgc 1.0 1.0 1.0 -ann "Choose the radius of the gear's hole. This is basically a percentage of the total diameter of the gear." -label "Hole Radius: " -align "right"`;
+	string $kpCheckBox = ` checkBox -bgc 1.0 1.0 1.0 -ann "Uncheck this box to make a solid gear without a hole in the center." -v 1 -label "Make Hole?  " -onc "$kpHoler = 1;" -ofc "$kpHoler = 0;" -align "left" kpChkBx1`;
+
+
+	//create the three buttons
+	string $kpMakeGearButton = `button -label "     Make Gear     " -command "kpGearz;"`;
+	string $kpResetButton = `button -label "         Reset         " -command "resetValues;"`;
+	string $kpCloseButton = `button -label "         Close         " -command ("deleteUI -window " + $kpGearWindow)`;
+	string $kpMainImage = `image -ann "kpGear script by K.Proudfoot c.2005" -bgc 1.0 1.0 1.0 -image $kpMainImage`;
+
+      setParent ..;
+
+  // Edit the layout
+  formLayout -e
+
+	-af   $kpMainImage              "top"     0
+	-af   $kpMainImage              "left"    0
+
+	-ap   $kpTeethField               "top"     0    4
+	-ap   $kpTeethField               "right"    0   275
+	-ac   $kpTxtTeeth  "top"  -20 $kpTeethField
+	-ac   $kpTxtTeeth  "right" 4 $kpTeethField
+
+	-ac   $kpLengthField              "top"     4   $kpTeethField
+	-ap   $kpLengthField               "right"   0   275
+	-ac   $kpTxtLength  "bottom"  -20 $kpLengthField
+	-ac   $kpTxtLength  "right" 4 $kpLengthField
+
+	-ac   $kpWidthField                "top"     4   $kpLengthField
+	-ap   $kpWidthField              "right"    0    275
+	-ac   $kpTxtWidth  "bottom"  -20 $kpWidthField
+	-ac   $kpTxtWidth  "right" 4 $kpWidthField
+
+	-ac   $kpTaperField              "top"      4   $kpWidthField
+	-ap   $kpTaperField              "right"    0   275
+	-ac   $kpTxtTaper  "bottom"  -20 $kpTaperField
+	-ac   $kpTxtTaper  "right" 4 $kpTaperField
+
+	-ac   $kpRadiusField              "top"  4   $kpTaperField
+	-ap   $kpRadiusField              "right"   0   275
+	-ac   $kpTxtRadius  "bottom"  -20 $kpRadiusField 
+	-ac   $kpTxtRadius  "right" 4 $kpRadiusField 
+
+	-ac   $kpCheckBox            "bottom"     -20   $kpRadiusField
+	-ac   $kpCheckBox            "right"   0   $kpTxtRadius
+
+	-ap   $kpMakeGearButton "bottom" -10 260
+	-ap   $kpMakeGearButton "left" 0 6
+
+	-ap   $kpResetButton "bottom" -10 260
+	-ac   $kpResetButton "left" 4 $kpMakeGearButton
+
+	-ap   $kpCloseButton "bottom" -10 260
+	-ac   $kpCloseButton "left" 4 $kpResetButton
+
+      $kpForm;
+
+  showWindow;
+
+//end of kpGear proc
+}
+
+//reset procedure: sets the text fields to default values.
+global proc resetValues()
+{
+	intField -e -v 8 kpFld1;
+	floatField -e -v 0.2 kpFld2;
+	floatField -e -v 0.7 kpFld3;
+	floatField -e -v 0.7 kpFld4;
+	floatField -e -v 0.6 kpFld5;
+	checkBox - e -v 1 kpChkBx1;
+
+}

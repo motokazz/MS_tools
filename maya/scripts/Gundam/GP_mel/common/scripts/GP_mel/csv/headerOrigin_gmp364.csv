@@ -1,0 +1,8 @@
+#ifdef GR_FILE_LINKED
+GR_FILE_LINKED( _basepose )
+GR_FILE_LINKED( motion_c100_gmp364_armedarmor_vn_u_00_start )
+GR_FILE_LINKED( motion_c100_gmp364_armedarmor_vn_u_01_attackloop )
+GR_FILE_LINKED( motion_c100_gmp364_armedarmor_vn_u_02_attackend )
+GR_FILE_LINKED( motion_c100_gmp364_armedarmor_vn_u_03_end )
+#undef GR_FILE_LINKED
+#endif // GR_FILE_LINKED

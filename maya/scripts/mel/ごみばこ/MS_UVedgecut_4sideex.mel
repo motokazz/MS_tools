@@ -1,0 +1,51 @@
+/*
+-------------------
+MS_UVedgecut_4sideex.mel
+-------------------
+
+◆概要
+UVを4点選択して実行すると、UVマップの4つ角にそれぞれのUVがぴたっと収まる。
+
+
+◆使用方法
+UVを4点選択して実行。
+
+◆詳細
+これの後にStrainUVBorderしてRelaxUVsすればほら・・・
+そんな感じのアンフォルドツールを作ろうと思っていた。
+そしたら、MAYA７にUnfoldUVがついていたので「また無駄骨か・・・」と思って作るのをやめた。
+でも、MAYA７のアンフォルドもいまいちだったので、「もう一回いじってみるか！」という意欲がほんのちょっとわいている感じ。
+
+
+※注意
+今のままじゃ、はっきり言って役立たず。
+
+
+
+*/
+
+
+
+string $edgez[]=`filterExpand -ex true -sm 32`;
+
+string $uvlists[];
+$i=0;
+for($i=0;$i<size($edgez);$i++){
+	select $edgez[$i];
+	polyMapCut;
+	PolySelectConvert 4;
+	string $uvsuvs[]=`filterExpand -ex true -sm 35`;
+	print $uvsuvs;
+	polyEditUV -r 0 -u 0 -v 0 $uvsuvs[0];
+	polyEditUV -r 0 -u 1 -v 1 $uvsuvs[1];
+	polyEditUV -r 0 -u 0 -v 1 $uvsuvs[2];
+	polyEditUV -r 0 -u 1 -v 0 $uvsuvs[3];
+
+	appendStringArray($uvlists, $uvsuvs, 4);
+	clear $uvsuvs;
+	
+}
+
+select $uvlists;
+clear $uvlists;
+

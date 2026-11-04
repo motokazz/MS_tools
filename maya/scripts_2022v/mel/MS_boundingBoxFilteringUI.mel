@@ -1,0 +1,51 @@
+//頂点数で選択オブジェクトを振り分け。
+//最小値と最大値を設定して、その範囲内にあるオブジェクトのリストのみを返す。
+
+global proc string[] MS_boundingBoxFiltering(float $min,float $max){
+	string $obj[]=`ls -sl`;
+	string $newobj[];
+	for($each in $obj){
+		float $a[]=`polyEvaluate -b $each`;
+		float $num=($a[1]-$a[0])*($a[3]-$a[2])*($a[5]-$a[4]);
+		print ($each+":"+$num+"\n");
+		if($num>=$min && $num<=$max){
+			$newobj=stringArrayCatenate ($newobj,{$each});
+		}
+	}
+	return $newobj;
+}
+
+global proc MS_boundingBoxFiltering_command(){
+	float $minField=`floatField -q -v minField`;
+	float $maxField=`floatField -q -v maxField`;
+	string $filtering[]=`MS_boundingBoxFiltering $minField $maxField`;
+	select -r $filtering;
+}
+
+
+global proc MS_boundingBoxFilteringUI(){
+	if(`window -q -ex MS_boundingBoxFilteringUI`)deleteUI MS_boundingBoxFilteringUI;
+	window MS_boundingBoxFilteringUI;
+	formLayout myUIFormLayout;
+	//--DataPart--//
+	button -label "filtering" -command "MS_boundingBoxFiltering_command;" "button4" ;//Data//
+	floatField -minValue 0 -v 10 "maxField" ;//Data//
+	floatField -minValue 0 -v 0 "minField" ;//Data//
+	text -label "max" "text7" ;//Data//
+	text -label "min" "text6" ;//Data//
+	formLayout -e
+		-af "button4" "left" 64//Data//
+		-af "button4" "top" 112//Data//
+		-af "maxField" "left" 64//Data//
+		-af "maxField" "top" 64//Data//
+		-af "minField" "left" 64//Data//
+		-af "minField" "top" 32//Data//
+		-af "text7" "left" 16//Data//
+		-af "text7" "top" 64//Data//
+		-af "text6" "left" 16//Data//
+		-af "text6" "top" 32//Data//
+	//--DataPart--//
+	myUIFormLayout;
+	showWindow MS_boundingBoxFilteringUI;
+}
+MS_boundingBoxFilteringUI;

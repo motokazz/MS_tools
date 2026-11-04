@@ -1,0 +1,5 @@
+以下のバッチファイルは別のバッチファイルから呼び出される共有バッチです。
+直接起動しないでください。
+
+・create_bone_and_chara_output.bat
+・make_shrink_model.bat

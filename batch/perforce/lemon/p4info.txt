@@ -1,0 +1,17 @@
+User name: motokazu.sakai.ts
+Client name: 20205843N
+Client host: 20205843N
+Client unknown.
+Current directory: l:\MS_tools\batch\perforce\lemon
+Peer address: 116.82.59.96:53106
+Client address: 116.82.59.96
+Server address: EC2AMAZ-8P5EH99.ap-northeast-1.compute.internal:1666
+Server root: C:\Perforce\root\
+Server date: 2021/09/03 14:03:33 +0900
+Server uptime: 3891:16:57
+Server version: P4D/NTX64/2020.2/2075706 (2021/02/03)
+Server encryption: encrypted
+Server cert expires: Mar 15 08:44:53 2023 GMT
+Server license: Mixi 16 users (support ends 2022/03/27) (expires 2022/03/27) 
+Server license-ip: 172.31.28.186
+Case Handling: insensitive

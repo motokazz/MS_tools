@@ -1,0 +1,166 @@
+global proc MS_ZANZO_pipe(){
+	float $slideDistance=`floatSliderGrp -q -v "slideDistance"`;
+	int $ZANZOs=` intSliderGrp -q -v "HowMatchZANZOs"`;
+	MS_ZANZO $slideDistance $ZANZOs;
+}
+
+global proc MS_duplicateWeapon_pipe(){
+	float $offsetValue=`floatSliderGrp -q -v "offsetValue"`;
+	string $tar=`textFieldGrp -q -tx "target_flash"`;
+	string $target[];
+	tokenize($tar," ",$target);
+	
+	int $error=0;
+	if(!size(`filterExpand -sm 34`)){
+		confirmDialog 
+			-t "Error" 
+			-m ("MS_flashWeapon Error.\n"+
+			"because...\n"+
+			"please select flash polygon face!\n"+
+			"MS_duplicateWeapon is only polygon face!\n");
+		$error++;
+	}
+
+	for($each in $target){
+		if(!size(`ls -typ transform $each`)){
+			//error -showLineNumber true "target is only [transform] node!";
+			confirmDialog 
+				-t "Error" 
+				-m ("MS_flashWeapon Error.\n"+
+				"because...\n"+
+				"target is nothing!\n"+
+				"target is only [transform] node!\n");
+			$error++;
+		}
+	}
+	
+	if(!$error){
+		MS_duplicateWeapon $target $offsetValue;
+		MS_edgeVertexTransparent;
+	}
+}
+
+global proc MS_flashWeaponUI_pipe(){
+	
+	string $tar=`textFieldGrp -q -tx "target_flash"`;
+	string $target[];
+	tokenize($tar," ",$target);
+	int $error=0;
+	if(!size(`filterExpand -sm 34`)){
+		confirmDialog 
+			-t "Error" 
+			-m ("MS_flashWeapon Error.\n"+
+			"because...\n"+
+			"please select flash polygon face!\n"+
+			"MS_flashWeapon is only polygon face!\n");
+		$error++;
+	}
+
+	for($each in $target){
+		if(!size(`ls -typ transform $each`)){
+			//error -showLineNumber true "target is only [transform] node!";
+			confirmDialog 
+				-t "Error" 
+				-m ("MS_flashWeapon Error.\n"+
+				"because...\n"+
+				"target is nothing!\n"+
+				"target is only [transform] node!\n");
+			$error++;
+		}
+	}
+	
+	if(!$error){
+		MS_flashWeapon ($target);
+	}
+}
+
+
+global proc MS_effectMasterUI_getTarget(){
+	
+	string $obj[]=`ls -typ transform -sl`;
+	
+	textFieldButtonGrp -e -tx $obj[0] "target_flash";
+}
+
+
+global proc MS_effectMasterUI(){
+	//Window Check
+	if(`window -exists MS_effectMasterUI`){
+		deleteUI MS_effectMasterUI;
+	}
+	
+	
+	//Create Window
+	
+	window -title "MS_effectMasterUI" MS_effectMasterUI;
+	
+	$tabs=`tabLayout`;
+	
+	//-------------------------------------------------------
+	
+	$tab1=`columnLayout`;
+	text -w 1000 -al "left" -fn "boldLabelFont" -l "1.select target and push [getTarget]button. ";
+	text -w 1000 -al "left" -fn "boldLabelFont" -l "2.select polygon component";
+	text -w 1000 -al "left" -fn "boldLabelFont" -l "3.do";
+	
+	floatSliderGrp -l "offsetValue" -f 1 -v 0.2 "offsetValue";
+	
+	textFieldButtonGrp -l "target" -bl "getTarget" -bc "MS_effectMasterUI_getTarget" "target_flash";
+	
+	button -l "do" -command "MS_flashWeaponUI_pipe" ;
+	
+	separator -w 1000;
+	
+	button -l "duplicateWeapon" -command "MS_duplicateWeapon_pipe" ;
+	
+	separator -w 1000;
+	
+	button -l "undo" -command "Undo" ;
+	button -l "exit" -command "deleteUI MS_effectMasterUI" ;
+	
+	setParent ..;
+	
+	//-------------------------------------------------------
+	
+	$tab2=`columnLayout`;
+	
+	text -w 1000 -al "left" -fn "boldLabelFont" -l "1.select animated object";
+	text -w 1000 -al "left" -fn "boldLabelFont" -l "3.do";
+	floatSliderGrp -l "sildeDistance" -f true -v 1 "slideDistance";
+	intSliderGrp -l "HowMatchZANZOs" -f true -v 5 "HowMatchZANZOs";
+	button -l "do" -command "MS_ZANZO_pipe" ;
+	
+	button -l "undo" -command "Undo" ;
+	button -l "exit" -command "deleteUI MS_effectMasterUI" ;
+	
+	
+	setParent ..;
+	
+	//-------------------------------------------------------
+	
+	$tab3=`columnLayout`;
+	setParent ..;
+	
+	//-------------------------------------------------------
+	
+	$FULLAUTOMATICSTEP=`columnLayout`;
+	
+	setParent ..;
+	
+
+	tabLayout -e 
+		-tl $tab1 "MS_flashWeapon" 
+		-tl $tab2 "MS_ZANZO" 
+		-tl $tab3 "" 		
+		-tl $FULLAUTOMATICSTEP ""
+	$tabs;
+	
+	//Footer
+	showWindow MS_effectMasterUI;
+	
+}
+
+MS_effectMasterUI;
+
+
+

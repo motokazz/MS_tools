@@ -1,0 +1,25 @@
+global proc GP2_changeMSsys(){
+	string $chapts[] = `textScrollList -q -si textScrollList_untitled_csv_charaSelector0`;
+	string $temp[];
+
+	tokenize $chapts[0] " " $temp;
+	string $command = "SUBST N: L:\\motion\\maya\\ms\\rig\\" + $temp[0];
+	system("SUBST /H N:");
+	system($command);
+
+	string $rigFile[] = `file -q -r`;
+	string $chrPass[];
+	tokenize $rigFile[0] "/" $chrPass;
+	int $max = `size($chrPass)`;
+	$max--;
+	for($i=1 ; $i<$max ; $i++){
+		$chrPass[0] = ($chrPass[0] + "/" + $chrPass[$i]);
+	}
+	print("chrpass : " + $rigFile[0] + "\n");
+	string $sceneName[] = `file -q -l`;
+	file -rename ($chrPass[0] + "/working_tmp");
+	file -f -s -options "v=0" -type "mayaBinary";
+	file -f -o -options "v=0" -type "mayaBinary" ($chrPass[0] + "/working_tmp.mb");
+	string $preName = basenameEx($sceneName[0]);
+	file -rename ($chrPass[0] + "/" + $preName);
+}

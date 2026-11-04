@@ -1,0 +1,89 @@
+
+global proc MS_UVfitter(float $cntx,float $cnty,float $sclx,float $scly,float $angl)
+{
+
+	polyNormalizeUV -normalizeType 1 -preserveAspectRatio off ;
+	//polyForceUV -unitize ;
+	
+	PolySelectConvert 4;
+	//polyEditUV -pu $cntx -pv $cnty -su $sclx -sv $scly -a $angl;
+	polyEditUV -su $sclx -sv $scly -a $angl;
+	float $trnx=$cntx;
+	float $trny=$cnty;
+	
+	
+	polyEditUV -r 1 -u $trnx -v $trny;
+
+}
+
+
+
+
+global proc MS_UVpanels()
+{
+if(`window -q -ex MyTools_MS_UVpanels`)deleteUI MyTools_MS_UVpanels;
+window MyTools_MS_UVpanels;
+formLayout myUIFormLayout;
+
+
+//separrate
+float $ref=8;
+
+float $button_size=(256/$ref);
+
+$i=0;
+$j=0;
+
+string $button_commands;
+
+for($i=0;$i<$ref;$i++){
+	for($j=0;$j<$ref;$j++){
+		
+		float $cntx=((1/$ref)*$j);
+		float $cnty=(1-((1/$ref)*($i+1)));
+		
+		float $sclx=(1/$ref);
+		float $scly=(1/$ref);
+		
+		float $trnx=(0.5-$cntx);
+		float $trny=(0.5-$cnty);
+		
+		float $angl=0;
+		
+		//create eval commands
+		$button_name=("uvbutton"+$i+$j);
+		$button_commands=($button_commands+
+		"button -width "+$button_size+
+		" -height "+$button_size+
+		" -recomputeSize 0 "+
+		"-label \""+$i+","+$j+"\" "+
+		"-c \"MS_UVfitter("+$cntx+","+$cnty+","+$sclx+","+$scly+","+$angl+")\" "+
+		$button_name+
+		";\n" );//Data//
+	
+	}
+}
+
+string $layout_option;
+		
+for($i=0;$i<$ref;$i++){
+	int $loc_v=($button_size*$i);
+	for($j=0;$j<$ref;$j++){
+		int $loc_u=($button_size*$j);
+		$layout_name=("uvbutton"+$i+$j);
+		$layout_option=$layout_option+"-af \""+$layout_name+"\" \"left\" "+$loc_u+"\n";
+		$layout_option=$layout_option+"-af \""+$layout_name+"\" \"top\" "+$loc_v+"\n";
+	}
+}
+print $button_commands;
+//print ("formLayout -e "+$layout_option+" myUIFormLayout");
+eval $button_commands;
+eval ("formLayout -e "+$layout_option+" myUIFormLayout");
+
+//--DataPart--//
+//myUIFormLayout;
+showWindow MyTools_MS_UVpanels;
+
+}
+
+MS_UVpanels;

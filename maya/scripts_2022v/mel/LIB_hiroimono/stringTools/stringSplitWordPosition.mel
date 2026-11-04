@@ -1,0 +1,49 @@
+//stringSplitWordPosition, by Julian Love, julian@lightmail.com. Part of the StringTools set.
+//
+//description:	splits the source string at the word position based
+//				on the word char. Index starts with at 1. Returns an
+//				array with two strings of the resulting split. The split
+//				precedes the word at the specified position.
+//
+//usage:		stringSplitWordPosition string[source string] int[pop position] string[character that separates words];
+//
+//examples:		print `stringSplitWordPosition "Maya for Mac OSX rocks" 3 " "`;
+//				Maya for
+//				Mac OSX Rocks
+//
+//				print `stringSplitWordPosition "Maya for Mac OSX rocks" 5 " "`;
+//				Maya for Mac OSX
+//				rocks
+
+
+global proc string[] stringSplitWordPosition (string $item, int $position, string $wordChar){
+	string	$tokenList[];
+	string	$returnString1;
+	string	$returnString2;
+	string	$returnList[];
+	int		$x, $y;
+	
+	tokenize $item $wordChar $tokenList;
+	$y = size($tokenList);
+
+	
+	//...build the first string
+	if ($position > -1){
+		for ($x=0; $x<($position -1); $x++){
+			if ($x != ($position -2))
+				{$returnString1 += ($tokenList[$x] + $wordChar);}
+			else
+				{$returnString1 += $tokenList[$x];}
+		}
+		
+		for ($x=($position -1); $x<$y; $x++){
+			if ($x != ($y -1))
+				{$returnString2 += ($tokenList[$x] + $wordChar);}
+			else
+				{$returnString2 += $tokenList[$x];}
+		}
+	}
+	
+	$returnList = {$returnString1, $returnString2};
+	return $returnList;
+}

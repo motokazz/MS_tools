@@ -1,0 +1,58 @@
+global proc SHLParameterToMel()
+{
+	// セレクトされているSHLノードすべて
+	string $shls[] = `listRelatives -typ SHLNode`;
+
+	if( size( $shls) > 0)
+	{
+		string $shlNode = $shls[0];
+
+		//いちおうパラメータを更新させる
+		getAttr ( $shlNode + ".outSHLCoef"); 
+
+		float $SHLAR[] = `getAttr ( $shlNode + ".outSHLCgAR")`;
+		float $SHLAG[] = `getAttr ( $shlNode + ".outSHLCgAG")`;
+		float $SHLAB[] = `getAttr ( $shlNode + ".outSHLCgAB")`;
+
+		float $SHLBR[] = `getAttr ( $shlNode + ".outSHLCgBR")`;
+		float $SHLBG[] = `getAttr ( $shlNode + ".outSHLCgBG")`;
+		float $SHLBB[] = `getAttr ( $shlNode + ".outSHLCgBB")`;
+
+		float $SHLC[] = `getAttr ( $shlNode + ".outSHLCgC")`;	
+
+		//Melにして出力
+		print ("------------------- kokokara --------------------\n\n");
+		
+		print ( "string $cgfxs[] = `ls -type cgfxShader`;\n");
+		print ( "string $cgfx;\n");
+		
+		print ( "for( $cgfx in $cgfxs){\n");
+		
+		print ( "if( `objExists ( $cgfx + \".SHcAr\" )`){\n");
+		print ( "setAttr ($cgfx + \".SHcAr\") " + $SHLAR[0] + " " + $SHLAR[1] + " " + $SHLAR[2] + ";\n");
+		print ( "setAttr ($cgfx + \".SHcArW\") " + $SHLAR[3] + ";\n");
+
+		print ( "setAttr ($cgfx + \".SHcAg\") " + $SHLAG[0] + " " + $SHLAG[1] + " " + $SHLAG[2] + ";\n");
+		print ( "setAttr ($cgfx + \".SHcAgW\") " + $SHLAG[3] + ";\n");
+
+		print ( "setAttr ($cgfx + \".SHcAb\") " + $SHLAB[0] + " " + $SHLAB[1] + " " + $SHLAB[2] + ";\n");
+		print ( "setAttr ($cgfx + \".SHcAbW\") " + $SHLAB[3] + ";\n");
+
+		print ( "setAttr ($cgfx + \".SHcBr\") " + $SHLBR[0] + " " + $SHLBR[1] + " " + $SHLBR[2] + ";\n");
+		print ( "setAttr ($cgfx + \".SHcBrW\") " + $SHLBR[3] + ";\n");
+
+		print ( "setAttr ($cgfx + \".SHcBg\") " + $SHLBG[0] + " " + $SHLBG[1] + " " + $SHLBG[2] + ";\n");
+		print ( "setAttr ($cgfx + \".SHcBgW\") " + $SHLBG[3] + ";\n");
+
+		print ( "setAttr ($cgfx + \".SHcBb\") " + $SHLBB[0] + " " + $SHLBB[1] + " " + $SHLBB[2] + ";\n");
+		print ( "setAttr ($cgfx + \".SHcBbW\") " + $SHLBB[3] + ";\n");
+
+		print ( "setAttr ($cgfx + \".SHcC\") " + $SHLC[0] + " " + $SHLC[1] + " " + $SHLC[2] + ";\n");
+		print ( "setAttr ($cgfx + \".SHcCW\") " + $SHLC[3] + ";\n");
+
+		print ( "}\n");
+		print ( "}\n");	
+		
+		print ("\n\n ----------------- kokomade --------------------\n\n");
+	}
+}

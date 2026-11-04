@@ -1,0 +1,21 @@
+global proc MS_texCleanUI()
+{
+	if(`window -exists MS_texCleanUI`){
+		deleteUI MS_texCleanUI;
+	}
+	
+	window -title "MS_UVToolsUI" MS_texCleanUI;	
+	
+	columnLayout;
+	
+	button -l "MS_texClean" -c "string $aaa[]=`ls -typ file -sl`;MS_texClean $aaa;";
+	button -l "MS_texCleanAll" -c "MS_texCleanAll";
+	button -l "MS_deleteUnconnectExpression" -c "MS_deleteUnconnectExpression transform";
+	showWindow MS_texCleanUI;
+	
+
+}
+
+
+MS_texCleanUI;
+

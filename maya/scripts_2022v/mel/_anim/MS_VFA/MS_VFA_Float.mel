@@ -1,0 +1,54 @@
+global proc MS_VFA_Float(
+	int $strtm,
+	int $endtm,
+	float $minvalue,
+	float $maxvalue,
+	string $target,
+	string $obj[],
+	string $attr[])
+{
+	/*
+	親アニメーションの前後のフレーム差でスケルトンをスケーリングする
+	*/
+	
+	float $all[];
+	
+	currentTime ($strtm-1);
+	float $ff[]=`xform -q -ws -t $target`;
+	
+	
+	//すべてのフレーム間で動き距離を検査
+	for($i=$strtm;$i<$endtm;$i++){
+		
+		currentTime $i;
+		
+		float $cf[] = `xform -q -ws -t $target`;
+		//2点間の移動距離を計算
+		float $len = sqrt(($ff[0]-$cf[0])*($ff[0]-$cf[0])+($ff[1]-$cf[1])*($ff[1]-$cf[1])+($ff[2]-$cf[2])*($ff[2]-$cf[2]));
+		
+		$all[$i-$strtm]=$len;
+		
+		$ff= $cf;
+		
+	}
+	
+	
+	//一番大きい動きを検査
+	float $hikaku[]=`sort $all`;
+	float $maxrange=$hikaku[(size($hikaku)-1)];
+	
+	//キーフレーム作成
+	for($each in $obj){
+		for($i=$strtm;$i<$endtm;$i++){
+			
+			float $rate=($all[$i-$strtm]/$maxrange)*$maxvalue;
+			if($rate<$minvalue){$rate=$minvalue;}
+				for($eachAttr in $attr)
+				setKeyframe -at $eachAttr -t $i -v $rate $each;
+				
+		}
+	}
+}
+
+
+

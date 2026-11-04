@@ -1,0 +1,62 @@
+global proc MS_texturePatternAnim(){
+	
+	float $u=`intSliderGrp -q -v "splitU"`;
+	float $v=`intSliderGrp -q -v "splitV"`;
+	
+	string $node[]=`ls -typ "place2dTexture" -sl`;
+	for($each in $node){
+		cutKey -cl -t ":" -f ":" -at "ofu" -at "ofv" $each;
+		PolySelectConvert 4;
+		
+		polyEditUV -pu 0 -pv 1 -su (1.0/$u) -sv (1.0/$v) ;
+		int $k;
+		for($i=0;$i<$v;$i++){
+			for($j=0;$j<$u;$j++){
+				setKeyframe -t $k -v ((1.0/$u)*$j) ($each+".ofu") ;
+				setKeyframe -t $k -v (1.0-((1.0/$v)*$i)) ($each+".ofv") ;
+				$k++;
+			}
+		}
+		selectKey -add -k ($each+"_offsetU") ($each+"_offsetV") ;
+		keyTangent -ott step;
+		setInfinity -poi cycle;
+	}
+	
+	//
+	
+	
+	
+	//polyEditUV -pu 0 -pv 0 -su (1/$u) -sv (1/$v) ;
+	
+	
+	//
+	select -r $node;
+	
+}
+
+global proc MS_texturePatternAnimUI()
+{
+	
+	//Window Check
+	if(`window -exists MS_texturePatternAnimUI`){
+		deleteUI MS_texturePatternAnimUI;
+	}
+	
+	
+	//Create Window
+	
+	window -title "MS_texturePatternAnimUI" MS_texturePatternAnimUI;
+	
+	columnLayout ;
+	intSliderGrp -l "U" -f 1 -v 1 -max 32 -min 1 "splitU";
+	intSliderGrp -l "V" -f 1 -v 1 -max 32 -min 1 "splitV";
+	
+	button -w 100 -l "MS_texturePatternAnim" -c "MS_texturePatternAnim";
+	
+	//Footer
+	showWindow MS_texturePatternAnimUI;
+	
+}
+
+//MS_texturePatternAnimUI;
+

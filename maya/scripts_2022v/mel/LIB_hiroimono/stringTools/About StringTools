@@ -1,0 +1,46 @@
+About StringTools
+
+Before Maya came along, I used to do a lot of scripting on the Mac in an application called Frontier. It has a really nice language, not much different from MEL. Anyway, it had a really nice set of string functions that I rally got used to. Regex is nice and all, but it's very cryptic, difficult to remember and sometimes a real ass pain to use.
+So, I converted all of Frontier's string functions to MEL. Well... as close as I possibly could. They mostly make use of regex and tokenize to get the job done, but now you don't have to remember the regex to get work done. I think they make working with strings a total snap and the read really well in your code.
+Each function has complete usage description and examples in the header
+
+
+
+String Matching:
+
+stringAppearsInList			- does a string appear in a string array?
+stringContains				- does a string appear in another string?
+
+
+
+Word* functions:
+
+stringFirstWord				- get the first word in a string
+stringLastWord				- get the last word
+stringNthWord				- get a word by word position
+stringPopFirstWord			- delete the first word in a string
+stringPopLastWord			- delete the last word in a string
+stringPopNthWord			- delete a word by word position
+stringInsertWordNth			- insert a word into a string by position
+stringInsertWordMatch		- insert a word into a string by word match
+stringSplitWordMatch		- split a string into an array or two strings by word match
+stringSplitWordPosition		- split a string into an array of two string by word position
+stringWordCount				- the number of words in the source string
+stringWordPosition			- the position of a matched word in the source string
+
+
+
+Character functions:
+
+stringFirstChar				- get the first character of a string
+stringLastChar				- get the last character
+stringNthChar				- get a character by character position
+stringPopFirstChar			- delete the first character in a string
+stringPopLastChar			- delete the last character in a string
+stringPopNthChar			- delete a character by character position
+stringInsertCharPosition	- inster a string at a character position
+stringTokenizeChars			- returns an array where each character has it's own index
+stringCharPosition			- get the numeric position of a character in a string
+
+
+*All word functions use a word character as the last argument. This is expected to be a single character such as a space (" "), underscore ("_"), or whatever separates words in the string. 

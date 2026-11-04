@@ -1,0 +1,260 @@
+global proc MS_bakeDynamics(){
+	
+	string $field[]=`ls -typ field`;
+	int $currentTime=`currentTime -q `;
+	if(`checkBox -q -v "setCurrent0Frame"`){
+		currentTime 0;
+	}
+	int $tm[]=`MS_selectTime`;
+	
+	string $activez[]=`ls -typ transform -sl`;
+	
+	string $passivez[];
+	string $passivez_full=`textFieldGrp -q -tx fGetName`;
+	tokenize ($passivez_full,$passivez);
+	
+	/*
+	string $activez[];
+	string $activez_full=`textFieldGrp -q -tx sGetName`;
+	tokenize ($activez_full,$activez);
+	*/
+	
+	
+
+	int $mcheck=`checkBox -q -v "Keep"`;
+	//int $fram=`intSliderGrp -q -v fram`;
+	//int $skip=`intSliderGrp -q -v skip`;
+	//int $grav=`floatSliderGrp -q -v grav`;
+	
+	float $mass=`floatSliderGrp -q -v mass`;
+	float $mass_rand_min=`floatField -q -v "mass_rand_min"`;
+	float $mass_rand_max=`floatField -q -v "mass_rand_max"`;
+	float $staticFriction=`floatSliderGrp -q -v staticFriction`;
+	float $dynamicFriction=`floatSliderGrp -q -v dynamicFriction`;
+	float $bounciness=`floatSliderGrp -q -v bounciness`;
+	float $damping=`floatSliderGrp -q -v damping`;
+	
+	select -r $passivez;
+	DeleteRigidBodies;
+	
+	//ダイナミクスの種作成
+	for ($passive in $passivez){
+		print $passive;
+		rigidBody 
+			-passive 
+			-mass $mass
+			-dp 0 
+			-staticFriction $staticFriction
+			-dynamicFriction $dynamicFriction 
+			-bounciness $bounciness
+			-damping $damping
+			-l 0 
+			-tf 2000 
+			-iv 0 0 0 
+			-iav 0 0 0 
+			-c 0 
+			-pc 0 
+			-i 0 0 0 
+			-imp 0 0 0 
+			-si 0 0 0 
+			-sio none 
+			$passive;
+	}
+	
+	for($active in $activez){
+		float $mass_rand=($mass+rand($mass_rand_min,$mass_rand_max));
+		print $active;
+		rigidBody 
+			-active 
+			-mass $mass_rand
+			-dp 0 
+			-staticFriction $staticFriction
+			-dynamicFriction $dynamicFriction 
+			-bounciness $bounciness
+			-damping $damping
+			-l 0 
+			-tf 2000 
+			-iv 0 0 0 
+			-iav 0 0 0 
+			-c 0 
+			-pc 0 
+			-i 0 0 0 
+			-imp 0 0 0 
+			-si 0 0 0 
+			-sio none 
+			$active;
+		
+		
+		//ダイナミクスにフィールド接続
+		for($each in $field){
+			connectDynamic -f $each $active;
+		}
+		
+		//アニメーション焼付け
+		cutKey -cl -t ":" -f ":" -at "tx" -at "ty" -at "tz" -at "rx" -at "ry" -at "rz" $active;
+
+		bakeResults -simulation true -t ($tm[0]+":"+$tm[1]) -sampleBy 1 -disableImplicitControl false -preserveOutsideKeys true -sparseAnimCurveBake false -at "tx" -at "ty" -at "tz" -at "rx" -at "ry" -at "rz" $active;
+		
+		//ダイナミクスからフィールド切断
+		for($each in $field){
+			connectDynamic -d -f $each $active;
+		}
+		
+		select -r $active;
+		DeleteRigidBodies;
+	}
+	
+
+	
+	select -r $passivez;
+	DeleteRigidBodies;
+	
+	select -r $activez;
+	currentTime $currentTime;
+}
+
+global proc int[] MS_selectTime(){
+	/*
+	タイムスライダーから時間を取得
+	
+	スライダーで範囲選択がある場合はその範囲内を
+	そうでない場合は現在のタイムスライダーの範囲を返す
+	
+	*/
+	//グローバル宣言しないとプロシージャ内でタイムスライダーを特定できない。
+	global string $gPlayBackSlider;
+	
+	string $buf[];
+	
+	string $tc=`timeControl -q -rng -gt $gPlayBackSlider`;
+	
+	tokenize $tc ":\"" $buf;
+	
+	int $st=$buf[0];
+	int $ed=$buf[1];
+	if(($ed-$st)<=1){
+		$st=`playbackOptions -q -min`;
+		$ed=`playbackOptions -q -max`;
+	}
+	return {$st,$ed};
+}
+
+
+
+//ClickTragetList-------------------------------------------
+global proc ClickPassiveList(){
+ string $selectSet[] = `ls -sl`;
+ select -r $selectSet;
+
+ if (objExists("SnapVertex_TargetSet")) {
+  delete SnapVertex_TargetSet;
+ }
+	
+ string $verF[] = `ls -sl -fl`;
+ sets -name SnapVertex_TargetSet;
+
+ int $rp = 1;
+ int $nu = `size $verF`;
+
+ textFieldGrp -e -tx $verF[0] fGetName;
+
+ while ($rp < $nu) { 
+  string $allNameF = `textFieldGrp -q -text fGetName`;
+  string $textNameF = $verF[$rp] +" "+ $allNameF;
+  textFieldGrp -e -tx $textNameF fGetName;
+  $rp++;
+ };
+ delete SnapVertex_TargetSet;
+};
+
+
+//ClickSnapList-------------------------------------------
+global proc ClickActiveList(){
+ string $selectSet[] = `ls -sl`;
+ select -r $selectSet;
+
+ if (objExists("SnapVertex_SnapSet")) {
+  delete SnapVertex_SnapSet;
+ }
+
+ string $verS[] = `ls -sl -fl`;
+ sets -name SnapVertex_SnapSet;
+
+ int $rp = 1;
+ int $nu = `size $verS`;
+
+ textFieldGrp -e -tx $verS[0] sGetName;
+
+ while ($rp < $nu) { 
+  string $allNameS = `textFieldGrp -q -text sGetName`;
+  string $textNameS = $verS[$rp] +" "+ $allNameS;
+  textFieldGrp -e -tx $textNameS sGetName;
+  $rp++;
+ };
+ delete SnapVertex_SnapSet;
+};	
+
+
+
+global proc MS_bakeDynamicsUI()
+{
+	if(`window -exists MS_bakeDynamicsUI`){
+		deleteUI MS_bakeDynamicsUI;
+	}
+	
+	window -title "MS_bakeDynamicsUI" MS_bakeDynamicsUI;	
+	columnLayout;
+	/*
+	rowLayout  -numberOfColumns 2 -cat 1 "left" 5  -columnWidth 1 130  -columnWidth 2 210;
+		button -bgc 1.0 0.8 0.8 -al "center"  -l "SelectActiveObjects" -w 120 -c "ClickActiveList";
+		textFieldGrp -en 0 -cw 1 160  sGetName;
+	setParent ..;
+	*/
+	rowLayout  -numberOfColumns 2  -cat 1 "left" 5  -columnWidth 1 130  -columnWidth 2 210;
+		button -bgc 0.8 1.0 0.8 -al "center"  -l "SelectPassiveObjects" -w 120 -c "ClickPassiveList";
+		textFieldGrp -en 0 -cw 1 160  fGetName;
+	setParent ..;
+	
+
+	separator -w 400 ;
+	
+	//intSliderGrp -l "fram" -field true -min 1 -max 1000 -v 300 fram;
+	//intSliderGrp -l "skip" -field true -min 1 -max 100 -v 10 skip;
+	//floatSliderGrp -l "grav" -field true -min 1 -max 10000 -v 9.8 grav;
+	
+	separator -w 400;
+	
+	floatSliderGrp -l mass -field true -min 0 -max 10000 -v 10 mass;
+	rowLayout -numberOfColumns 3 -columnWidth3 150 80 80 ;
+		text -align right "massRandom";
+		floatField -v 0 "mass_rand_min";
+		floatField -v 0 "mass_rand_max";
+	setParent ..;
+	floatSliderGrp -l staticFriction -field true -min 0 -max 1 -v 0.2 staticFriction;
+	floatSliderGrp -l dynamicFriction -field true -min 0 -max 1 -v 0.2 dynamicFriction;
+	floatSliderGrp -l bounciness -field true -min 0 -max 1 -v 0.6 bounciness;
+	floatSliderGrp -l damping  -field true -min 0 -max 1 -v 0.5 damping ;
+	
+	separator;
+	
+	checkBox -al center -recomputeSize 0 -v 0 -label "keepRigidBodies" -width 128 "Keep";//Data//
+	checkBox -al center -recomputeSize 0 -v 1 -label "setCurrent0Frame" -width 128 "setCurrent0Frame";//Data//
+	
+	button -l "bakeDynamics" -command "MS_bakeDynamics";
+
+	
+	
+	
+	showWindow MS_bakeDynamicsUI;
+	
+
+}
+
+MS_bakeDynamicsUI;
+
+
+
+
+
+
+

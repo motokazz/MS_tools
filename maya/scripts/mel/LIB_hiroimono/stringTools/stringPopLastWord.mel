@@ -1,0 +1,30 @@
+//stringPopLastWord, by Julian Love, julian@lightmail.com. Part of the StringTools set.
+//
+//description:	chops off the last word of the supplied string based on the
+//				supplied word char
+//
+//usage:		stringPopLastWord string[source string] string[character that separates words];
+//
+//examples:		stringPopLastWord "hello world." " ";
+//				// Result: hello //
+//
+//				stringPopLastWord "left_wrist_controller" "_";
+//				// Result: left_wrist //
+
+
+global proc string stringPopLastWord (string $item, string $wordChar){
+	string	$tokenList[];
+	string	$returnString;
+	int		$x;
+	
+	tokenize $item $wordChar $tokenList;
+	
+	for ($x=0; $x<(size($tokenList)-1); $x++){
+		if ($x != (size($tokenList)-2))
+			{$returnString += ($tokenList[$x] + $wordChar);}
+		else
+			{$returnString += $tokenList[$x];}
+	}
+	
+	return $returnString;
+}

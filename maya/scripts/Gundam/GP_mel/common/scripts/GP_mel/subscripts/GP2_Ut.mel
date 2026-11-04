@@ -1,0 +1,210 @@
+//GP2汎用スクリプト
+//2,汎用UI挙動
+
+/*
+global proc string getSDpos(){
+	string $pos = (`getenv "GP_MAYA_ROOT"` + "\\common\\scripts\\GP_mel\\csv\\GP2_motExpGlobalSave.csv");
+	return $pos;
+}
+
+global proc string[] GP2_motExp_getSaveDataTemplate(){
+	string $saveDataList[] = {"exportFolder","multiExportSwitch","resetRootPosSwitch","multiTabMayaDataFolder","BookMarks"};
+	return $saveDataList;
+}
+*/
+/**
+ * 日本語メッセージ表示ダイアログ.
+ * 適当に配列メッセージを送ると、区切り文字に応じた段落分けを行ってスクロールできるように表示。;
+ */
+global proc GP2_MessageDialog ( string $title, string $message[] ){
+	string $uniteMessage = `stringArrayToString $message ";"`;
+	layoutDialog -title $title -uiScript ("GP2_MessageDialog_FormUI \"" + $uniteMessage + "\"");
+}
+
+global proc GP2_MessageDialog_FormUI ( string $uniteMessage ){
+	string $message[] = `stringToStringArray $uniteMessage ";"`;
+
+	string $form	 = `setParent -q`;
+	string $buttonOK = `button -label "OK" -command "layoutDialog -dismiss \"OK\""`;
+	string $messageUI = `textScrollList -font "smallFixedWidthFont"`;
+	{
+		for ( $mes in $message )
+			textScrollList -edit -append $mes $messageUI;
+	}
+	
+	formLayout -edit
+	
+		-af	$messageUI	top		10
+		-af	$messageUI	left	10
+		-af	$messageUI	right	10
+		-ac	$messageUI	bottom	10 $buttonOK
+		
+		-an	$buttonOK	top
+		-af	$buttonOK	left	10
+		-af	$buttonOK	right	10
+		-af	$buttonOK	bottom	10
+	
+		$form;
+}
+
+global proc GP2_saveDataSave(string $saveDataFileName , string $accessed , string $newSaveData ){
+
+	int $i = 0;
+	int $temp;
+	string $bookmarkList[];
+	string $text;
+
+	string $loadedData[];
+
+	if(`filetest -r $saveDataFileName`){
+		int $fileId = `fopen $saveDataFileName "r"`;
+		string $line;
+		$line = `fgetline $fileId`;
+		int $i , $savedFlag;
+
+		while ( size( $line ) > 0 ){
+			$loadedData[$i] = $line;
+			string $buffer[];
+			tokenize $line "," $buffer;
+			if( $accessed == $buffer[0] ){
+				$loadedData[$i] = ($accessed + "," + $newSaveData);
+				$savedFlag = 1;
+			}
+			$line = `fgetline $fileId`;
+			$i++;
+		}
+		if( $savedFlag == 0 ){
+			$loadedData[$i] = ($accessed + "," + $newSaveData);
+		}
+		fclose $fileId;
+	}else{
+//セーブデータなし
+		$loadedData[0] = ("Mel-tool SettingData");
+		$loadedData[1] = ($accessed + "," + $newSaveData);
+	}
+
+	$fileId=`fopen $saveDataFileName "w"`;
+
+	for ($loadedItem in $loadedData){
+		if (endsWith($loadedItem,"\n") == 0){
+			$loadedItem = ($loadedItem + "\n");
+		}
+		fprint $fileId ($loadedItem);
+//		print ($loadedItem);
+	}
+	fclose $fileId;
+}
+
+global proc string GP2_saveDataLoad(string $saveDataFileName , string $accessed){
+//	string $saveDataFileName = getSDpos();
+
+	if(`filetest -r $saveDataFileName`){
+		int $fileId = `fopen $saveDataFileName "r"`;
+		string $line ;
+		$line = `fgetline $fileId`;
+		int $i=0;
+		string $loadedData;
+
+		while ( size( $line ) > 0 ){
+			string $buffer[];
+			tokenize $line "," $buffer;
+			if( $accessed == $buffer[0] ){
+				$loadedData = $buffer[1];
+				break;
+			}
+			$line = `fgetline $fileId`;
+			$i++;
+		}
+		fclose $fileId;
+		$loadedData = startString($loadedData , size($loadedData)-1);
+		return( $loadedData );
+	}else{
+		return("");
+	}
+}
+
+
+
+//IDリスト取得--------------------------------------------------------------------
+//csvから特定列のデータを読み込み、配列として返す。
+//$fileName		csvファイル名
+//$tgtData		取得するデータを行数で指定
+
+global proc string[] GP2ut_getCsvData(string $fileName , int $tgtData){
+
+	print ("「" + $fileName + "」から" + $tgtData + "番目のデータを取得します");
+
+	int $fileId = `fopen $fileName "r"`;
+	string $line = `fgetline $fileId`;		//最上段は不要（目次）
+	$line = `fgetline $fileId`;
+	int $i=0;
+	string $IDlist[];
+
+	while ( size( $line ) > 0 ){
+		string $buffer[];
+		tokenize $line "," $buffer;
+		$IDlist[$i] = `strip $buffer[$tgtData]`;
+		$line = `fgetline $fileId`;
+		$i++;
+	}
+	fclose $fileId;
+	print ("->完了しました。\r\n");
+	return( $IDlist );
+}
+
+//対象ファイルの更新日時を取得する(yyyymmddhhmm)
+global proc string GP2ut_getFileTimeStamp(string $targetFile){
+	string	$sUpdate = `system ( "for %a in ( " + $targetFile + " ) do @echo %~ta" )`;
+//			$sUpdate = `match "^[^ ]*" $sUpdate`;
+			$sUpdate = `strip $sUpdate`;
+
+	$sUpdate = GP2ut_del_let("/" , $sUpdate);
+	$sUpdate = GP2ut_del_let(":" , $sUpdate);
+	$sUpdate = GP2ut_del_let(" " , $sUpdate);
+
+	return $sUpdate;
+}
+
+//文字列から特定種類の文字1つを全削除
+global proc string GP2ut_del_let(string $let , string $tgt){
+	string $res;
+	string $temp[];
+	tokenize $tgt $let $temp;
+	for($item in $temp){
+		$res = $res + $item;
+	}
+    return $res;
+}
+
+
+
+//空欄""を含みうる文字列のtokenize
+global proc string[] tokenize_adv(string $tgt , string $cut){
+	string $res[] , $temp[];
+	string $kakikae = substituteAllString($tgt , $cut , ($cut + "@"));
+	tokenize $kakikae $cut $temp;
+	for($item in $temp){
+		$res[size($res)] = substituteAllString($item , "@" , "");
+	}
+	return $res;
+}
+
+
+//MPUI用textField調整
+//`textField -q -text textField_setupRTD_for_Export_csv_fbx_exportPathTF0`
+
+global proc setTextFieldBtn(string $tgtUI , string $ext , int $mode){
+	string $tempPath = `textField -q -text $tgtUI`;
+	string $prePath , $preName;
+	if($prePath != ""){
+		$preName = basename( $tempPath , "");
+		$prePath = `dirname $tempPath`;
+	}
+	string $output_names[] = `fileDialog2 -fm $mode -cap "出力するFBXを指定" -ds 2 -dir $prePath -ff $ext`;
+	textField -e -text $output_names[0] $tgtUI;
+}
+global proc int GP2_checkAccessRights(){
+	string $file = (`getenv "GP_MAYA_ROOT"` + "\\common\\scripts\\GP_mel\\csv\\GP2_melAccessCheck");
+	int $res = `filetest -e ($file)`;
+	return $res;
+}

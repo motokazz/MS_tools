@@ -1,0 +1,14 @@
+{
+//vcolor2a
+//頂点カラーRを頂点カラーAにコピー
+
+PolySelectConvert 3;
+
+string $vtx_name[]=`filterExpand -ex 1 -sm 31`;
+	for($value in $vtx_name){
+		float $val_vcol[] = `polyColorPerVertex -q -r $value`;
+		polyColorPerVertex -a $val_vcol[0] -cdo $value;
+		print ($value+"\n");
+	}
+}
+

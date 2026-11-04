@@ -1,0 +1,66 @@
+//stringSplitWordMatch, by Julian Love, julian@lightmail.com. Part of the StringTools set.
+//
+//description:	splits the source string at the match string based
+//				on the word character. Index starts with at 1. Returns an
+//				array with two strings of the resulting split. The split
+//				precedes the word at the match position. A match must be 
+//				an entire word.
+//
+//usage:		stringSplitWordMatch string[source string] string[match string] string[character that separates words];
+//
+//examples:		print `stringSplitWordMatch "Maya for Mac OSX rocks" "Mac" " "`;
+//				Maya for
+//				Mac OSX Rocks
+//
+//				print `stringSplitWordMatch "Maya for Mac OSX rocks" "rocks" " "`;
+//				Maya for Mac OSX
+//				rocks
+
+
+global proc int itemNthString (string $item, string $array[]){
+	int $x;
+	int $theIndex = -1;
+
+	for ($x=0; $x<size($array); $x++){
+		if ($array[$x] == $item){
+			$theIndex = $x;
+			break;
+		}
+	}
+
+	return ($theIndex);
+}
+
+
+global proc string[] stringSplitWordMatch (string $item, string $matchString, string $wordChar){
+	string	$tokenList[];
+	string	$returnString1;
+	string	$returnString2;
+	string	$returnList[];
+	int		$x, $y;
+	
+	tokenize $item $wordChar $tokenList;
+	$y = size($tokenList);
+
+	$position = (`itemNthString $matchString $tokenList` + 1);
+	
+	//...build the first string
+	if ($position > -1){
+		for ($x=0; $x<($position -1); $x++){
+			if ($x != ($position -2))
+				{$returnString1 += ($tokenList[$x] + $wordChar);}
+			else
+				{$returnString1 += $tokenList[$x];}
+		}
+		
+		for ($x=($position -1); $x<$y; $x++){
+			if ($x != ($y -1))
+				{$returnString2 += ($tokenList[$x] + $wordChar);}
+			else
+				{$returnString2 += $tokenList[$x];}
+		}
+	}
+	
+	$returnList = {$returnString1, $returnString2};
+	return $returnList;
+}

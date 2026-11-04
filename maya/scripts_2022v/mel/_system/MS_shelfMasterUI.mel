@@ -1,0 +1,146 @@
+global proc MS_createShelfButton(int $selectedShelfId[],string $shelfButtonName){
+	
+	string $val_icon="USERMENUICONFLIPBOOKS.BMP";
+	
+	string $commands;
+	$commands=$commands+"{\n";
+	$commands=$commands+"if(`window -exists MS_shelf`){deleteUI MS_shelf;}\n";
+	
+	$commands=$commands+"window -title \"MS_shelf\" MS_shelf;\n";
+	$commands=$commands+"shelfTabLayout -image \"smallTrash.xpm\" -imageVisible true;\n";
+	$commands=$commands+"\n";
+	
+	int $i=0;
+	for ($i in $selectedShelfId){
+		
+		string $shelfName = `optionVar -q ("shelfName" + $i)`;
+		string $shelfFile = `optionVar -q ("shelfFile" + $i)`;
+		
+		$commands=$commands+"shelfLayout "+$shelfName+";\n";
+		$commands=$commands+$shelfFile+";\n";
+		$commands=$commands+"setParent ..;\n";
+		$commands=$commands+"\n";
+	}
+	$commands=$commands+"\n";
+	$commands=$commands+"showWindow MS_shelf;\n";
+	$commands=$commands+"\n";
+	$commands=$commands+"}\n";
+	print $commands;
+	
+	clear $selectedShelfId;
+	
+	
+	
+	if(`window -exists MS_melpalette`){
+		deleteUI MS_melpalette;
+	}
+
+	window -title "MS_melpalette" MS_melpalette;
+		
+  		columnLayout;
+		
+		shelfTabLayout
+ 			-image "smallTrash.xpm"
+ 			-imageVisible true mainShelfTab;
+ 
+			shelfLayout WorkWindow;
+
+			
+	 		shelfButton
+				-enableCommandRepeat 1
+				-enable 1
+				-width 34
+				-height 34
+				-manage 1
+				-visible 1
+				-preventOverride 0
+				//-annotation $val_annotation
+				-align "center"
+				-label $shelfButtonName
+				-labelOffset 0
+				-font "tinyBoldLabelFont"
+				-imageOverlayLabel $shelfButtonName
+				-image $val_icon
+				//-image1 $val_icon
+				-style "iconAndTextHorizontal"
+				-marginWidth 1
+				-marginHeight 1
+				-command $commands
+				-actionIsSubstitute 0
+			;
+
+ 	showWindow MS_melpalette;
+ 	
+ 	
+}
+
+
+global proc MS_shelf(int $selectedShelfId[]){
+	string $commands;
+	$commands=$commands+"{\n";
+	$commands=$commands+"if(`window -exists MS_shelf`){deleteUI MS_shelf;}\n";
+	
+	$commands=$commands+"window -title \"MS_shelf\" MS_shelf;\n";
+	$commands=$commands+"shelfTabLayout -image \"smallTrash.xpm\" -imageVisible true;\n";
+	$commands=$commands+"\n";
+	
+	int $i=0;
+	for ($i in $selectedShelfId){
+		
+		string $shelfName = `optionVar -q ("shelfName" + $i)`;
+		string $shelfFile = `optionVar -q ("shelfFile" + $i)`;
+		
+		$commands=$commands+"shelfLayout "+$shelfName+";\n";
+		$commands=$commands+$shelfFile+";\n";
+		$commands=$commands+"setParent ..;\n";
+		$commands=$commands+"\n";
+	}
+	$commands=$commands+"\n";
+	$commands=$commands+"showWindow MS_shelf;\n";
+	$commands=$commands+"\n";
+	$commands=$commands+"}\n";
+	print $commands;
+	eval ($commands);
+	clear $selectedShelfId;
+}
+
+
+
+global proc MS_shelfMasterUI(){
+	
+	string $command;
+	int $nShelves = `optionVar -q numShelves`;
+	
+	if ((`window -ex MS_shelfMasterUI`) == true	) {deleteUI MS_shelfMasterUI;};
+	window -mb true -t "MS_shelfMasterUI" -iconName "MS_shelfMasterUI" MS_shelfMasterUI;
+	
+	columnLayout;
+	
+	
+	//shelf選択フォーム作成。
+	$command="int $val[];int $j=0;\n";
+	for ($i=1;$i<=$nShelves;$i++){
+		string $shelfName = `optionVar -q ("shelfName" + $i)`;
+		string $shelfFile = `optionVar -q ("shelfFile" + $i)`;
+		checkBox -l $shelfName ("chk"+$i);
+		$command=$command+"if (`checkBox -q -v "+("chk"+$i)+"`){$val[$j]="+$i+";$j++;}\n";
+		
+	}
+	
+	//shelfWindow作成
+	separator -w 200;
+	button -l "MS_shelfWindow" -c ($command+"MS_shelf $val;clear $val;\n") ;
+	
+	//shelfButton作成
+	separator -w 200;
+	text -l "input shelfName";
+	textFieldGrp shelfName;//shelfButtopnのラベル名入力
+	button -l "createShelfButton" -c ($command+"MS_createShelfButton $val `textFieldGrp -q -tx shelfName`;clear $val;\n");
+	
+	setParent ..;
+	
+	showWindow MS_shelfMasterUI;
+	
+}
+
+//MS_shelfMasterUI;

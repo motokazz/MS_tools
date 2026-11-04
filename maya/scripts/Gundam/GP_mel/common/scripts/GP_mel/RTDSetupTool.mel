@@ -1,0 +1,287 @@
+//RTDSetupTool
+//ひどい突貫工事を見た
+//
+//121109	ステージ変更
+//121108	ひとまず起動可、エクスポートのことはまあ後で
+
+
+
+//--------------------------------------------------------------------------------
+global proc string getRTDTVersion(){
+	string $RTDTversion = "ver0.04_20121109";
+	return ($RTDTversion);
+}
+
+
+global proc RTDSetup_exec(string $charaRigDataPath ,string $workPath , string $rtdName , string $charaID[] ,float $charaSize[] ,string $BGModel){
+
+	file -f -new;
+	string $charaRigFullPath;
+
+	global int $gUseScenePanelConfig;
+	global string $gDynPaintEditorName;
+	int $gUseScenePanelConfigBackup = $gUseScenePanelConfig;
+	$gUseScenePanelConfig = 1;
+
+//準備しておいた設定シーンデータを使用
+	sysFile -md ($workPath);
+	sysFile -copy ( $workPath + $rtdName + ".mb") (`getenv "GP_MAYA_ROOT"` + "/common/scripts/GP_mel/RTD/RTDPlaneScene.mb");
+	file -f -options "v=0"  -ignoreVersion  -typ "mayaBinary" -o ( $workPath + $rtdName + ".mb");
+
+	for($i=0 ; $i<size($charaID) ; $i++ ){
+		$charaRigFullPath = ($charaRigDataPath + $charaID[$i] + "\\scenes\\" + $charaID[$i] + "_rigbase.mb" );
+		GPRTDSetupTool_importRig($charaRigFullPath,$charaID[$i]);
+		RTD_ScalingSystem($charaID[$i] , $charaSize[$i]);
+	}
+	
+	catch( `file -i -gr -gn "BackGroundGroup" -f $BGModel` );
+	select -r BackGroundGroup;
+	createDisplayLayer -name "BackGround" -number 1 -nr;
+	setAttr BackGround.displayType 2;
+
+	setAttr "perspShape.farClipPlane" 1000000;
+	setAttr "RTDCameraShape.farClipPlane" 1000000;
+	lookThroughModelPanel RTDCamera modelPanel4;
+	tearOffCopyItemCmd modelPanel modelPanel4;
+	lookThroughModelPanel persp modelPanel4;
+	setAttr "RTDCamera.scaleX" 50;
+	setAttr "RTDCamera.scaleY" 50;
+	setAttr "RTDCamera.scaleZ" 50;
+
+	$gUseScenePanelConfig = $gUseScenePanelConfigBackup;
+	confirmDialog -title "RTDSetup" -message "作業が正常に完了しました。\r\nRTDの制作作業を開始して下さい。";
+}
+
+//--------------------------------------------------------------------------------
+//リグのリファレンス
+//ws設定を行い、相対パスで作業する。
+//--------------------------------------------------------------------------------
+global proc GPRTDSetupTool_importRig( string $rigFullPassName , string $chrName ){
+	print $rigFullPassName;
+	string $tokenized[];
+	int $j;
+	string $loadedPass = "";
+	tokenize $rigFullPassName "\\" $tokenized;
+	for( $j=0 ; $j<size($tokenized) ; $j++ ){
+		int $max = size($tokenized);
+		$max-- ;
+		if($j < $max ){
+			$loadedPass = ($loadedPass + $tokenized[$j] + "/");
+		}else{
+			print $loadedPass;
+			workspace -o $loadedPass;
+			file -r -type "mayaBinary" -ignoreVersion -gl -loadReferenceDepth "all" -namespace ( $chrName + "_rigbase") -options "v=0" $tokenized[$j];
+		}
+	}
+}
+
+
+
+//rigに被せる形で、スケール対応階層を生成・数値設定を行うツール
+//・rig_allのコントローラについて、スケール中と未スケール時の値を用意させ、RTD出力時にすり替えを行う。
+//・スケール値初期設定と、変更時の対応
+//・後出しでも付けられるようにしたい
+
+//□スケールを行う親玉階層
+//├■rigトップノード
+//├■rigETCノード
+//└□スケールキャンセル	(エクスプレッションで、絶対座標の取得を補助)
+//　├□all_scaledSize	(単純なペアレント、スケール後のrig_allの絶対座標値を取得。)
+//　└□all_originSize	(新規設定・更新時を除き、scaledSizeに追従。オフセット値を新規作成時に固定する)
+
+
+
+
+global proc RTD_captureRigAnim(string $tgtChara){
+
+	spaceLocator -name "rig_all_cptAnim";
+	spaceLocator -name "rig_origin_cptAnim";
+	spaceLocator -name "rig_location_cptAnim";
+	cutKey -time ":" -hierarchy none -controlPoints 0 -shape 1 { $tgtChara + "_rigbase:rig_all"};
+	pasteKey -time 1 -float 1 -option merge -copies 1 -connect 0 -timeOffset 0 -floatOffset 0 -valueOffset 0 {"rig_all_cptAnim"};
+	cutKey -time ":" -hierarchy none -controlPoints 0 -shape 1 { $tgtChara + "_rigbase:rig_origin"};
+	pasteKey -time 1 -float 1 -option merge -copies 1 -connect 0 -timeOffset 0 -floatOffset 0 -valueOffset 0 {"rig_origin_cptAnim"};
+	cutKey -time ":" -hierarchy none -controlPoints 0 -shape 1 { $tgtChara + "_rigbase:rig_location"};
+	pasteKey -time 1 -float 1 -option merge -copies 1 -connect 0 -timeOffset 0 -floatOffset 0 -valueOffset 0 {"rig_location_cptAnim"};
+}
+
+global proc RTD_backRigAnim(string $tgtChara){
+
+	cutKey -time ":" -hierarchy none -controlPoints 0 -shape 1 { "rig_all_cptAnim"};
+	pasteKey -time 1 -float 1 -option merge -copies 1 -connect 0 -timeOffset 0 -floatOffset 0 -valueOffset 0 {$tgtChara + "_rigbase:rig_all"};
+	cutKey -time ":" -hierarchy none -controlPoints 0 -shape 1 { "rig_origin_cptAnim"};
+	pasteKey -time 1 -float 1 -option merge -copies 1 -connect 0 -timeOffset 0 -floatOffset 0 -valueOffset 0 {$tgtChara + "_rigbase:rig_origin"};
+	cutKey -time ":" -hierarchy none -controlPoints 0 -shape 1 { "rig_location_cptAnim"};
+	pasteKey -time 1 -float 1 -option merge -copies 1 -connect 0 -timeOffset 0 -floatOffset 0 -valueOffset 0 {$tgtChara + "_rigbase:rig_location"};
+}
+
+
+global proc RTD_ScalingSystem(string $tgtChara,float $scalingSize){
+//モーションカーブの取得
+	catch (`RTD_captureRigAnim($tgtChara)`);
+
+//物を揃える
+	spaceLocator -n ($tgtChara + "_all_scaledSize");
+	spaceLocator -n ($tgtChara + "_all_originSize");
+	spaceLocator -n ($tgtChara + "_all_rootpos");
+	select -r ($tgtChara + "_all_scaledSize") ($tgtChara + "_all_originSize") ($tgtChara + "_all_rootpos");
+	group -n ($tgtChara + "_scaleCanseller"); xform -os -piv 0 0 0;
+	select -r ($tgtChara + "_rigbase:rig") ($tgtChara + "_rigbase:etc") ($tgtChara + "_scaleCanseller");
+	group -n ($tgtChara + "_scalingSystem"); xform -os -piv 0 0 0;
+
+//セットアップ
+	select -r ($tgtChara + "_rigbase:rig_all") ($tgtChara + "_all_scaledSize");
+	parentConstraint -weight 1;
+	string $exp = `getAttr ($tgtChara + "_all_scaledSize.ty")`;
+	expression -s ( "translateX = " + $tgtChara + "_all_scaledSize.translateX;\r\ntranslateY = " + $tgtChara + "_all_scaledSize.translateY - (" + $exp + " * (" + $tgtChara + "_scalingSystem.scaleX - 1));\r\ntranslateZ = " + $tgtChara + "_all_scaledSize.translateZ;\r\nrotateX = " + $tgtChara + "_all_scaledSize.rotateX;\r\nrotateY = " + $tgtChara + "_all_scaledSize.rotateY;\r\nrotateZ = " + $tgtChara + "_all_scaledSize.rotateZ;")  -o ($tgtChara + "_all_originSize") -ae 1 -uc all -n ($tgtChara + "exp_rigScaling");
+	expression -s ( "translateX = " + $tgtChara + "_all_scaledSize.translateX;\r\ntranslateY = " + $tgtChara + "_all_scaledSize.translateY - (" + $exp + " * " + $tgtChara + "_scalingSystem.scaleX );\r\ntranslateZ = " + $tgtChara + "_all_scaledSize.translateZ;\r\nrotateX = " + $tgtChara + "_all_scaledSize.rotateX;\r\nrotateY = " + $tgtChara + "_all_scaledSize.rotateY;\r\nrotateZ = " + $tgtChara + "_all_scaledSize.rotateZ;")  -o ($tgtChara + "_all_rootpos") -ae 1 -uc all -n ($tgtChara + "exp_rigBasepoint");
+	expression -s ( "scaleX = 1 / " + $tgtChara + "_scalingSystem.scaleX;\r\nscaleY = 1 / " + $tgtChara + "_scalingSystem.scaleY;\r\nscaleZ = 1 / " + $tgtChara + "_scalingSystem.scaleZ;") -o ($tgtChara + "_scaleCanseller") -ae 1 -uc all -n ($tgtChara + "exp_rigScalingCansel");
+	setAttr ($tgtChara + "_scalingSystem.sx") $scalingSize;
+	setAttr ($tgtChara + "_scalingSystem.sy") $scalingSize;
+	setAttr ($tgtChara + "_scalingSystem.sz") $scalingSize;
+	catch (`RTD_backRigAnim($tgtChara)`);
+}
+
+
+//テキストフィールドのボタンから、データを指定された時の動作--------------------------------------------------------------------
+global proc RTDSetup_setTextfData(string $textf , string $fileName, string $fileType){
+	$fileName = `toNativePath( $fileName )`;
+	if(endsWith($fileName,"\\") != 1){
+		$fileName = ($fileName + "\\");
+	}
+	textFieldButtonGrp -e -text $fileName $textf;
+}
+
+
+global proc RTDSetupTool(){
+
+	string $charaRigDataPath = "S:\\motion\\maya\\";
+//	string $workPath = "L:\\RTD_test\\";
+	string $RTDName = "rtd06100";
+	string $BGModel = (`getenv "GP_MAYA_ROOT"` + "/common/scripts/GP_mel/RTD/EVENT_STAGE_TEMP.mb");
+	string $charaID[] = {"chr4100","chr4280"};
+	float $charaSize[] = {2.7 , 2.7};
+
+/*
+	string $savePathPrime = ("L:\\partsCheckProject\\scenes\\");
+//	string $savePathPrime = ("L:\\partsCheckProject\\scenes\\" + `date -format "YYYY_MM_DD_hhmm"`);
+	string $modelPath = "C:\\GP\\trunk\\resource\\original\\GP\\model\\";
+	string $motionPath = "S:\\motion\\collada\\";
+*/
+	string $title = "RealTimeDemo_SetupTool";
+	string $RTDSetupwindow = "RTDSetupTool";
+
+	if ( `window -exists $RTDSetupwindow` ){ deleteUI $RTDSetupwindow;}
+
+	string $RTDTversion = getRTDTVersion();
+	window  -t ($title + "   " + $RTDTversion ) -menuBar true -w 640 -h 240 $RTDSetupwindow;
+
+	string $RTDT_form = `formLayout -numberOfDivisions 100 -w 450 -h 220 RTDT_form`;
+	string $RTDT_tablayouts = `tabLayout -innerMarginWidth 5 -innerMarginHeight 5 RTDT_tabs`;
+
+		formLayout -edit
+			-attachForm $RTDT_tablayouts "top"    0
+			-attachForm $RTDT_tablayouts "left"   0
+			-attachForm $RTDT_tablayouts "bottom" 0
+			-attachForm $RTDT_tablayouts "right"  0
+		$RTDT_form;
+	//---------------------------------------------------------------------------------------------
+		string $RTDSetup_frame = `frameLayout -labelAlign "top" -label "指定したフォルダのrigを使用し、RTD用のシーンを構築します。" -borderStyle "etchedIn" RTDSetup_frame`;
+			string $RTDSetup_forms = `formLayout -numberOfDivisions 100`;
+				string $tf_RTDSetup_1 = (`textFieldButtonGrp -cl3 left both right -cw3 100 440 100 -label "maya作業フォルダ" -text $charaRigDataPath -ann "" -buttonLabel "Edit" RTDSetup_exptTf`);
+				string $tf_RTDSetup_2 = (`textFieldGrp -cl2 left both -cw2 100 120 -label "RTD名" -text $RTDName -ann "RTD名を入力して下さい。(例:rtd10000)" RTDSetup_RTDNameTf`);
+				string $tf_RTDSetup_3A = (`textFieldGrp -cl2 left both -cw2 100 100 -label "使用キャラ1" -text $charaID[0] -ann "" RTDSetup_CharaIDATf`);
+				string $tf_RTDSetup_3B = (`textFieldGrp -cl2 left both -cw2 60 100 -label "スケール値" -text $charaSize[0] -ann "" RTDSetup_CharaScaleATf`);
+				string $tf_RTDSetup_4A = (`textFieldGrp -cl2 left both -cw2 100 100 -label "使用キャラ2" -text $charaID[1] -ann "" RTDSetup_CharaIDBTf`);
+				string $tf_RTDSetup_4B = (`textFieldGrp -cl2 left both -cw2 60 100 -label "スケール値" -text $charaSize[1] -ann "" RTDSetup_CharaScaleBTf`);
+				string $tf_RTDSetup_5 = (`textFieldGrp -cl2 left both -cw2 100 440 -label "背景モデル" -text $BGModel -ann "" RTDSetup_BGModelTf`);
+
+				string $RTDSetup_b1 = `button -w 420 -h 30 -l "RTDシーン構築！" RTDSetupBtn`;
+
+				formLayout -edit
+
+					-attachForm $tf_RTDSetup_1 "top"    10
+					-attachForm $tf_RTDSetup_1 "left"   10
+					-attachNone $tf_RTDSetup_1 "bottom"
+					-attachForm $tf_RTDSetup_1 "right"  10
+
+					-attachControl $tf_RTDSetup_2 "top"  5 $tf_RTDSetup_1
+					-attachForm $tf_RTDSetup_2 "left"   10
+					-attachNone $tf_RTDSetup_2 "bottom"
+					-attachForm $tf_RTDSetup_2 "right"  10
+
+					-attachControl $tf_RTDSetup_3A "top"  5 $tf_RTDSetup_2
+					-attachForm $tf_RTDSetup_3A "left"   10
+					-attachNone $tf_RTDSetup_3A "bottom"
+					-attachNone $tf_RTDSetup_3A "right"
+
+					-attachControl $tf_RTDSetup_3B "top"  5 $tf_RTDSetup_2
+					-attachControl $tf_RTDSetup_3B "left" 10 $tf_RTDSetup_3A
+					-attachNone $tf_RTDSetup_3B "bottom"
+					-attachForm $tf_RTDSetup_3B "right"  10
+	
+					-attachControl $tf_RTDSetup_4A "top"  5 $tf_RTDSetup_3A
+					-attachForm $tf_RTDSetup_4A "left"   10
+					-attachNone $tf_RTDSetup_4A "bottom"
+					-attachNone $tf_RTDSetup_4A "right"
+
+					-attachControl $tf_RTDSetup_4B "top"  5 $tf_RTDSetup_3B
+					-attachControl $tf_RTDSetup_4B "left" 10 $tf_RTDSetup_4A
+					-attachNone $tf_RTDSetup_4B "bottom"
+					-attachForm $tf_RTDSetup_4B "right"  10
+	
+					-attachControl $tf_RTDSetup_5 "top"  5 $tf_RTDSetup_4A
+					-attachForm $tf_RTDSetup_5 "left"   10
+					-attachNone $tf_RTDSetup_5 "bottom"
+					-attachForm $tf_RTDSetup_5 "right" 10
+	
+					-attachNone $RTDSetup_b1 "top"
+					-attachForm $RTDSetup_b1 "left"   10
+					-attachForm $RTDSetup_b1 "bottom" 10
+					-attachForm $RTDSetup_b1 "right"  10
+				$RTDSetup_forms;
+				setParent ..;
+			setParent ..;
+
+	//---------------------------------------------------------------------------------------------
+	//---------------------------------------------------------------------------------------------
+		string $RTDExpt_frame = `frameLayout -labelAlign "top" -label "RTD出力用(準備中)。" -borderStyle "etchedIn" RTDExpt_frame`;
+			setParent ..;
+
+	//---------------------------------------------------------------------------------------------
+
+	tabLayout -edit -tabLabel $RTDSetup_frame "RTD_Setup" -tabLabel $RTDExpt_frame "RTD_Export" $RTDT_tablayouts;
+
+
+
+	button -edit -command "RTDSetup_compose()" -ann "RTD作業のセットアップを行います。" RTDSetupBtn;
+	string $tfc0 = `textFieldButtonGrp -edit -bc ("fileBrowserDialog -mode 4 -fileType \"directory\" -actionName \"select Folder\" -fileCommand \"RTDSetup_setTextfData(\\\"RTDSetup_exptTf\\\")\" ") RTDSetup_exptTf`;
+
+	window -e -w 640 -h 280 $RTDSetupwindow;
+	showWindow $RTDSetupwindow;
+}
+
+global proc RTDSetup_compose(){
+	string $charaRigDataPath = `textFieldButtonGrp -q -text RTDSetup_exptTf` ;
+	string $workPath = (`textFieldButtonGrp -q -text RTDSetup_exptTf` + `textFieldGrp -q -text RTDSetup_RTDNameTf` + "\\scenes\\");
+	string $rtdName = `textFieldGrp -q -text RTDSetup_RTDNameTf`;
+	string $charaID[] = {"" , ""};
+	float $charaSize[] = {0 , 0};
+	$charaID[0] = `textFieldGrp -q -text RTDSetup_CharaIDATf`;
+	$charaID[1] = `textFieldGrp -q -text RTDSetup_CharaIDBTf`;
+	$charaSize[0] = `textFieldGrp -q -text RTDSetup_CharaScaleATf`;
+	$charaSize[1] = `textFieldGrp -q -text RTDSetup_CharaScaleBTf`;
+	$BGModel = `textFieldGrp -q -text RTDSetup_BGModelTf`;
+
+	string $check = "";
+	string $sameNameFileList[] = `getFileList -filespec ( $workPath + $rtdName + ".mb")`;
+	int $CNum = `size($sameNameFileList)`;
+	print ( $workPath + $rtdName + ".mb");
+	if($CNum != 0){
+		$check = `confirmDialog -title "Confirm" -message "同名のRTDシーンデータが存在します。\r\n上書きしてよろしいですか？" -button "Yes" -button "No" -defaultButton "No" -cancelButton "No" -dismissString "No"`;
+	}
+	if($check != "No"){
+		RTDSetup_exec($charaRigDataPath , $workPath , $rtdName , $charaID , $charaSize , $BGModel);
+	}
+
+}

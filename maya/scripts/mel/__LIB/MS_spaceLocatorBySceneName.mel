@@ -1,0 +1,14 @@
+global proc MS_spaceLocatorBySceneName(){
+	//シーン名の付いたロケーターを作成
+	string $obj[]=`ls -typ transform -sl`;
+	
+	$loc=`spaceLocator`;
+	$newname=`file -q -ns`;
+	if(size($obj)){
+		parent $obj $loc;
+	}
+	rename $loc $newname;
+}
+
+
+

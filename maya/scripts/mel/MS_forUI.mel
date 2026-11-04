@@ -1,0 +1,47 @@
+
+global  proc string MS_for_substitute(string $a,string $b,string $c){
+	string $result;
+	$check=$b;
+	while(match($a,$check)!=""){
+		$check=substitute($a,$check,$c);
+	}
+	return $check;
+}
+
+
+global proc MS_for(){
+	
+	string $command=`scrollField -q -tx comField`;
+	
+	string $obj[]=`ls -typ transform -sl`;
+	string $comp[]=`filterExpand -sm 12 -sm 22 -sm 31 -sm 32 -sm 34 -sm 46 `;
+	string $objz[]=stringArrayCatenate($obj,$comp);
+	
+	string $obj[]=`ls -sl`;
+	
+	string $eval_commands;
+	
+	for($each in $obj){
+		$eval_commands=($eval_commands+MS_for_substitute("<sel>",$command,$each)+";\n");
+	}
+	print $eval_commands;
+	eval $eval_commands;
+	
+}
+
+
+global proc MS_forUI(){
+if(`window -q -ex MyTools_MS_forUI`)deleteUI MyTools_MS_forUI;
+window MyTools_MS_forUI;
+
+columnLayout -adj 1;
+text -l "selected is type <sel>.";
+scrollField -h 200 comField;
+button -l "MS_for" -c "MS_for";
+setParent ..;
+
+showWindow MyTools_MS_forUI;
+}
+
+
+

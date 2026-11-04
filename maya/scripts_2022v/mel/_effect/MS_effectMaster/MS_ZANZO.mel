@@ -1,0 +1,32 @@
+global proc MS_ZANZO(
+	float $slideDistance,
+	int $ZANZOs
+){
+	int $tm[]=`MS_selectTime`;
+	//float $slideDistance=1;
+	$obj=`duplicate -rr -ic`;
+	bakeResults 
+		-simulation true 
+		-t ($tm[0]+":"+$tm[1])
+		-sampleBy 1 
+		-disableImplicitControl true 
+		-preserveOutsideKeys true 
+		-sparseAnimCurveBake false 
+		-at "tx" 
+		-at "ty" 
+		-at "tz" 
+		-at "rx" 
+		-at "ry" 
+		-at "rz" 
+		-at "sx" 
+		-at "sy" 
+		-at "sz" 
+		$obj;
+	keyframe -e -iub true -r -o over -tc $slideDistance $obj;
+	
+	for($i=1;$i<$ZANZOs;$i++){
+		$obj2=`duplicate -rr -un $obj`;
+		keyframe -e -iub true -r -o over -tc ($slideDistance*$i) $obj2;
+	}
+}
+

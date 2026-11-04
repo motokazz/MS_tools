@@ -1,0 +1,149 @@
+
+
+
+global proc MS_sample_if()
+{
+	int $x = 3;
+	if($x > 1)
+	{
+		print ("$x is greater than 1\n");
+	}
+	
+	string $s = "test";
+	if($s == "test")
+	{
+		print ("$s is test\n");
+	}
+}
+
+global proc MS_sample_switch()
+{
+	//変数と値は同じ型である必要があります。 
+	int $x = 2;
+	switch($x)
+	{
+		case 1 :
+			print "$x is 1\n";
+			break;
+		case 2 :
+			print "$x is 2\n";
+			break;
+		default :
+			print "x is not 1 or 2\n";
+	}
+	
+	string $s = "test1";
+	switch($s)
+	{
+		case "test1" :
+			print "$s is test1\n";
+			break;
+		case "test2" :
+			print "$s is test2\n";
+			break;
+		default :
+			print "x is not test1 or test2\n";
+	}
+}
+
+global proc MS_sample_while()
+{
+	int $i = 0;
+	while($i < 3)
+	{
+		print ($i + "\n");
+		$i++;
+	}
+}
+
+global proc MS_sample_dowhile()
+{
+	int $i = 0;
+	do
+	{
+		print ($i + "\n");
+		$i++;
+	} while($i < 3);
+}
+
+
+global proc MS_sample_for()
+{
+
+	int $i;
+	for($i=0;$i<3;$i++)
+	{
+		print ($i + "\n");
+	}
+	
+	
+	
+	string $str[3] = { "aaa", "bbb", "ccc" };
+	for( $val in $str)
+	{
+		print($val + "\n");
+	}
+}
+
+
+global proc MS_sample_base()
+{
+	
+	//Window Check
+	if(`window -exists MS_sample_base`){
+		deleteUI MS_sample_base;
+	}
+	
+	
+	//Create Window
+	
+	window -title "MS_sample_base" MS_sample_base;
+	
+	columnLayout ;
+	
+	//Contents	
+	
+	
+	//text
+	text -label "ThisWindowIsBaseConstructionFormatSample";
+	separator -w 600 -h 40 -st "single";  
+	
+	
+	
+	
+	
+	
+	//---------------
+	//Execute Buttons
+	//---------------
+	separator -w 600 -h 40 -st "doubleDash";
+	
+	button -l "MS_sample_if" -command MS_sample_if;
+	button -l "MS_sample_switch" -command MS_sample_switch;
+	button -l "MS_sample_while" -command MS_sample_while;
+	button -l "MS_sample_dowhile" -command MS_sample_dowhile;
+	button -l "MS_sample_for" -command MS_sample_for;
+	
+	
+	
+	
+	
+	
+	
+	separator -w 600 -h 40 -st "double";
+	
+	button -l "undo" -command "Undo" ;
+	
+	button -l "exit" -command "deleteUI MS_sample_base" ;
+	
+	
+	//Footer
+	showWindow MS_sample_base;
+	
+}
+
+MS_sample_base;
+
+
+
+	

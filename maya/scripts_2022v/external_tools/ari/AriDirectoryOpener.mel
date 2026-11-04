@@ -1,0 +1,92 @@
+//--------------------------------------------------------------------------
+//
+// ScriptName : AriDirectoryOpener
+// Contents   : 選択状態に応じてディレクトリを開きます。
+// Author     : A-RI
+// Since      : 2015/05
+// LastUpdate :
+// note       :
+//				「file」ノードが選択されていたら >>> fileで指定されているテクスチャディレクトリ
+//				「リファレンス」オブジェクトが選択されていたら >>> そのオブジェクトのあるシーンディレクトリ
+//				「レンダー設定」「レンダービュー」ウィンドウが開かれていたら >>>プロジェクトのimagesディレクトリ
+//				「オブジェクト」が何かしら選択されていたら >>> シーンファイルのディレクトリ
+//				「何も選択されいなかったら」 >>> プロジェクトディレクトリ
+//--------------------------------------------------------------------------
+
+
+
+global proc AriDirectoryOpener(){
+	
+	string $directory;
+	
+	int $renderSettingTrue=0;
+	int $openTrue=0;
+	int $iblTrue=0;
+	if(`window -ex "unifiedRenderGlobalsWindow"`){
+		if(`window -q -vis "unifiedRenderGlobalsWindow"`){
+			$renderSettingTrue=1;
+		}
+	}
+	if(`window -ex renderViewWindow`){
+		$renderSettingTrue=2;
+	}
+	string $selectsObj[]=`ls -sl`;
+	if(size($selectsObj)>0){
+		if(size($selectsObj)==0 && $renderSettingTrue==0){
+			$directory = `workspace -q -rd`;
+			print ($directory+"\n");
+			system ("load "+ $directory);
+			return;
+		}
+		string $lastSelects=$selectsObj[size($selectsObj)-1];	
+		if(objectType($lastSelects)=="file"){
+			string $filenode = $lastSelects;
+			$directory =`getAttr ($filenode+".fileTextureName")`;
+			$openTrue=1;
+		}
+		print (objectType($lastSelects));
+		if(objectType($lastSelects)=="mentalrayIblShape"){
+			string $filenode = $lastSelects;
+			$directory =`getAttr ($filenode+".texture")`;
+			$openTrue=1;
+			$iblTrue=1;
+		}
+		if(`referenceQuery -inr $lastSelects` && $openTrue==0){
+			$directory = `referenceQuery -f $lastSelects`;
+			$openTrue=1;
+		}
+		if($openTrue==0){
+			$directory = `file -q -sceneName`;
+		}
+	}
+	if($renderSettingTrue){
+		if(!($openTrue==1 && $renderSettingTrue==2)){
+			string $current=`workspace -q -rd`;
+			string $ruleList[] = `workspace -q -fr`;
+			int $i=0;
+			int $imageNum=0;
+			for($i=0;$i<size($ruleList);$i=$i+2){
+				if($ruleList[$i]=="images"){
+					$imageNum=$i+1;
+					break;
+				}
+			}
+			$directory = $current+"/"+$ruleList[$imageNum];
+			print $directory;
+			print "\n";
+			system ("load "+$directory);
+			print `getPanel -wf`;
+			return;
+		}
+	}
+	if(`filetest -f $directory`){
+		$directory = substituteAllString($directory, "/", "\\");
+		print ($directory+"\n");
+		system ("explorer.exe /select,"+$directory);
+	}
+	else{
+		$directory = `workspace -q -rd`;
+		print ($directory+"\n");
+		system ("load "+ $directory);
+	}
+}

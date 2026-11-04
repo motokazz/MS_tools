@@ -1,0 +1,83 @@
+#----------------------------------------------------------------------------------
+#UTF-8形式で保存してください
+#boolean(真偽値)のデフォルトはfalseです
+#記述者の名前が無いテスト用らしき記述は最適化の為削除する事があります
+#----------------------------------------------------------------------------------
+
+#----------------------------------------------------------------------------------
+#ヘキサビル・プレジューヌ　ed_a 茂木
+ed_a_root:
+  root:     true
+  occluder: "ed_a_root_occ"
+  low:      "ed_a_root_low"
+
+ed_a_01:
+  low:      "ed_a_01"
+
+g1_base_ed_a1_road_01:
+  low:      "g1_base_ed_a1_road_01_low"
+  part:     true
+g1_base_ed_a1_road:
+  low:      "g1_base_ed_a1_road_low"
+  part:     true
+g1_base_ed_a1_road_02:
+  low:      "g1_base_ed_a1_road_02_low"
+  part:     true
+g1_base_ed_b1_road:
+  low:      "g1_base_ed_b1_road_low"
+  part:     true
+g1_base_ed_b1_road_01:
+  low:      "g1_base_ed_b1_road_01_low"
+  part:     true
+g1_base_ed_b2_road:
+  low:      "g1_base_ed_b2_road_low"
+  part:     true
+g1_base_ed_c1_road:
+  low:      "g1_base_ed_c1_road_low"
+  part:     true
+g1_base_ed_c1_road_01:
+  low:      "g1_base_ed_c1_road_01_low"
+  part:     true
+g1_base_ed_d1_road:
+  low:      "g1_base_ed_d1_road_low"
+  part:     true
+g1_base_ed_d1_road_01:
+  low:      "g1_base_ed_d1_road_01_low"
+  part:     true
+g1_base_ed_e1_road:
+  low:      "g1_base_ed_e1_road_low"
+  part:     true
+g1_base_ed_e1_road_01:
+  low:      "g1_base_ed_e1_road_01_low"
+  part:     true
+g1_base_ed_f1_a_road:
+  low:      "g1_base_ed_f1_a_road_low"
+  part:     true
+g1_base_ed_f1_a_road_01:
+  low:      "g1_base_ed_f1_a_road_01_low"
+  part:     true
+g1_base_ed_f1_b_road:
+  low:      "g1_base_ed_f1_b_road_low"
+  part:     true
+g1_base_ed_f1_b_road_01:
+  low:      "g1_base_ed_f1_b_road_01_low"
+  part:     true
+g1_base_ed_f1_c_road:
+  low:      "g1_base_ed_f1_c_road_low"
+  part:     true
+g1_base_ed_f1_d_road:
+  low:      "g1_base_ed_f1_d_road_low"
+  part:     true
+
+
+g1_base_ed_sign:
+  root:     true
+
+
+#----------------------------------------------------------------------------------
+#ヘキサビル・プレジューヌDLC ed_b 黒野
+ed_b_root:
+  root:     true
+  occluder: "ed_b_root_occ"
+
+

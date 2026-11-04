@@ -1,0 +1,260 @@
+/*
+MS_valueStepperUI
+V0.1
+複数オブジェクト、複数チャンネルボックスに対する加減乗除算が出来ます。
+特徴は、ランダム機能とグループステップ機能です。
+
+～使い方～
+◇オブジェクト選択（複数可）
+↓
+◇チャンネルボックス選択（複数可）
+↓
+◇テキストエリアに数字を入力
+↓
+◇オプション選択
+	step：加減算
+	multi：乗算
+	divid：除算
+↓
+◇コマンドボタンで実行
+	goStep：普通に計算を実行
+	goRand：テキストエリアの数字の範囲で乱数を生成して計算を実行
+	GroupStep：複数オブジェクト選択時、オブジェクトを選んだ順番に計算値を追加していきます。
+
+
+*/
+
+global proc MS_valueInterp(){
+	string $obj[]=`ls -sl`;
+	string $attrMainChannel[]=`channelBox -q -sma mainChannelBox`;
+	int $quantity=size($obj)-1;
+	float $a,$b,$c=0;
+	
+	string $target_obj_a=$obj[0];
+	string $target_obj_b=$obj[$quantity];
+	stringArrayRemoveAtIndex($quantity,$obj);
+	stringArrayRemoveAtIndex(0,$obj);
+	int $i=1;
+	for($eachobj in $obj){
+		for($eachattr in $attrMainChannel){
+			$a=`getAttr($target_obj_a+"."+$eachattr)`;
+			$b=`getAttr($target_obj_b+"."+$eachattr)`;
+			if($quantity){
+				$c=$a-((($a-$b)/$quantity)*$i);
+			}
+			setAttr ($eachobj+"."+$eachattr) $c;
+		}
+		$i++;
+	}
+}
+
+global proc MS_valueStepper_Group(){
+	string $obj[]=`ls -sl`;
+	
+	float $a;
+	
+	float $b=`floatField -q -v step`;
+	float $c;
+	
+	int $smp_radio=`radioButtonGrp -q -sl smp_radio`;
+	//get main channel box
+	
+	int $i=1;
+	
+	for($eachobj in $obj){
+		//get main channel box
+		string $attrMainChannel[]=`channelBox -q -sma mainChannelBox`;
+		for($eachattr in $attrMainChannel){
+			float $a=`getAttr ($eachobj+"."+$eachattr)`;
+			if($smp_radio==1)
+				$c=($a+($b*$i));
+			if($smp_radio==2)
+				$c=($a*`pow $b $i`);
+			if($smp_radio==3)
+				$c=($a/`pow $b $i`);
+			setAttr ($eachobj+"."+$eachattr) $c;
+		}
+		//get shape channel box
+		string $attrShapeChannel[]=`channelBox -q -ssa mainChannelBox`;
+		for($eachattr in $attrShapeChannel){
+			float $a=`getAttr ($eachobj+"."+$eachattr)`;
+			if($smp_radio==1)
+				$c=($a+($b*$i));
+			if($smp_radio==2)
+				$c=($a*`pow $b $i`);
+			if($smp_radio==3)
+				$c=($a/`pow $b $i`);
+			setAttr ($eachobj+"."+$eachattr) $c;
+		}
+		$i++;
+	}
+}
+
+global proc MS_valueStepper_Random(){
+	string $obj[]=`ls -sl`;
+	float $b=`floatField -q -v step`;
+	int $smp_radio=`radioButtonGrp -q -sl smp_radio`;
+	for($eachobj in $obj){
+		float $rnd=rand(-$b,$b);
+		
+		//get main channel box
+		string $attrMainChannel[]=`channelBox -q -sma mainChannelBox`;
+		for($eachattr in $attrMainChannel){
+			float $a=`getAttr ($eachobj+"."+$eachattr)`;
+			if($smp_radio==1)
+				$c=$a+$rnd;
+			if($smp_radio==2)
+				$c=$a*$rnd;
+			if($smp_radio==3)
+				$c=$a/$rnd;
+			
+			setAttr ($eachobj+"."+$eachattr) $c;
+		}
+		//get shape channel box
+		string $attrShapeChannel[]=`channelBox -q -ssa mainChannelBox`;
+		for($eachattr in $attrShapeChannel){
+			float $a=`getAttr ($eachobj+"."+$eachattr)`;
+			if($smp_radio==1)
+				$c=$a+$rnd;
+			if($smp_radio==2)
+				$c=$a*$rnd;
+			if($smp_radio==3)
+				$c=$a/$rnd;
+			
+			setAttr ($eachobj+"."+$eachattr) $c;
+		}
+	}
+}
+
+global proc MS_valueStepper(){
+	string $obj[]=`ls -sl`;
+	float $b=`floatField -q -v step`;
+	float $c;
+	int $smp_radio=`radioButtonGrp -q -sl smp_radio`;
+	
+	for($eachobj in $obj){
+		//get main channel box
+		string $attrMainChannel[]=`channelBox -q -sma mainChannelBox`;
+		for($eachattr in $attrMainChannel){
+			float $a=`getAttr ($eachobj+"."+$eachattr)`;
+			
+			if($smp_radio==1){//加減算
+				$c=$a+$b;
+			}
+			if($smp_radio==2){//乗算
+				$c=$a*$b;
+			}
+			if($smp_radio==3 &&  $b!=0){//除算
+				$c=$a/$b;
+			}
+			setAttr ($eachobj+"."+$eachattr) $c;
+		}
+		//get shape channel box
+		string $attrShapeChannel[]=`channelBox -q -ssa mainChannelBox`;
+		for($eachattr in $attrShapeChannel){
+			float $a=`getAttr ($eachobj+"."+$eachattr)`;
+			
+			if($smp_radio==1){//加減算
+				$c=$a+$b;
+			}
+			if($smp_radio==2){//乗算
+				$c=$a*$b;
+			}
+			if($smp_radio==3 &&  $b!=0){//除算
+				$c=$a/$b;
+			}
+			
+			setAttr ($eachobj+"."+$eachattr) $c;
+		}
+	}
+}
+global proc MS_valueStepper_com(int $com){
+	string $obj[]=`ls -sl`;
+	float $b=`floatField -q -v step`;
+	float $c;
+	
+	for($eachobj in $obj){
+		//get main channel box
+		string $attrMainChannel[]=`channelBox -q -sma mainChannelBox`;
+		for($eachattr in $attrMainChannel){
+			float $a=`getAttr ($eachobj+"."+$eachattr)`;
+			
+			if($com==1){//加算
+				$c=$a+$b;
+			}
+			if($com==2){//減算
+				$c=$a-$b;
+			}
+			if($com==3){//乗算
+				$c=$a*$b;
+			}
+			if($com==4 &&  $b!=0){//除算
+				$c=$a/$b;
+			}
+			setAttr ($eachobj+"."+$eachattr) $c;
+		}
+		//get shape channel box
+		string $attrShapeChannel[]=`channelBox -q -ssa mainChannelBox`;
+		for($eachattr in $attrShapeChannel){
+			float $a=`getAttr ($eachobj+"."+$eachattr)`;
+			
+			if($com==1){//加減算
+				$c=$a+$b;
+			}
+			if($com==2){//加減算
+				$c=$a-$b;
+			}
+			if($com==3){//乗算
+				$c=$a*$b;
+			}
+			if($com==4 &&  $b!=0){//除算
+				$c=$a/$b;
+			}
+			
+			setAttr ($eachobj+"."+$eachattr) $c;
+		}
+	}
+}
+global proc MS_valueStepperUI(){
+	//Window Check
+	if(`window -exists MS_valueStepperUI`){
+		deleteUI MS_valueStepperUI;
+	}
+	
+	
+	//Create Window
+	
+	window -title "MS_valueStepperUI" MS_valueStepperUI;
+	
+	columnLayout;
+	
+	floatField -w 144 -v 0 step;
+	separator -w 150 ;
+	radioButtonGrp
+        -numberOfRadioButtons 3
+		-cw4 10 40 40 40
+        -label ""
+        -labelArray3 "step" "multiply" "divide"
+		-sl 1
+		smp_radio;
+	separator -w 150 ;
+	rowLayout -nc 5 -cw5 18 18 18 18 72;
+	button -bgc 0.8 0.9 0.8 -w 17 -al "center" -l "+" -c "MS_valueStepper_com 1" ;
+	button -bgc 0.8 0.9 0.8 -w 17 -al "center" -l "-" -c "MS_valueStepper_com 2" ;
+	button -bgc 0.8 0.9 0.8 -w 17 -al "center" -l "*" -c "MS_valueStepper_com 3" ;
+	button -bgc 0.8 0.9 0.8 -w 17 -al "center" -l "/" -c "MS_valueStepper_com 4" ;
+	button -bgc 0.9 0.8 0.8 -w 71 -al "center" -l "goRand" -c "MS_valueStepper_Random" ;	
+	setParent..;
+	rowLayout -nc 2 -cw2 72 72;
+	button -bgc 0.8 0.8 0.9 -w 71 -al "center" -l "GroupStep" -c "MS_valueStepper_Group";
+	button -bgc 1.0 1.0 1.0 -w 71 -al "center" -l "valueInterp" -c "MS_valueInterp";
+	setParent..;
+	setParent ..;
+	
+	window -e -w 150 -h 120 MS_valueStepperUI;
+	
+	showWindow MS_valueStepperUI;
+	
+}
+
+//MS_valueStepperUI;

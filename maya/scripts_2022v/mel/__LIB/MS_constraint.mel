@@ -1,0 +1,52 @@
+global proc MS_constraint(
+	int $point,
+	string $point_option,
+	int $aim,
+	int $orient,
+	int $scale,
+	int $parent,
+	int $geometry,
+	int $normal,
+	int $tangent,
+	int $poleVector,
+	string $target[],
+	string $obj[])
+{
+	
+	for($each in $obj){
+		
+		if($point){
+		string $option=stringArrayToString($target," ");
+		eval("pointConstraint -w 1.0 -o 0 0 0 "+$point_option+" "+$option+" "+$each+";");
+		}
+		
+		if($aim)
+		aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 1 0 -worldUpType "vector" $target $each;
+		
+		if($orient)
+		orientConstraint -offset 0 0 0 -weight 1 $target $each;
+		
+		if($scale)
+		scaleConstraint -offset 1 1 1 -weight 1 $target $each;
+		
+		if($parent)
+		parentConstraint -mo -weight 1 $target $each;
+		
+		
+		if($geometry)
+		geometryConstraint -weight 1 $target $each;
+		
+		if($normal)
+		normalConstraint -weight 1 -aimVector 1 0 0 -upVector 0 1 0 -worldUpType "vector" -worldUpVector 0 1 0 $target $each;
+		
+		if($tangent)
+		tangentConstraint -weight 1 -aimVector 1 0 0 -upVector 0 1 0 -worldUpType "vector" -worldUpVector 0 1 0 $target $each;
+		
+		if($poleVector)
+		poleVectorConstraint -weight 1 $target $each;
+		
+	}
+	
+}
+
+

@@ -1,0 +1,13 @@
+global proc string[] MS_arrayInvert(string $arr[]){
+	string $newArray[];
+	
+	for ($i=0;$i<size($arr);$i++){
+		string $temp=$arr[size($arr)-$i-1];
+		$newArray[$i]=$temp;
+	}
+	
+	return $newArray;
+}
+
+
+

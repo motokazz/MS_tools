@@ -1,0 +1,45 @@
+#----------------------------------------------------------------------------------
+#UTF-8形式で保存してください
+#boolean(真偽値)のデフォルトはfalseです
+#記述者の名前が無いテスト用らしき記述は最適化の為削除する事があります
+#----------------------------------------------------------------------------------
+
+#----------------------------------------------------------------------------------
+#上層　外部 et_a 落合
+et_a_root:
+  root:     true
+#  collision: true    # PCのためには降りないので不要だし、ガチで作ると重すぎるコリジョンなのだが、敵のために軽量なコリジョンが与えられている
+  occluder: "et_a_root_occ"
+
+#et_a_01:
+#  occluder: "et_a_01_occ"
+#  low:      "et_a_01_low"
+#et_a_02:
+#  occluder: "et_a_02_occ"
+#  low:      "et_a_02_low"
+#et_a_03:
+#  occluder: "et_a_03_occ"
+#  low:      "et_a_03_low"
+#et_a_04:
+#  occluder: "et_a_04_occ"
+#  low:      "et_a_04_low"
+
+et_branchset_oc_01:
+  low:      "et_branchset_oc_01_low"
+  part:     true
+et_branchset_oc_02:
+  low:      "et_branchset_oc_02_low"
+  part:     true
+et_branchset_oc_03:
+  low:      "et_branchset_oc_03_low"
+  part:     true
+et_branchset_oc_04:
+  low:      "et_branchset_oc_04_low"
+  part:     true
+et_branchset_oc_05:
+  low:      "et_branchset_oc_05_low"
+  part:     true
+et_branchset_oc_06:
+  low:      "et_branchset_oc_06_low"
+  part:     true
+

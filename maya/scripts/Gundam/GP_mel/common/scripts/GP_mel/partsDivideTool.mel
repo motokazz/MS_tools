@@ -1,0 +1,1874 @@
+//パーツ自動分割スクリプト
+//開いているシーンデータ(キャラクタ一体分を想定)から、パーツ分割を行い、ファイルとして保存します。
+//モデラーさん用にorochi出力機能を追加
+//
+//2014/08/14
+//エクストラジョイントの仕様変更に対応
+//
+//2014/07/02
+//PGの骨格新ルール整備
+//
+//2014/02/21
+//UV2の扱いを変更(0-1正方形内のUV=コーションマーク領域のみ、横方向5倍スケールの対象とする)
+//
+//2014/01/22
+//UV2の扱いを変更(0-1への圧縮を行わない)
+//
+//2013/11/11
+//骨名一新
+//
+//2013/10/30
+//新環境変数に対応、両腕のUVを共有するので判定・移動スケール値を調整
+//
+//2013/10/10
+//GP2用に更新、マルチUVに対応
+//
+//2012/10/09
+//外部ツールによる起動に対応
+//
+//2012/09/26
+//duplicate周りが不安定なので対応
+//
+//2012/08/23
+//ゲルズゲー対応
+//
+//2012/08/20
+//モビルアーマー対応
+//
+//2012/08/02
+//一方的に必須骨を削除される痛さと怖さを教えられる機能
+//
+//2012/07/18
+//上半身mune直下にextraがあると止まるバグに対応
+//
+//2012/07/06
+//尻骨対応
+//
+//2012/06/19
+//divide前にoptimizeを行う機能を追加。
+//
+//2012/06/13(2)
+//maya出力時に、上書きを強制的に行う仕様へ
+//
+//2012/06/13
+//バックパック接続用骨の追加に対応
+//
+//2012/06/04
+//各種調整、ヘルプ追加
+//
+//
+//2012/05/30
+//UIを微調整
+//手動でウェイト調整を行うオブジェクト(ザクのパイプなど)に対しての処理を追加
+//CSVへ「やわらかパーツ」としてIDを追加
+//対応したグループへ振られるが、ウェイト調整は行われない。
+//
+//
+//2012/05/07
+//↓機能をデフォルトonに
+//
+//
+//プログラム対応を待っていた↓の機能を、オプションとして本流に統合。
+//2012/04/25
+//
+//回転値のアタッチ機能に対応するよう、アタッチ親側のJointOrient・Rotateをグローバルでの0,0,0にリセットする機能
+//実際の出力に使用される骨を、単体ファイル「○○_expj.mb」として出力する機能を追加
+//前者はモデル作業側にも影響する可能性有り。
+//後者の作業は、モデルエクスポートには影響しない。
+//2012年4月6日
+//
+//エクスポート先の保存機能を追加
+//設定は"L:\\MEL\\csv\\GPtool_savedata.csv"に保存
+//2012年3月15日
+
+
+//ウェイト設定ツール読み込み
+source "WeightFiller.mel";
+source "IDBindTool.mel";
+string $PDT_csvPartsListFileName = (`getenv "GP_MAYA_ROOT"` + "\\common\\scripts\\GP_mel\\csv\\GxChrSkinCluster.csv");
+
+//--------------------------------------------------------------------------------
+global proc string getPDTVersion(){
+	string $PDTversion = "ver2.30_20140814";
+	return ($PDTversion);
+}
+
+global proc partsDivideTool(){
+	//.csv指定
+	string $PDT_csvPartsListFileName = (`getenv "GP_MAYA_ROOT"` + "\\common\\scripts\\GP_mel\\csv\\GxChrSkinCluster.csv");
+	partsDivideToolWindow($PDT_csvPartsListFileName);
+}
+
+//IDリスト取得--------------------------------------------------------------------
+//csvからデータを読み込み、配列として返す。
+//$fileName		csvファイル名
+//$tgtData		取得するデータを行数で指定
+
+global proc string[] getCsvData(string $fileName , int $tgtData){
+
+	print ("「" + $fileName + "」から" + $tgtData + "番目のデータを取得します");
+
+	int $fileId = `fopen $fileName "r"`;
+	string $line = `fgetline $fileId`;		//最上段は不要（目次）
+	$line = `fgetline $fileId`;
+	int $i=0;
+	string $IDlist[];
+
+	while ( size( $line ) > 0 ){
+		string $buffer[];
+		tokenize $line "," $buffer;
+		$IDlist[$i] = $buffer[$tgtData];
+		$line = `fgetline $fileId`;
+		$i++;
+	}
+	fclose $fileId;
+	print ("->完了しました。\r\n");
+	return( $IDlist );
+}
+
+
+//ID式ウェイト調整--------------------------------------------------------------------
+global proc int partsIDBindExec(string $fileName){
+	print ("IDを元にウェイトを調整します・・・\r\n");
+	string $IDlist[] = getBindIDList($fileName);
+	select -hierarchy parts;
+	string $transnd[] = `ls -sl -tr`;
+	int $i = size($transnd);
+	int $trcheck[];		//ID拾えたかのチェック用
+	for($i = 0; $i < size($transnd); $i++){
+		string $transname = $transnd[$i];
+		$transname = getTransName($transname);
+		$transnd[$i] = $transname;
+		$trcheck[$i] = 0;
+	}
+
+//---load csv file---
+	int $fileId = `fopen $fileName "r"`;
+	string $line = `fgetline $fileId`;		//最上段は不要（目次）
+	$line = `fgetline $fileId`;
+
+//---ID check---
+	while ( size( $line ) > 0 ){
+		string $buffer[];
+		tokenize $line "," $buffer;
+			//$buffer[]…0がオブジェクト名(使用見送り)、1が骨名、2が判定用ID、3がパーツ名(未使用)
+
+		//print ("bindID :" + $buffer[2] + "\n");
+		//print ("joint  :" + $buffer[1] + "\n");
+
+		$i = 0;
+		while ( $i < size($transnd) && $buffer[1] != "(--SmoothWeightParts--)" ){
+			if(startsWith($transnd[$i] , $buffer[2])){
+				print ("object\t:" + $transnd[$i] + "\r\njoint\t:" + $buffer[1] + "\r\n");
+				if( (catch( `select $buffer[1]`) ) == 0  ){
+					weightFiller ("parts|" + $transnd[$i]) $buffer[1];
+				}
+				print ("----ウェイト調整完了!----\r\n\r\n");
+				$trcheck[$i] = 1;
+			}
+			$i++;
+		}
+		$line = `fgetline $fileId`;
+	}
+	fclose $fileId;
+	print ("このパーツのID式ウェイト調整は完了しました。\r\n");
+	return(1);
+}
+
+
+//---------------------------------------------
+//新規骨名称[root]を、元ネタ側の骨名[rootOrig]へ変換。
+global proc string[] PDT_comvertJointsNameToOrig(string $jntList[]){
+	int $i = 0;
+	for( $i=0 ; $i < size($jntList) ; $i++ ){
+		$jntList[$i] = `substitute "parts" $jntList[$i] "partsOrig"`;
+	}
+	return($jntList);
+}
+
+
+//rootOrigの骨名を元に、root階層側の骨名を返す。
+global proc string[] PDT_comvertJointNameFromOrig(string $joints[]){
+	string $result[];
+	string $temp[];
+	int $i,$j;
+
+	for($jointItem in $joints){
+		$j = `tokenize $jointItem "|" $temp`;
+		$j--;
+		select -r ("*|" + $temp[$j]);
+		select -hi -d rootOrig;
+		clear $temp;
+		$temp = `ls -sl -tr -l`;
+		$result[$i] = $temp[0];
+		$i++;
+	}
+	return($result);
+}
+
+
+//バインドしなおし--------------------------------------------------------------------
+global proc int PDT_GPmeshBind(){
+	select -r parts;
+	select -tgl -hi parts;
+	$partsList = `ls -sl -tr`;
+	string $sourceParts;
+	string $joints[];
+
+	for($partsItem in $partsList){
+			print ("パーツ用にコピーした、「" + $partsItem + "」のバインドを行います。\r\n");
+		string $command = ("substitute \"parts\" " + $partsItem + " \"partsOrig\"");
+		$sourceParts =  eval($command);
+
+		clear $joints;
+			print("\t→コピー元からジョイントのリストを取得\r\n");
+		$joints = `skinCluster -q -inf $sourceParts`;
+			print("\t→ジョイント名をコピー先のものへ変換" + $joints[0] + "\r\n");
+		$joints = `PDT_comvertJointNameFromOrig($joints)`;
+			print("\t→ジョイント名を変換" + $joints[0] + "\r\n");
+		select -r $partsItem;
+			print ("\t" + $partsItem + "\r\n");
+		for($jointsItem in $joints){
+			print("\t→" + $jointsItem + "\r\n");
+			select -add $jointsItem;
+		}
+		print("上記構成でバインドを行います\r\n");
+		SmoothBindSkin;
+	}
+		print("当パーツの全メッシュ再バインドは完了しました。\r\n");
+	return(1);
+}
+
+//バインドしなおし--------------------------------------------------------------------
+global proc int GPPartsRebind(int $wcmode){
+	PDT_GPmeshBind();	//パーツ用スムースバインド
+	if ($wcmode) {
+		PDT_GPpartsWeightCopy();	//オリジナルからウェイトを取得、削除する処理
+	}
+	return(1);
+}
+
+//本体ウェイト継承--------------------------------------------------------------------
+global proc int PDT_GPpartsWeightCopy(){
+	print("パーツ用のメッシュへ、本体のウェイト値をコピーします。\r\n");
+	select -hierarchy parts;
+	string $transnd[] = `ls -sl -tr`;
+	int $i ;
+	for($i = 1; $i < size($transnd); $i++){
+		string $transname = $transnd[$i];
+		$transname = getTransName($transname);
+		PDT_transferSkinWeight(("partsOrig|" + $transname) , ("parts|" + $transname) );
+	}
+	return(1);
+}
+
+//骨位置チェッカー--------------------------------------------------------------------
+//ウェイトコピー時に確認。
+global proc int PDT_jointPosCheck(){
+	print ("\r\n\r\n\r\n\r\n\r\n\r\n\☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆　checkpoint B　☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆r\n\r\n\r\n\r\n\r\n\r\n");
+
+	int $i,$j,$result;
+	string $doubledJoints;
+	float $transXList[];float $transYList[];float $transZList[];
+	select -hierarchy root;
+	string $joints[] = `ls -sl -type "joint"`;
+	spaceLocator -p 0 0 0 -n "jointPosChecker";
+	for($jointItem in $joints){
+		select -r $jointItem jointPosChecker;
+		pointConstraint -offset 0 0 0 -weight 1;
+		$transXList[$i] = `getAttr "jointPosChecker.tx"`;
+		$transYList[$i] = `getAttr "jointPosChecker.ty"`;
+		$transZList[$i] = `getAttr "jointPosChecker.tz"`;
+		$i++;
+	}
+	for( $i=0 ; $i<size($transXList) ; $i++){
+		for($j = ($i+1) ; $j <size($transXList) ; $j++){
+			if($transXList[$i] == $transXList[$j] && $transYList[$i] == $transYList[$j] && $transZList[$i] == $transZList[$j]){
+				$doubledJoints = ($doubledJoints + $joints[$i] + " - " + $joints[$j] + "\r\n");
+//				setAttr ( $joints[$i] + ".tz" ) ($transZList[$i] + 0.001);
+			}
+		}
+	}
+	if ($doubledJoints != ""){
+	/*
+		confirmDialog -title "joint pos checker" -message ("以下のジョイントが、同じ座標に存在しています。\n" + $doubledJoints + "\nウェイトのコピーを行うには、骨の位置をずらして配置して下さい。")
+		-button "OK" -defaultButton "OK"
+		-cancelButton "OK" -dismissString "OK";
+	*/
+		print ("以下のジョイントが、同じ座標に存在しています。\n" + $doubledJoints + "\nウェイトのコピーを行うには、骨の位置をずらして配置して下さい。");
+		$result = 1;
+	}
+
+	return $result;
+}
+
+
+//--------------------------------------------------------------------
+proc GPoriginRename(int $mode){
+	select -r rootOrig ;
+	if ($mode == 0){
+		print("rootOrig以下、ジョイント名の「J_」を「orig_j_」へリネームします\r\n");
+		searchReplaceNames "J_" "orig_J_" "hierarchy";
+		rename rootOrig|jointroot_000 orig_jointroot_000;
+	}else{
+		print("rootOrig以下、ジョイント名の「orig_j_」を「J_」へリネームします\r\n");
+		searchReplaceNames "orig_J_" "J_" "hierarchy";
+		rename orig_jointroot_000 jointroot_000;
+	}
+}
+
+
+//--------------------------------------------------------------------
+//ここから、GPMSWeightImportExport.melより引用
+//--------------------------------------------------------------------
+
+//-----------------------------------------------------------
+global proc PDT_weightAssignToVtx(string$jntList[],float$weightList[],string$skinCluster,string$vtx)
+{
+//指定したバーテックスに指定したジョイントのウェイトを指定した数値で割り当てます。
+//スピードを稼ぐ為、このプロシージャ内ではnormalizeは実行されません。
+//プロシージャ外で実行して下さい（必須）。
+
+int $listSize = `size $jntList`;
+
+//eval用のワードを作成
+string $word = "";
+int $count;
+	for($count=0;$count<$listSize;$count++)
+	{
+		$word = $word + " -tv " +  $jntList[$count] + " " + $weightList[$count];
+	}
+$word = "skinPercent" + $word + " " + $skinCluster + " " + $vtx;
+eval $word;
+}
+
+//-----------------------------------------------------------
+global proc float[] PDT_getWeightFromVtx(string$skinCluster,string$vtx)
+{
+//指定したバーテックスからウェイトのリストを取得します。
+//リストの順番はPDT_getWeightedJntFromVtxプロシージャで取得出来るジョイントリストに
+//対応します。
+
+float $result[] = `skinPercent -q -v $skinCluster $vtx`;
+return $result;
+}
+//-----------------------------------------------------------
+global proc string[] PDT_getWeightedJntFromVtx(string$skinCluster,string$vtx)
+{
+//指定したバーテックスにウェイトをかけているジョイントのリストを取得します。
+
+string $result[] = `skinPercent -q -t $skinCluster $vtx`;
+return $result;
+}
+//-----------------------------------------------------------
+global proc PDT_setJointWeighAllZero(string$skinCluster,string$vtx)
+{
+//$vtxのウェイトを全て0にセットします。
+//ウェイトノーマライズは外されている必要があります。
+
+//ジョイントリストを取得
+string $jntList[] = `skinCluster -q -inf $skinCluster`;
+
+int $listSize = `size $jntList`;
+
+//eval用のワードを作成
+string $word = "";
+int $count;
+	for($count=0;$count<$listSize;$count++)
+	{
+	$word = $word + " -tv " +  $jntList[$count] + " " + "0.0";
+	}
+$word = "skinPercent" + $word + " " + $skinCluster + " " + $vtx;
+eval $word;
+}
+//-------------------------------------------------------------------
+global proc string PDT_returnSkinClusterName(string $skin)
+{
+//引数$skinでスキンの名称を渡すと、スキンクラスタを返します
+
+//$skinのシェイプを取得
+string $skinShape[] = `listRelatives -pa -s $skin`;
+//シーン中の全てのスキンクラスタを取得
+string $skinClusterList[] = `ls -type "skinCluster"`;
+//照合
+string $result;
+string $item;
+	for($item in $skinClusterList)
+	{
+	string $geo[] = `skinCluster -q -g $item`;
+	string $shape;
+		for($shape in $skinShape)
+		{
+			if($geo[0] == $shape)
+			{
+			$result = $item;
+			break;
+			}
+		}
+	}
+return $result;
+}
+
+//---------------------------------------------
+global proc PDT_transferSkinWeight(string$sourceSkin , string$skin ){
+
+	print ("[" + $sourceSkin + "]のウェイト情報を[" + $skin + "]へコピーします。\r\n");
+
+//$pathのtxtファイルを開き、$skinの$skinClusterの全バーテックスにウェイトを設定します。
+//スキンクラスタを自動で取得したい場合はサイズ0の文字列を$skinClusterとして指定して下さい。
+	string $skinCluster;
+	string $sourceSkinCluster;
+
+//$skinのバーテックス数を取得
+	int $vtxNumList[] = `polyEvaluate -v $skin`;
+	int $vtxNum = $vtxNumList[0];
+
+//スキンクラスタを取得
+	$skinCluster = `PDT_returnSkinClusterName $skin`;
+	$sourceSkinCluster = `PDT_returnSkinClusterName $sourceSkin`;
+
+//ウェイトノーマライズを解除
+	string $attr = $skinCluster + ".normalizeWeights";
+	setAttr $attr 0;
+	select -r $skin;
+	skinPercent -normalize 0 $skinCluster;
+
+//ジョイントリストを取得
+	string $jntList[];
+	clear $jntList;
+
+//$skinのバーテックス数を取得
+	int $vtxNumList[] = `polyEvaluate -v $skin`;
+	int $vtxNum = $vtxNumList[0];
+
+	int $i = 0;
+
+	for( $i=0 ; $i<$vtxNum ; $i++){
+//--バーテックスにウェイトを割り当て
+		$vtx = ($sourceSkin + ".vtx[" + $i + "]");
+
+		$jntList = `PDT_getWeightedJntFromVtx $sourceSkinCluster $vtx`;
+
+		float $weightList[] = `PDT_getWeightFromVtx $sourceSkinCluster $vtx`;
+
+		$vtx = ($skin + ".vtx[" + $i + "]");
+		$jntList = `PDT_comvertJointNameFromOrig($jntList)`;
+		//まず、スキンクラスタが持つ全ジョイントに対してこのバーテックスが持つウェイトを0にする
+		PDT_setJointWeighAllZero $skinCluster $vtx;
+
+		//正しいウェイトを割り当てる
+		PDT_weightAssignToVtx $jntList $weightList $skinCluster $vtx;
+
+	}
+
+//ウェイトノーマライズをセット
+	setAttr $attr 1;
+	select -r $skin;
+	skinPercent -normalize 1 $skinCluster;
+	print ("ウェイトコピー完了。\r\n");
+
+}
+//--------------------------------------------------------------------
+//ここまで、GPMSWeightImportExport.melより引用
+//--------------------------------------------------------------------
+
+//--------------------------------------------------------------------
+//ここから、GPMobileSuitPartClipper.melより引用
+//--------------------------------------------------------------------
+//-------------------------------------------------------------------------
+//--------------------------------------------------------
+proc string pickComponentType(string$componentName)
+{
+//This returns $componentName's component type.
+
+string $listA[];
+$wordNum = `tokenize $componentName "." $listA`;
+string $typeWithNum = $listA[$wordNum - 1];
+
+string $listB[];
+$wordNum = `tokenize $typeWithNum "[" $listB`;
+string $type = $listB[0];
+
+return $type;
+}
+//--------------------------------------------------------
+proc uvMoveAsValue(float$value,int$type)
+{
+//This moves selected UV vertex or faces in UV Texture Editor as $value.
+//If $type=0, the UV vertices are moved along U axis.
+//If $type=1, the UV vertices are moved along V axis.
+
+	if($type==0)
+	{
+	polyEditUV -u $value;
+	}
+	if($type==1)
+	{
+	polyEditUV -v $value;
+	}
+}
+//--------------------------------------------------------
+//--------------------------------------------------------
+proc uvScaleAsValue(float$value,int$type,int$direction)
+{
+//This scales selected UV vertex or faces in UV Texture Editor as $value.
+//If $type=other than 1, the UV vertices are scaled centering around 0,0 of UV Texture Editor.
+//If $type=1, the UV vertices are scaled centering around the center of selection region.
+//If $direction = 0, this scales UVs along U.
+//If $direction = 1, this scales UVs along V.
+
+string $sel[] = `ls -sl`;
+string $componentType = `pickComponentType $sel[0]`;
+	if($componentType=="map")
+	{
+	float $ctrU = 0.0;
+	float $ctrV = 0.0;
+		if($type == 1)
+		{
+		float $bbList[] = `polyEvaluate -bc2`;
+		$ctrU = (($bbList[0] + $bbList[1]) / 2);
+		$ctrV = (($bbList[2] + $bbList[3]) / 2);	
+		}
+		if($direction==0)
+		{
+		polyEditUV -pu $ctrU -pv $ctrV -su $value;
+		}
+		else if($direction==1)
+		{
+		polyEditUV -pu $ctrU -pv $ctrV -sv $value;
+		}
+	}
+}
+
+//--------------------------------------------------------
+proc GPConvertSelectionToUV(string $objList[]){
+//$objListからUVを取得し選択する
+	select -cl;
+	int $objListSize = `size $objList`;
+	int $i;
+	for($i=0;$i<$objListSize;$i++){
+	string $obj = $objList[$i];
+		int $uvNumList[] = `polyEvaluate -uv $obj`;
+		int $uvNum = $uvNumList[0] - 1;
+		$uvNumString = (string)$uvNum;
+		string $uvList = $obj + ".map[0:" + $uvNumString + "]";
+		select -add $uvList;
+	}
+}
+
+
+proc float[] getParts_UVArea(int $ID){
+	float $st[] = { 0.0 , 0.2 , 0.4 , 0.4 , 0.6 , 0.8 };
+	float $en[] = { 0.2 , 0.4 , 0.6 , 0.6 , 0.8 , 1.0 };
+	float $res[] = {$st[$ID] , $en[$ID]};
+	return($res);
+}
+
+//--------------------------------------------------------
+proc int GPConvertSelectionToUV_cautionMark(string $objList[] , int $partsID){
+//$objListからUVを取得し選択する
+
+	int $errorFlag = 0;
+	float $tempUVpos[];
+	float $uvArea[] = getParts_UVArea($partsID);
+
+	select -cl;
+	int $objListSize = `size $objList`;
+	int $i;
+	for($i=0;$i<$objListSize;$i++){
+	string $obj = $objList[$i];
+		int $uvNumList[] = `polyEvaluate -uv $obj`;
+		int $uvNum = $uvNumList[0] - 1;
+		$uvNumString = (string)$uvNum;
+		string $uvList = $obj + ".map[0:" + $uvNumString + "]";
+		select -add $uvList;
+	}
+	
+	string $allUvList[] = `ls -sl -fl`;
+	string $deselList[];
+	for($item in $allUvList){
+		$tempUVpos = `polyEditUV -q $item`;
+
+		if($tempUVpos[0] < 0 || $tempUVpos[0] > 1 || $tempUVpos[1] < 0 || $tempUVpos[1] > 1 ){	//コーション範囲外は帰って、どうぞ
+			$deselList[size($deselList)] = $item;
+			continue;
+		}
+		if($tempUVpos[0] < $uvArea[1] && $uvArea[0] < $tempUVpos[0] ){	//短冊内、正常配置
+			
+		}else{	//旧配置
+			$errorFlag = 1;
+			break;
+		}
+	}
+	if(size($deselList) != 0){
+		select -d $deselList;
+	}
+
+	return $errorFlag;
+}
+
+//--------------------------------------------------------
+proc int GPReturnUVAreaByObj_harf(string$objList[])
+{
+//GPプロジェクト用フォーマットにおいて、$objListのUVがどのエリアに入っているかを返します。
+//下左が1、下中が2、下右が3、上左が4、上中が5、上右が6になります。
+//はみ出しがあった場合は0が返ります。
+//注・実行後はUVが選択された状態になります。
+
+//$objListからUVを取得し選択する
+	GPConvertSelectionToUV($objList);
+
+//選択からバウンディングボックスを取得する
+//$uvArea[0]がU座標左端、[1]が右端、2が下端、3が上端。
+	float $uvArea[] = `polyEvaluate -bc2`;
+
+//範囲を確認し結果を返す
+int $result = 0;
+
+	if(($uvArea[2] >= 0.0) && ($uvArea[3] <= 0.5))		//下段に入ったUV
+	{
+		if(($uvArea[0] >= 0.0) && ($uvArea[1] <= 0.5)){
+			$result = 1;	//U座標0～0.5なので下半身(1)
+
+		}else if(($uvArea[0] >= 0.5) && ($uvArea[1] <= 0.75)){
+			$result = 2;	//U座標0.5～0.75なのでどちらかの腕(2)
+
+		}else if(($uvArea[0] >= 0.625) && ($uvArea[1] <= 0.75)){
+			$result = 3;	//U座標0.625～0.75なのでどちらかの腕(3)、2の判定に取られるので実質無効
+		}
+
+	}else if(($uvArea[2] >= 0.5) && ($uvArea[3] <= 1.0)){		//上段に入ったUV
+
+		if(($uvArea[0] >= 0.0) && ($uvArea[1] <= 0.25)){
+			$result = 4;	//U座標0～0.25なので頭(4)
+
+		}else if(($uvArea[0] >= 0.25) && ($uvArea[1] <= 0.5)){
+			$result = 5;	//U座標0.25～0.5なので上半身(5)
+
+		}else if(($uvArea[0] >= 0.5) && ($uvArea[1] <= 0.75)){
+			$result = 6;	//U座標0.5～0.75なので下半身(6)
+		}
+	}
+	if($result == 0){
+		confirmDialog -title "parts Divide tool" -message ("UVマップ1にて、UVのはみ出しが検出されました。\n")
+		-button "OK" -defaultButton "OK";
+	}
+return $result;
+}
+//---------------------------------------------------
+proc int GPAdjustMSPartUV_harf(string$objList[])
+{
+//GPプロジェクト用フォーマットにおいて、$objListのUVがどのエリアに入っているかを判定し、
+//UVサイズの調整を行います。
+//調整が実行されなかった場合は0を返します。
+
+//リストから範囲を取得
+int $uvAreaID = `GPReturnUVAreaByObj_harf $objList`;
+	if($uvAreaID == 1)
+	{
+	uvScaleAsValue 2.0 0 0;
+	uvScaleAsValue 2.0 0 1;
+	}
+	else if($uvAreaID == 2)
+	{
+	uvMoveAsValue -0.5 0;
+	uvScaleAsValue 4.0 0 0;
+//	uvScaleAsValue 8.0 0 0;		//GP2用改造、両腕で1UV範囲へ
+	uvScaleAsValue 2.0 0 1;
+	}
+	else if($uvAreaID == 3)
+	{
+	uvMoveAsValue -0.5 0;
+	uvScaleAsValue 4.0 0 0;
+//	uvMoveAsValue -0.625 0;		//GP2用改造、両腕で1UV範囲へ
+//	uvScaleAsValue 8.0 0 0;
+	uvScaleAsValue 2.0 0 1;
+	}
+	else if($uvAreaID == 4)
+	{
+	uvMoveAsValue -0.5 1;
+	uvScaleAsValue 4.0 0 0;
+	uvScaleAsValue 2.0 0 1;
+	}
+	else if($uvAreaID == 5)
+	{
+	uvMoveAsValue -0.25 0;
+	uvMoveAsValue -0.5 1;
+	uvScaleAsValue 4.0 0 0;
+	uvScaleAsValue 2.0 0 1;
+	}
+	else if($uvAreaID == 6)
+	{
+	uvMoveAsValue -0.5 0;
+	uvMoveAsValue -0.5 1;
+	uvScaleAsValue 4.0 0 0;
+	uvScaleAsValue 2.0 0 1;
+	}
+
+select -cl;
+return $uvAreaID;
+}
+//---------------------------------------------------
+proc GPAdjustMSPartUVexe()
+{
+//実行用プロシージャ
+
+//parts以下の全てのメッシュファイルにおいてGPAdjustMSPartUVを実行します。
+//エリアからはみ出した物がある場合はUV調整を行わず、代わりに警告ウィンドウを出します。
+string $objList[] = `listRelatives -c -ad -pa -type "transform" "parts"`;
+int $area = `GPAdjustMSPartUV_harf $objList`;
+	if($area == 0)
+	{
+	print ("Warning:" + "Could not adjust UVs." + "Some UVs are not in the area,");
+	}
+}
+
+//--------------------------------------------------------------------
+//引用ここまで
+//--------------------------------------------------------------------
+
+
+//--------------------------------------------------------------------
+//GP2用作業・暫定版。
+//中止した処理を復帰・改造。コーションマークのみ横方向にスケール
+//--------------------------------------------------------------------
+proc int GPAdjustMSPartUV_harf_map2(string$objList[] , int $partsID){
+//UVサイズの調整を行います。
+
+	int $errorFlag = GPConvertSelectionToUV_cautionMark($objList , $partsID);
+	if($errorFlag == 0){
+		float $uvArea[] = getParts_UVArea($partsID);
+		uvMoveAsValue (-1 * $uvArea[0]) 0;
+		uvScaleAsValue 5.0 0 0;
+	}
+	select -cl;
+	return $errorFlag;
+}
+
+//---------------------------------------------------
+proc GPAdjustMSPartUVexe_map2(string $badNameList[] , int $partsID){
+//実行用プロシージャ
+//parts以下の全てのメッシュファイルにおいてGPAdjustMSPartUVを実行します。
+//エリアからはみ出した物がある場合はUV調整を行わず、代わりに警告ウィンドウを出します。
+	string $objList[] = `listRelatives -c -ad -pa -type "transform" "parts"`;
+	$objList = stringArrayRemoveExact( $badNameList , $objList);
+	int $flag = GPAdjustMSPartUV_harf_map2($objList , $partsID);
+	if($flag == 1){
+		print("map2のコーションマーク領域にて、UVのはみ出しが発生しています。処理は行われません\r\n");
+/*		confirmDialog -title "parts Divide tool" -message ("UVマップ2・コーションマーク領域にて、UVのはみ出しが検出されました。\n")
+		-button "OK" -defaultButton "OK";*/
+	}
+}
+
+
+//--------------------------------------------------------------------
+//GP2用作業・暫定版ここまで。
+//--------------------------------------------------------------------
+
+global proc PDT_checkUsedJoints(string $fileName){
+	string $jointList[] = getCsvData( $fileName , 1 );	//骨名
+	string $useList[] = getCsvData( $fileName , 6 );		//各ジョイントが必須か否か
+	string $lackJoints;
+	int $i,$checkNum;
+	$checkNum = 0;
+	select -r -hi root;
+	string $sceneJointList[] = `ls -sl`;
+
+	for($i=0 ; $i < size($jointList) ; $i++){
+		if($useList[$i] != "-"){
+			print ($jointList[$i] + "is baseJoint.\r\n");
+			if(stringArrayContains($jointList[$i] , $sceneJointList)){
+				print ( "⇒exists.\r\n");
+			}else{
+				$lackJoints = $lackJoints + $jointList[$i] +"\r\n";
+				$checkNum = 1;
+			}
+		}
+	}
+	if($checkNum == 1){
+		confirmDialog -title "parts Divide tool" -message ("必須ジョイントが不足しています。\r\n" + $lackJoints)
+			-button "OK" -defaultButton "OK";
+	}
+}
+
+
+
+
+//実作業前の診断機能--------------------------------------------------------------------
+global proc GPpartsDivedeExec_tgtCheck(string $fileName , string $partsPass ,int $UVEditFlag ,int $expjFlag ,int $keepWtFlag ,int $mode){
+/*	※MAの分割出力は廃止になりました。
+	string $divTGT[] = `textScrollList -q -selectItem tsl_pdt`;
+	if($divTGT[0] == "通常モビルスーツ"){
+		print "通常モビルスーツとして処理を行います。\r\n";
+		GPpartsDivedeExec_MSClass( $fileName , $partsPass , $UVEditFlag , $expjFlag , $keepWtFlag , $mode);
+	}else{
+		print "モビルアーマーとして処理を行います。\r\n";
+		GPpartsDivedeExec_MAClass( $fileName , $partsPass , $UVEditFlag , $expjFlag , $keepWtFlag , $mode);
+	}
+*/
+
+	int $PGFlag = 0;
+	int $workLights = GP2_checkAccessRights();
+	if($workLights){ $PGFlag = `checkBox -q -v ColArmoredPGFlag`;}
+
+	$fileName = strip($fileName);
+	string $tmpPath = dirname($fileName);
+	string $currentScenes[] = `file -q -list`;
+	$tmpPath = `dirname($fileName)` + "/" + `basenameEx($currentScenes[0])`  + "_" + `basenameEx($fileName)` + ".csv";
+	if(`filetest -r $tmpPath`){
+		$fileName = $tmpPath;
+	}else if($PGFlag){
+		 $fileName = (`getenv "GP_MAYA_ROOT"` + "\\common\\scripts\\GP_mel\\csv\\PG_GxChrSkinCluster.csv");
+	}
+	GPpartsDivedeExec_MSClass( $fileName , $partsPass , $UVEditFlag , $expjFlag , $keepWtFlag , $mode);
+}
+
+
+
+
+proc string[] checkUVSetSize_Lack(string $tgt , string $tmpUVList[] , string $lackList[]){
+	if( size($tmpUVList) < 2 ){
+		$lackList[size($lackList)] = $tgt;
+	}
+	return $lackList;
+}
+
+proc string[] checkUVSetSize_Surplus(string $tgt , string $tmpUVList[] , string $surplusList[]){
+	if( size($tmpUVList) > 2 ){
+		$surplusList[size($surplusList)] = $tgt;
+	}
+	return $surplusList;
+}
+
+proc string[] checkUVSetSize_badName(string $tgt , string $tmpUVList[] , string $badNameList[]){
+	if( $tmpUVList[1] != "map2" ){
+		$badNameList[size($badNameList)] = $tgt;
+	}
+	return $badNameList;
+}
+
+
+//実作業--------------------------------------------------------------------
+global proc GPpartsDivedeExec_MSClass(string $fileName , string $partsPass ,int $UVEditFlag ,int $expjFlag ,int $keepWtFlag ,int $mode){
+	PDT_checkUsedJoints($fileName);
+	print("作業前に、現在のシーンを最適化します。\r\n");
+	cleanUpScene 3;
+
+	string $partsNum;		//何番目のパーツか？を２～７で指定。
+	string $partsID;		//パーツのIDを指定。本体のIDを元にNumと組み合わせ
+	string $lackList[];		//GP2.UV調整用。UVセット不足ノードリスト
+	string $surplusList[];	//GP2.UV調整用。UVセット余剰ノードリスト
+	string $badNameList[];	//GP2.UV調整用。UVセット名不正ノードリスト
+
+//キャラID取得
+	string $sceneName[] = `file -q -l -shn`;
+	string $temp[];
+	tokenize $sceneName[0] "." $temp;
+	string $charaID = $temp[0];
+
+//	string $IDList[] = getCsvData( $fileName , 0 );		//パーツが所属するグループ、2～7	2head 3Rarm 4Larm 5undr 6back 7body
+	string $IDList[] = getCsvData( $fileName , 0 );		//パーツが所属するグループ、0～5	0head 1body 2Rarm 3Larm 4undr 5back
+	string $jointList[] = getCsvData( $fileName , 1 );	//骨名
+	string $flagList[] = getCsvData( $fileName , 2 );	//オブジェクトフラグ
+	string $nodeTop[] = getCsvData($fileName , 5);		//グループトップか否か
+	string $nodeType[] = getCsvData($fileName , 7);		//-,extra,effectの3種類。
+	int $topNum;
+
+//処理パート
+	int $i,$j;
+	int $found = 0;
+	$partsID = (startString( $charaID,(`size($charaID)` - 1 ) ) + 0);
+	print $partsID;
+
+	string $tmp_efLocator[] = `ls -tr "*efLocator*"`;
+	for($j=0 ; $j<size($tmp_efLocator) ; $j++){
+		// ロケーターの命名規則に沿ってるかどうかチェック
+		$found = 0;
+		for($i=0 ; $i<size($jointList) ; $i++){
+			string $id_temp = "*" + startString( $jointList[$i] , size($jointList[$i])-3 ) + "*";
+			if (`gmatch $tmp_efLocator[$j] $id_temp` == 1){
+				$found = 1;
+			}
+		}
+		if ($found == 0)
+		{
+			// 命名規則に沿ってない！ので警告出す
+			print("warning : 命名規則に沿っていないロケーターがあります " + $tmp_efLocator[$j] + "\r\n");
+			confirmDialog -icon "warning" -b "OK" -m ("命名規則に沿っていないロケーターがあります:\n"+$tmp_efLocator[$j]);
+		}
+		
+		// 同じ名前のロケーターがないかチェック
+		if (`gmatch $tmp_efLocator[$j] "*|*"` == 1)
+		{
+			print("warning : ロケーター名が重複している？ " + $tmp_efLocator[$j] + "\r\n");
+			confirmDialog -icon "warning" -b "OK" -m ("ロケーター名が重複している？:\n"+$tmp_efLocator[$j]);
+		}
+		
+		// 親の名前をケツに追加してリネーム
+		$tmp_parent = `listRelatives -p $tmp_efLocator[$j]`;
+		rename $tmp_efLocator[$j] ($tmp_efLocator[$j] + "_" + $tmp_parent[0]);
+	}
+	
+	// Extraジョイント以下のefLocator名をリネーム（キャラID追加）
+	// ※UE4インポートの対応
+//	string $ExtraList[] = `ls "*Extra*"`;
+//	for($i=0 ; $i<size($ExtraList) ; $i++){
+//		// Extraジョイントに紐づく「efLocator」をリストアップ
+//		string $tmp_efLocator[] = `ls ($ExtraList[$i] + "|efLocator*")`;
+//		for($j=0 ; $j<size($tmp_efLocator) ; $j++){
+//			rename $tmp_efLocator[$j] ($partsID + "_" + $tmp_efLocator[$j]);
+//		}
+//	}
+//	// L_backpackもエクストラジョイント対象名なので検索＆リネーム
+//	string $ExtraList[] = `ls "*L_backpack*"`;
+//	for($i=0 ; $i<size($ExtraList) ; $i++){
+//		// Extraジョイントに紐づく「efLocator」をリストアップ
+//		string $tmp_efLocator[] = `ls ($ExtraList[$i] + "|efLocator*")`;
+//		for($j=0 ; $j<size($tmp_efLocator) ; $j++){
+//			rename $tmp_efLocator[$j] ($partsID + "_" + $tmp_efLocator[$j]);
+//		}
+//	}
+//	// C_backpackもエクストラジョイント対象名なので検索＆リネーム
+//	string $ExtraList[] = `ls "*C_backpack*"`;
+//	for($i=0 ; $i<size($ExtraList) ; $i++){
+//		// Extraジョイントに紐づく「efLocator」をリストアップ
+//		string $tmp_efLocator[] = `ls ($ExtraList[$i] + "|efLocator*")`;
+//		for($j=0 ; $j<size($tmp_efLocator) ; $j++){
+//			rename $tmp_efLocator[$j] ($partsID + "_" + $tmp_efLocator[$j]);
+//		}
+//	}
+//	// R_backpackもエクストラジョイント対象名なので検索＆リネーム
+//	string $ExtraList[] = `ls "*R_backpack*"`;
+//	for($i=0 ; $i<size($ExtraList) ; $i++){
+//		// Extraジョイントに紐づく「efLocator」をリストアップ
+//		string $tmp_efLocator[] = `ls ($ExtraList[$i] + "|efLocator*")`;
+//		for($j=0 ; $j<size($tmp_efLocator) ; $j++){
+//			rename $tmp_efLocator[$j] ($partsID + "_" + $tmp_efLocator[$j]);
+//		}
+//	}
+
+
+	
+	// 最初はモデル全体を出力
+	sysFile -md ($partsPass + $partsID ) ;
+	select -hi root parts;
+	FBXExportFileVersion -v FBX201600;
+	FBXExport -f ($partsPass + $partsID + "/" + $partsID) -s;
+	
+	rename "root" "rootOrig";
+	rename "parts" "partsOrig";
+
+	for($i=0 ; $i<6 ; $i++){
+
+		$partsNum = string($i);
+		$partsID = (startString( $charaID,(`size($charaID)` -1 ) ) + string(int($partsNum) + 1));
+
+		select -cl;
+		print($partsID + "の作業を開始します。\r\n");
+
+		//骨作業
+		print("CSVのリストを元に、ジョイントのコピーを行います。(エラー表示を出しますが、骨が無くても先に進みます。)\r\n");
+
+		for($j=0 ; $j < size($IDList) ; $j++){
+			if( endsWith($IDList[$j] , $partsNum) ){
+				print ("joint名 :" + $jointList[$j] + " 対応フラグ :" + $flagList[$j] + " " + $nodeTop[$j] + "\r\n");
+//				catch(`select -add $jointList[$j]`);
+				switch ($nodeType[$j]){
+					case "-":
+						catch(`select -add $jointList[$j]`);
+						if ( startsWith($nodeTop[$j] , "top")) $topNum = $j;
+						break;
+					case "efLoc":
+						string $efName = startString( $jointList[$j] , size($jointList[$j])-2 );
+						catch(`select -add -hi ("*" + $efName + "*")`);		// efLocatorリネームしてるの前後*で検索
+						break;
+					case "extra":
+						string $chName = startString( $charaID , size($charaID)-1 );
+//						catch(`select -add ( $chName + "*" + $jointList[$j])`);
+						catch(`select -add ( "*" + $jointList[$j])`);
+						break;
+				}
+			}
+		}
+
+		rename $jointList[$topNum] "partsTop";
+		select -add "partsTop";
+		duplicate -po;
+		if($i!=1) parent -world partsTop1 ;
+		rename partsTop $jointList[$topNum];
+
+		duplicate -un -po rootOrig rootOrig|jointroot_000;
+		rename rootOrig1 "root";
+
+		print("ジョイントのコピーが完了しました。\r\n");
+
+		if($expjFlag == 1){
+			if( $i == 4  ){
+				print("下半身パーツ用の調整を行います・・・\r\n");
+				//腰作業アタッチ用にrot/orientを初期化
+				//新しい骨を作り、jointrootの座標に置いて、子供の骨たちをのせ変え、最後にrootの子へ。
+				select -cl;
+				joint -p 0 0 0 -n "newjointroot_000";
+				select -r root|jointroot_000 newjointroot_000;
+				pointConstraint -offset 0 0 0 -weight 1;pointConstraint -remove;
+				string $selects[] = {"partsTop1|J_hip_400" };
+				//string $selects[] = {"partsTop1|J_Rmomo_300" , "partsTop1|J_Lmomo_400" , "partsTop1|J_RskirtF1_500" , "partsTop1|J_RskirtB1_501" , "partsTop1|J_RskirtS1_502" , "partsTop1|J_LskirtF1_503" , "partsTop1|J_LskirtB1_504" , "partsTop1|J_LskirtS1_505" };
+				for($j = 0 ; $j < size($selects) ; $j++){
+					parent $selects[$j] newjointroot_000 ;
+				}
+				delete root|jointroot_000 partsTop1;
+				rename newjointroot_000 partsTop1;
+				parent  partsTop1 root;
+				print("→完了しました。\r\n");
+
+			}else if( $i==1 ){
+				print("上半身パーツ用の調整を行います・・・(エラーが起きたら、ジョイントロックの影響かも知れません)\r\n");
+				//アタッチ用にrot/orientを初期化
+				//やることは下半身と同じだが、子供の骨も矯正している
+				select -cl;
+				joint -p 0 0 0 -n "newchest_001";
+				select -r rootOrig|partsTop1|J_chest_001 newchest_001;
+				pointConstraint -offset 0 0 0 -weight 1;pointConstraint -remove;
+				string $selects[] = { "J_head_002" , "J_R_shoulder_200" , "J_L_shoulder_300" , "J_backpackConnect_500" };
+
+				int $k = 0;
+				for( $k=0 ; $k<10 ; $k++){
+					select -cl;
+					catch(`select -r ("rootOrig|partsTop1|J_chest_001|*_J_bodyExtra_18" + $k)`);
+//					catch(`select -r ("rootOrig|partsTop1|J_chest_001|" + $charaID + "_J_bodyExtra_18" + $k)`);
+					string $testSel[] = `ls -sl`;
+					if(size($testSel)){
+						print ($testSel[0] + " found.\r\n");
+						$selects[size($selects)] = ("*_J_bodyExtra_18" + $k);
+//						$selects[size($selects)] = ($charaID + "_J_bodyExtra_18" + $k);
+					}else{
+						print ($testSel[0] + " not found.\r\n");
+					}
+					select -cl;
+				}
+				for( $k=0 ; $k<10 ; $k++){
+					select -cl;
+					catch(`select -r ("rootOrig|partsTop1|J_chest_001|J_bodyArmor_17" + $k)`);
+					string $testSel[] = `ls -sl`;
+					if(size($testSel)){
+						print ($testSel[0] + " found.\r\n");
+						$selects[size($selects)] = ("J_bodyArmor_17" + $k);
+					}else{
+						print ($testSel[0] + " not found.\r\n");
+					}
+					select -cl;
+				}
+
+				for($j = 0 ; $j < size($selects) ; $j++){
+					parent ("rootOrig|partsTop1|J_chest_001|" + $selects[$j]) newchest_001 ;
+//					setAttr ("newchest_001|" + $selects[$j] + ".jointOrientX") 0;
+//					setAttr ("newchest_001|" + $selects[$j] + ".jointOrientY") 0;
+//					setAttr ("newchest_001|" + $selects[$j] + ".jointOrientZ") 0;
+//					setAttr ("newchest_001|" + $selects[$j] + ".rx") 0;
+//					setAttr ("newchest_001|" + $selects[$j] + ".ry") 0;
+//					setAttr ("newchest_001|" + $selects[$j] + ".rz") 0;
+				}
+
+				select -cl;
+//				if(catch(`select -r ("rootOrig|partsTop1|J_chest_001|*efLocator_body_*")`) == 0){
+				if(catch(`select -r ("rootOrig|partsTop1|J_chest_001|*efLocator_*")`) == 0){
+					for($item in `ls -sl`){
+						parent $item newchest_001 ;
+					}
+				}
+
+				delete root|jointroot_000 partsTop1|J_chest_001;
+				rename newchest_001 J_chest_001;
+				parent |J_chest_001 partsTop1;
+				parent partsTop1 root;
+				print("→完了しました。\r\n");
+
+			}else{
+				parent  partsTop1 root|jointroot_000;
+			}
+		}else{
+			if( $i == 4 || $i==1 ){
+				delete root|jointroot_000;
+				parent  partsTop1 root;
+			}else{
+				parent  partsTop1 root|jointroot_000;
+			}
+		}
+
+		rename "partsTop1" $jointList[$topNum];
+		spaceLocator -name "rot_y";
+		parent |rot_y root;
+		select -cl;
+		print("ジョイント座標、階層の調整を完了しました。\r\n");
+
+
+		//全身オブジェクト複製・不要パーツ削除
+		duplicate -name ("parts" + $partsNum) "partsOrig";
+		rename ("parts" + $partsNum) parts;
+		select -hi |parts;
+		select -d "|parts*";
+		for($j=0 ; $j < size($IDList) ; $j++){
+			if( endsWith($IDList[$j] , $partsNum) ){
+				catch(`select -d ($flagList[$j] + "_*")`);
+			}
+		}
+		doDelete;
+		print("メッシュのコピーを完了しました。\r\n");
+
+
+		select -hi root parts;
+		delete -ch;
+		GPPartsRebind(1);
+		GPoriginRename(0);
+		if($keepWtFlag == 0){partsIDBindExec($fileName);}
+		GPoriginRename(1);
+
+		//下半身以外は原点へ
+		print("rootの位置調整を行います。\r\n");
+		if ($i == 1){
+			setAttr "|root|jointroot_000.tx" 0;
+			setAttr "|root|jointroot_000.ty" 0.01;
+			setAttr "|root|jointroot_000.tz" 0;
+		}else if ($i != 4){
+			setAttr "|root|jointroot_000.tx" 0;
+			setAttr "|root|jointroot_000.ty" 0.01;
+			setAttr "|root|jointroot_000.tz" 0;
+			setAttr ("|root|jointroot_000|" + $jointList[$topNum] + ".tx") 0;
+			setAttr ("|root|jointroot_000|" + $jointList[$topNum] + ".ty") 0.01;
+			setAttr ("|root|jointroot_000|" + $jointList[$topNum] + ".tz") 0;
+		}
+		cleanUpScene 3;
+
+
+
+		if ($UVEditFlag == 1){
+			if (!catch(`select -r -hi parts`)){
+				select -d parts;
+				string $objList[] = `ls -sl`;
+				string $tmpUVList[];
+	
+				for($item in $objList){
+					select -r $item;
+					string $tmpUVList[] = `polyUVSet -q -allUVSets` ;
+					$lackList = checkUVSetSize_Lack( $item , $tmpUVList , $lackList );
+					$surplusList = checkUVSetSize_Surplus( $item , $tmpUVList , $surplusList );
+					$badNameList = checkUVSetSize_badName( $item , $tmpUVList , $badNameList );
+					clear $tmpUVList;
+				}
+	
+				print("UVをホール機体用→パーツ用へ変換します。\r\n");
+	
+				//GP2用処理。UVセットの直接指定.1
+				select -r -hi parts;
+				select -d parts;
+				polyUVSet -currentUVSet -uvSet "map1";
+	
+			//先生お願いします
+				GPAdjustMSPartUVexe();
+	
+				//GP2用処理。UVセットの直接指定.2
+				select -r -hi parts;
+				select -d parts;
+				polyUVSet -currentUVSet -uvSet "map2";
+				print("UV2も変換します。\r\n");
+				GPAdjustMSPartUVexe_map2($badNameList , $i);
+			}
+		}
+
+		if (catch(`select -r root parts`))
+		{
+			// partsが存在しないときがある
+			select -r root;
+		}
+	//外部ツールからの呼び出し時、$modeは2or3となる。
+		if(($mode%2) == 1){
+			print("$mode = " + $mode + ", mayaデータとして保存中・・・\r\n");
+			file -op "v=0" -f -typ "mayaBinary" -ch 1 -pr -es ( $partsPass + $partsID + "/scenes/" + $partsID + ".mb");
+			if($expjFlag == 1){
+				select -r root;
+				file -op "v=0" -f -typ "mayaBinary" -pr -es ( $partsPass + $partsID + "/scenes/" + $partsID + "_expj.mb");
+				select -r root parts;
+			}
+		}else{
+			print("$mode = " + $mode + ", fbxデータとして出力中・・・\r\n");
+			sysFile -md ($partsPass + $partsID ) ;
+			
+			FBXExport -f ($partsPass + $partsID + "/" + $partsID) -s;
+
+			
+			//source "mrGxModelWorkUI.mel"; mrGxModelWorkUI;
+			//mrGxExportUtility_SetExortPath mrGxModelExportUIForm MODEL ( $partsPass + $partsID + "/" + $partsID) "COLLADA exporter";
+			//checkBox -e -v false ("ExportOptionBase_CopyTextures" + "mrGxModelExportUIForm");
+			//checkBox -e -v false ("ExportOptionBase_GotoBindPose" + "mrGxModelExportUIForm");
+			//checkBox -e -v true ("ExportOptionBase_ReOpenScene" + "mrGxModelExportUIForm");
+//			checkBox -e -v true ("ExportOptionBase_MaterialCSV" + "mrGxModelExportUIForm");
+//			radioButtonGrp -e -select 1 ( "ExportOptionBase_csvMode" + "mrGxModelExportUIForm" );
+			//mrGxModelExportUIForm_OnExport "mrGxModelExportUIForm" "";
+			if (catch(`select -r root parts`))
+			{
+				// partsが存在しないときがある
+				select -r root;
+			}
+		}
+		doDelete;
+		print("\r\n" + $partsID + "の出力作業が完了しました！\r\n\r\n");
+	}
+	//外部ツールからの呼び出し時、$modeは2or3となる。
+	if($mode < 2){
+		string $resultMessage[] = {"エクスポートが完了しました。"};
+
+		if( size($lackList) != 0){
+			$resultMessage[size($resultMessage)] = "以下のオブジェクトにて、UVセットが不足しています。";
+			$resultMessage = stringArrayCatenate( $resultMessage , $lackList );
+		}
+		if( size($surplusList) != 0){
+			$resultMessage[size($resultMessage)] = "以下のオブジェクトにて、UVセットが3つ以上存在しています。";
+			$resultMessage = stringArrayCatenate( $resultMessage , $surplusList );
+		}
+		if( size($badNameList) != 0){
+			$resultMessage[size($resultMessage)] = "以下のオブジェクトにて、UVマップ「map2」が正常に認識出来ませんでした。";
+			$resultMessage = stringArrayCatenate( $resultMessage , $badNameList );
+		}
+		
+
+		GP2_MessageDialog "完了" $resultMessage;
+		
+		// シーン閉じちゃう
+		file -f -new;
+
+//		confirmDialog -title "parts Divide tool" -message ("作業が完了しました。\n")
+//			-button "OK" -defaultButton "OK";
+	}
+}
+
+
+
+//実作業・MA--------------------------------------------------------------------
+global proc GPpartsDivedeExec_MAClass(string $fileName , string $partsPass ,int $UVEditFlag ,int $expjFlag ,int $keepWtFlag ,int $mode){
+
+	string $divTGT[] = `textScrollList -q -selectItem tsl_pdt`;
+	string $charaNum = `match "[0-9]+" $divTGT[0]`;
+	string $fileNameDir = dirname( $fileName );
+	string $fileNameBas = basename( $fileName , "" );
+	$fileName = ( $fileNameDir + "/chr" + $charaNum + "_" + $fileNameBas );
+
+	PDT_checkUsedJoints($fileName);
+	print("作業前に、現在のシーンを最適化します。\r\n");
+	cleanUpScene 3;
+	rename "root" "rootOrig";
+	rename "parts" "partsOrig";
+
+	string $partsNum;		//何番目のパーツか？を２～７で指定。
+	string $partsID;		//パーツのIDを指定。本体のIDを元にNumと組み合わせ
+
+//キャラID取得
+	string $charaID;
+	string $sceneName[] = `file -q -l -shn`;
+	string $temp[];
+	tokenize $sceneName[0] "." $temp;
+	$charaID = $temp[0];
+
+	string $IDList[] = getCsvData( $fileName , 0 );		//パーツが所属するグループ、2～7
+	string $jointList[] = getCsvData( $fileName , 1 );	//骨名
+	string $flagList[] = getCsvData( $fileName , 2 );	//オブジェクトフラグ
+	string $nodeTop[] = getCsvData($fileName , 5);		//グループトップか否か
+	int $topNum,$maxPartsNumber;
+
+	switch ($charaNum){
+
+		case "4640":
+			$maxPartsNumber = 4;
+			break;
+
+		case "4660":
+			$maxPartsNumber = 5;
+			break;
+
+		case "4680":
+			$maxPartsNumber = 3;
+			break;
+		
+
+		default:
+			break;
+	}
+
+//処理パート
+	int $i,$j;
+	for($i=2 ; $i <= $maxPartsNumber ; $i++){
+		$partsNum = string($i);
+		$partsID = (startString( $charaID,(`size($charaID)` -1 ) ) + $partsNum);
+		select -cl;
+		print($partsID + "の作業を開始します。\r\n");
+		
+		//骨作業
+		print("CSVのリストを元に、ジョイントのコピーを行います。(エラー表示を出しますが、骨が無くても先に進みます。)\r\n");
+		for($j=0 ; $j < size($IDList) ; $j++){
+			if( endsWith($IDList[$j] , $partsNum) ){
+				print ("joint名 :" + $jointList[$j] + " 対応フラグ :" + $flagList[$j] + " " + $nodeTop[$j] + "\r\n");
+				catch(`select -add $jointList[$j]`);
+				if ( startsWith($nodeTop[$j] , "top")){
+					$topNum = $j;
+				}
+			}
+		}
+		rename $jointList[$topNum] "partsTop";
+		select -add "partsTop";
+		duplicate -po;
+		rename partsTop $jointList[$topNum];
+		duplicate -un -po rootOrig|jointroot_000;
+		rename rootOrig1 "root";
+
+		print("ジョイントのコピーが完了しました。\r\n");
+
+		if($expjFlag == 1){
+			if( $i == 2  ){
+				string $selects[];
+				if($charaNum == "4640"){
+					$selects = {"partsTop1|J_hip_295" , "partsTop1|J_mune_001" , "partsTop1|J_mune_002"};
+				}else if($charaNum == "4680"){
+					$selects = {"partsTop1|J_hip_295" };
+				}
+				print("全身パーツ用の調整を行います・・・");
+				//腰作業アタッチ用にrot/orientを初期化
+				//新しい骨を作り、jointrootの座標に置いて、子供の骨たちをのせ変え、最後にrootの子へ。
+				select -cl;
+				joint -p 0 0 0 -n "newjointroot_000";
+				select -r root|jointroot_000 newjointroot_000;
+				pointConstraint -offset 0 0 0 -weight 1;pointConstraint -remove;
+				//string $selects[] = {"partsTop1|J_Rmomo_300" , "partsTop1|J_Lmomo_400" , "partsTop1|J_RskirtF1_500" , "partsTop1|J_RskirtB1_501" , "partsTop1|J_RskirtS1_502" , "partsTop1|J_LskirtF1_503" , "partsTop1|J_LskirtB1_504" , "partsTop1|J_LskirtS1_505" };
+				for($j = 0 ; $j < size($selects) ; $j++){
+					parent $selects[$j] newjointroot_000 ;
+				}
+				delete root|jointroot_000 partsTop1;
+				rename newjointroot_000 partsTop1;
+				parent  partsTop1 root;
+				print("→完了しました。\r\n");
+
+			}else if( $charaNum == "4680" && $i==3 ){
+				print("下半身パーツ用の調整を行います・・・(エラーが起きたら、ジョイントロックの影響かも知れません)");
+				//アタッチ用にrot/orientを初期化
+				//やることは下半身と同じだが、子供の骨も矯正している
+				select -cl;
+				joint -p 0 0 0 -n "newmune_001";
+				select -r rootOrig|partsTop1|J_mune_001 newmune_001;
+				pointConstraint -offset 0 0 0 -weight 1;pointConstraint -remove;
+				string $selects[] = { "J_kao_002" , "J_Rkata_100" , "J_Lkata_200" };
+				int $k = 0;
+				for( $k=0 ; $k<10 ; $k++){
+					select -cl;
+					catch(`select -r ("rootOrig|partsTop1|J_mune_001|J_bodyExtra_97" + $k)`);
+					string $testSel[] = `ls -sl`;
+					if(size($testSel)){
+						print ($testSel[0] + " found.\r\n");
+						$selects[size($selects)] = ("J_bodyExtra_97" + $k);
+					}else{
+						print ($testSel[0] + " not found.\r\n");
+					}
+					select -cl;
+				}
+				for($j = 0 ; $j < size($selects) ; $j++){
+					parent ("rootOrig|partsTop1|J_mune_001|" + $selects[$j]) newmune_001 ;
+				}
+				delete root|jointroot_000 partsTop1|J_mune_001;
+				rename newmune_001 J_mune_001;
+				parent |J_mune_001 partsTop1;
+				parent partsTop1 root;
+				print("→完了しました。\r\n");
+/*
+			}else if( $i==7 ){
+				print("下半身パーツ用の調整を行います・・・(エラーが起きたら、ジョイントロックの影響かも知れません)");
+				//アタッチ用にrot/orientを初期化
+				//やることは下半身と同じだが、子供の骨も矯正している
+				select -cl;
+				joint -p 0 0 0 -n "newmune_001";
+				select -r rootOrig|partsTop1|J_mune_001 newmune_001;
+				pointConstraint -offset 0 0 0 -weight 1;pointConstraint -remove;
+				string $selects[] = { "J_kao_002" , "J_Rkata_100" , "J_Lkata_200" , "J_backpackConnect_250" };
+				int $k = 0;
+				for( $k=0 ; $k<10 ; $k++){
+					select -cl;
+					catch(`select -r ("rootOrig|partsTop1|J_mune_001|J_bodyExtra_97" + $k)`);
+					string $testSel[] = `ls -sl`;
+					if(size($testSel)){
+						print ($testSel[0] + " found.\r\n");
+						$selects[size($selects)] = ("J_bodyExtra_97" + $k);
+					}else{
+						print ($testSel[0] + " not found.\r\n");
+					}
+					select -cl;
+				}
+				for($j = 0 ; $j < size($selects) ; $j++){
+					parent ("rootOrig|partsTop1|J_mune_001|" + $selects[$j]) newmune_001 ;
+					setAttr ("newmune_001|" + $selects[$j] + ".jointOrientX") 0;
+					setAttr ("newmune_001|" + $selects[$j] + ".jointOrientY") 0;
+					setAttr ("newmune_001|" + $selects[$j] + ".jointOrientZ") 0;
+					setAttr ("newmune_001|" + $selects[$j] + ".rx") 0;
+					setAttr ("newmune_001|" + $selects[$j] + ".ry") 0;
+					setAttr ("newmune_001|" + $selects[$j] + ".rz") 0;
+				}
+				delete root|jointroot_000 partsTop1|J_mune_001;
+				rename newmune_001 J_mune_001;
+				parent |J_mune_001 partsTop1;
+				parent partsTop1 root;
+				print("→完了しました。\r\n");
+*/
+			}else{
+				parent  partsTop1 root|jointroot_000;
+			}
+		}else{
+			if( $i == 2 || $i==7 ){
+				delete root|jointroot_000;
+				parent  partsTop1 root;
+			}else{
+				parent  partsTop1 root|jointroot_000;
+			}
+		}
+
+		rename "partsTop1" $jointList[$topNum];
+		spaceLocator -name "rot_y";
+		parent |rot_y root;
+		select -cl;
+		print("ジョイント座標、階層の調整を完了しました。\r\n");
+
+
+		//全身オブジェクト複製・不要パーツ削除
+		duplicate -name ("parts" + $partsNum) "partsOrig";
+		rename ("parts" + $partsNum) parts;
+		select -hi |parts;
+		select -d "|parts*";
+		for($j=0 ; $j < size($IDList) ; $j++){
+			if( endsWith($IDList[$j] , $partsNum) ){
+				catch(`select -d ($flagList[$j] + "_*")`);
+			}
+		}
+		doDelete;
+		print("メッシュのコピーを完了しました。\r\n");
+
+
+		select -hi root parts;
+		delete -ch;
+		GPPartsRebind(1);
+		GPoriginRename(0);
+		if($keepWtFlag == 0){partsIDBindExec($fileName);}
+		GPoriginRename(1);
+
+		//下半身以外は原点へ
+		print("rootの位置調整を行います。\r\n");
+		if ($i == 7){
+			setAttr "|root|jointroot_000.tx" 0;
+			setAttr "|root|jointroot_000.ty" 0.01;
+			setAttr "|root|jointroot_000.tz" 0;
+		}else if ($i == 3 && $charaNum == 4680){
+			setAttr "|root|jointroot_000.tx" 0;
+			setAttr "|root|jointroot_000.ty" 0.01;
+			setAttr "|root|jointroot_000.tz" 0;
+		}else if ($i != 2){
+			setAttr "|root|jointroot_000.tx" 0;
+			setAttr "|root|jointroot_000.ty" 0.01;
+			setAttr "|root|jointroot_000.tz" 0;
+			setAttr ("|root|jointroot_000|" + $jointList[$topNum] + ".tx") 0;
+			setAttr ("|root|jointroot_000|" + $jointList[$topNum] + ".ty") 0.01;
+			setAttr ("|root|jointroot_000|" + $jointList[$topNum] + ".tz") 0;
+		}
+		cleanUpScene 3;
+
+/*
+		UV作業は保留中
+		if ($UVEditFlag == 1){
+			print("UVをホール機体用→パーツ用へ変換します。\r\n");
+		//先生お願いします
+			GPAdjustMSPartUVexe();
+		}
+*/
+
+		select -r root parts;
+		if(($mode % 2) == 1){
+			print("mayaデータとして保存中・・・\r\n");
+			file -op "v=0" -f -typ "mayaBinary" -ch 1 -pr -es ( $partsPass + $partsID + "/scenes/" + $partsID + ".mb");
+			if($expjFlag == 1){
+				select -r root;
+				file -op "v=0" -f -typ "mayaBinary" -pr -es ( $partsPass + $partsID + "/scenes/" + $partsID + "_expj.mb");
+				select -r root parts;
+			}
+		}else{
+			print("fbxデータとして出力中・・・\r\n");
+			sysFile -md ($partsPass + $partsID ) ;
+			FBXExport -f ($partsPass + $partsID + "/" + $partsID) -s;
+
+//			source "mrGxModelWorkUI.mel"; mrGxModelWorkUI;
+//			mrGxExportUtility_SetExortPath mrGxModelExportUIForm MODEL ( $partsPass + $partsID + "/" + $partsID) "COLLADA exporter";
+//			checkBox -e -v false ("ExportOptionBase_CopyTextures" + "mrGxModelExportUIForm");
+//			checkBox -e -v false ("ExportOptionBase_GotoBindPose" + "mrGxModelExportUIForm");
+//			checkBox -e -v true ("ExportOptionBase_ReOpenScene" + "mrGxModelExportUIForm");
+//			mrGxModelExportUIForm_OnExport "mrGxModelExportUIForm" "";
+			select -r root parts;
+		}
+		doDelete;
+		print("\r\n" + $partsID + "の出力作業が完了しました！\r\n\r\n");
+	}
+	if($mode < 2){
+		confirmDialog -title "parts Divide tool" -message ("作業が完了しました。\n")
+			-button "OK" -defaultButton "OK";
+		}
+}
+
+//ロードします--------------------------------------------------------------------------------
+global proc string getMelSaveData(string $saveDataFileName , string $accessedSaveData){
+	string $saveDataFileName = (`getenv "GP_MAYA_ROOT"` + "\\common\\scripts\\GP_mel\\csv\\GPtool_savedata.csv");
+	if(`filetest -r $saveDataFileName`){
+		int $fileId = `fopen $saveDataFileName "r"`;
+		string $line ;
+		$line = `fgetline $fileId`;
+		int $i=0;
+		string $loadedData;
+
+		while ( size( $line ) > 0 ){
+			string $buffer[];
+			tokenize $line "," $buffer;
+			if( $accessedSaveData == $buffer[0] ){
+				$loadedData = $buffer[1];
+				break;
+			}
+			$line = `fgetline $fileId`;
+			$i++;
+		}
+		fclose $fileId;
+		$loadedData = startString($loadedData,size($loadedData)-1);
+		return( $loadedData );
+	}else{
+		return("");
+	}
+}
+
+
+
+global proc string getMelSaveState(string $fileName , string $fileType ){
+	print $fileName;
+	text -edit -label ($fileName) SDtext;
+	return($fileName);
+}
+
+
+//セーブします
+//global proc PDT_setMelSaveData( string $saveDataFileName , string $accessedSaveData , string $fileName , string $fileType ){
+//global proc PDT_setMelSaveData(string $fileName , string $fileType ){
+global proc PDT_setMelSaveData( string $accessedSaveData ){
+	string $fileName = `fileBrowserDialog -mode 4 -fileType "directory" -actionName "エクスポートするフォルダを選択して下さい。" -fileCommand "getMelSaveState"`;
+	$fileName = `text -q -label SDtext`;
+
+	print $fileName;
+
+	if (endsWith($fileName,"/") == 0){
+		$fileName = $fileName + "/";
+	}
+	string $saveDataFileName = (`getenv "GP_MAYA_ROOT"` + "\\common\\scripts\\GP_mel\\csv\\GPtool_savedata.csv");
+//	string $accessedSaveData = "partsDivideTool_Defpass";
+	string $loadedData[];
+
+	if(`filetest -r $saveDataFileName`){
+		int $fileId = `fopen $saveDataFileName "r"`;
+//		string $line =  `fgetline $fileId`;		//最上段は不要（目次）
+		string $line;
+		$line = `fgetline $fileId`;
+		int $i , $savedFlag;
+
+
+		while ( size( $line ) > 0 ){
+			$loadedData[$i] = $line;
+			string $buffer[];
+			tokenize $line "," $buffer;
+			if( $accessedSaveData == $buffer[0] ){
+				$loadedData[$i] = ($accessedSaveData + "," + $fileName);
+				$savedFlag = 1;
+			}
+			$line = `fgetline $fileId`;
+			$i++;
+		}
+		if( $savedFlag == 0 ){
+			$loadedData[$i] = ($accessedSaveData + "," + $fileName);
+		}
+		fclose $fileId;
+	}else{
+//セーブデータなし
+		$loadedData[0] = ("Mel-tool SettingData");
+		$loadedData[1] = ($accessedSaveData + "," + $fileName);
+	}
+	$fileId=`fopen $saveDataFileName "w"`;
+	print (size($loadedData) + "個のセーブデータ.");
+	for ($loadedItem in $loadedData){
+		if (endsWith($loadedItem,"\n") == 0){
+			$loadedItem = ($loadedItem + "\n");
+		}
+		fprint $fileId ($loadedItem);
+		print ($loadedItem);
+	}
+	fclose $fileId;
+	setTfData($fileName , $accessedSaveData) ;
+}
+
+//--------------------------------------------------------------------
+global proc setTfData(string $fileName, string $accessedData){
+	if (endsWith($fileName,"/")){
+		textFieldButtonGrp -e -text ($fileName ) $accessedData;
+	}else{
+		textFieldButtonGrp -e -text ($fileName + "/") $accessedData;
+	}
+}
+
+
+
+global proc editTfData(string $accessedData){
+	string $fileName = `fileBrowserDialog -mode 4 -fileType "directory" -actionName "エクスポートするフォルダを選択して下さい。" -fileCommand "getMelSaveState"`;
+	$fileName = `text -q -label SDtext`;
+	
+	if (endsWith($fileName,"/") == 0){
+		$fileName = $fileName + "/";
+	}
+	setTfData($fileName , $accessedData) ;
+}
+
+
+
+//UI--------------------------------------------------------------------------------
+//
+global proc partsDivideToolWindow(string $PDT_csvPartsListFileName){
+	string $ut = ("source \"" + `getenv "GP_MAYA_ROOT"` + "\\\\common\\\\scripts\\\\GP_mel\\\\subscripts\\\\GP2_Ut.mel\"");
+	eval $ut;
+
+	string $title = "PartsDivideTool";
+	string $PDwindow = "PDtool";
+	string $saveDataFileName = (`getenv "GP_MAYA_ROOT"` + "\\common\\scripts\\GP_mel\\csv\\GPtool_savedata.csv");
+
+
+	string $ColpartsDefPass = getMelSaveData($saveDataFileName , "ColpartsPassTf");
+	string $MbpartsDefPass = getMelSaveData($saveDataFileName , "MbpartsPassTf");
+
+	//	string $partsDefPass = "C:\\work\\gp\\";
+
+	if ( `window -exists $PDwindow` )
+	{
+		deleteUI	$PDwindow;
+	}
+
+	string $PDTversion = getPDTVersion();
+	window  -t ( $title + "   " + $PDTversion ) -mnb 0 -mxb 0 -menuBar true -w 450 -h 300 $PDwindow;
+
+	//キャラID取得
+	string $charaID;
+	string $sceneName[] = `file -q -l -shn`;
+	string $temp[];
+	tokenize $sceneName[0] "." $temp;
+	$charaID = $temp[0];
+	int $workLights = GP2_checkAccessRights();
+
+	string $PDT_form = `formLayout -numberOfDivisions 100 -w 450 -h 220 PDT_form`;
+
+	string $PDT_tablayouts = `tabLayout -innerMarginWidth 5 -innerMarginHeight 5 PDT_tabs`;
+		formLayout -edit
+			-attachForm $PDT_tablayouts "top"	0
+			-attachForm $PDT_tablayouts "left"   0
+			-attachForm $PDT_tablayouts "bottom" 0
+			-attachForm $PDT_tablayouts "right"  0
+		$PDT_form;
+
+//		string $Col_set = `columnLayout`;
+
+		string $COL_form = `formLayout -numberOfDivisions 100 -w 450 -h 220 COL_form`;
+			string $Col_setA = `columnLayout`;
+				string $t0 = `text -vis 0 -align "left" -label ("") SDtext`;
+				string $col_t1 = `text -align "left" -label ("■モデラー向け\r\n現在開いているファイル" + $sceneName[0] + "を元に、\r\n[ " + $temp[0] + " ]のパーツ2～7を生成、FBX形式で出力します。\r\n")`;
+			setParent ..;
+
+			string $col_tf1 = (`textFieldButtonGrp -cl3 left both right -cw3 80 280 100 -label "出力先フォルダ" -text $ColpartsDefPass -ad3 2 -ann "パーツ化した.fbxファイルの保存先を指定して下さい。" -buttonLabel "Edit" ColpartsPassTf`);
+
+			string $Col_setB = `columnLayout`;
+				string $col_c1 = `checkBox -v 1 -vis 0 -label "UV調整を行う" ColUVEditFlag`;
+				string $col_c2 = `checkBox -v 1 -vis 0 -label "「_expj」データを生成する" ColexpjFlag`;
+				string $col_c3 = `checkBox -v 0 -label "ホール機体のスキンウェイトを維持" ColKeepWtFlag`;
+				if($workLights){string $col_c4 = `checkBox -v 0 -label "PGMS_登場演出用骨追加版" ColArmoredPGFlag`;}
+				string $col_b1 = `button -w 420 -h 30 -l "パーツ分解・FBXエクスポート ※" ColpartsDivBtn`;
+				string $col_t2 = `text -label ("※「.xml」ファイルの自動記述を行うので、trunk内「original」フォルダ以下を指定して下さい。\n  また、移動する際は同ファイルの書き換えを行って下さい。")`;
+			setParent ..;
+		setParent ..;
+
+		formLayout -edit
+			-attachForm $Col_setA "top"	5
+			-attachForm $Col_setA "left"   5
+			-attachNone $Col_setA "bottom"
+			-attachForm $Col_setA "right"  5
+
+			-attachControl $col_tf1 "top"	0 $Col_setA
+			-attachForm $col_tf1 "left"   5
+			-attachNone $col_tf1 "bottom"
+			-attachForm $col_tf1 "right"  5
+
+			-attachControl $Col_setB "top"	0 $col_tf1
+			-attachForm $Col_setB "left"   5
+			-attachForm $Col_setB "bottom" 5
+			-attachForm $Col_setB "right"  5
+		$COL_form;
+
+//		string $Maya_set = `columnLayout`;
+		string $May_form = `formLayout -numberOfDivisions 100 -w 450 -h 220 MAY_form`;
+			string $may_t1 = `text -align "left" -label ("■モーション向け\r\n現在開いているファイル" + $sceneName[0] + "を元に、\r\n[ " + $temp[0] + " ]のパーツ2～7を生成、Maya形式で出力します。\r\n")`;
+
+			string $may_tf1 = (`textFieldButtonGrp -cl3 left both right -cw3 80 280 100 -label "出力先フォルダ" -text $MbpartsDefPass -ad3 2 -ann "パーツ化した.mbファイルの保存先を指定して下さい。" -buttonLabel "Edit" MbpartsPassTf`);
+
+			string $May_setB = `columnLayout`;
+				string $may_c1 = `checkBox -v 1 -vis 0 -label "UV調整を行う" MbUVEditFlag`;
+				string $may_c2 = `checkBox -v 1 -vis 0 -label "「_expj」データを生成する" MbexpjFlag`;
+				string $may_c3 = `checkBox -v 0 -label "ホール機体のスキンウェイトを維持" MbKeepWtFlag`;
+				string $may_b1 = `button -w 420 -h 30 -l "パーツ分解・「.mb」保存" MbpartsDivBtn`;
+				string $may_t2 = `text -label ("\n")`;
+			setParent ..;
+		setParent ..;
+
+		formLayout -edit
+			-attachForm $may_t1 "top"	5
+			-attachForm $may_t1 "left"   5
+			-attachNone $may_t1 "bottom"
+			-attachForm $may_t1 "right"  5
+
+			-attachControl $may_tf1 "top"	0 $may_t1
+			-attachForm $may_tf1 "left"   5
+			-attachNone $may_tf1 "bottom"
+			-attachForm $may_tf1 "right"  5
+
+			-attachControl $May_setB "top"	0 $may_tf1
+			-attachForm $May_setB "left"   5
+			-attachForm $May_setB "bottom" 5
+			-attachForm $May_setB "right"  5
+		$May_form;
+
+	tabLayout -edit -tabLabel $COL_form "fbx_Export" -tabLabel $May_form "mayaData_Export" $PDT_tablayouts;
+
+	textFieldButtonGrp -edit -bc ("editTfData(\"ColpartsPassTf\")") ColpartsPassTf;
+	textFieldButtonGrp -edit -bc ("editTfData(\"MbpartsPassTf\")") MbpartsPassTf;
+	button -edit -command "GPpartsDivedeExec_tgtCheck($PDT_csvPartsListFileName , `textFieldButtonGrp -q -text ColpartsPassTf` ,int(`checkBox -q -v ColUVEditFlag`) ,int(`checkBox -q -v ColexpjFlag`) ,int(`checkBox -q -v ColKeepWtFlag`) , 0 );" -ann "パーツ分解を行い、エクスポータで出力します。" ColpartsDivBtn;
+	button -edit -command "GPpartsDivedeExec_tgtCheck($PDT_csvPartsListFileName , `textFieldButtonGrp -q -text MbpartsPassTf` ,int(`checkBox -q -v MbUVEditFlag`) ,int(`checkBox -q -v MbexpjFlag`) ,int(`checkBox -q -v MbKeepWtFlag`) , 1 );" -ann "パーツ分解を行い、mbファイルで保存します。" MbpartsDivBtn;
+
+	menu -label "設定";
+	menuItem -label "FBX出力のデフォルトパスを再設定" ColsaveBtn ;
+	menuItem -label "maya出力のデフォルトパスを再設定" MbsaveBtn ;
+	menuItem -divider true;
+	menuItem -label "オプションのチェックボックスを編集する" optEnbBtn ;
+	menuItem -edit -command "PDT_setMelSaveData(\"ColpartsPassTf\")" -ann "出力リストをセーブします。" ColsaveBtn;
+	menuItem -edit -command "PDT_setMelSaveData(\"MbpartsPassTf\")" -ann "出力リストをセーブします。" MbsaveBtn;
+	menuItem -edit -command "checkBox -e -vis 1 ColUVEditFlag;checkBox -e -vis 1 ColexpjFlag;checkBox -e -vis 1 MbUVEditFlag;checkBox -e -vis 1 MbexpjFlag;window -e -h 250 \"PDtool\";formLayout -edit -h 255 PDT_form;" -ann "オプション設定のチェックボックスを表示します。" optEnbBtn;
+	menu -label "help";
+	menuItem -label "このツールに関して" helpBtn ;
+	menuItem -edit -command "partsDivideTool_helpWindow()" -ann "ヘルプウィンドウを表示します。" helpBtn;
+
+
+	if( $ColpartsDefPass == ""){
+		confirmDialog -title "parts Divide tool" -message ("FBX出力先パスのデフォルト設定が見つかりませんでした。\n新規設定を行います。")
+		-button "OK" -defaultButton "OK";
+		PDT_setMelSaveData("ColpartsPassTf");
+	}
+	if( $MbpartsDefPass == ""){
+		confirmDialog -title "parts Divide tool" -message ("maya出力先パスのデフォルト設定が見つかりませんでした。\n新規設定を行います。")
+		-button "OK" -defaultButton "OK";
+		PDT_setMelSaveData("MbpartsPassTf");
+	}
+
+
+	window -e -w 450 -h 300 $PDwindow;
+	showWindow $PDwindow;
+}
+
+//
+
+global proc partsDivideTool_helpWindow(){
+
+	string $title = "PartsDivideTool_Help";
+	string $PDwindow = "PDtool_help";
+
+	if ( `window -exists $PDwindow` )
+	{
+		deleteUI	$PDwindow;
+	}
+
+	window  -t $title -mnb 0 -mxb 0 -w 450 -h 220 $PDwindow;
+
+	//キャラID取得
+	string $PDTh_form = `formLayout -numberOfDivisions 100 -w 450 -h 220 PDTh_form`;
+		string $Col_set = `columnLayout`;
+			string	$zukai =	"「PartsDivideTool」は、GPプロジェクト仕様のホール機体モデルデータに対し、\r\n";
+			$zukai =	$zukai +"パーツキャラへの分割および、エクスポートを行うツールです。";
+			string $helpText00 = `text -label $zukai -align "left" helpText00`;
+
+
+			string $helpFrame01 = `frameLayout -label "■使用方法" -labelAlign "center" -borderStyle "etchedIn" -cl 1 -cll 1 -w 490 helpFrame01`;
+				$zukai =			"1,分割したいホール機体(ChrXXX0)のMayaファイルを開く\r\n";
+				$zukai =	$zukai +"2,ツールを起動し、出力したい形式に合わせ「fbx_Export」か「mayaData_Export」のタブを選択\r\n";
+				$zukai =	$zukai +"3,出力先フォルダを確認、必要なら設定を変更する\r\n";
+				$zukai =	$zukai +"4,「パーツ分割･FBXエクスポート(.mb保存)」ボタンを押すと、自動で処理が行われます。\r\n";
+				$zukai =	$zukai +"(処理後のシーンデータは、ジョイント・メッシュがリネームされていますのでご注意下さい。)\r\n";
+				string $helpText01 = `text -label $zukai helpText01`;
+			setParent ..;
+
+
+			string $helpFrame02 = `frameLayout -label "■出力先フォルダに関して(fbx_export)" -labelAlign "center" -borderStyle "etchedIn" -cl 1 -cll 1 -w 490 helpFrame02`;
+				$zukai =			"｢fbx_Export｣の場合、以下のフォルダ階層への出力を行います。\r\n";
+				$zukai =	$zukai +"　model　(例:出力先フォルダにて指定した場所とします)\r\n";
+				$zukai =	$zukai +"　├→chrXXX2\r\n";
+				$zukai =	$zukai +"　│　├→chrXXX2.mdl.fbx\r\n";
+				$zukai =	$zukai +"　│　└→chrXXX2.med.xml\r\n";
+				$zukai =	$zukai +"　├→chrXXX3\r\n";
+				$zukai =	$zukai +"　│　├→chrXXX3.mdl.fbx\r\n";
+				$zukai =	$zukai +"　│　└→chrXXX3.med.xml\r\n";
+				$zukai =	$zukai +"　：\r\n";
+				$zukai =	$zukai +"　基本的に、｢～\\GP\\trunk\\resource\\original\\GP\\model\\｣で問題ありません。\r\n";
+				$zukai =	$zukai +"※「出力時のファイルパスが「～.med.xml」に書き込まれるので、\r\n";
+				$zukai =	$zukai +"出力後のファイルを移動させると、正常に開けない状態になります。\r\n";
+				string $helpText02 = `text -label $zukai helpText02`;
+			setParent ..;
+
+
+			string $helpFrame03 = `frameLayout -label "■出力先フォルダに関して(maya_export)" -labelAlign "center" -borderStyle "etchedIn" -cl 1 -cll 1 -w 490 helpFrame03`;
+				$zukai =			"　character　(例:出力先フォルダにて指定した場所とします)\r\n";
+				$zukai =	$zukai +"　├→chrXXX2\r\n";
+				$zukai =	$zukai +"　│　└→scenes\r\n";
+				$zukai =	$zukai +"　│　　　├→chrXXX2.mb\r\n";
+				$zukai =	$zukai +"　│　　　└→chrXXX2_expj.mb\r\n";
+				$zukai =	$zukai +"　├→chrXXX3\r\n";
+				$zukai =	$zukai +"　│　└→scenes\r\n";
+				$zukai =	$zukai +"　│　　　├→chrXXX3.mb\r\n";
+				$zukai =	$zukai +"　│　　　└→chrXXX3_expj.mb\r\n";
+				$zukai =	$zukai +"　：\r\n";
+				$zukai =	$zukai +"　出力先フォルダ・ファイルの扱いに関しては、特に制限はありません。\r\n";
+				string $helpText03 = `text -label $zukai helpText03`;
+			setParent ..;
+
+
+			string $helpFrame04 = `frameLayout -label "■ザクの足パイプ等、非リジッドなメッシュに関して" -labelAlign "center" -borderStyle "etchedIn" -cl 1 -cll 1 -w 490 helpFrame04`;
+				$zukai =			"partsDivideToolでは、各パーツキャラのオブジェクトに対して\r\n";
+				$zukai =	$zukai +"「ホール機体からのウェイトコピー」→「対応する骨との1対1ウェイト化」を行います。\r\n";
+				$zukai =	$zukai +"ザクの足パイプ等、複数の骨とウェイトを持つオブジェクトに関しては、以下の対応が用意されています。\r\n";
+				$zukai =	$zukai +"(どちらの作業を行ったかによって、柔らかパーツ以外のウェイト状態が異なります。)\r\n";
+				$zukai =	$zukai +"\r\n";
+				$zukai =	$zukai +"1,partsDivideTool上にて、出力時に「□ホール機体のスキンウェイトを維持」にチェックを入れる\r\n";
+				$zukai =	$zukai +"　こちらのチェックを入れた場合、ホール機体→パーツのウェイトコピーを行い、\r\n";
+				$zukai =	$zukai +"　その後のウェイト調整(骨とメッシュで1対1にする処理)を省略します。\r\n";
+				$zukai =	$zukai +"　柔らかパーツ以外のオブジェクトにも、ホール機体と同じウェイト値が適用されます。\r\n";
+				$zukai =	$zukai +"\r\n";
+				$zukai =	$zukai +"2,対象のノード名を「YP○_」で始まる名称にする\r\n";
+				$zukai =	$zukai +"　最新版のPartsDivide・IDBindToolでは、頭・上半身・右腕・左腕・下半身・バックパックそれぞれに、\r\n";
+				$zukai =	$zukai +"　「ツールでのウェイト調整を行わないオブジェクト」用のフラグを用意しています。\r\n";
+				$zukai =	$zukai +"　全てYP○_という名称になっており、この名前をつけられたオブジェクトは\r\n";
+				$zukai =	$zukai +"　ウェイト調整処理を行わずに出力されます。\r\n";
+				$zukai =	$zukai +"　柔らかパーツ以外のオブジェクトに対しては、通常のウェイト調整が行われます。\r\n";
+				string $helpText04 = `text -label $zukai helpText04`;
+			setParent ..;
+		setParent ..;
+
+	frameLayout -edit -ec ("window -e -h (`window -q -h PDtool_help` + 90) PDtool_help") -cc ("window -e -h (`window -q -h PDtool_help` - 90) PDtool_help") helpFrame01;
+	frameLayout -edit -ec ("window -e -h (`window -q -h PDtool_help` + 180) PDtool_help") -cc ("window -e -h (`window -q -h PDtool_help` - 180) PDtool_help") helpFrame02;
+	frameLayout -edit -ec ("window -e -h (`window -q -h PDtool_help` + 170) PDtool_help") -cc ("window -e -h (`window -q -h PDtool_help` - 170) PDtool_help") helpFrame03;
+	frameLayout -edit -ec ("window -e -h (`window -q -h PDtool_help` + 240) PDtool_help") -cc ("window -e -h (`window -q -h PDtool_help` - 240) PDtool_help") helpFrame04;
+
+	window -e -w 500 -h 150 $PDwindow;
+	showWindow $PDwindow;
+}
+

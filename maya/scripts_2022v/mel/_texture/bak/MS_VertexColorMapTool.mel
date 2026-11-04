@@ -1,0 +1,265 @@
+/*
+MS_VertexColorMapTool
+
+バーテックスカラーのアトリビュートマップをインポート、エキスポートするmelです。
+入出力の設定は、PaintVertexColorToolsOptionsで行ってください。
+
+注意
+入出力は、iffファイルフォーマットのみ対応
+入出力に使っているフォルダは、カレントプロジェクト下のimagesフォルダで行う。（【カレントプロジェクトフォルダ/images】を作成しておくこと）
+*/
+
+global proc MS_VertexColorMapTool_core(string $option){
+	
+	string $check_a=`checkBox -q -v "deleteProcessUVSet"`;
+	
+	//ペイントツールに入る、こうしておかないと、アトリビュートマップのコマンドが効かない。
+	PaintVertexColorTool;
+	
+	string $obj_name[]=`ls -sl`;
+	
+	string $ext=".iff";//今のところiffのみ対応。
+	
+	for($fname in $obj_name){
+		
+		$full_path=(`workspace -q -rd`+"images/"+$fname+$ext);
+		
+		print ("ExportFile:"+$full_path+"\n");
+		
+		select $fname;
+		
+		
+		
+		//UVcheckもし、UVSET「MS_VertexColorMap」が無ければ作る。あれば作らない。
+		int $flag=0;
+		string $checkname[]=`polyUVSet -q -auv`;
+		for ($check in $checkname){
+			if ($check=="MS_VertexColorMap"){
+				$flag=1;
+				print"check!\n";
+			}
+		}
+		
+		if ($flag!=1){
+			polyAutoProjection -pb 0 -ibd 1 -cm 1 -l 2 -sc 2 -o 1 -p 12 -uvSetName "MS_VertexColorMap";
+		}
+		
+		
+		
+		polyUVSet -currentUVSet -uvSet "MS_VertexColorMap" $fname;
+		
+		if ($option=="e"){
+			artAttrPaintVertexCtx -e -exportfilesave $full_path "artAttrColorPerVertexContext";
+		}
+		if ($option=="i"){
+			artAttrPaintVertexCtx -e -importfileload $full_path "artAttrColorPerVertexContext";	
+		}
+		if ($check_a){
+			polyUVSet -delete -uvSet "MS_VertexColorMap" $fname;
+		}
+	}
+	
+	//後処理
+	select $obj_name;
+	
+	
+	//ペイントツールだとウザイからコマンド終了時セレクトツールに戻す
+	SelectTool;
+	
+}
+
+global proc MS_VertexColorMapTool_core2(string $option){
+	
+	
+	
+	string $check_a=`checkBox -q -v "deleteProcessUVSet"`;
+	
+	//ペイントツールに入る、こうしておかないと、アトリビュートマップのコマンドが効かない。
+	PaintVertexColorTool;
+	
+	string $obj_name[]=`ls -sl`;
+	
+	string $ext=".iff";//今のところiffのみ対応。
+	
+	for($fname in $obj_name){
+		
+		$full_path=`textFieldGrp -q -text "filePath"`;
+		
+		print ("ExportFile:"+$full_path+"\n");
+		
+		select $fname;
+		
+		
+		
+		//UVcheckもし、UVSET「MS_VertexColorMap」が無ければ作る。あれば作らない。
+		int $flag=0;
+		string $checkname[]=`polyUVSet -q -auv`;
+		for ($check in $checkname){
+			if ($check=="MS_VertexColorMap"){
+				$flag=1;
+				print"check!\n";
+			}
+		}
+		
+		if ($flag!=1){
+			polyAutoProjection -pb 0 -ibd 1 -cm 1 -l 2 -sc 2 -o 1 -p 12 -uvSetName "MS_VertexColorMap";
+		}
+		
+		
+		
+		polyUVSet -currentUVSet -uvSet "MS_VertexColorMap" $fname;
+		
+		if ($option=="e"){
+			artAttrPaintVertexCtx -e -exportfilesave $full_path "artAttrColorPerVertexContext";
+		}
+		if ($option=="i"){
+			artAttrPaintVertexCtx -e -importfileload $full_path "artAttrColorPerVertexContext";	
+		}
+		if ($check_a){
+			polyUVSet -delete -uvSet "MS_VertexColorMap" $fname;
+		}
+	}
+	
+	//後処理
+	select $obj_name;
+	
+	
+	//ペイントツールだとウザイからコマンド終了時セレクトツールに戻す
+	SelectTool;
+	
+}
+
+
+global proc MS_VertexColorMapTool_get_file(){
+	
+	$full_path=(`workspace -q -rd`+"images/*.iff");
+	string $file_path=`fileDialog -dm $full_path`;
+	
+	if($file_path==""){
+		$file_path=`textFieldGrp -q -text "filePath"`;
+	}
+	
+	
+	textFieldGrp -e -text $file_path "filePath";
+}
+
+
+global proc MS_VertexColorMapTool()
+{
+	
+	//Window Check
+	if(`window -exists MS_VertexColorMapTool`){
+		deleteUI MS_VertexColorMapTool;
+	}
+	
+	
+	//Create Window
+	
+	window -title "MS_VertexColorMapTool" MS_VertexColorMapTool;
+
+//	scrollLayout scrollLayout;
+	columnLayout ;
+	frameLayout 
+		-l "MS_VertexColorMapTool"
+		-borderVisible true 
+		-labelVisible true 
+		-labelAlign "center"
+		-cll 1
+		-w 300
+		-h 32;
+	
+	//Contents
+			text -bgc 0.7 0.6 0.5 -font "boldLabelFont" -label "ThisWindowIs MS_VertexColorMapTool";
+	setParent ..;
+
+
+
+
+	frameLayout 
+		-l Options
+		-borderVisible true 
+		-labelVisible true 
+		-labelAlign "center"
+		-cll 1
+		-w 300
+		-h 48;
+		
+		checkBox -recomputeSize 0 -v 1 -label "deleteProcessUVSet" -width 128 "deleteProcessUVSet" ;//Data//
+	setParent ..;
+	
+//		columnLayout -adjustableColumn true;
+	frameLayout 
+		-l Buttons
+		-borderVisible true 
+		-labelVisible true 
+		-labelAlign "center"
+		-cll 1
+		-w 300
+		-h 48;
+		
+		rowLayout -numberOfColumns 4 -cw4 50 70 32 32;
+	//---------------
+	//Execute Buttons
+	//---------------
+			button -w 40 -bgc 1.0 0.5 0.5 -l "export" -command "MS_VertexColorMapTool_core \"e\"" ;
+			button -w 40 -bgc 0.5 1.0 0.5 -l "import" -command "MS_VertexColorMapTool_core \"i\"" ;
+			button -w 32 -l "undo" -command "Undo" ;
+			button -w 32 -l "exit" -command "deleteUI MS_VertexColorMapTool" ;
+		setParent ..;
+	setParent ..;
+
+
+
+
+	frameLayout 
+		-l File
+		-borderVisible true 
+		-labelVisible true 
+		-labelAlign "center"
+		-cll 1
+		-w 300
+		-h 64;
+		columnLayout;
+			textFieldGrp -w 400 "filePath";
+			button -w 280 -bgc 0.5 0.5 1.0 -l "Brouse..." -command "MS_VertexColorMapTool_get_file" ;
+
+		setParent ..;
+		setParent ..;
+	frameLayout 
+		-l File
+		-borderVisible true 
+		-labelVisible true 
+		-labelAlign "center"
+		-cll 1
+		-w 300
+		-h 48;
+		
+		rowLayout -numberOfColumns 4 -cw4 50 70 32 32;
+	//---------------
+	//Execute Buttons
+	//---------------
+			
+			
+			button -w 40 -bgc 1.0 0.5 0.5 -l "export" -command "MS_VertexColorMapTool_core2 \"e\"" ;
+			button -w 40 -bgc 0.5 1.0 0.5 -l "import" -command "MS_VertexColorMapTool_core2 \"i\"" ;
+			button -w 32 -l "undo" -command "Undo" ;
+			button -w 32 -l "exit" -command "deleteUI MS_VertexColorMapTool" ;
+			setParent ..;
+		setParent ..;
+	
+
+	//Footer
+	showWindow MS_VertexColorMapTool;
+	
+}
+
+MS_VertexColorMapTool;
+
+
+
+
+
+
+
+
+

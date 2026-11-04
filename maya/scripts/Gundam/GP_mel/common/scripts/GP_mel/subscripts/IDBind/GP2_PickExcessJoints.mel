@@ -1,0 +1,223 @@
+//GPPickExcessJoint_GP2Custom
+
+//GPプロジェクトのモビルスーツシーンにおいて、削除可能なジョイントをピック選択します。
+
+//使用方法：
+//1)まず、GPのフォーマット通りのモビルスーツを作成します。ウェイト調整まで済ませておきます。ジョイントの削除は行わないで下さい。
+//2)MayaでOptimize Scene Sizeを実行します。（これで余分なインフルエンスが外れます）
+//3)このスクリプトを実行します。ダイアログが出ます。
+//4)「Pick」ボタンをクリックすると、削除可能なジョイントがピックされます。
+//5)問題が無ければ、そのままデリートします。
+
+//注意点：
+//もともと削除可能なジョイントのリストが、プロシージャreturnGPMSDeletableExtraJoints（すぐ下のプロシージャ）の中に埋め込んであります。
+//もし削除可能なジョイントが増減した場合は、そのリストを変更して下さい。
+//（あるいは、そのプロシージャ内から外部のリストを読み込む様に改造してもOKです。）
+
+
+//-------------------------------------------------------------------
+global proc string[] returnGPMSDeletableExtraJoints()
+{
+//元々削除可能なジョイントのリスト
+//（注・削除可能なジョイントが増減した場合はこのリストを変更して下さい）
+string $resultList[];
+string $extraJntList[] = {
+			"J_headExtra_080","J_headExtra_081","J_headExtra_082","J_headExtra_083","J_headExtra_084",
+			"J_bodyExtra_180","J_bodyExtra_181","J_bodyExtra_182","J_bodyExtra_183","J_bodyExtra_184",
+			"J_R_armExtra_280","J_R_armExtra_281","J_R_armExtra_282","J_R_armExtra_283","J_R_armExtra_284",
+			"J_L_armExtra_380","J_L_armExtra_381","J_L_armExtra_382","J_L_armExtra_383","J_L_armExtra_384",
+			"J_underExtra_480","J_underExtra_481","J_underExtra_482","J_underExtra_483","J_underExtra_484",
+			"J_underExtra_485","J_underExtra_486","J_underExtra_487","J_underExtra_488","J_underExtra_489",
+			"J_C_backpack_511","J_C_backpack_512","J_C_backpack_513","J_C_backpack_514","J_C_backpack_515","J_C_backpack_516",
+			"J_R_backpack_521","J_R_backpack_522","J_R_backpack_523","J_R_backpack_524","J_R_backpack_525","J_R_backpack_526",
+			"J_L_backpack_531","J_L_backpack_532","J_L_backpack_533","J_L_backpack_534","J_L_backpack_535","J_L_backpack_536"
+			};
+	string $id = `textField -q -text IBT_chrIDTF`;
+	int $i;
+	for($i = 0 ; $i<size($extraJntList) ; $i++){
+		$resultList[$i] = ($id + "_" + $extraJntList[$i]);
+	}
+	return $resultList;
+}
+//-------------------------------------------------------------------
+global proc string returnSkinClusterName(string $skin)
+{
+//引数$skinでスキンの名称を渡すと、スキンクラスタを返します
+
+//$skinのシェイプを取得
+string $skinShape[] = `listRelatives -pa -s $skin`;
+//シーン中の全てのスキンクラスタを取得
+string $skinClusterList[] = `ls -type "skinCluster"`;
+//照合
+string $result;
+string $item;
+	for($item in $skinClusterList)
+	{
+	string $geo[] = `skinCluster -q -g $item`;
+	string $shape;
+		for($shape in $skinShape)
+		{
+			if($geo[0] == $shape)
+			{
+			$result = $item;
+			break;
+			}
+		}
+	}
+return $result;
+}
+//-------------------------------------------------------------------
+
+global proc string[] returnUsedJointsUnderTree(string$treeTop)
+{
+//$treeTopの下の全オブジェクトのスキンクラスタにアサインされている全ジョイントの
+//リストを返します。
+//尚、ジョイントリストは重複している可能性があります。
+
+string $result[];
+clear $result;
+int $count = 0;
+
+string $skinList[] = `listRelatives -c -ad -type "transform" -pa $treeTop`;
+string $item;
+	for($item in $skinList)
+	{
+	//スキンクラスタを取得
+	string $skinCluster = `returnSkinClusterName $item`;
+	//使用しているジョイントを取得
+	string $jntList[] = `skinCluster -q -wi $skinCluster`;
+	int $jntListSize = `size $jntList`;
+	int $i;
+		for($i=0;$i<$jntListSize;$i++)
+		{
+		$result[$count] = $jntList[$i];
+		$count++;
+		}
+	}
+return $result;
+}
+//-------------------------------------------------------------------
+global proc string[] returnUnusedJointsUnderTree(string$treeTop,string$jntTop)
+{
+//$jntTopの下の全ジョイント（$jntTopは含まない）の内、
+//$treeTopの下の全オブジェクトのスキンクラスタにアサインされていないジョイントの
+//リストを返します。
+//尚、ジョイントリストは重複している可能性があります。
+
+//アサインされているジョイントのリストを取得
+string $assignedJntList[] = `returnUsedJointsUnderTree $treeTop`;
+//$jntTopの下の全ジョイントを取得
+string $jntList[] = `listRelatives -c -ad -type "joint" -pa $jntTop`;
+
+//比較処理
+string $result[];
+clear $result;
+int $count = 0;
+
+int $i;
+int $jntListSize = `size $jntList`;
+	for($i=0;$i<$jntListSize;$i++)
+	{
+		if(`checkObjUnderList $assignedJntList $jntList[$i]` == 0)
+		{
+		$result[$count] = $jntList[$i];
+		$count++;
+		}
+	}
+return $result;
+}
+//---------------------------------------------------------------------------
+
+global proc string getObjName(string $originalName)
+{
+//階層付きで記述されている$originalNameから階層を外した名前を返します。
+
+string $wordList[];
+$wordNum = `tokenize $originalName "|" $wordList`;
+
+return $wordList[$wordNum-1];
+}
+//---------------------------------------------------------------------------
+global proc int checkObjUnderList(string$list[],string$obj)
+{
+//$listの下に$itemが無い場合は0を、あれば1を返します。
+int $result = 0;
+	for($item in $list)
+	{
+	string $itemName = `getObjName $item`;
+	string $objName = `getObjName $obj`;
+		if($itemName == $objName)
+		{
+		$result = 1;
+		break;
+		}
+	}
+return $result;
+}
+
+//---------------------------------------------------------------------------
+global proc GP2_PickExcessJointsExec()
+{
+//GPプロジェクトで、現在削除可能なジョイントを選択します。
+
+select -cl;
+
+//もともと削除可能なジョイントのリストを取得する
+string $extraJntList[] = `returnGPMSDeletableExtraJoints`;
+
+//GPモビルスーツ用構成のシーンで、スキンクラスタがアサインされていないジョイントのリストを取得する
+string $unUsedJntList[] = `returnUnusedJointsUnderTree "parts" "root"`;
+
+//上記二つのリストを照合し、リスト間で重複しているジョイント（つまりスキンクラスタがアサインされておらず、
+//かつ、元々削除可能なジョイント）のリストを作成する
+string $result[];
+clear $result;
+int $count = 0;
+
+int $i;
+int $unUsedJntListSize = `size $unUsedJntList`;
+	for($i=0;$i<$unUsedJntListSize;$i++)
+	{
+		if(`checkObjUnderList $extraJntList $unUsedJntList[$i]` == 1)
+		{
+		$result[$count] = $unUsedJntList[$i];
+		$count++;
+		}
+	}
+//上記リストを選択する
+select -cl;
+select $result;
+
+}
+//---------------------------------------------------------------------------
+//-------------------------------------------------------------------
+
+
+//ダイアログウィンドウ作成
+global proc GPPickExcessJoints()
+{
+//ウィンドウタイトルとウィンドウオブジェクト名
+string $windowTitle = "GPPickExcessJoints";
+string $windowObjName = $windowTitle + "WindowObj";
+	if(`window -ex $windowObjName` == 1)
+	{
+	deleteUI $windowObjName;
+	}
+
+window -t $windowTitle $windowObjName;
+columnLayout layout00;
+//--------------------------
+text -l "GPPickExcessJoints";
+separator -w 110;
+//--------------------------
+
+separator -w 110;
+button -w 105 -c "GPPickExcessJointsExec" -l "Pick";
+//--------------------------
+//ウィンドウサイズを指定
+window -e -w 110 -h 100 $windowObjName;
+showWindow $windowObjName;
+}
+//-------------------------------------------------------------------------
+//終了
+//GPPickExcessJoints;

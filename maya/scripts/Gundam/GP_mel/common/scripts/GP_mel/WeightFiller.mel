@@ -1,0 +1,182 @@
+//WeightFiller
+//ver1.1
+//2012/01/05更新
+
+//選択しているスキンオブジェクトのウェイト値を、選択しているジョイント100%にします。
+
+//使用方法：
+
+//1)このスクリプトを実行します。ダイアログが出ます。
+//2)スキンオブジェクトとジョイントを選択します。（スキンは複数可）
+//3)Fillボタンをクリックすると処理が実行されます。
+
+
+//--------------------------------------------------------------
+global proc WeightFiller(string$skin,string$jnt)
+{
+//$skinを$jntのウェイト100%にします。
+
+//-----
+//選択解除
+select -cl;
+
+//全バーテックス選択
+select `convertObjToFullVertices $skin`;
+string $skinClusterName = `returnSkinClusterName $skin`;
+
+//ウェイト設定
+skinPercent -tv $jnt 1.0 $skinClusterName;
+
+//選択解除
+select -cl;
+}
+//--------------------------------------------------------------
+global proc string convertObjToFullVertices(string$obj)
+{
+//$objの全バーテックスを返します。
+int $vtxNumList[] = `polyEvaluate -v $obj`;
+int $vtxNum = $vtxNumList[0] -1;
+$vtxNumString = (string)$vtxNum;
+string $result = $obj + ".vtx[0:" + $vtxNumString + "]";
+
+return $result;
+}
+//-------------------------------------------------------------------
+global proc string returnSkinClusterName(string $skin)
+{
+//引数$skinでスキンの名称を渡すと、スキンクラスタを返します
+
+//$skinのシェイプを取得
+string $skinShape[] = `listRelatives -pa -s $skin`;
+//シーン中の全てのスキンクラスタを取得
+string $skinClusterList[] = `ls -type "skinCluster"`;
+//照合
+string $result;
+string $item;
+	for($item in $skinClusterList)
+	{
+	string $geo[] = `skinCluster -q -g $item`;
+	string $shape;
+		for($shape in $skinShape)
+		{
+			if($geo[0] == $shape)
+			{
+			$result = $item;
+			break;
+			}
+		}
+	}
+return $result;
+}
+//-------------------------------------------------------------------
+global proc weightFiller(string$skin,string$jnt)
+{
+//$skinを$jntのウェイト100%にします。
+
+//-----
+//選択解除
+select -cl;
+
+//全バーテックス選択
+select `convertObjToFullVertices $skin`;
+string $skinClusterName = `returnSkinClusterName $skin`;
+
+//ウェイト設定
+skinPercent -tv $jnt 1.0 $skinClusterName;
+
+//選択解除
+select -cl;
+}
+//-------------------------------------------------------------------
+//実行用プロシージャ
+global proc weightFillerExec()
+{
+//選択リストを取得
+string $sel[] = `ls -sl -l`;
+//ジョイント名を取得
+string $item;
+string $jntName = "";
+	for($item in $sel)
+	{
+	string $type[] = `ls -st $item`;
+		if($type[1] == "joint")
+		{
+		$jntName = $item;
+		break;
+		}
+	}
+
+//選択リストにジョイントが含まれる時実行
+	if($jntName != "")
+	{
+	string $obj;
+		for($obj in $sel)
+		{
+		string $type[] = `ls -st $obj`;
+			if($type[1] != "joint")
+			{
+			weightFiller $obj $jntName;
+			}
+		}
+	}
+}
+//-------------------------------------------------------------------------
+//ヘルプ
+global proc weightFillerHelp()
+{
+string $windowTitle = "WeightFillerHelp";
+string $windowObjName = $windowTitle + "WindowObj";
+
+	if(`window -ex  $windowObjName` == 1)
+	{
+	deleteUI  $windowObjName;
+	}
+
+window -t $windowTitle $windowObjName;
+columnLayout;
+//--------------------------
+text -l "Overview:";
+text -l "This script fills skins' weights";
+text -l "with a joint(100%).";
+separator -w 110;
+text -l "How To Use:";
+text -l "1)Select a joint and skins.";
+text -l "2)Click Fill button.";
+
+//--------------------------
+//ウィンドウサイズを指定
+window -e -w 150 -h 150 $windowObjName;
+showWindow $windowObjName;
+}
+//-------------------------------------------------------------------------
+//ダイアログウィンドウ作成
+{
+//ウィンドウタイトルとウィンドウオブジェクト名
+string $windowTitle = "WeightFiller";
+string $windowObjName = $windowTitle + "WindowObj";
+
+	if(`window -ex  $windowObjName` == 1)
+	{
+	deleteUI  $windowObjName;
+	}
+
+window -t $windowTitle $windowObjName;
+columnLayout;
+//--------------------------
+text -l "WeightFiller";
+button -w 50 -c "weightFillerHelp"  -l "Help";
+separator -w 110;
+//--------------------------
+button -w 105 -c "weightFillerExec"  -l "Fill";
+
+//--------------------------
+//ウィンドウサイズを指定
+window -e -w 110 -h 100 $windowObjName;
+showWindow $windowObjName;
+}
+//-------------------------------------------------------------------------
+//終了
+
+
+
+

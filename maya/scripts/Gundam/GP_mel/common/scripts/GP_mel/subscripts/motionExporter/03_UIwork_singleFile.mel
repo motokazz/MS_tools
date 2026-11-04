@@ -1,0 +1,333 @@
+//GP2モーションエクスポータ
+//3,単体ファイル出力用UI挙動
+
+//ネームスペース(キャラリスト)複数取得
+global proc string[] getMultiNameSpace(string $rootName){
+	string $temp[] = `ls ("*:" + $rootName) ("*:*:" + $rootName) ("*:*:*:" + $rootName)`;
+	string $NameSpace[];
+	int $i;
+	for($i = 0 ; $i < size($temp) ; $i++ ){
+		$NameSpace[$i] = match( "^.*:" , $temp[$i]);
+	}
+	return $NameSpace;
+}
+
+//キャラリストを取得し配列
+global proc setExpChrList(){
+	textScrollList -e -removeAll eFT_expChrTsl;
+	string $nameSpaceList[] = getMultiNameSpace(`textField -q -tx eFT_jointRootNameFld`);
+	int $i;
+	for($i=0 ; $i < size($nameSpaceList) ; $i++){
+		textScrollList -e -a $nameSpaceList[$i] eFT_expChrTsl;
+	}
+	catchQuiet(`textScrollList -e -sii 1 eFT_expChrTsl`);
+}
+
+//単体⇔複数切り替え時処理、UIを解禁
+global proc switch_eFTUI(){
+	int $i , $actv;
+
+//	int $actv = `checkBox -q -v eFT_divModeChk`;
+	radioCollection -q -sl eFT_divModeRadCol;
+	if(`radioCollection -q -sl eFT_divModeRadCol` == "eFT_divModeRad2"){
+		$actv = 1;
+	}else{
+		$actv = 0;
+	}
+
+
+	for($i=0 ;$i<16 ; $i++){
+		checkBox -e -en $actv ("eFT_divExpFlgChk" + $i);
+		textField -e -en $actv ("eFT_divExpNameTF" + $i);
+		floatField -e -en $actv ("eFT_divExpStTF" + $i);
+		floatField -e -en $actv ("eFT_divExpEnTF" + $i);
+		checkBox -e -en $actv ("eFT_divExpLpChk" + $i);
+		button -e -en $actv ("eFT_divExpMopIDBtn" + $i);
+	}
+	intField -e -en $actv eFT_divExpTimeAssistTF;
+	textField -e -en $actv eFT_divExpNameAssistTF;
+	button -e -en $actv eFT_divExpNameClearBtn;
+	if($actv){
+		checkBox -e -en 0 eFT_loopModeChk;
+	}else{
+		checkBox -e -en 1 eFT_loopModeChk;
+	}
+	GP2_motExp_globalSave("multiExportSwitch");
+}
+
+//入力補助、複数ラインに文字列追加
+global proc divExpNameAssist(){
+	int $i;
+	string $baseName = `textField -q -tx eFT_divExpNameAssistTF`;
+	int $max = `intField -q -v eFT_divExpTimeAssistTF`;
+	for($i=0 ; $i<$max ; $i++){
+		textField -e -tx ($baseName + ($i+1)) ("eFT_divExpNameTF" + $i);
+	}
+	textField -e -tx "" eFT_divExpNameAssistTF;
+}
+
+//入力リセット
+global proc divExpNameClear(){
+	int $i;
+	for($i=0 ; $i<16 ; $i++){
+		textField -e -tx "" ("eFT_divExpNameTF" + $i);
+		eFT_checkMotionName( $i );
+	}
+}
+
+//アトリビュート追加コマンド
+global proc eFT_addAttr(string $saveState , string $stateType , string $tgtNode){
+	string $command = ("addAttr -ln \"" + $saveState + "\" " + $stateType + " " + $tgtNode + ";");
+	eval($command);
+	setAttr -e -keyable true ($tgtNode + "." + $saveState);
+}
+
+//出力設定ノード生成
+global proc eFT_createSaveNode(string $saveNode){
+	spaceLocator -n $saveNode;
+	addAttr -ln "settingData_ver" -dt "string" ("|" + $saveNode);
+	setAttr -e -keyable true  ("|" + $saveNode + ".settingData_ver");
+	setAttr -type "string" ("|" + $saveNode + ".settingData_ver") 0.2;
+
+	addAttr -ln "blendBaseFlag" -at "long" ("|" + $saveNode);
+	setAttr -e -keyable true  ("|" + $saveNode + ".blendBaseFlag");
+	setAttr ("|" + $saveNode + ".blendBaseFlag") 0;
+
+	string $saveStates[] = {"ExportFlag","ExportName","startFrame","endFrame","loopFrag","mopID"};
+	string $stateTypes[] = {"-at \"long\"","-dt \"string\"","-at \"double\"","-at \"double\"","-at \"long\"","-dt \"string\""};
+	string $command;
+
+	for($j=0 ; $j < 16 ; $j++){
+		for($i=0 ; $i < size($saveStates) ; $i++){
+			eFT_addAttr(($saveStates[$i]+"_"+$j) , $stateTypes[$i] , ("|" + $saveNode));
+		}
+	}
+	setAttr ($saveNode + ".visibility") 0;
+}
+
+//セーブデータ更新手続き
+global proc eFT_updateSaveNode(string $saveNode){
+	string $saveStates[] = {"ExportFlag","ExportName","startFrame","endFrame","loopFrag","mopID"};
+	string $stateTypes[] = {"-at \"long\"","-dt \"string\"","-at \"double\"","-at \"double\"","-at \"long\"","-dt \"string\""};
+	string $command;
+
+	if(`attributeQuery -node $saveNode -exists ("settingData_ver")` == 0){
+		for($j=0 ; $j < 16 ; $j++){
+			for($i=0 ; $i < size($saveStates) ; $i++){
+				if(`attributeQuery -node $saveNode -exists ($saveStates[$i] + "_" + $j)` == 0){
+					eFT_addAttr(($saveStates[$i]+"_"+$j) , $stateTypes[$i] , ("|" + $saveNode));
+				}
+			}
+		}
+	}else{
+		float $saveDataVer = `getAttr ("|" + $saveNode + ".settingData_ver")`;
+		if($saveDataVer < 0.2){
+			addAttr -ln "blendBaseFlag" -at "long" ("|" + $saveNode);
+			setAttr -e -keyable true  ("|" + $saveNode + ".blendBaseFlag");
+			setAttr -type "string" ("|" + $saveNode + ".settingData_ver") 0.2;
+		}
+	}
+	
+	setAttr ($saveNode + ".visibility") 0;
+}
+
+//保存処理(未使用?))
+global proc eFT_saveSettings(){
+	string $saveNode = "exportFBXWorkTool_saveData";
+	$response = `confirmDialog -title "FBX_export" 
+		-message ("シーン中のオブジェクト「" + $saveNode + "」へ、\r\n出力設定を保存します。")
+		-button "Yes" 
+		-button "No"
+		-defaultButton "Yes"
+		-cancelButton "No"
+		-dismissString "No"`;
+	// check response
+
+	if( $response == "Yes" ) {
+		print("User says yes\n");
+		eFT_autoSave_Settings();
+	} else if( $response == "No" ) {
+		print("User says no\n");
+	}
+}
+
+//自動保存
+global proc eFT_autoSave_Settings(){
+	string $saveNode = "exportFBXWorkTool_saveData";
+	if((`objExists $saveNode`) == 0){
+		//セーブノードの新規作成
+		eFT_createSaveNode($saveNode);
+	}else{
+		//セーブノードの更新
+		eFT_updateSaveNode($saveNode);
+	}
+	int $i;
+	for( $i=0 ; $i<16 ; $i++){
+		setAttr ($saveNode + ".ExportFlag_" + $i) `checkBox -q -v ("eFT_divExpFlgChk" + $i)`;
+		setAttr -type "string" ($saveNode + ".ExportName_" + $i) `textField -q -tx ("eFT_divExpNameTF" + $i)`;
+		setAttr ($saveNode + ".startFrame_" + $i) `floatField -q -v ("eFT_divExpStTF" + $i)`;
+		setAttr ($saveNode + ".endFrame_" + $i) `floatField -q -v ("eFT_divExpEnTF" + $i)`;
+		setAttr ($saveNode + ".loopFrag_" + $i) `checkBox -q -v ("eFT_divExpLpChk" + $i)`;
+		setAttr -type "string" ($saveNode + ".mopID_" + $i) `button -q -label ("eFT_divExpMopIDBtn" + $i)`;
+	}
+	setAttr ("|" + $saveNode + ".blendBaseFlag") `checkBox -q -v eFT_baseModeChk`;
+}
+
+//設定ロード
+global proc eFT_loadSettings(){
+	string $saveNode = "exportFBXWorkTool_saveData";
+	if((`objExists $saveNode`) == 0){
+//		confirmDialog -title "FBX_export" -message ("設定ファイル「" + $saveNode + "」が見つかりません。") -button "Yes" ;
+	}else{
+/*
+		checkBox -e -v 0 ("eFT_baseModeChk") ;
+		int $i;
+		for( $i=0 ; $i<16 ; $i++){
+			checkBox -e -v `getAttr ($saveNode + ".ExportFlag_" + $i)` ("eFT_divExpFlgChk" + $i) ;
+			textField -e -tx `getAttr ($saveNode + ".ExportName_" + $i)` ("eFT_divExpNameTF" + $i);
+			floatField -e -v `getAttr ($saveNode + ".startFrame_" + $i)` ("eFT_divExpStTF" + $i) ;
+			floatField -e -v `getAttr ($saveNode + ".endFrame_" + $i)` ("eFT_divExpEnTF" + $i) ;
+			checkBox -e -v `getAttr ($saveNode + ".loopFrag_" + $i)` ("eFT_divExpLpChk" + $i) ;
+
+			//拡張対応、アトリビュート=セーブデータが存在するか確認
+			if(`attributeQuery -node $saveNode -exists ("settingData_ver")`){
+				button -e -label `getAttr ($saveNode + ".mopID_" + $i)` ("eFT_divExpMopIDBtn" + $i);
+			}
+		}
+		if(`attributeQuery -node $saveNode -exists ("settingData_ver")`){
+			float $saveDataVer = `getAttr ("|" + $saveNode + ".settingData_ver")`;
+			if($saveDataVer > 0.1){
+				checkBox -e -v `getAttr ("|" + $saveNode + ".blendBaseFlag")` ("eFT_baseModeChk") ;
+			}
+		}
+*/
+	}
+}
+
+//UI機能、出力チェック全on/off
+global proc eFT_resetAllExpFlag(){
+	int $c = `checkBox -q -v eFT_divExpFlgChk_all`;
+	int $i;
+	for($i=0 ; $i<16 ; $i++){
+		checkBox -e -v $c ("eFT_divExpFlgChk" + $i);
+	};
+}
+
+//モーション名全スキャン
+global proc eFT_checkAllMotionName(){
+	int $i=0;
+	string $tgt;
+	for($i=0 ; $i<16 ; $i++){
+//		$tgt = `textField -q -text ("eFT_divExpNameTF" + $i)`;
+//		if($tgt != ""){
+			eFT_checkMotionName($i);
+//		}
+	}
+}
+
+//モーション名チェック、結果に応じたUI操作
+global proc eFT_checkMotionName( int $id ){
+
+	//リセット
+	button -e -label "" ("eFT_divExpMopIDBtn" + $id);
+	textField -e -bgc 0.16 0.16 0.16 ("eFT_divExpNameTF" + $id);
+
+	string $name = `textField -q -text ("eFT_divExpNameTF" + $id)`;
+
+	if($name != ""){
+		string $mopIDs[] = GP2_motionInfoLoad(0);
+		string $motNames[] = GP2_motionInfoLoad(6);
+		int $tgtIndex[] = getIndexFromMotionName( $name , $motNames);
+		$tgtIndex = intArrayRemove({-1}, $tgtIndex);
+
+		if(size($tgtIndex) == 0){			//モーション名に適合するmopなし
+			textField -e -bgc 0.3 0.16 0.16 ("eFT_divExpNameTF" + $id);
+
+		}else if(size($tgtIndex) == 1){			//一意のモーション
+			int $p = $tgtIndex[0];
+			button -e -label ("mop" + $mopIDs[$p]) ("eFT_divExpMopIDBtn" + $id);
+			if(`checkBox -q -v eFT_baseModeChk`){textField -e -bgc 0.5 0.9 0.6 ("eFT_divExpNameTF" + $id);}	//加算ベース
+
+		}else{			//複数件ヒット
+			string $headers[] = GP2_motionInfoLoadArray({4,1,2,3,5});
+			textScrollList -e -ra eFT_divExpSelMopTSL;
+			for($item in $tgtIndex){
+				textScrollList -e -a ("mop" + $mopIDs[$item] + "\t" + $headers[$item]) eFT_divExpSelMopTSL;
+			}
+			textScrollList -e -sc ("eFT_selectedMopAction(" + $id + ")") eFT_divExpSelMopTSL;
+			if(`checkBox -q -v eFT_baseModeChk`){textField -e -bgc 0.5 0.9 0.6 ("eFT_divExpNameTF" + $id);}	//加算ベース
+
+		}
+	}
+}
+
+//UI挙動、eFT_divExpSelMopTSL用。選択した項目を、指定したIDのボタンにラベルとして貼り付け
+global proc eFT_selectedMopAction(int $i){
+	string $temp[];
+	string $sel[] = `textScrollList -q -si eFT_divExpSelMopTSL`;
+	tokenize $sel[0] "\t" $temp;
+	button -e -label $temp[0] ("eFT_divExpMopIDBtn" + $i);
+	eFT_autoSave_Settings();
+	eFT_resetMopListAction();
+}
+
+//UI挙動、eFT_divExpSelMopTSL用。選択完了後のリセット
+global proc eFT_resetMopListAction(){
+	textScrollList -e -ra eFT_divExpSelMopTSL;
+	textScrollList -e -a "複数mopIDに適応するモーション名が見つかった場合、ここにリストが表示されます。" eFT_divExpSelMopTSL;
+	textScrollList -e -a "使用したいmopを選択し、mopIDボタンを押して下さい。" eFT_divExpSelMopTSL;
+	textScrollList -e -a "強制入力コマンド: [ button -e -label \"(入力したいmopID)\" eFT_divExpMopIDBtn0 ;eFT_autoSave_Settings();] 0を変更すれば2段目以降を指定" eFT_divExpSelMopTSL;
+	textScrollList -e -a "モーションリストの更新が間に合っていなかったり、csvに書き込まないモーション用(ブレンドのベース用など)。" eFT_divExpSelMopTSL;
+	textScrollList -e -sc "" eFT_divExpSelMopTSL;
+}
+
+//tgtに適合する全てのmotNamesのインデックス配列を出力
+global proc int[] getIndexFromMotionName(string $tgt , string $motNames[]){
+	int $index[];
+	int $i,$stock;
+	for($i=0 ; $index[$i] != 1 ; $i++){
+		$index[$i] = stringArrayFind( $tgt, ($stock + 1) , $motNames );
+		if($index[$i] != -1) {
+			$stock = $index[$i];
+		}else{
+			break;
+		}
+	}
+	return $index;
+}
+
+//大典タブから任意列の情報を取得
+global proc string[] GP2_motionInfoLoad(int $loadColumn){
+	string $genInfo[] = `textScrollList -q -ai eFT_motionInfoTSL`;
+	int $i=0;
+	string $loadedData[];
+	for($line in $genInfo){
+		string $buffer[];
+		tokenize $line "\t" $buffer;
+		string $result = $buffer[$loadColumn];
+		if( $result != "" ){
+			$loadedData[$i] = $result;
+		}else{
+			if($i != 0){$loadedData[$i] = $loadedData[$i-1];}else{$loadedData[$i] = "";}
+		}
+		$i++;
+	}
+	return $loadedData;
+}
+
+//大典タブから任意列(複数可)の情報を取得、空欄だった際の処理が甘いので注意
+global proc string[] GP2_motionInfoLoadArray(int $loadColumn[]){
+	string $genInfo[] = `textScrollList -q -ai eFT_motionInfoTSL`;
+	int $i=0;
+	string $loadedData[];
+	for($line in $genInfo){
+		string $buffer[];
+		tokenize $line "\t" $buffer;
+		for($j=0 ; $j<size($loadColumn) ; $j++){
+			int $p = $loadColumn[$j];
+			$loadedData[$i] = ($loadedData[$i] + $buffer[$p] + "\t");
+		}
+		$i++;
+	}
+	return $loadedData;
+}

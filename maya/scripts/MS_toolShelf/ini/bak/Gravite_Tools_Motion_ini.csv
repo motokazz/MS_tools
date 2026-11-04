@@ -1,0 +1,22 @@
+cathegory,exec,label,annotation,image,command
+motion,py,Selecter,セレクター,MYAM_quickSelector2.png,execfile(r'D:/Projects/Gravite2/tools/maya/maya2014/scripts/python/MYAM_quickSelector2.py')
+motion,melc,utility,モーションツール集,s002170_GraviteUtility.bmp,s002170_GraviteUtility
+motion,melc,KeyUtil,キーフレームツール集,s002170_keyUtility.bmp,s002170_keyUtility
+motion,melc,softBodyIK,揺れものツール,s002170_softBodyIK_en.bmp,s002170_softBodyIK_en
+motion,melc,RigTool,Gravite用RigツールV2,s002170_GraviteRigToolV2.bmp,s002170_GraviteRigToolV2
+motion,py,fCyK,アニメーションカーブをサイクルとして指定フレームでフリーズ,s7553_QtFreezeCycleKeyframe.bmp,from s7553_animTools.s7553_QtFreezeCycleKeyframe import s7553_QtFreezeCycleKeyframeWindow\nimport s7553_animTools.s7553_QtFreezeCycleKeyframe as s7553_freezeCycleKeyframe\ns7553_freezeCycleKeyframe.do()
+motion,py,geEx,グラフエディターを拡張,s7553_expansionGE.bmp,import pymel.core as pm\nfrom s7553_animTools.s7553_expansionGE import s7553_geExpansionWidget\nimport s7553_animTools.s7553_expansionGE\nreload(s7553_animTools.s7553_expansionGE)\nscjNum = s7553_animTools.s7553_expansionGE.do()\nkillNum = s7553_animTools.s7553_expansionGE.killSJ()
+utility,melc,evdCombine,evdファイルをconmineします,s002170_getUsualMotionList.bmp,s002170_getUsualMotionList
+motion,melc,facialTool,facial,s002170_facialTool_GD2.bmp,s002170_facialTool_GD2
+utility,melc,FBX,FBXLoader,s002170_loadFBX.bmp,s002170_loadFBX
+rig,melc,QuadRig,4つ足リグ作成,s002170_quadrupedRig.bmp,s002170_quadrupedRig
+rig,melc,birdRig,鳥リグ作成,s002170_birdRig.bmp,s002170_birdRig
+motion,melc,timeWarp,タイムワープ,timeWarper.bmp,timeWarper
+rig,melc,Hair,ヘアー,s002170_jointHair.bmp,s002170_jointHair
+rig,melc,oldRig,旧rigTool,s002170_GraviteRigTool.bmp,s002170_GraviteRigTool
+motion,py,drv,指定フレーム間のアニメーションをドリブンキーへベイク,,from s7553_animTools.s7553_drvnKeyBaker import QtDrivenKeyBakerWindow\nimport s7553_animTools.s7553_drvnKeyBaker as s7553_drvnKeyBaker\ns7553_drvnKeyBaker.do()
+motion,py,AST,AnimationSupportTools,,from s7553_animTools.s7553_animSupportTool import QtAnimSupportToolsWindow\nimport s7553_animTools.s7553_animSupportTool\ns7553_animTools.s7553_animSupportTool.do()
+rig,melc,makeHandle,ハンドル作成,rig101wireControllers.bmp,rig101wireControllers
+motion,melc,Pose2Shelf,ポーズ登録,,pose2shelf
+motion,py,属コピ,選択ノードのアトリビュート名と値を一時保存して任意に適用,,from s7553_animTools.s7553_attrMemo import QtAttributeMemoWindow\nimport s7553_animTools.s7553_attrMemo as s7553_attrMemo\ns7553_attrMemo.do()
+utility,melc,check_bat,mbデータのチェックバッチ,,s002170_batchTool

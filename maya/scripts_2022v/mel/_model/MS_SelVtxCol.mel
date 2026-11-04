@@ -1,0 +1,188 @@
+/*
+-------------------
+MS_SelVtxCol.mel
+-------------------
+
+◆概要
+バーテックスカラーでバーテックスをふるいに掛ける。
+
+
+
+◆使用方法
+スクリプトを実行すると、ダイアログが開く。
+ふるいに掛けるバーテックスカラーの値を設定。
+バーテックスカラーのついたオブジェクトを選んで実行。
+
+
+◆詳細
+
+
+
+※注意
+
+
+
+*/
+
+
+global proc float[] getNormal( string $face ){
+
+	string $info[] = ` polyInfo -fn $face `;
+
+	string $elm[];
+	tokenize $info[0] " " $elm ;
+
+	float $Result[] = { (float)$elm[2] , $elm[3] , $elm[4] };
+	normalize $Result;
+	return $Result ;
+}
+
+
+global proc MS_PolyAngleCheck_A(){
+
+	PolySelectConvert 3;
+
+	string $name_vtx[]=`filterExpand -ex true -sm 31`;
+	string $res_vtx[];
+	
+	float $val_throushould=`floatSliderGrp -q -v throushould`;
+
+	//float $val_angle_x=`floatSliderGrp -q -v angle_x`;
+	//float $val_angle_y=`floatSliderGrp -q -v angle_y`;
+	//float $val_angle_z=`floatSliderGrp -q -v angle_z`;
+
+	//$val_radios=`radioButtonGrp -q -sl radioflag`;
+	
+	print "!";
+	
+	$i=0;
+	$j=0;
+	
+	
+	for($i=0;$i<size($name_vtx);$i++){
+
+		$col_vtx=`polyColorPerVertex -q -r $name_vtx[$i]`;
+		$col_val=$col_vtx[0];
+		
+		if ($col_val<$val_throushould){
+			$res_vtx[$j]=$name_vtx[$i];
+			$j++;
+		}
+		
+		print ($col_val+"\n");
+		
+	}
+print "!";
+select $res_vtx;
+
+clear $res_vtx;
+clear $name_vtx;
+
+
+}
+
+
+
+global proc Ms_PolyAngleCheck(){
+	if(`window -exists Ms_AngleCheck`){
+		deleteUI Ms_AngleCheck;
+	}
+	
+	window -title "Ms_AngleCheck" Ms_AngleCheck;	
+	
+	$form = `formLayout`;
+
+	setParent $form;
+	$sep=`separator`;
+
+
+	$com_angle_x=`floatSliderGrp -l "Xrad" -field true -min -1 -max 1 -v 0 angle_x`;
+	$com_angle_y=`floatSliderGrp -l "Yrad" -field true -min -1 -max 1 -v 1 angle_y`;
+	$com_angle_z=`floatSliderGrp -l "Zrad" -field true -min -1 -max 1 -v 0 angle_z`;
+
+	$com_throushould=`floatSliderGrp -l "throushould" -field true -min -1 -max 1 -v 0.5 throushould`;
+
+	$com_radios_a=`radioButtonGrp
+            		-numberOfRadioButtons 3
+            		-label "Rock Resolution"
+            		-labelArray3 "X" "Y" "Z"
+			-sl 1 radioflag`;
+
+	$com_anglecheck=`button -l "AngleCheck" -command "MS_PolyAngleCheck_A" `;
+	$com_und=`button -l "undo" -command "Undo" `;
+	$com_ext=`button -l "exit" -command "deleteUI Ms_AngleCheck" `;
+
+	formLayout -e
+//----------------------------------
+	-af $com_angle_x "top" 10
+        -af $com_angle_x "left" 5
+        -an $com_angle_x "right"
+        -an $com_angle_x "bottom"
+
+	-af $sep "top" 40
+	-af $sep "left" 5
+	-af $sep "right" 5
+	-an $sep "bottom"
+//----------------------------------
+	-af $com_angle_y "top" 50
+        -af $com_angle_y "left" 5
+        -an $com_angle_y "right"
+        -an $com_angle_y "bottom"
+
+	-af $sep "top" 90
+	-af $sep "left" 5
+	-af $sep "right" 5
+	-an $sep "bottom"
+//----------------------------------
+	-af $com_angle_z "top" 100
+        -af $com_angle_z "left" 5
+        -an $com_angle_z "right"
+        -an $com_angle_z "bottom"
+
+	-af $sep "top" 140
+	-af $sep "left" 5
+	-af $sep "right" 5
+	-an $sep "bottom"
+//----------------------------------
+	-af $com_throushould "top" 150
+        -af $com_throushould "left" 5
+        -an $com_throushould "right"
+        -an $com_throushould "bottom"
+
+	-af $sep "top" 190
+	-af $sep "left" 5
+	-af $sep "right" 5
+	-an $sep "bottom"
+//------------------------------------
+
+	-af $com_radios_a "top" 200
+	-af $com_radios_a "left" 5
+	-an $com_radios_a "right"
+	-an $com_radios_a "bottom"
+
+//------------------------------------
+
+	-af $com_anglecheck "top" 250
+        -af $com_anglecheck "left" 5
+        -ap $com_anglecheck "right" 0 20
+        -an $com_anglecheck "bottom"
+
+        -af $com_und "top" 250
+        -ap $com_und "left" 0 60
+        -ap $com_und "right" 0 80
+        -an $com_und "bottom"
+
+        -af $com_ext "top" 250
+        -ap $com_ext "left" 0 80
+        -af $com_ext "right" 5
+        -an $com_ext "bottom"
+	$form;
+	
+	showWindow Ms_AngleCheck;
+	
+
+}
+
+
+Ms_PolyAngleCheck;
+

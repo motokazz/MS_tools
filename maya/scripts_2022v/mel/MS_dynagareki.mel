@@ -1,0 +1,275 @@
+/*
+-------------------
+MS_dynagareki.mel
+-------------------
+
+◆概要
+瓦礫かなにかが床にごろごろと転がっている状態を作る。
+ダイナミクス環境を構築してシミュレートすると、とりあえずちゃんと床に落ちた瓦礫になるのではないだろうか？
+という発想から生まれている。
+
+
+◆使用方法
+・スクリプトを実行するとダイアログが出る。
+・床に転がしたいオブジェクトを用意する（MS_Krashシリーズとかで作ると良いつもり）
+・床を用意する
+・床を最初に選んで
+・転がしたいアイテムたちを選ぶ
+・「dggo」を押す
+
+
+
+◆詳細
+
+最初に選んだものを静的rigidbodyに、その後に選んだもの全てを動的rigidbodyに。
+ダイナミクス環境を構築してシミュレートする。
+
+
+ダイアログの説明
+fram	落下シミュレート時のトータルフレーム数。瓦礫がちゃんと床に落ちるように調節してあげよう。
+skip	フレームスキップ。精度の高い計算が必要ないときは数値を上げてあげよう。
+grav	重力を設定できるようにしてある。
+
+
+
+※注意
+何がおきても知りません。
+
+修正事項：
+スタート時にローテーションジッターを入れないと不自然な落ち方をする。
+
+
+
+*/
+
+
+
+global proc MS_dynagareki_core(){	
+	
+	string $fGetName[];
+	string $sGetName[];
+	
+	string $fGetName_full=`textFieldGrp -q -tx fGetName`;
+	tokenize ($fGetName_full,$fGetName);
+	
+	string $sGetName_full=`textFieldGrp -q -tx sGetName`;
+	tokenize ($sGetName_full,$sGetName);
+	
+	
+	int $mcheck=`checkBox -q -v "Keep"`;
+	int $fram=`intSliderGrp -q -v fram`;
+	int $skip=`intSliderGrp -q -v skip`;
+	int $grav=`floatSliderGrp -q -v grav`;
+	
+	
+	
+	float $mass=`floatSliderGrp -q -v mass`;
+	float $staticFriction=`floatSliderGrp -q -v staticFriction`;
+	float $dynamicFriction=`floatSliderGrp -q -v dynamicFriction`;
+	float $bounciness=`floatSliderGrp -q -v bounciness`;
+	float $damping=`floatSliderGrp -q -v damping`;
+	
+	
+	$newname="temp";
+	currentTime 0 ;
+	
+	//ダイナミクスの種作成
+	gravity -pos 0 0 0 -m $grav -att 0 -dx 0 -dy -1 -dz 0  -mxd -1  -vsh none -vex 0 -vof 0 0 0 -vsw 360 -tsr 0.5 ;
+	
+	for ($passive in $fGetName){
+		//ベースpassive設定
+		rigidBody 
+			-passive 
+			-mass $mass
+			-dp 0 
+			-staticFriction $staticFriction
+			-dynamicFriction $dynamicFriction 
+			-bounciness $bounciness
+			-damping $damping
+			-l 0 
+			-tf 2000 
+			-iv 0 0 0 
+			-iav 0 0 0 
+			-c 0 
+			-pc 0 
+			-i 0 0 0 
+			-imp 0 0 0 
+			-si 0 0 0 
+			-sio none 
+			$passive;
+	}
+	
+	for($active in $sGetName){
+		//active化
+		rigidBody 
+			-active 
+			-mass $mass
+			-dp 0 
+			-staticFriction $staticFriction
+			-dynamicFriction $dynamicFriction 
+			-bounciness $bounciness
+			-damping $damping
+			-l 0 
+			-tf 2000 
+			-iv 0 0 0 
+			-iav 0 0 0 
+			-c 0 
+			-pc 0 
+			-i 0 0 0 
+			-imp 0 0 0 
+			-si 0 0 0 
+			-sio none 
+			$active;
+		
+		
+		connectDynamic -f gravityField1  $active;
+		
+		int $t_fram=$fram/$skip;
+		
+		//アニメーション再生
+		$j=0;
+		for ($j=0;$j<$t_fram;$j++){
+			currentTime ($j*$skip) ;
+		}
+
+		if($mcheck==0){
+			select -r $active;
+			deleteSelectRigidBodies;
+		}
+		
+		//passive化
+		rigidBody 
+			-passive 
+			-mass $mass
+			-dp 0 
+			-staticFriction $staticFriction
+			-dynamicFriction $dynamicFriction 
+			-bounciness $bounciness
+			-damping $damping
+			-l 0 
+			-tf 2000 
+			-iv 0 0 0 
+			-iav 0 0 0 
+			-c 0 
+			-pc 0 
+			-i 0 0 0 
+			-imp 0 0 0 
+			-si 0 0 0 
+			-sio none 
+			$active;
+		
+	}
+	
+	//rigidBody消去
+	select -r $fGetName $sGetName;
+	deleteSelectRigidBodies;
+	
+	delete "gravityField*" ;
+	
+}
+
+//ClickTragetList-------------------------------------------
+global proc ClickPassiveList(){
+	 string $selectSet[] = `ls -l -sl`;
+	 select -r $selectSet;
+	
+	 if (objExists("SnapVertex_TargetSet")) {
+	  delete SnapVertex_TargetSet;
+	 }
+		
+	 string $verF[] = `ls -l -sl -fl`;
+	 sets -name SnapVertex_TargetSet;
+	
+	 int $rp = 1;
+	 int $nu = `size $verF`;
+	
+	 textFieldGrp -e -tx $verF[0] fGetName;
+	
+	 while ($rp < $nu) { 
+	  string $allNameF = `textFieldGrp -q -text fGetName`;
+	  string $textNameF = $verF[$rp] +" "+ $allNameF;
+	  textFieldGrp -e -tx $textNameF fGetName;
+	  $rp++;
+	 };
+	 delete SnapVertex_TargetSet;
+};
+
+
+//ClickSnapList-------------------------------------------
+global proc ClickActiveList(){
+	 string $selectSet[] = `ls -l -sl`;
+	 select -r $selectSet;
+	
+	 if (objExists("SnapVertex_SnapSet")) {
+	  delete SnapVertex_SnapSet;
+	 }
+	
+	 string $verS[] = `ls -l -sl -fl`;
+	 sets -name SnapVertex_SnapSet;
+	
+	 int $rp = 1;
+	 int $nu = `size $verS`;
+	
+	 textFieldGrp -e -tx $verS[0] sGetName;
+	
+	 while ($rp < $nu) { 
+	  string $allNameS = `textFieldGrp -q -text sGetName`;
+	  string $textNameS = $verS[$rp] +" "+ $allNameS;
+	  textFieldGrp -e -tx $textNameS sGetName;
+	  $rp++;
+	 };
+	 delete SnapVertex_SnapSet;
+};	
+
+
+
+global proc MS_dynagareki(){
+	if(`window -exists MS_dynagareki`){
+		deleteUI MS_dynagareki;
+	}
+	
+	window -title "MS_dynagareki" MS_dynagareki;	
+	columnLayout;
+	
+	
+	rowLayout  -numberOfColumns 2  -cat 1 "left" 5  -columnWidth 1 130  -columnWidth 2 210;
+		button -al "center"  -l "SelectPassiveObjects" -w 120 -c "ClickPassiveList";
+		textFieldGrp -en 0 -cw 1 160  fGetName;
+	setParent ..;
+	
+	rowLayout  -numberOfColumns 2 -cat 1 "left" 5  -columnWidth 1 130  -columnWidth 2 210;
+		button -al "center"  -l "SelectActiveObjects" -w 120 -c "ClickActiveList";
+		textFieldGrp -en 0 -cw 1 160  sGetName;
+	setParent ..;
+	
+	separator;
+	
+	intSliderGrp -l "fram" -field true -min 1 -max 1000 -v 300 fram;
+	intSliderGrp -l "skip" -field true -min 1 -max 100 -v 10 skip;
+	floatSliderGrp -l "grav" -field true -min 1 -max 10000 -v 9.8 grav;
+	
+	separator;
+	
+	floatSliderGrp -l mass -field true -min 0 -max 10000 -v 3000 mass;
+	floatSliderGrp -l staticFriction -field true -min 0 -max 1 -v 1 staticFriction;
+	floatSliderGrp -l dynamicFriction -field true -min 0 -max 1 -v 1 dynamicFriction;
+	floatSliderGrp -l bounciness -field true -min 0 -max 1 -v 0 bounciness;
+	floatSliderGrp -l damping  -field true -min 0 -max 1 -v 0.0 damping ;
+	
+	separator;
+	
+	checkBox -al center -recomputeSize 0 -v 0 -label "keepRigidBodies" -width 128 "Keep";//Data//
+	
+	button -l "dggo" -command "MS_dynagareki_core";
+	button -l "undo" -command "Undo";
+	button -l "exit" -command "deleteUI MS_dynagareki";
+	
+	
+	
+	showWindow MS_dynagareki;
+	
+
+}
+
+//MS_dynagareki;
+

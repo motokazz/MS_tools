@@ -1,0 +1,35 @@
+//やっとできました。不必要なキーを削除するMEL
+//厳密にはカーブのノードごと消しますが。
+//タンジェントの動きは考慮してないので
+//キーの値が同じなら消してしまいます。
+//まぁありえないかなぁ…と思って。
+
+global proc delete_unused_Key()
+{
+	string $whatsele[] = `ls -sl`;
+	string $animcurvna[] = `keyframe -q -n`;
+	string $doin;
+	float $keyVal[];
+	float $keyVal_hai[];
+	int $keynum;
+	int $trueor=0;
+	for($doin in $animcurvna)
+	{
+		$keynum = `keyframe -q -kc $doin`;
+		for($n=0;$n<$keynum;$n++)
+		{
+			select -r $doin;
+			$keyVal = `keyframe -index $n -q -valueChange`;
+			$keyVal_hai[$n] = $keyVal[0];
+		}
+		for($n=0;$n<($keynum-1);$n++)
+		{
+			if($keyVal_hai[$n]==$keyVal_hai[$n+1]){$trueor++;}
+		}
+		if(($keynum-1) == $trueor){delete $doin;}
+		$trueor=0;
+	}
+	select $whatsele;
+}
+
+delete_unused_Key();

@@ -1,0 +1,89 @@
+#----------------------------------------------------------------------------------
+#UTF-8形式で保存してください
+#boolean(真偽値)のデフォルトはfalseです
+#記述者の名前が無いテスト用らしき記述は最適化の為削除する事があります
+#----------------------------------------------------------------------------------
+
+#----------------------------------------------------------------------------------
+#記憶の迷路の異次元　脇阪
+az5_b_root:
+  root:     true
+
+az5_b_01:
+  occluder: "az5_b_01_occ"
+  low:      "az5_b_01"
+az5_b_02:
+  occluder: "az5_b_02_occ"
+  low:      "az5_b_02"
+az5_b_03:
+  occluder: "az5_b_03_occ"
+  low:      "az5_b_03"
+az5_b_04:
+  occluder: "az5_b_04_occ"
+  low:      "az5_b_04"
+#az5_b_05:
+#  occluder: "az5_b_05_occ"
+#  low:      "az5_b_05"
+az5_b_06:
+  occluder: "az5_b_06_occ"
+  low:      "az5_b_06"
+az5_b_07:
+  occluder: "az5_b_07_occ"
+  low:      "az5_b_07"
+
+
+#----------------------------------------------------------------------------------
+#記憶の迷路の異次元　脇阪
+az5_c_root:
+  root:     true
+az5_c_03_root:
+  root:     true
+az5_c_04_root:
+  root:     true
+az5_c_05_root:
+  root:     true
+az5_c_06_root:
+  root:     true
+
+az5_c_01:
+  occluder: "az5_c_01_occ"
+  low:      "az5_c_01"
+az5_c_02:
+  occluder: "az5_c_02_occ"
+  low:      "az5_c_02"
+az5_c_03:
+  occluder: "az5_c_03_occ"
+  low:      "az5_c_03"
+az5_c_04:
+  occluder: "az5_c_04_occ"
+  low:      "az5_c_04"
+az5_c_05:
+  occluder: "az5_c_05_occ"
+  low:      "az5_c_05"
+az5_c_06:
+  occluder: "az5_c_06_occ"
+  low:      "az5_c_06"
+
+#az5_skyscraper_01:
+#  occluder: "az5_skyscraper_01_occ"
+#  low:      "az5_skyscraper_01"
+#
+#az5_skyscraper_02:
+#  occluder: "az5_skyscraper_02_occ"
+#  low:      "az5_skyscraper_02"
+#
+#az5_skyscraper_03:
+#  occluder: "az5_skyscraper_03_occ"
+#  low:      "az5_skyscraper_03"
+#
+#az5_skyscraper_04:
+#  occluder: "az5_skyscraper_04_occ"
+#  low:      "az5_skyscraper_04"
+#
+#az5_skyscraper_05:
+#  occluder: "az5_skyscraper_05_occ"
+#  low:      "az5_skyscraper_05"
+#
+#az5_skyscraper_06:
+#  occluder: "az5_skyscraper_06_occ"
+#  low:      "az5_skyscraper_06"

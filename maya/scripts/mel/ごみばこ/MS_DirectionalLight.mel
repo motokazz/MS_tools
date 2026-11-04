@@ -1,0 +1,52 @@
+/*
+-------------------
+MS_DiredtionalLight.mel
+-------------------
+
+◆概要
+全方向からあたるライトを瞬間作成！！
+
+
+◆使用方法
+MELを実行する！
+
+
+◆詳細
+全方向を網羅するためのライトを作成するために必要な最小数（？）のライトを一発作成。
+親のロケーターを回転させることで光源のニュアンスを変えてゆく。
+
+
+※注意
+俺のためだけにあるスクリプト。
+
+
+
+*/
+
+
+
+
+
+global proc MS_DirectionalLight(){
+	
+directionalLight -n lightA;
+setAttr lightA.rotate -90 0 0;
+setAttr lightA.color 1 1 1;
+
+directionalLight -n lightB;
+setAttr lightB.rotate -30 0 -120;
+setAttr lightB.color 1 0 0;
+
+directionalLight -n lightC;
+setAttr lightC.rotate -90 0 120;
+setAttr lightC.color 0 1 0;
+
+directionalLight -n lightD;
+setAttr lightD.rotate 30 180 60;
+setAttr lightD.color 0 0 1;
+
+select -r lightA lightB lightC lightD ;
+group; xform -os -piv 0 0 0;
+
+}
+

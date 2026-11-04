@@ -1,0 +1,148 @@
+/*
+-------------------
+MS_Tube.mel
+-------------------
+
+◆概要
+ラインの通りにチューブが生成される。
+
+◆使用方法
+ラインを選んで、スクリプト実行。
+
+
+◆詳細
+
+
+※注意
+はっきり言って製作途中
+
+
+*/
+
+global proc MS_Tube_core()
+{
+	
+	float $val_radius=`floatSliderGrp -q -v val_radius`;
+	
+	$sel = `ls -sl -sn -o`;
+	
+	
+	vector $p_ang_0=`pointOnCurve -n -pr 0.0 -top 0 $sel[0]`;
+	/*
+	$rtdX=`rad_to_deg ($p_ang_0.x)`;
+	$rtdY=`rad_to_deg ($p_ang_0.y)`;
+	$rtdZ=`rad_to_deg ($p_ang_0.z)`;
+	*/
+	
+	
+	$cv_pos=$sel[0]+".cv[0]";
+	vector $pos=`getAttr $cv_pos`;
+	$cv_pos_x=$pos.x;
+	$cv_pos_y=$pos.y;
+	$cv_pos_z=$pos.z;
+	
+	circle 
+		-c $cv_pos_x $cv_pos_y $cv_pos_z
+		-nr ($p_ang_0.x) ($p_ang_0.z) ($p_ang_0.y) 	//円の法線方向
+		-sw 360		//スイープの角度
+		-r $val_radius		//円の半径
+		-d 3		//次元数(デフォールト 3)
+		-ut 0		//指定された tolerance を使うかどうか
+		-tol 0.01
+		-s 6
+		-ch 1
+		-n extrudeSeed_circle;
+	
+	extrude -ch 1 extrudeSeed_circle $sel[0];
+	
+	delete extrudeSeed_circle;
+}
+
+
+global proc MS_Tube()
+{
+	
+	//Window Check
+	if(`window -exists MS_Tube`){
+		deleteUI MS_Tube;
+	}
+	
+	
+	//Create Window
+	
+	window -title "MS_Tube" MS_Tube;
+	
+	columnLayout ;
+	
+	//Contents
+	
+	
+	//text
+	text -label "ThisWindowIsMS_Tube";
+	separator -w 600 -h 40 -st "single";
+	
+	
+	/*
+	//intSilder
+	intSliderGrp -l "intSlider" -field true -min 1 -max 100 -v 1 smp_isg;
+	separator -w 600 -h 40 -st "single";
+	*/
+	
+	//floatSilder
+	floatSliderGrp -l "radius" -field true -min 1 -max 1000 -v 50 val_radius;
+	separator -w 600 -h 40 -st "single";
+	
+	
+	/*
+	//radio
+	
+	radioButtonGrp
+            		-numberOfRadioButtons 3
+            		-label "radio"
+            		-labelArray3 "radioX" "radioY" "radioZ"
+			-sl 1 smp_radio;
+	
+	separator -w 600 -h 40 -st "single";
+	
+	
+	//getFile
+	
+	textFieldButtonGrp 
+		-l "New Root"
+		-tx "C:/Documents and Settings/s002000/デスクトップ/My_mel"
+		-buttonLabel "Browse..." 
+		-bc "MS_get_file"
+		smp_tfbg
+		;
+	
+	separator -w 600 -h 40 -st "single";
+	
+	
+	
+	
+	*/
+	
+	//---------------
+	//Execute Buttons
+	//---------------
+	separator -w 600 -h 40 -st "doubleDash";
+	
+	button -l "MS_Tube" -command "MS_Tube_core" ;
+	
+	
+	//---------------------------------------------------------
+	
+	separator -w 600 -h 40 -st "double";
+	
+	button -l "undo" -command "Undo" ;
+	
+	button -l "exit" -command "deleteUI MS_Tube" ;
+	
+	
+	//Footer
+	showWindow MS_Tube;
+	
+}
+
+MS_Tube;
+

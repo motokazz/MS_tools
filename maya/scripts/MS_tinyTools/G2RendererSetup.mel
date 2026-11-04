@@ -1,0 +1,355 @@
+string $G2RGS[]=`ls -type "G2RendererGlobals"`;
+string $G2R=$G2RGS[0];
+stringArrayRemoveAtIndex(0,$G2RGS);
+delete `listRelatives -p -f $G2RGS`;
+if (`attributeQuery -ex -node $G2R "caching"`){
+setAttr ($G2R+".caching") false;
+}
+if (`attributeQuery -ex -node $G2R "nodeState"`){
+setAttr ($G2R+".nodeState") 0;
+}
+if (`attributeQuery -ex -node $G2R "blackBox"`){
+setAttr ($G2R+".blackBox") false;
+}
+if (`attributeQuery -ex -node $G2R "viewMode"`){
+setAttr ($G2R+".viewMode") 2;
+}
+if (`attributeQuery -ex -node $G2R "templateVersion"`){
+setAttr ($G2R+".templateVersion") 0;
+}
+if (`attributeQuery -ex -node $G2R "uiTreatment"`){
+setAttr ($G2R+".uiTreatment") 0;
+}
+if (`attributeQuery -ex -node $G2R "visibility"`){
+setAttr ($G2R+".visibility") true;
+}
+if (`attributeQuery -ex -node $G2R "intermediateObject"`){
+setAttr ($G2R+".intermediateObject") false;
+}
+if (`attributeQuery -ex -node $G2R "template"`){
+setAttr ($G2R+".template") false;
+}
+if (`attributeQuery -ex -node $G2R "ghosting"`){
+setAttr ($G2R+".ghosting") false;
+}
+if (`attributeQuery -ex -node $G2R "objectColorR"`){
+setAttr ($G2R+".objectColorR") 0.0;
+}
+if (`attributeQuery -ex -node $G2R "objectColorG"`){
+setAttr ($G2R+".objectColorG") 0.0;
+}
+if (`attributeQuery -ex -node $G2R "objectColorB"`){
+setAttr ($G2R+".objectColorB") 0.0;
+}
+if (`attributeQuery -ex -node $G2R "useObjectColor"`){
+setAttr ($G2R+".useObjectColor") false;
+}
+if (`attributeQuery -ex -node $G2R "overrideDisplayType"`){
+setAttr ($G2R+".overrideDisplayType") 0;
+}
+if (`attributeQuery -ex -node $G2R "overrideLevelOfDetail"`){
+setAttr ($G2R+".overrideLevelOfDetail") 0;
+}
+if (`attributeQuery -ex -node $G2R "overrideShading"`){
+setAttr ($G2R+".overrideShading") true;
+}
+if (`attributeQuery -ex -node $G2R "overrideTexturing"`){
+setAttr ($G2R+".overrideTexturing") true;
+}
+if (`attributeQuery -ex -node $G2R "overridePlayback"`){
+setAttr ($G2R+".overridePlayback") true;
+}
+if (`attributeQuery -ex -node $G2R "overrideEnabled"`){
+setAttr ($G2R+".overrideEnabled") false;
+}
+if (`attributeQuery -ex -node $G2R "overrideVisibility"`){
+setAttr ($G2R+".overrideVisibility") true;
+}
+if (`attributeQuery -ex -node $G2R "lodVisibility"`){
+setAttr ($G2R+".lodVisibility") true;
+}
+if (`attributeQuery -ex -node $G2R "selectionChildHighlighting"`){
+setAttr ($G2R+".selectionChildHighlighting") true;
+}
+if (`attributeQuery -ex -node $G2R "layerRenderable"`){
+setAttr ($G2R+".layerRenderable") true;
+}
+if (`attributeQuery -ex -node $G2R "ghostingControl"`){
+setAttr ($G2R+".ghostingControl") 0;
+}
+if (`attributeQuery -ex -node $G2R "ghostPreSteps"`){
+setAttr ($G2R+".ghostPreSteps") 3;
+}
+if (`attributeQuery -ex -node $G2R "ghostPostSteps"`){
+setAttr ($G2R+".ghostPostSteps") 3;
+}
+if (`attributeQuery -ex -node $G2R "ghostStepSize"`){
+setAttr ($G2R+".ghostStepSize") 1;
+}
+if (`attributeQuery -ex -node $G2R "ghostColorPreA"`){
+setAttr ($G2R+".ghostColorPreA") 1.0;
+}
+if (`attributeQuery -ex -node $G2R "ghostColorPreR"`){
+setAttr ($G2R+".ghostColorPreR") 0.446999996901;
+}
+if (`attributeQuery -ex -node $G2R "ghostColorPreG"`){
+setAttr ($G2R+".ghostColorPreG") 1.0;
+}
+if (`attributeQuery -ex -node $G2R "ghostColorPreB"`){
+setAttr ($G2R+".ghostColorPreB") 1.0;
+}
+if (`attributeQuery -ex -node $G2R "ghostColorPostA"`){
+setAttr ($G2R+".ghostColorPostA") 1.0;
+}
+if (`attributeQuery -ex -node $G2R "ghostColorPostR"`){
+setAttr ($G2R+".ghostColorPostR") 0.878000020981;
+}
+if (`attributeQuery -ex -node $G2R "ghostColorPostG"`){
+setAttr ($G2R+".ghostColorPostG") 0.677999973297;
+}
+if (`attributeQuery -ex -node $G2R "ghostColorPostB"`){
+setAttr ($G2R+".ghostColorPostB") 0.662999987602;
+}
+if (`attributeQuery -ex -node $G2R "motionBlur"`){
+setAttr ($G2R+".motionBlur") true;
+}
+if (`attributeQuery -ex -node $G2R "visibleInReflections"`){
+setAttr ($G2R+".visibleInReflections") false;
+}
+if (`attributeQuery -ex -node $G2R "visibleInRefractions"`){
+setAttr ($G2R+".visibleInRefractions") false;
+}
+if (`attributeQuery -ex -node $G2R "castsShadows"`){
+setAttr ($G2R+".castsShadows") true;
+}
+if (`attributeQuery -ex -node $G2R "receiveShadows"`){
+setAttr ($G2R+".receiveShadows") true;
+}
+if (`attributeQuery -ex -node $G2R "maxVisibilitySamplesOverride"`){
+setAttr ($G2R+".maxVisibilitySamplesOverride") false;
+}
+if (`attributeQuery -ex -node $G2R "maxVisibilitySamples"`){
+setAttr ($G2R+".maxVisibilitySamples") 1;
+}
+if (`attributeQuery -ex -node $G2R "geometryAntialiasingOverride"`){
+setAttr ($G2R+".geometryAntialiasingOverride") false;
+}
+if (`attributeQuery -ex -node $G2R "antialiasingLevel"`){
+setAttr ($G2R+".antialiasingLevel") 1;
+}
+if (`attributeQuery -ex -node $G2R "shadingSamplesOverride"`){
+setAttr ($G2R+".shadingSamplesOverride") false;
+}
+if (`attributeQuery -ex -node $G2R "shadingSamples"`){
+setAttr ($G2R+".shadingSamples") 1;
+}
+if (`attributeQuery -ex -node $G2R "maxShadingSamples"`){
+setAttr ($G2R+".maxShadingSamples") 1;
+}
+if (`attributeQuery -ex -node $G2R "volumeSamplesOverride"`){
+setAttr ($G2R+".volumeSamplesOverride") false;
+}
+if (`attributeQuery -ex -node $G2R "volumeSamples"`){
+setAttr ($G2R+".volumeSamples") 1;
+}
+if (`attributeQuery -ex -node $G2R "depthJitter"`){
+setAttr ($G2R+".depthJitter") false;
+}
+if (`attributeQuery -ex -node $G2R "ignoreSelfShadowing"`){
+setAttr ($G2R+".ignoreSelfShadowing") false;
+}
+if (`attributeQuery -ex -node $G2R "primaryVisibility"`){
+setAttr ($G2R+".primaryVisibility") true;
+}
+if (`attributeQuery -ex -node $G2R "renderMode"`){
+setAttr ($G2R+".renderMode") 1;
+}
+if (`attributeQuery -ex -node $G2R "displayMode"`){
+setAttr ($G2R+".displayMode") 0;
+}
+if (`attributeQuery -ex -node $G2R "displayUI"`){
+setAttr ($G2R+".displayUI") true;
+}
+if (`attributeQuery -ex -node $G2R "backgroundColorR"`){
+setAttr ($G2R+".backgroundColorR") 0.5;
+}
+if (`attributeQuery -ex -node $G2R "backgroundColorG"`){
+setAttr ($G2R+".backgroundColorG") 0.5;
+}
+if (`attributeQuery -ex -node $G2R "backgroundColorB"`){
+setAttr ($G2R+".backgroundColorB") 0.5;
+}
+if (`attributeQuery -ex -node $G2R "toning"`){
+setAttr ($G2R+".toning") 0.0;
+}
+if (`attributeQuery -ex -node $G2R "iblIntensity"`){
+setAttr ($G2R+".iblIntensity") 1.0;
+}
+if (`attributeQuery -ex -node $G2R "contourBlend"`){
+setAttr ($G2R+".contourBlend") 0.0;
+}
+if (`attributeQuery -ex -node $G2R "contourColorR"`){
+setAttr ($G2R+".contourColorR") 0.157000005245;
+}
+if (`attributeQuery -ex -node $G2R "contourColorG"`){
+setAttr ($G2R+".contourColorG") 0.0780000016093;
+}
+if (`attributeQuery -ex -node $G2R "contourColorB"`){
+setAttr ($G2R+".contourColorB") 0.0;
+}
+if (`attributeQuery -ex -node $G2R "hatchingIntensity"`){
+setAttr ($G2R+".hatchingIntensity") 1.0;
+}
+if (`attributeQuery -ex -node $G2R "ssaoIntensity"`){
+setAttr ($G2R+".ssaoIntensity") 0.0;
+}
+if (`attributeQuery -ex -node $G2R "exposureIntensity"`){
+setAttr ($G2R+".exposureIntensity") 0.0;
+}
+if (`attributeQuery -ex -node $G2R "exposureAdaptionRange"`){
+setAttr ($G2R+".exposureAdaptionRange") 0.0;
+}
+if (`attributeQuery -ex -node $G2R "exposureAdaptionSpeed"`){
+setAttr ($G2R+".exposureAdaptionSpeed") 1.0;
+}
+if (`attributeQuery -ex -node $G2R "fogIntensity"`){
+setAttr ($G2R+".fogIntensity") 0.0;
+}
+if (`attributeQuery -ex -node $G2R "fogScattering"`){
+setAttr ($G2R+".fogScattering") 0.10000000149;
+}
+if (`attributeQuery -ex -node $G2R "fogDensity"`){
+setAttr ($G2R+".fogDensity") 0.0;
+}
+if (`attributeQuery -ex -node $G2R "fogColorR"`){
+setAttr ($G2R+".fogColorR") 1.0;
+}
+if (`attributeQuery -ex -node $G2R "fogColorG"`){
+setAttr ($G2R+".fogColorG") 1.0;
+}
+if (`attributeQuery -ex -node $G2R "fogColorB"`){
+setAttr ($G2R+".fogColorB") 1.0;
+}
+if (`attributeQuery -ex -node $G2R "fogAlpha"`){
+setAttr ($G2R+".fogAlpha") 1.0;
+}
+if (`attributeQuery -ex -node $G2R "fogFar"`){
+setAttr ($G2R+".fogFar") 200.0;
+}
+if (`attributeQuery -ex -node $G2R "scatterColorR"`){
+setAttr ($G2R+".scatterColorR") 1.0;
+}
+if (`attributeQuery -ex -node $G2R "scatterColorG"`){
+setAttr ($G2R+".scatterColorG") 1.0;
+}
+if (`attributeQuery -ex -node $G2R "scatterColorB"`){
+setAttr ($G2R+".scatterColorB") 1.0;
+}
+if (`attributeQuery -ex -node $G2R "gradationNear"`){
+setAttr ($G2R+".gradationNear") 100.0;
+}
+if (`attributeQuery -ex -node $G2R "gradationFar"`){
+setAttr ($G2R+".gradationFar") 500.0;
+}
+if (`attributeQuery -ex -node $G2R "gradationContour"`){
+setAttr ($G2R+".gradationContour") 0.20000000298;
+}
+if (`attributeQuery -ex -node $G2R "gradationHiR"`){
+setAttr ($G2R+".gradationHiR") 1.0;
+}
+if (`attributeQuery -ex -node $G2R "gradationHiG"`){
+setAttr ($G2R+".gradationHiG") 1.0;
+}
+if (`attributeQuery -ex -node $G2R "gradationHiB"`){
+setAttr ($G2R+".gradationHiB") 1.0;
+}
+if (`attributeQuery -ex -node $G2R "gradationMdR"`){
+setAttr ($G2R+".gradationMdR") 1.0;
+}
+if (`attributeQuery -ex -node $G2R "gradationMdG"`){
+setAttr ($G2R+".gradationMdG") 1.0;
+}
+if (`attributeQuery -ex -node $G2R "gradationMdB"`){
+setAttr ($G2R+".gradationMdB") 1.0;
+}
+if (`attributeQuery -ex -node $G2R "gradationLwR"`){
+setAttr ($G2R+".gradationLwR") 1.0;
+}
+if (`attributeQuery -ex -node $G2R "gradationLwG"`){
+setAttr ($G2R+".gradationLwG") 1.0;
+}
+if (`attributeQuery -ex -node $G2R "gradationLwB"`){
+setAttr ($G2R+".gradationLwB") 1.0;
+}
+if (`attributeQuery -ex -node $G2R "antialias"`){
+setAttr ($G2R+".antialias") false;
+}
+if (`attributeQuery -ex -node $G2R "bloom_filterColorLoR"`){
+setAttr ($G2R+".bloom_filterColorLoR") 0.0;
+}
+if (`attributeQuery -ex -node $G2R "bloom_filterColorLoG"`){
+setAttr ($G2R+".bloom_filterColorLoG") 0.0;
+}
+if (`attributeQuery -ex -node $G2R "bloom_filterColorLoB"`){
+setAttr ($G2R+".bloom_filterColorLoB") 0.0;
+}
+if (`attributeQuery -ex -node $G2R "bloom_filterColorHiR"`){
+setAttr ($G2R+".bloom_filterColorHiR") 0.0;
+}
+if (`attributeQuery -ex -node $G2R "bloom_filterColorHiG"`){
+setAttr ($G2R+".bloom_filterColorHiG") 0.0;
+}
+if (`attributeQuery -ex -node $G2R "bloom_filterColorHiB"`){
+setAttr ($G2R+".bloom_filterColorHiB") 0.0;
+}
+if (`attributeQuery -ex -node $G2R "bloom_filterLuminanceLo"`){
+setAttr ($G2R+".bloom_filterLuminanceLo") 0.40000000596;
+}
+if (`attributeQuery -ex -node $G2R "bloom_filterLuminanceHi"`){
+setAttr ($G2R+".bloom_filterLuminanceHi") 1.0;
+}
+if (`attributeQuery -ex -node $G2R "bloom_correctionColor"`){
+setAttr ($G2R+".bloom_correctionColor") 2.20000004768;
+}
+if (`attributeQuery -ex -node $G2R "bloom_correctionDepth"`){
+setAttr ($G2R+".bloom_correctionDepth") 20.0;
+}
+if (`attributeQuery -ex -node $G2R "bloom_correctionNear"`){
+setAttr ($G2R+".bloom_correctionNear") 4.0;
+}
+if (`attributeQuery -ex -node $G2R "bloom_correctionFar"`){
+setAttr ($G2R+".bloom_correctionFar") 0.0;
+}
+if (`attributeQuery -ex -node $G2R "bloom_correctionNearLo"`){
+setAttr ($G2R+".bloom_correctionNearLo") 0.0;
+}
+if (`attributeQuery -ex -node $G2R "bloom_correctionNearHi"`){
+setAttr ($G2R+".bloom_correctionNearHi") 1.0;
+}
+if (`attributeQuery -ex -node $G2R "bloom_correctionFarLo"`){
+setAttr ($G2R+".bloom_correctionFarLo") 0.0;
+}
+if (`attributeQuery -ex -node $G2R "bloom_correctionFarHi"`){
+setAttr ($G2R+".bloom_correctionFarHi") 1.0;
+}
+if (`attributeQuery -ex -node $G2R "bloom_dispersionLo"`){
+setAttr ($G2R+".bloom_dispersionLo") 0.0;
+}
+if (`attributeQuery -ex -node $G2R "bloom_dispersionHi"`){
+setAttr ($G2R+".bloom_dispersionHi") 1.0;
+}
+if (`attributeQuery -ex -node $G2R "bloom_feedback"`){
+setAttr ($G2R+".bloom_feedback") 0.40000000596;
+}
+if (`attributeQuery -ex -node $G2R "bloom_compositeColorR"`){
+setAttr ($G2R+".bloom_compositeColorR") 1.0;
+}
+if (`attributeQuery -ex -node $G2R "bloom_compositeColorG"`){
+setAttr ($G2R+".bloom_compositeColorG") 1.0;
+}
+if (`attributeQuery -ex -node $G2R "bloom_compositeColorB"`){
+setAttr ($G2R+".bloom_compositeColorB") 1.0;
+}
+if (`attributeQuery -ex -node $G2R "bloom_compositeIntensity"`){
+setAttr ($G2R+".bloom_compositeIntensity") 0.0;
+}

@@ -1,0 +1,19 @@
+global proc string[] MS_listAllTextureFiles(){
+string $filez[]=`ls -typ file`;
+string $fileTextureName[];
+$i=0;
+
+for($each1 in $filez){
+	$fileTextureName[$i]=`getAttr ($each1+".fileTextureName")`;
+	$i++;
+}
+
+
+string $fileTexturez[]=`stringArrayRemoveDuplicates $fileTextureName`;
+return $fileTexturez;
+
+}
+
+
+
+

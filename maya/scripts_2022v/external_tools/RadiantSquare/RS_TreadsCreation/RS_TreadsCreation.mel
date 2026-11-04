@@ -1,0 +1,445 @@
+// Main Procedure: RS_TreadsCreation()
+//
+//	REPLACE: RS_TreadsCreation
+//
+// Creation Date:  
+//		April 22, 2003
+//
+// Authors: 
+//		Ahmed Shehata, ahmed@radiantsquare.com
+//		Alvaro Sanint, alvaro@radiantsquare.com
+//
+// Description:
+//		The script makes an animatable tread, useful for tractors, military tanks, conveyor belts, etc.
+//
+// Installation:
+//
+//	1. Copy the [RS_TreadsCreation] folder to your local user/scripts folder
+//		 		example: ..\my documents\maya\scripts\RadiantSquare\RS_TreadsCreation
+//	2. Start Maya 
+//	4. Source the script in the script editor, or type:		  
+//				source "RadiantSquare/RS_TreadsCreation/RS_TreadsCreation.mel";RS_TreadsCreation
+//		 into the Maya command line, and hit enter.
+//				  
+// How to Use:
+//  1. click on the icon and load the path and the tread in to appropriate fields in the window.
+//	2. Then select the checkbox that describes the orientation of your tread object.
+//	3. Select the duplicate type "copy or instance"
+// 	3. Click on the "Create Treads"	Button.
+//	4. To move and adjust the speed of your treads use the locator positioned on the center of the group.
+//	
+//	Notes:
+//	     ****Do not use the group to move the treads, instead use the locator to avoid double transformations.
+//	     ****The treads creation action is undoable.
+//	     ****You can delete the original path curve after you create the treads.
+//
+// Comments or suggestions? E-mail us!!!
+// If you find it useful, we will appreciate it if you e-mail us stills of the work the script helped you to create.
+//
+//*************************************************************************************************************************
+//*************************************************************************************************************************	
+// version History  
+//*************************************************************************************************************************
+//	v2.2
+//	- Minor UI Improvements.
+// --------------------------------------------------------------------------------
+//	v2.1
+//	- Option to Copy or Instance new treads
+// 	- Help Menu linked to Radiant Square's website
+//	- User can add icon to the active shelf
+// --------------------------------------------------------------------------------
+//	v2.0
+//	- Capability to create multiple tread groups in the same scene.
+//	- Objects can now be facing either the X or the Z axis.
+//	- Fully keyable speed control in both directions.
+// 	- Fixed distribution of treads along the path.
+//	- Treads can now be created at any location in the scene without flipping.
+//*************************************************************************************************************************
+// Modify at your own risk ___________________________________________________________________________________________________
+
+
+//***************************************************************
+//***************************************************************
+// Creates The user Interface 
+//***************************************************************
+//***************************************************************
+global proc RS_TreadsCreation()
+{
+	
+	//Main Variables Start****************************************************************************
+	//Images information *****************************************************
+		string $RSPath=`RS_TreadsCreationPath`;
+		string $imagepath = ($RSPath+"icons/");
+	//Main Information *****************************************************
+		string $scrName = "TreadsCreation";
+		string $version = "2.2";
+		string $lastUpdate = "11-22-2004";
+		string $advanced ="yes";
+		string $custom = "Gold/Silver Users";
+		string $description = "Create Animatable Tank Treads";
+		string $osVersion = `about -operatingSystem`; //"nt", "mac", "irix" or "linux" 
+		
+		string $mainTitle = ("::: RadiantSquare  " +$scrName + " " + $version + " :::");
+		string $radPage = "http://www.radiantsquare.com";
+		string $docsPage = ($radPage+"/modules/tutorials/listtutorials.php?cid=5");
+		string $contactPage = ($radPage+"/modules/contact/");
+		string $about = ($scrName +" " + $version 
+					      +	"\\n Customized for: " 
+					      + $custom  
+					      + "\\n Updated: "
+					      + $lastUpdate 
+					      + " \\n \\n Ahmed Shehata \\n Alvaro Sanint \\n \\n "
+					      + $radPage);
+	//***********************************************************************
+	//Window Information*****************************************************
+		string $winName = "RS_TreadsCreationPathWin";
+		int $scalable = 0;
+		int $winW = 317;
+		int $winH = 251;		
+	//***********************************************************************
+	//Global Variabes*****************************************************
+		global string $curvePath[];
+		global string $treadObj[];		
+	//Main Variables End*****************************************************************************
+	//***********************************************************************************************
+	
+	// Main UI Start
+	if (`window -exists $winName`) deleteUI $winName;	 
+	if (`windowPref -exists $winName`) windowPref -e -widthHeight $winW $winH $winName;	
+	
+	string $RSwin = `window -s $scalable 
+				   -widthHeight $winW $winH
+				   -t $mainTitle 
+				   -mb 1
+				   -mnb 1
+				   -mxb 1
+				   $winName`;
+				   
+	// Top Menu Elements		   
+	menu -label "Icons" -tearOff true;
+		menuItem -label "Add Icon to Current Shelf" -c "RS_TreadsCreationAddIcon";
+	menu -label "Help" -tearOff true;
+		menuItem -label ("About "+$scrName) -c ("confirmDialog -title \"Script Information\" -message "+ "\""+$about +"\""+" -ma center -button \"OK\" -defaultButton \"OK\"");
+		menuItem -divider true;
+		menuItem -label "Help Documents [web]" -c ("showHelp -absolute \""+ $docsPage + "\"");
+		menuItem -label "Contact Us [web]" -c ("showHelp -absolute \""+ $contactPage + "\"");
+		menuItem -divider true;
+		menuItem -label "Radiant Square on the Web" -c ("showHelp -absolute \""+$radPage + "\"");
+	  
+	// Hidden information required for some procedures
+	columnLayout "hiddenInfo"; 
+		textField -tx $osVersion -vis 0 RS_TreadsCreationosVersion;
+		textField -tx $description -vis 0 RS_TreadsCreationDescription;
+		setParent ..;
+			
+	// UI Contents Start
+	RS_TreadsCreationUIContents;
+	
+	// Footer Image
+	RS_TreadsCreationFooter;
+		
+	showWindow $winName;
+}
+
+
+//***************************************************************
+//***************************************************************
+// UI FOOTER (contents on the footer).
+//***************************************************************
+//***************************************************************		
+global proc RS_TreadsCreationFooter()
+{	
+	string $osVersion = `textField -q -tx RS_TreadsCreationosVersion`;
+	string $description  = `textField -q -tx RS_TreadsCreationDescription`;
+	string $RSPath=`RS_TreadsCreationPath`;
+	string $imagepath = ($RSPath+"icons/");
+	string $extension;
+	if ($osVersion == "nt")
+		$extension = "bmp";
+	else	
+		$extension = "xpm";
+
+	columnLayout	-h 15 -bgc 0.063 0.365 0.741 "RS_TreadsCreationFooterArea";																	
+			image -h 19 -w 334 -en 0 -i  ($imagepath + "RS_footimage."+$extension);
+			setParent ..;
+		setParent ..;
+}//end of RS_TreadsCreation
+
+
+//***************************************************************
+//***************************************************************
+// Finds the absolute path to the Final Rig scripts.
+//***************************************************************
+//***************************************************************		
+global proc string RS_TreadsCreationPath()
+{	
+	string $whatIs=`whatIs RS_TreadsCreation`;
+	string $fullPath=`substring $whatIs 25 500`;
+	string $buffer[];
+	int $numTok=`tokenize $fullPath "/" $buffer`;
+	int $numLetters=size($fullPath);
+	int $numLettersLastFolder=size($buffer[$numTok-1]);
+	string $iconsLocation=(`substring $fullPath 1 ($numLetters-$numLettersLastFolder)`);
+	return $iconsLocation;
+}//end of RS_TreadsCreation
+
+
+//***************************************************************
+//***************************************************************
+//Creates the button on the active shelf.
+//***************************************************************
+//***************************************************************
+global proc RS_TreadsCreationAddIcon()
+{
+	string $osVersion = `textField -q -tx RS_TreadsCreationosVersion`;
+	string $description  = `textField -q -tx RS_TreadsCreationDescription`;
+	string $RSPath=`RS_TreadsCreationPath`;
+	string $imagepath = ($RSPath+"icons/");
+	string $extension;
+	//if ($osVersion == "nt")
+		$extension = "bmp";
+	//else	
+	//	$extension = "xpm";
+	
+	global string $gShelfTopLevel;
+	if (`tabLayout -exists $gShelfTopLevel`)
+	{
+		shelfButton
+		-parent ($gShelfTopLevel + "|" + `tabLayout -q -st $gShelfTopLevel`)
+		-label ""
+		-iol ""
+		-command ("source \"" +$RSPath + "RS_TreadsCreation.mel\";RS_TreadsCreation")
+		-image1 ($imagepath+"RS_TreadsCreation."+$extension)
+		-annotation $description;
+	}
+	else{
+		error "You Have To open at Least One Shelf!!!";
+	}
+}// end of RS_TreadsCreationAddIcon
+
+
+//***************************************************************
+//***************************************************************
+//Adds the contents of the UI.
+//***************************************************************
+//***************************************************************
+global proc RS_TreadsCreationUIContents()
+{	
+		global string $curvePath[];
+		global string $treadObj[];
+		
+		// UI Contens Start
+   columnLayout -rowSpacing 10 ;
+ 		frameLayout -labelVisible false  ;
+ 			columnLayout;
+				rowColumnLayout -nc 2 -columnWidth 1 208 -columnWidth 2 100;	
+       		textField -text "" 	-w 100 
+       												-editable false 
+                          		-ip 1
+                          		-it $curvePath
+                          		curveName;
+					button -label "Load Path Curve" -w 50 -align "center"
+                              	 				-ann "Select Path Curve and Press (Load Path Curve) Button" 
+					 															-c "$curvePath = `ls -sl`; textField -e -text $curvePath[0] curveName;"  loadCurveButton;
+					setParent ..;	 																				 															
+        separator -height 5 -st double 	-w 310;       
+        rowColumnLayout -nc 2 -columnWidth 1 208 -columnWidth 2 100;	
+        	textField -text ""							-w 306 -editable false 
+	                                  			-ip 1
+	                                 			 	-it $treadObj
+	                                  			treadName;
+					button -label "Load Tread Object" -align "center"
+	                               						-ann "Select Tread Object and Press (Load Tread Object) Button"
+																						-c "$treadObj = `ls -sl`; textField -e -text $treadObj[0] treadName;"   loadTreadButton;
+					setParent ..;	
+ 				separator -st double -w 310;
+				setParent ..;
+			setParent ..;		
+		
+		rowColumnLayout -nc 2 -columnWidth 1 150 -columnWidth 2 158;	
+			
+			frameLayout -mw 5 -label " Treads Depth Direction"  ;	
+				rowColumnLayout -nc 3 -columnWidth 1 75 -columnWidth 2 75 -columnWidth 3 1;
+					text -label "";
+					text -label "";
+					text -label "";
+					radioCollection radioScaleCollect;                                
+		      $rb1 = `radioButton -label "X Depth" -align "left" -ann "Select When Treads Thickness Depth Is On The X Axis" XDepth`;
+					$rb3 = `radioButton -label "Z Depth" -align "left" -ann "Select When Treads Thickness Depth Is On The Z Axis" -sl ZDepth`;
+					setParent ..;
+				setParent ..;
+		
+			frameLayout -mw 5 -label "  Duplicate Treads Using";	
+				rowColumnLayout -nc 3 -columnWidth 1 75 -columnWidth 2 75 -columnWidth 3 1;
+					text -label "";
+					text -label "";
+					text -label "";
+					radioCollection radioDupCollec;                                
+					$rb1 = `radioButton -label "Copies" -align "left" -ann "Copy Original Tread" "CopyTreads"`;
+        	$rb2 = `radioButton -label "Instances" -align "left" -ann "Instance Original Treads " -sl "InstTreads"`;
+					setParent ..;
+				setParent ..;
+			setParent ..;	
+
+		separator -st double -w 310;
+
+		rowColumnLayout  -nc 3 -columnWidth 1 103 -columnWidth 2 103 -columnWidth 3 103;
+			button   -l "Create Treads" -al center -annotation "Creates the Treads Instances On The Curve Path" -c "treads" createTreads;        
+			button   -l "Delete Treads" -al center -annotation "Deletes the Treads Instances" -c "treadsDelete" deleteTreads; 
+			button   -l "Close" -al center -annotation "Closes the window" -c "treadsClose" ClosesTreads;
+		setParent ..;
+}// end of RS_TreadsCreationUIContents
+
+
+//***************************************************************
+//***************************************************************
+// Creation of the treads
+//***************************************************************
+//***************************************************************
+global proc treads() 
+{
+
+	int $i,$j;
+	string $expr;
+	float $offset, $objLength;
+	int $frames = 100;
+	string $curve = `textField -q -tx curveName`;
+	string $oldCurve;
+	string $radioScale = `radioCollection -q -select radioScaleCollect`;
+	string $duplicateType = `radioCollection -q -select  radioDupCollec`;
+	string $tread = `textField -q -tx treadName`;
+	string $folAxis;
+	$oldCurve = $curve;
+	
+	if (size($curve) == 0 || size($tread) == 0 ){
+		warning("You have to load a PATH CURVE and a TREAD OBJECT!!!");
+		}
+	else {
+		if( `objExists ("treadPathCurve"+$oldCurve)`){
+			warning("Treads already created using that curve, load a different path curve!!!");
+			}
+		else {
+			duplicate -rr -n ("treadPathCurve"+$oldCurve) $curve;
+			xform -cp ("treadPathCurve"+$curve);
+			setAttr ("treadPathCurve"+$curve+".visibility") 0;
+			float $oldPos[] = `xform -q -ws -rp ("treadPathCurve"+$curve)`;
+			move -rpr 0 0 0  ("treadPathCurve"+$curve);
+			makeIdentity -apply true -t 1 -r 1 -s 1 ("treadPathCurve"+$curve);
+			$curve = ("treadPathCurve"+$oldCurve);	
+			if( `objExists ($curve +"_curveLength")`)
+				delete ($curve +"_curveLength"); 	
+			createNode curveInfo -n ($curve +"_curveLength");
+			string $pathShape[] = `listRelatives $curve`;
+			string $objShape[]  = `listRelatives $tread`;
+		
+			connectAttr -f ($pathShape[0] + ".worldSpace[0]") ($curve +"_curveLength.inputCurve");
+			float $curveLength = `getAttr ($curve +"_curveLength.arcLength")`;
+			if (`getAttr ($tread+".rotateX")` != 0 ||  `getAttr ($tread+".rotateY")` != 0 ||  `getAttr ($tread+".rotateZ")` != 0){
+				select $tread;
+				makeIdentity -apply true -t 1 -r 1 -s 1;
+			}
+			select $tread;
+			float $bounding[] = `xform -q -bb`;
+			
+			if ($radioScale == "ZDepth"){
+				$objLength = abs($bounding[5]-$bounding[2]);
+				$folAxis = "z";
+			}
+			if ($radioScale == "XDepth"){
+				$objLength = abs($bounding[3]-$bounding[0]);
+				$folAxis = "x";
+			}
+			if ($radioScale == "YDepth"){
+				$objLength = abs($bounding[4]-$bounding[1]);
+				$folAxis = "y";
+			}
+			float $treadsNum = floor(($curveLength / $objLength));
+			float $distRatio = $frames / $treadsNum;
+			float $dist = $distRatio;
+			float $curvepos[] = `xform -q -ws -rp $curve`; 
+			spaceLocator -p $curvepos[0] $curvepos[1] $curvepos[2]-n ($curve+"_speedControl");
+			xform -cp ($curve+"_speedControl");
+			xform -cp ($curve+"_speedControl");
+			select ($curve+"_speedControl");
+			string $attr = `addAttr -k 1 -ln "speed" -min -100 -max 100 -dv 5`;
+			$offset = 1/$treadsNum;
+			cycleCheck -e off;
+			select $tread;
+							
+			for ( $i = 0; $i < $treadsNum; $i++){
+	
+					if ($duplicateType == "InstTreads")
+						instance -n ($curve+"_tread"+"_"+$i);
+					else
+						duplicate -n ($curve+"_tread"+"_"+$i);	
+						
+					select -add $curve;
+					pathAnimation -n ($curve+"_motPath" + $i) -fractionMode true -follow true -followAxis $folAxis -upAxis y -worldUpType "object" -worldUpObject $curve -inverseUp false -inverseFront false -bank false -startTimeU $dist -endTimeU ($dist+$frames);
+					selectKey -add -k -t $dist -t ($dist+$frames) ($curve+"_motPath" + $i + ".uValue");
+					setInfinity -poi cycle;	
+					setInfinity -pri cycle;
+					$dist = $dist + $distRatio;
+					select ($curve+"_tread"+"_"+$i);
+			}	
+			select -add ($curve+"_tread*");
+			group -w -n ($curve+"_TreadsGrp");
+			select "positionMarker*";
+			hideKeepSelection `ls -sl`;
+			for ( $j = 0; $j < $treadsNum; $j++){
+			
+					select ($curve+"_motPath" + $j + "_uValue");
+					delete;
+					$expr += ("float $attr = "+$curve+"_speedControl.speed/-100"+";\n");
+					$expr += ("if ($attr <0)"+"\n");		
+					$expr += ($curve+"_motPath"+$j+".uValue=abs(1+(fmod(((time)*$attr)+(-"+$offset+"*"+$j+"),1)))"+";\n");
+					$expr += ("else"+"\n");
+					$expr += ($curve+"_motPath"+$j+".uValue=fmod(((time*$attr)+("+$offset+"*"+$j+")),1)"+";\n");
+			}
+			expression -alwaysEvaluate true -string $expr;
+			parent ("treadPathCurve"+$oldCurve) ($curve+"_speedControl");
+			if( `objExists AS_treadsGrp` ) {
+					parent ($curve+"_speedControl") AS_treadsGrp;
+					parent  ($curve+"_TreadsGrp") AS_treadsGrp;
+			}
+			else {
+					group -em -n  AS_treadsGrp;
+					parent ($curve+"_speedControl") AS_treadsGrp;
+					parent  ($curve+"_TreadsGrp") AS_treadsGrp;
+			}
+			move -rpr $oldPos[0] $oldPos[1] $oldPos[2] ($curve+"_speedControl");
+			select -r ($curve+"_speedControl");
+			flushUndo;
+			print ("*********** TREADS CREATED AT: "+$oldPos[0]+" , "+$oldPos[1]+" , "+$oldPos[2]+" *********** USE INNER LOCATOR TO CONTROL THEM ***********");
+			}
+		}
+}//end of treads
+
+
+//***************************************************************
+//***************************************************************
+// Closes the UI
+//***************************************************************
+//***************************************************************
+global proc treadsClose() {
+	string $winName = "RS_TreadsCreationPathWin";
+	deleteUI $winName;
+}//end of treadsClose
+
+
+//***************************************************************
+//***************************************************************
+//Deletes all the treads created on the scene.
+//***************************************************************
+//***************************************************************
+global proc treadsDelete() 
+{
+	string $curve = `textField -q -tx curveName`;	
+	if( `objExists AS_treadsGrp`)
+	{
+		global int $dupPos;
+		$dupPos = 0;
+		delete AS_treadsGrp;
+	}
+	else
+		warning("There are no treads created, use the create treads button first!!!");
+}//end of treadsDelete

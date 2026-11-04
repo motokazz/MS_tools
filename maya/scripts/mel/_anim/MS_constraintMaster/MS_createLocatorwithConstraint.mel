@@ -1,0 +1,35 @@
+global proc MS_createLocatorwithConstraint(){
+	string $strtgt=`textFieldGrp -q -text TFGTgt`;
+
+	string $target[];
+
+	tokenize ($strtgt,$target);
+	
+	
+	int $pointSeaparate=`checkBox -q -v "pointSeparate"   `;
+	
+	string $newArray[];
+	
+	int $i=0;
+	
+	
+	
+	if($pointSeaparate){
+		for($each in $target){
+			float $pos[]=`xform -q -ws -t $each`;
+			string $tmp[]=`spaceLocator`;
+			xform -ws -t $pos[0] $pos[1] $pos[2] $tmp[0];
+			$newArray[$i]=$tmp[0];
+			MS_constraint_exec ({$each},{$tmp[0]});
+			$i++;
+		}
+	}else{
+		string $tmp[]=`spaceLocator `;
+		MS_constraint_exec ($target,{$tmp[0]});
+	}
+	select -r $newArray;
+
+}
+
+
+

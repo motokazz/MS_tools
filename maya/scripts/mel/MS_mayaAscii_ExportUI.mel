@@ -1,0 +1,388 @@
+/*
+mayaAscii_Export.mel
+v1.1
+◆概要
+選択したトップLOCATERの名前をつけて、その子供を全てXFFファイル出力
+
+◆使用方法
+
+１・準備
+出力先の基本となるディレクトリ、
+D:/DATA/xff/
+を作成するとよい。
+
+２・オプション設定
+---チェックボックス---
+ExportModel
+ExportAnim
+ExportMatanim
+IgnoreBindpose
+IgnoreRefferencenode
+※上記チェックボックスは、onで各項目有効
+
+AnimNameIsMotion
+※このチェックボックスがONになっていると、出力されるアニメーション名が「motion」になる。（BG用）
+　OFFのときは、親locaterの名前＋「additionalAnimationName」が有効になる。
+
+---名前入力---
+additionalModelName
+additionalAnimationName
+ここに入力した名前が、親locaterの名前にプラスされて出力される。
+
+---出力パス設定---
+mayaAscil_ExportUI_filePath
+ここに入力したPATHに出力される。「Brouse」ボタンでブラウザによるディレクトリ選択が可能。
+
+---各種ボタン---
+Camera
+カメラ出力が出来る。出力ファイル名は「additionalAnimationName」＋”.camera.pcxff”になる。
+
+Export
+オブジェクトのエキスポートが出来る。
+出力ファイル名は、親locater名＋「additionalAnimationName」＋”.pcxff”になる。
+出力アニメーション名は、親locater名＋「additionalAnimationName」になる。（AnimNameIsMotionにチェック無しの場合）
+
+Exit
+ウインドウを閉じる。
+
+３・実行
+出力したいオブジェクトを選択して、ボタンを押す。
+
+
+◆詳細
+選択したグループの名前でラベルを作成して、グループごとにファイルを出力します。
+ファイル名もグループの名前で出力されます。
+
+出力前に、テクスチャーファイルを全て.ddsファイルに張り替えます。（fileノードの拡張子記述を強制的に.ddsに書き換えています。）
+
+基本出力先は、このスクリプトを直接いじっていただければ変更できます・・・
+
+
+*/
+
+global proc MS_disconnectSG(string $NODE[]){
+	//cut parent
+	for($eachNode in $NODE){
+		string $CONNECTIONS[]= `listConnections -p 1 -d 1 -s 0 ($eachNode+".outColor")`;
+		for ($each in $CONNECTIONS){
+			disconnectAttr `listConnections -p 1 $each`  $each ;
+		}
+	}
+}
+
+global proc MS_disconnectParent(string $NODE[]){
+	//cut parent
+	for($eachNode in $NODE){
+		string $CONNECTIONS[]= `listConnections -p 1 -d 1 -s 0 $eachNode`;
+		for ($each in $CONNECTIONS){
+			disconnectAttr `listConnections -p 1 $each`  $each ;
+		}
+	}
+}
+
+global proc MS_disconnectChild(string $NODE[]){
+	//cut child
+	for($eachNode in $NODE){
+		string $CONNECTIONS[]= `listConnections -p 1 -d 0 -s 1 $eachNode`;
+		for ($each in $CONNECTIONS){
+			disconnectAttr $each `listConnections -p 1 $each`;
+		}
+	}
+}
+
+global proc MS_mayaAscilExport_storeRecallUI( string $mode ){
+	string $prefix="MS_mayaAscilExport__";
+	
+	string $floatFieldList[] = {
+		};
+
+	string $intFieldList[] = {
+		};
+
+	string $floatSliderGrpList[] = {
+		};
+
+	string $intSliderGrpList[] = {
+		};
+
+	string $checkBoxList[] = {
+		"History",
+		"Channels",
+		"Expressions",
+		"Constraints",
+		"TextureInfo"
+		};
+
+	string $radioButtonGrpList[] = {
+		};
+
+	string $frameLayoutList[] = {
+		};
+
+	string $textFieldList[] = {
+		"ModelName",
+		"AnimationName"
+		};
+
+	string $textFieldList_file[] = {
+		"mayaAscil_ExportUI_filePath"
+		};
+
+	int $cnt;
+
+	if ( $mode == "store" )
+	{
+		for ( $each in $floatFieldList)
+			optionVar -floatValue ($prefix+$each) `floatField -q -value $each`;
+
+		for ( $each in $intFieldList)
+			optionVar -intValue ($prefix+$each) `intField -q -value $each`;
+
+		for ( $each in $floatSliderGrpList)
+			optionVar -floatValue ($prefix+$each) `floatSliderGrp -q -value $each`;
+
+		for ( $each in $intSliderGrpList)
+			optionVar -intValue ($prefix+$each) `intSliderGrp -q -value $each`;
+
+		for ( $each in $checkBoxList)
+			optionVar -intValue ($prefix+$each) `checkBox -q -value $each`;
+
+		for ( $each in $radioButtonGrpList)
+			optionVar -intValue ($prefix+$each) `radioButtonGrp -q -select $each`;
+
+		for ( $each in $frameLayoutList)
+			optionVar -intValue ($prefix+$each) `frameLayout -q -collapse $each`;
+
+		for ( $each in $textFieldList)
+			optionVar -stringValue ($prefix+$each) `textField -q -tx $each`;
+
+		for ( $each in $textFieldList_file)
+			optionVar -stringValue ($prefix+$each) `textField -q -fileName $each`;
+	}
+
+	if ( $mode == "recall" )
+	{
+		for ( $each in $floatFieldList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				floatField -e -value `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $intFieldList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				intField -e -value `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $floatSliderGrpList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				floatSliderGrp -e -value `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $intSliderGrpList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				intSliderGrp -e -value `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $checkBoxList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				checkBox -e -value `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $radioButtonGrpList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				radioButtonGrp -e -select `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $frameLayoutList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				frameLayout -e -collapse `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $textFieldList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				textField -e -tx `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $textFieldList_file)
+			if ( `optionVar -exists ($prefix+$each)` )
+				textField -e -fileName `optionVar -q ($prefix+$each)` $each;
+
+	}
+
+	if ( $mode == "reset" )
+	{
+		for ( $each in $floatFieldList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $intFieldList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $floatSliderGrpList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $intSliderGrpList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $checkBoxList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $radioButtonGrpList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $frameLayoutList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $textFieldList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $textFieldList_file)
+			optionVar -remove ($prefix+$each);
+	}
+}
+
+global proc mayaAscii_Export_core(){
+	$path=`textField -q -fileName "mayaAscil_ExportUI_filePath"`;
+	//$path="D:/DATA/xff/";//出力パス
+	
+	string $AnimationName=`textField -q -tx "AnimationName"` ;//Data//
+	string $ModelName=`textField -q -tx "ModelName"`;//Data//
+	string $newAnimName;
+	
+	//if(`radioButtonGrp -q -sl smp_radio`){
+	
+	int $ch=`checkBox -q -v "History"` ;//Data//
+	int $chn=`checkBox -q -v "Channels"` ;//Data//
+	int $con=`checkBox -q -v "Expressions"` ;//Data//
+	int $exp=`checkBox -q -v "Constraints" `;//Data//
+	int $sh=`checkBox -q -v "TextureInfo"` ;//Data//
+	
+
+	string $obj_name[];
+	$obj_name=`ls -mat -sl`;
+	if(!size($obj_name)){
+		$obj_name=`ls -as -sl`;
+	}else{
+		print $obj_name;
+		MS_disconnectSG $obj_name;
+		string $UVCHOOSER[]=`ls -typ uvChooser`;
+		MS_disconnectParent $UVCHOOSER;
+		select -all;
+		HideSelectedObjects;
+		python("execfile(\"D:/MProject/GTools/scripts/MP_MS_matSwatchMaker.py\")\nMP_MS_matSwatchMaker(\'"+$path+"\')\n");
+		undo;
+	}
+	
+	$i=0;
+	for($i=0;$i<size($obj_name);$i++){
+		select -r $obj_name[$i];
+		
+		$full_p_name=($path+$obj_name[$i]+$ModelName);
+		$operation=(
+			"ch="+$ch+
+			";chn="+$chn+
+			";con="+$con+
+			";exp="+$exp+
+			";sh="+$sh+";"
+		);
+		
+		print $operation;
+		print $full_p_name;
+		print "\n";
+		$operation="v=0";
+		file -op $operation -typ "mayaAscii" -pr -es $full_p_name;
+	}
+}
+
+global proc MS_mayaAscii_Export(){
+
+	mayaAscii_Export_core;
+//	MS_mayaAscii_Export_TexExtRep_All 2;
+
+}
+
+global proc mayaAscii_Export_get_dir(string $exp_dir,string $dummy){
+
+	textField -e -fileName ($exp_dir+"/") "mayaAscil_ExportUI_filePath";
+	MS_mayaAscilExport_storeRecallUI store;
+}
+
+
+//  Name: uiDesigner2006
+//Modify: Leson lai
+//   Msn: TNTII1981@hotmail.com
+//Thanks for original uiDesigner.
+global proc MS_mayaAscii_ExportUI(){
+	if(`window -q -ex MyTools_mayaAscii_Export`)deleteUI MyTools_mayaAscii_Export;
+	window MyTools_mayaAscii_Export;
+	formLayout myUIFormLayout;
+	//--DataPart--//
+	text -label "filePath" "tex10" ;//Data//
+	textField -cc "MS_mayaAscilExport_storeRecallUI store;"  -width 200 "mayaAscil_ExportUI_filePath" ;//Data//
+	button -label "Brouse" -c "fileBrowser \"mayaAscii_Export_get_dir\" \"Select Directory\" \"\" 4" "Brouse";
+	text -label "additional ModelName" "addModelName" ;//Data//
+	text -label "additional AnimationName" "addAnimName" ;//Data//
+	separator -width 300 "separator9" ;//Data//
+	button -backgroundColor 0.9411966801 1 0.7639999986 -label "exit" -width 48 -recomputeSize 0 -command "deleteUI MyTools_mayaAscii_Export" "exit" ;//Data//
+	button -width 80 -backgroundColor 0.8368660212 1 0.7720000148 -label "Export" -recomputeSize 0 -command "MS_mayaAscii_Export" "Export" ;//Data//
+	button -width 48 -backgroundColor 0.7720000148 0.8368660212 1 -label "Camera" -recomputeSize 0 -command "mayaAscii_Camera_Export" "CameraExport" ;//Data//
+	separator -width 300 -height 2 "separator8" ;//Data//
+	textField -width 100 
+		-cc "MS_mayaAscilExport_storeRecallUI store;" 
+		"AnimationName" ;//Data//
+	textField -width 100 
+		-cc "MS_mayaAscilExport_storeRecallUI store;" 
+		"ModelName";//Data//
+	checkBox -recomputeSize 0 -v 1 -label "History" 
+			-onc "MS_mayaAscilExport_storeRecallUI store;" 
+			-ofc "MS_mayaAscilExport_storeRecallUI store;"
+			-width 128 "History" ;//Data//
+	checkBox -recomputeSize 0 -v 1 -label "Channels" 
+			-onc "MS_mayaAscilExport_storeRecallUI store;" 
+			-ofc "MS_mayaAscilExport_storeRecallUI store;"
+			-width 128 "Channels" ;//Data//
+	checkBox -recomputeSize 0 -v 1 -label "Expressions" 
+			-onc "MS_mayaAscilExport_storeRecallUI store;" 
+			-ofc "MS_mayaAscilExport_storeRecallUI store;"
+			-width 128 "Expressions" ;//Data//
+	checkBox -recomputeSize 0 -v 1 -label "Constraints" 
+			-onc "MS_mayaAscilExport_storeRecallUI store;" 
+			-ofc "MS_mayaAscilExport_storeRecallUI store;"
+			-width 128 "Constraints" ;//Data//
+	checkBox -recomputeSize 0 -v 1 -label "TextureInfo" 
+			-onc "MS_mayaAscilExport_storeRecallUI store;" 
+			-ofc "MS_mayaAscilExport_storeRecallUI store;"
+			-width 128 "TextureInfo" ;//Data//
+	
+	formLayout -e
+		-af "History" "left" 16//Data//
+		-af "History" "top" 16//Data//
+		-af "Channels" "left" 16//Data//
+		-af "Channels" "top" 32//Data//
+		-af "Expressions" "left" 16//Data//
+		-af "Expressions" "top" 48//Data//
+		-af "Constraints" "left" 16//Data//
+		-af "Constraints" "top" 64//Data//
+		-af "TextureInfo" "left" 16//Data//
+		-af "TextureInfo" "top" 80//Data//
+		-af "addModelName" "left" 176//Data//
+		-af "addModelName" "top" 16//Data//
+		-af "ModelName" "left" 176//Data//
+		-af "ModelName" "top" 32//Data//
+		-af "addAnimName" "left" 176//Data//
+		-af "addAnimName" "top" 64//Data//
+		-af "AnimationName" "left" 176//Data//
+		-af "AnimationName" "top" 80//Data//
+		-af "separator9" "left" 0//Data//
+		-af "separator9" "top" 136//Data//
+		-af "tex10" "left" 0//Data//
+		-af "tex10" "top" 144//Data//
+		-af "mayaAscil_ExportUI_filePath" "left" 0//Data//
+		-af "mayaAscil_ExportUI_filePath" "top" 160//Data//
+		-af "Brouse" "left" 224//Data//
+		-af "Brouse" "top" 160//Data//
+		-af "separator8" "left" 0//Data//
+		-af "separator8" "top" 184//Data//
+		-af "CameraExport" "left" 16//Data//
+		-af "CameraExport" "top" 192//Data//
+		-af "Export" "left" 160//Data//
+		-af "Export" "top" 192//Data//
+		-af "exit" "left" 256//Data//
+		-af "exit" "top" 192//Data//
+		
+	//--DataPart--//
+	myUIFormLayout;
+	MS_mayaAscilExport_storeRecallUI recall;
+	showWindow MyTools_mayaAscii_Export;
+}
+//mayaAscii_Export;

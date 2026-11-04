@@ -1,0 +1,131 @@
+global proc MS_average(){
+	int $checkx=`checkBox -q -v "checkx"`;
+	int $checky=`checkBox -q -v "checky"`;
+	int $checkz=`checkBox -q -v "checkz"`;
+	int $pow=`intSliderGrp -q -v "pow"`;
+	int $iter=`intSliderGrp -q -v "iter"`;
+	
+	int $ch=`constructionHistory -q -tgl`;
+	constructionHistory -tgl 0;
+	float $befor[];
+	float $after[];
+	int $i;
+	vector $vec[];
+	
+	string $selOrg[]=`ls -sl`;
+	string $obj[]=`ls -typ transform -sl`;
+	//string $selectionOrg[]=`ls -sl`;
+	string $compHilighted[]=`ls -hl`;
+	string $converted[] = `polyListComponentConversion -fv -ff -fe -fuv -fvf -tv`;
+	
+	select -r  $converted;
+	string $compOrg[]=`filterExpand -sm 31 `;
+	
+	
+	
+	if(($checkx+$checky+$checkz)>0){
+		//先にコンポーネント処理
+		$i=0;
+		for($each in $compOrg){
+			$befor=`xform -q -ws -t $each`;
+			$vec[$i]=<<$befor[0],$befor[1],$befor[2]>>;
+			$i++;
+		}
+		$i=0;
+		for($i=0;$i<$iter;$i++){
+			polyAverageVertex -i $pow -ws 1 -ch 0 $compOrg;
+			for ($eachHL in $compHilighted){
+				delete -ch $eachHL;
+			}
+		}
+		$i=0;
+		for($each in $compOrg){
+			$after=`xform -q -ws -t $each`;
+			$befor=$vec[$i];
+			
+			if(!$checkx){
+				$after[0]=$befor[0];
+			}
+			if(!$checky){
+				$after[1]=$befor[1];
+			}
+			if(!$checkz){
+				$after[2]=$befor[2];
+			}
+			xform -ws -t $after[0] $after[1] $after[2] $each;
+			$i++;
+		}
+		//オブジェクト処理
+		for($eachobj in $obj){
+			select -r $eachobj;
+			PolySelectConvert 3;
+			string $comp[]=`filterExpand -sm 31`;
+			//コンポーネント座標取得
+			$i=0;
+			for($each in $comp){
+				$befor=`xform -q -ws -t $each`;
+				$vec[$i]=<<$befor[0],$befor[1],$befor[2]>>;
+				$i++;
+			}
+			
+			for($i=0;$i<$iter;$i++){
+				polyAverageVertex -i $pow -ch 0 $comp;
+				for ($eachHL in $compHilighted){
+					delete -ch $eachHL;
+				}
+			}
+			
+			$i=0;
+			for($each in $comp){
+				$after=`xform -q -ws -t $each`;
+				$befor=$vec[$i];
+				
+				if(!$checkx){
+					$after[0]=$befor[0];
+				}
+				if(!$checky){
+					$after[1]=$befor[1];
+				}
+				if(!$checkz){
+					$after[2]=$befor[2];
+				}
+				
+				xform -ws -t $after[0] $after[1] $after[2] $each;
+				
+				$i++;
+			}
+		}
+	}
+	
+	constructionHistory -tgl $ch;
+	select -r $selOrg;
+	
+}
+
+
+global proc MS_averageUI(){
+	if(`window -q -ex MyTools_MS_averageUI`)deleteUI MyTools_MS_averageUI;
+	window MyTools_MS_averageUI;
+	
+	columnLayout -adj 1;
+	
+	text -l "MS_averageUI";
+	
+	rowLayout -nc 3 -cw 1 40 -cw 2 40 -cw 3 40 ;
+	checkBox -l "x" -v 1 "checkx";
+	checkBox -l "y" -v 1 "checky";
+	checkBox -l "z" -v 1 "checkz";
+	setParent ..;
+	
+	intSliderGrp -cw 1 30 -adj 3 -l "pow" -f 1 -min 1 -max 100 -v 100 "pow"; 
+	intSliderGrp -cw 1 30 -adj 3 -l "iter" -f 1 -min 1 -max 20 -v 20 "iter"; 
+	
+	button -bgc 0.8 1 0.8 -l "MS_average" -c "MS_average";
+	setParent ..;
+	
+	showWindow MyTools_MS_averageUI;
+}
+
+
+
+

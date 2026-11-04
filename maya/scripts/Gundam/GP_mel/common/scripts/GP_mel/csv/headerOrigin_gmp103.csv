@@ -1,0 +1,24 @@
+#ifdef GR_FILE_LINKED
+
+GR_FILE_LINKED( _basepose )
+GR_FILE_LINKED( motion_c100_gmp103_beam_connectLR_00_start )
+GR_FILE_LINKED( motion_c100_gmp103_beam_connectLR_01_shot )
+GR_FILE_LINKED( motion_c100_gmp103_beam_connectLR_02_end )
+GR_FILE_LINKED( motion_c100_gmp103_beam_connectLR_sky_00_start )
+GR_FILE_LINKED( motion_c100_gmp103_beam_connectLR_sky_01_shot )
+GR_FILE_LINKED( motion_c100_gmp103_beam_connectLR_sky_02_end )
+GR_FILE_LINKED( motion_c100_gmp103_beam_connectLR_UP_00_start )
+GR_FILE_LINKED( motion_c100_gmp103_beam_connectLR_UP_01_shot )
+GR_FILE_LINKED( motion_c100_gmp103_beam_connectLR_UP_02_end )
+GR_FILE_LINKED( motion_c100_gmp103_beam_connectLR_DOWN_00_start )
+GR_FILE_LINKED( motion_c100_gmp103_beam_connectLR_DOWN_01_shot )
+GR_FILE_LINKED( motion_c100_gmp103_beam_connectLR_DOWN_02_end )
+GR_FILE_LINKED( motion_c100_gmp103_beam_connectLR_sky_UP_00_start )
+GR_FILE_LINKED( motion_c100_gmp103_beam_connectLR_sky_UP_01_shot )
+GR_FILE_LINKED( motion_c100_gmp103_beam_connectLR_sky_UP_02_end )
+GR_FILE_LINKED( motion_c100_gmp103_beam_connectLR_sky_DOWN_00_start )
+GR_FILE_LINKED( motion_c100_gmp103_beam_connectLR_sky_DOWN_01_shot )
+GR_FILE_LINKED( motion_c100_gmp103_beam_connectLR_sky_DOWN_02_end )
+
+#undef GR_FILE_LINKED
+#endif // GR_FILE_LINKED

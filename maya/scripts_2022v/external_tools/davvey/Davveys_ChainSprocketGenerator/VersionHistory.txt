@@ -1,0 +1,18 @@
+
+Version 1.1.0
+Modified Script to improve curve building when using Sprockets of two sizeswhich are very 
+different in diameter.
+
+
+Version 1.0.3
+Corrected script error which caused failure when rigging Chains not named "SIMPLEX".
+
+
+Version 1.0.2
+Added missing Scripts DVY_GetAnimCurve and DVY_MakeCycle which are used to help build and aanimate chain.
+
+Version 1.0.1
+Added missing script named DVY_MakeSelectedCycle which is used to set Cycle of Chain Group after they are added to the motion Path.
+ 
+Version 1.0
+First Release

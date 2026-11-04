@@ -1,0 +1,107 @@
+global proc MS_flashWeapon(string $target[]){
+	
+	vector $loc=`MS_ditectCenter 1`;
+	
+	
+	
+//選択ポリゴンの複製を作成
+	string $dup[]=`MS_duplicateFace`;
+	select -r $dup;
+	PolySelectConvert 3;
+	
+	int $vertexs[]=`polyEvaluate -v`;
+	string $newOptions;
+	for($i=0;$i<$vertexs[0];$i++){
+		$newOptions=($newOptions+"-n 0.25 ");
+	}
+	eval ("moveVertexAlongDirection "+$newOptions);
+	
+	
+	
+//ロケーター作成＆親子関係
+	string $newLoc[]=`spaceLocator`;
+	MS_constraint (1,"",0,1,0,0,0,0,0,0,$target,$newLoc);
+	
+	editDisplayLayerMembers "defaultLayer" $dup;
+	
+	select -r $dup;
+	
+	//アトリビュートアンロック
+	for ($each in $dup){
+		string $lockedAttr[]=`listAttr -l $each`;
+		for($eachAttr in $lockedAttr){
+			setAttr -l false ($each+"."+$eachAttr);
+		}
+	}
+	
+	select -r $dup;
+	
+	PolySelectConvert 3;
+	
+	vector $loc=`MS_ditectCenter 0`;
+	
+	string $targetLoc[]=`spaceLocator`;
+	
+	xform -ws -t ($loc.x) ($loc.y) ($loc.z) $targetLoc[0];
+	
+	parent $dup $targetLoc[0] $newLoc[0] ;
+	
+	
+
+//頂点カラー作成
+	
+	select -r $dup;
+	
+	PolySelectConvert 3;
+	
+	string $allVtx[]=`filterExpand -sm 31`;
+	
+	polyColorPerVertex -r 1 -g 1 -b 1 -a 1 -cdo $allVtx;
+	
+	polySelectConstraint -m 3 -t 1 -w 1;
+	
+	string $edgeVtx[]=`filterExpand -sm 31`;
+	
+	polyColorPerVertex -r 1 -g 1 -b 1 -a 0 -cdo $edgeVtx;
+	
+	polySelectConstraint -m 0 -t 0 -w 0;
+	
+//シェーダー作成＆割付
+	
+	createEF_1;
+	
+	string $shad[]=`ls -sl`;
+	string $sg[]=`listConnections -t shadingEngine`;
+	string $cgfx[]=`listConnections -t cgfxShader`;
+	
+	select -r $dup;
+	sets -e -forceElement $sg[0];
+	MS_AEcgfxShader_techniqueChoice $cgfx[0] "stexture_vcolor";
+	
+//MS_VFA
+	
+	MS_VFA_Float(
+		`playbackOptions -q -min`,
+		`playbackOptions -q -max`,
+		0,
+		1,
+		$targetLoc[0],
+		$cgfx,
+		{"baseColorAlpha"}
+	);
+	
+	//後始末
+	delete $targetLoc;
+	/*
+	シーン内でかぶらないリネームはできないのか？
+	rename $shad[0] "MS_flashWeapon_lambt";
+	rename $cgfx[0] "MS_flashWeapon_cgfx";
+	rename $sg[0] "MS_flashWeapon_sg";
+	
+	rename $dup[0] "MS_flashWeapon_mesh";
+	rename $newLoc[0] "MS_flashWeapon";
+	*/
+}
+
+
+

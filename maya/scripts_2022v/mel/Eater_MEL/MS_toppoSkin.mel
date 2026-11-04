@@ -1,0 +1,84 @@
+
+global proc vector MS_ditectCenter(int $mode ){
+	/*
+	0　バウンディングボックス中心検出
+	1　ボリューム中心検出
+	
+	戻り値：vector
+	*/
+	string $orgobjz[]=`ls -sl`;
+	//より分け選択
+	string $objz[];
+	
+	$objz=`ls -tr -sl`;
+	
+	if(!size($objz)){
+		PolySelectConvert 3;
+		$objz=`filterExpand -sm 31`;
+	}
+	
+	vector $loc;
+	string $locatorList[];
+	string $temp[];
+	
+	float $totalX;
+	float $totalY;
+	float $totalZ;
+	
+	if ($mode==0){
+		
+		//バウンディングボックス中心検出
+		
+		float $bbox[6] = `exactWorldBoundingBox $objz`;
+		$loc=<<(($bbox[3]+$bbox[0])/2),(($bbox[4]+$bbox[1])/2),(($bbox[5]+$bbox[2])/2)>>;
+		
+		
+	}else if ($mode==1){
+		
+		//ボリューム中心検出
+		for ($each in $objz){
+			
+			vector $location=`xform -q -ws -t $each`;
+			
+			$totalX=$totalX+($location.x);
+			$totalY=$totalY+($location.y);
+			$totalZ=$totalZ+($location.z);
+			
+		}
+		
+		$loc=<<($totalX/size($objz)),($totalY/size($objz)),($totalZ/size($objz))>>;
+	}
+	
+	select -r $orgobjz;
+	return $loc;
+
+}
+
+
+
+
+global proc MS_toppoSkin(){
+	
+	string $bone[]=`ls -sl`;
+	string $temp[];
+	vector $center;
+	int $i;
+	//for ($i=1;$i<126;$i++){
+	$i=0;
+	for($each in $bone){
+		select -r ($bone[$i]);
+		$center=`MS_ditectCenter(0)`;
+		if(tokenize ($bone[$i],"_",$temp)){
+			print ("joint_"+$temp[1]);
+			xform -a -ws -t ($center.x) ($center.y) ($center.z) ("joint_"+$temp[1]);
+			select ("joint_"+$temp[1]);
+
+		}
+		
+		//tokenize ($each,"_",$temp);
+		//select -r ("*_"+$temp[1]);
+		//bindSkin -tsb;
+		//skinCluster -tsb;
+		$i++;
+	}
+}

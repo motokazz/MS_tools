@@ -1,0 +1,16 @@
+{
+	string $obj[]=`ls -sl`;
+	string $rigid[];
+	for($eachObj in $obj){
+		string $rilativeRigid[]=`listRelatives -typ rigidBody $eachObj`;
+		$rigid=stringArrayCatenate($rigid,$rilativeRigid);
+	}
+	string $field[]=`ls -typ field -sl`;
+	for($eachRigid in $rigid){
+		for ($eachField in $field){
+			connectDynamic -f $eachField $eachRigid;
+			print ($eachField+"||"+$eachRigid+"\n");
+		}
+	}
+}
+

@@ -1,0 +1,6 @@
+$aho=`ls-sl`;
+$i=0;
+for($i=0;$i<size($aho);$i++){
+select $aho[$i];
+convertInstanceToReal;
+}

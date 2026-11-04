@@ -1,0 +1,10 @@
+global proc multiPurposeEditablePicker(){
+	string $scp = (`getenv GP_MAYA_ROOT` + "/common/scripts/GP_mel/subscripts/multiPurposeUI");
+	string $dividedFileList[] = {"01_base","02_optWindow","03_dragWork","04_ctrlSort","05_tabSave","06_tabCreate"};
+
+	for($item in $dividedFileList){
+		string $filePath = ($scp + "/MultiPurposeUI_" + $item + ".mel");
+		eval( "source \"" + $filePath + "\"" );
+	}
+	GP2_devMultiPurposeUI();
+}

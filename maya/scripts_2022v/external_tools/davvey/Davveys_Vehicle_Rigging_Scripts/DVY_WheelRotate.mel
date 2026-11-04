@@ -1,0 +1,167 @@
+/* This file downloaded from Highend3d.com
+''  
+''  Highend3d.com File Information:
+''  
+''    Script Name: Davveys Vehicle Rigging Scripts
+''    Author:  
+''    Last Updated: Jul 21, 2007
+''    Update/Change this file at:
+''    http://Highend3d.com/maya/downloads/mel_scripts/animation/4109.html
+''  
+''  Please do not alter any information above this line
+''  it is generated dynamically by Highend3d.com and will
+''  be changed automatically on any updates.
+*/
+
+///////////////////////////////////////////////////////////////////////////////
+/*			
+	Copyright © 2006 DVY_WheelRotate All rights reserved davvey@ntlworld.com
+
+						- DVY_WheelRotate -
+
+///////////////////////////////////////////////////////////////////////////////
+
+	This script is called by DVY_RigVehicle to set each wheel to AutoRotate
+	based on the Vehicle's movement in the X and Z Axis. It will set each
+	wheel to spin the required amount based on tyre diameter and distance moved.
+	
+	This calculation can be then muliplied if required on each invidual wheel
+	to simulate wheel spin. This AutoRotate will work on top of the DVY_WheelSpin
+	scripts setup by using a blend node on each inividusal wheel.
+	
+	Rotation direction is automatically setup by another script to compensate for
+	any change in the vehicles orientation in the Y axis (DVY_VehicleRotate).
+			
+*/
+//////////////////////////////////////////////////////////////////////////
+//					DVY_WheelRotate Procedure
+//////////////////////////////////////////////////////////////////////////
+
+//============================================================================
+//	GLOBAL VARIABLES
+//============================================================================
+	global int $DVYDebug;
+
+// Integer Flag that allows print statements to be output to
+// message field for tracking purposes.
+	
+//============================================================================
+	
+global proc DVY_WheelRotate()
+ {
+	print "Starting DVY_WheelRotate procedure.\n\n";
+
+	 
+// *******************************************************************************//	
+//	Global Variables
+	
+	global string $GroupV_A[], $RigControlsA[], $SpinAddA[], $DVY_Util[];
+	global string $DVY_VehName;
+	
+	global float $DVYdata[];
+	
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+//	Local Variables
+
+	string $WheelRotate_MultSqN[],	$WheelRotate_AddN[], $WheelRotate_SqRtN[], $Wheel_RotDirN[],
+			$ZWheelRotateCondN[], $XWheelRotateCondN[], $XZWheelRotateCondN[], 
+			$XZWheelRotateCond_AddN[], $WheelRotateClampN[],$WheelRotateXZSumN[],
+			$WheelRotateXZSumNosw[], $XZSumCondN[], $Wheel_RotateSW[],
+			$Wheel_CircumN[], $WheelRadiusN[], $WheelDivN[];
+	
+	string $DPrefixSp[] = {"LfFr_", "RtFr_", "LfRr_", "RtRr_"};
+	string $DPrefix[] = {"LfFr", "RtFr", "LfRr", "RtRr"};
+
+	int $i, $j, $k;
+	
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+
+	$WheelRotate_MultSqN[0] = `shadingNode -asUtility multiplyDivide -name ($DVY_VehName + "WheelRotate_MultSqN_1")`;
+		setAttr ($WheelRotate_MultSqN[0] + ".operation") 1;
+		connectAttr -f ($RigControlsA[0] + ".translate") ($WheelRotate_MultSqN[0] + ".input1");
+		connectAttr -f ($RigControlsA[0] + ".translate") ($WheelRotate_MultSqN[0] + ".input2");
+		connectAttr -f ($WheelRotate_MultSqN[0] + ".outputX")	($RigControlsA[0] + ".Move_MultSqNX_Out");	
+		connectAttr -f ($WheelRotate_MultSqN[0] + ".outputZ")	($RigControlsA[0] + ".Move_MultSqNZ_Out");	
+
+	$WheelRotate_AddN[0] = `shadingNode -asUtility addDoubleLinear -name ($DVY_VehName + "WheelRotate_Rig_AddN_1")`;
+		connectAttr -f ($WheelRotate_MultSqN[0] + ".outputX") ($WheelRotate_AddN[0] + ".input1");
+		connectAttr -f ($WheelRotate_MultSqN[0] + ".outputZ") ($WheelRotate_AddN[0] + ".input2");
+		connectAttr -f ($WheelRotate_AddN[0] + ".output") ($RigControlsA[0] + ".MoveRig_AddN_Out");
+
+	$WheelRotate_SqRtN[0] = `shadingNode -asUtility multiplyDivide -name ($DVY_VehName + "WheelRotate_Rig_SqRtN_1")`;
+		setAttr ($WheelRotate_SqRtN[0] + ".operation") 3;
+		setAttr ($WheelRotate_SqRtN[0] + ".input2X") 0.5;
+		connectAttr -f ($WheelRotate_AddN[0] + ".output") ($WheelRotate_SqRtN[0] + ".input1X");
+		connectAttr -f ($WheelRotate_SqRtN[0] + ".outputX") ($RigControlsA[0] + ".MoveRig_SqRtN_Out");
+		
+	$XWheelRotateCondN[0] = `createNode condition -name ($DVY_VehName + "WheelRotate_XCondN_1")`;
+		setAttr ($XWheelRotateCondN[0] + ".op") 2;
+		setAttr ($XWheelRotateCondN[0] + ".ft") 0;
+		setAttr ($XWheelRotateCondN[0] + ".cfr") 1;
+		setAttr ($XWheelRotateCondN[0] + ".ctr") -1;
+		connectAttr -f ($RigControlsA[0] + ".translateX") ($XWheelRotateCondN[0] + ".st");
+		connectAttr -f ($XWheelRotateCondN[0] + ".ocr")  ($RigControlsA[0] + ".XMoveCondN_Out");
+		
+	$ZWheelRotateCondN[0] = `createNode condition -name ($DVY_VehName + "WheelRotate_ZCondN_1")`;
+		setAttr ($ZWheelRotateCondN[0] + ".op") 2;
+		setAttr ($ZWheelRotateCondN[0] + ".ft") 0;
+		setAttr ($ZWheelRotateCondN[0] + ".cfr") 1;
+		setAttr ($ZWheelRotateCondN[0] + ".ctr") -1;
+		connectAttr -f ($RigControlsA[0] + ".translateZ")  ($ZWheelRotateCondN[0] + ".st");
+		connectAttr -f ($ZWheelRotateCondN[0] + ".ocr")  ($RigControlsA[0] + ".ZMoveCondN_Out");		
+
+	$XZWheelRotateCond_AddN[0] = `shadingNode -asUtility addDoubleLinear -name ($DVY_VehName + "WheelRotate_XZCond_AddN_1")`;
+		connectAttr -f ($XWheelRotateCondN[0] + ".ocr") ($XZWheelRotateCond_AddN[0] + ".input1");
+		connectAttr -f ($ZWheelRotateCondN[0] + ".ocr") ($XZWheelRotateCond_AddN[0] + ".input2");
+		connectAttr -f ($XZWheelRotateCond_AddN[0] + ".output") ($RigControlsA[0] + ".XZMoveCond_AddN_Out");
+		
+	$XZWheelRotateCondN[0] = `createNode condition -name ($DVY_VehName + "WheelRotate_XZCondN_1")`;
+		setAttr ($XZWheelRotateCondN[0] + ".op") 2;
+		setAttr ($XZWheelRotateCondN[0] + ".cfr") 1;
+		setAttr ($XZWheelRotateCondN[0] + ".ctr") -1;
+		connectAttr -f ($XWheelRotateCondN[0] + ".ocr") ($XZWheelRotateCondN[0] + ".ft");
+		connectAttr -f ($ZWheelRotateCondN[0] + ".ocr") ($XZWheelRotateCondN[0] + ".st");
+		connectAttr -f ($XZWheelRotateCondN[0] + ".ocr") ($RigControlsA[0] + ".XZMoveCondN_Out");
+
+	$WheelRotateXZSumN[0] = `createNode plusMinusAverage -name ($DVY_VehName + "WheelRotate_XZSumN_1")`;
+		setAttr ($WheelRotateXZSumN[0] + ".op") 3;
+		connectAttr -f ($XWheelRotateCondN[0] + ".ocr") ($WheelRotateXZSumN[0] + ".input1D[1]");
+		connectAttr -f ($ZWheelRotateCondN[0] + ".ocr") ($WheelRotateXZSumN[0] + ".input1D[2]");
+		connectAttr -f ($XZWheelRotateCondN[0] + ".ocr") ($WheelRotateXZSumN[0] + ".input1D[3]");
+		
+	$XZSumCondN[0] = `createNode condition -name ($DVY_VehName + "WheelRotate_XZSumCondN_1")`;
+		setAttr ($XZSumCondN[0] + ".op") 4;
+		setAttr ($XZSumCondN[0] + ".ft") 0;
+		setAttr ($XZSumCondN[0] + ".cfr") -1;
+		setAttr ($XZSumCondN[0] + ".ctr") 1;
+		connectAttr -f ($WheelRotateXZSumN[0] + ".output1D") ($XZSumCondN[0] + ".st");
+		connectAttr -f ($XZSumCondN[0] + ".ocr") ($RigControlsA[0] + ".XZSumN_Out");
+		
+	$Wheel_RotateSW[0] = `shadingNode -asUtility multDoubleLinear -name ($DVY_VehName + "WheelRotate_AutoRot_SwitchN_1")`;
+		connectAttr -f ($RigControlsA[0] + ".AutoRotate") ($Wheel_RotateSW[0] + ".input1");
+		connectAttr -f ($WheelRotate_SqRtN[0] + ".outputX")($Wheel_RotateSW[0] + ".input2");	// Output of SqRoot Node.
+	
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+/*
+		print ("\nVehicle WheelRotate Nodes are..\n\n");
+		
+		print ("$WheelRotate_MultSqN[0] is " + $WheelRotate_MultSqN[0] + ".\n");
+		print ("$WheelRotate_AddN[0] is " + $WheelRotate_AddN[0] + ".\n");
+		print ("$WheelRotate_SqRtN[0] is " + $WheelRotate_SqRtN[0] + ".\n");
+		print ("$ZWheelRotateCondN[0] is " + $ZWheelRotateCondN[0] + ".\n");
+		print ("$XWheelRotateCondN[0] is " + $XWheelRotateCondN[0] + ".\n");
+		print ("$XZWheelRotateCondN[0] is " + $XZWheelRotateCondN[0] + ".\n");
+		print ("$XZWheelRotateCond_AddN[0] is " + $XZWheelRotateCond_AddN[0] + ".\n");
+		print ("$WheelRotateXZSumN[0] is " + $WheelRotateXZSumN[0] + ".\n");
+		print ("$XZSumCondN[0] is " + $XZSumCondN[0] + ".\n");
+		print ("$Wheel_RotateSW[0] is " + $Wheel_RotateSW[0] + ".\n");
+		print "\n Davvey © 2006..\n\n";
+*/
+		print "\n DVY_WheelRotate has set up Nodes for generating correct rotation of Wheels when vehicle is moved and rotated in X and Z axis. Davvey © 2006..\n\n";
+}		

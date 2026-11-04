@@ -1,0 +1,417 @@
+/* This file downloaded from Highend3d.com
+''  
+''  Highend3d.com File Information:
+''  
+''    Script Name: Davveys Vehicle Rigging Scripts
+''    Author:  
+''    Last Updated: Jul 21, 2007
+''    Update/Change this file at:
+''    http://Highend3d.com/maya/downloads/mel_scripts/animation/4109.html
+''  
+''  Please do not alter any information above this line
+''  it is generated dynamically by Highend3d.com and will
+''  be changed automatically on any updates.
+*/
+
+
+
+//////////////////////////////////////////////////////////////////////////
+//					DVY_HoodandTrunk Procedure
+//////////////////////////////////////////////////////////////////////////
+
+
+//////////////////////////////////////////////////////////////////////////
+
+
+//============================================================================
+//	GLOBAL VARIABLES
+//============================================================================
+	global int $DVYDebug;
+
+// Integer Flag that allows print statements to be output to
+// message field for tracking purposes.
+
+//============================================================================
+
+global proc DVY_HoodandTrunk()
+{
+	print "Start of DVY_HoodandTrunk Procedure. \n";
+
+// ******************************************************************************** //	
+//	Global Variables
+
+	global string $GroupV_A[], $GroupHT_A[], $RigControlsA[], $HTControlsA[],
+				  $DVYHinge[], $DVYHandle[], $DVYWindB[], $DVYWindT[],
+				  $DVYHingeH[], $DVYHandleH[], $DVYWinBH[], $DVYWinTH[];
+					  
+	clear $DVYHingeH; clear $DVYHandleH; clear $DVYWinBH; clear $DVYWinTH;
+	clear $DVYHinge; clear $DVYHandle;	clear $DVYWindB; clear $DVYWindT;
+	clear $HTControlsA;
+	
+	global string $DLocs[], $DJntsA[], $LocGroups[], $DVY_MuSuspGrp[];
+	global string $hier[], $LChier[], $JThier[];
+	
+	global string $DVY_VehName;
+	global int $On = 1;
+	
+	global float $DVYdata[];	
+
+// -------------------------------------------------------------------------------- //
+	
+// ******************************************************************************** //	
+//	Local Variables
+
+	string $Temp[], $Tmp[];
+	string $Side[] = {"LfFr_", "RtFr_", "LfRr_", "RtRr_"};
+	string $Names[] = {"Fr_Hood", "Rr_TrunkLid", "Rr_Tailgate", "Rr_TopTailgate",
+						"Rr_BotTailgate", "LfRr_TailDoor", "RtRr_TailDoor"};
+	float $Pos[], $WPos[];  
+	int $a, $b, $c, $d, $i, $j, $k, $q, $r, $s;	
+	
+// ******************************************************************************** //	
+//	Collect Global Vehicle Variables from UI.
+	
+	$GroupV_A[1] = `textField -q -tx VehicleBodyShellGrpTxField`;
+	$GroupV_A[2] = `textField -q -tx VehicleBodyShellTxField`;
+	$GroupV_A[6] = `textField -q -tx LfFr_WheelTxField`;
+	
+//	print $GroupV_A;
+// ******************************************************************************** //	
+//	Collect Global Hood and Trunk Variables from UI.
+
+	$GroupHT_A[0] = `textField -q -tx Fr_HoodTxField`;
+	$GroupHT_A[1] = `textField -q -tx Rr_TrunkTxField`;
+	$GroupHT_A[2] = `textField -q -tx Rr_TailTxField`;
+	$GroupHT_A[3] = `textField -q -tx Rr_TailWinTxField`;
+	$GroupHT_A[4] = `textField -q -tx Rr_TopTailTxField`;
+	$GroupHT_A[5] = `textField -q -tx Rr_SplitTailWinTxField`;
+	$GroupHT_A[6] = `textField -q -tx Rr_BotTailTxField`;
+	$GroupHT_A[7] = `textField -q -tx LfRr_TailDoorTxField`;
+	$GroupHT_A[8] = `textField -q -tx RtRr_TailDoorTxField`;
+	
+//	print $GroupHT_A;
+// ******************************************************************************** //	
+// Section to set optiond for each Checkbox or Radiobutton chosen	
+	
+	int $SelFH = `radioButtonGrp -q -sl FrHoodRadioButtons`;
+	int $SelRT = `radioButtonGrp -q -sl RrHoodRadioButtons`;
+	int $SelRTg = `radioButtonGrp -q -sl RrTailRadioButtons`;
+	int $SelRTs = `radioButtonGrp -q -sl RrSplitTailRadioButtons`;
+	int $SelRW = `checkBox -q -v TailWindowEnableCheck`;
+	int $SelRWs = `checkBox -q -v SplitTailWindowEnableCheck`;
+	int $SelRTt = `radioButtonGrp -q -sl RrSplitTailRadioButtons`;
+	int $SelRTb = `radioButtonGrp -q -sl RrSplitTailRadioButtons`;
+	int $SelRTWs = `radioButtonGrp -q -sl RrSplitTailRadioButtons`;
+	int $SelLRDr = `radioButtonGrp -q -sl RrSplitTailRadioButtons`;
+	int $SelRRDr = `radioButtonGrp -q -sl RrSplitTailRadioButtons`;
+
+/*	print ("$SelFH  is " + $SelFH + "\n");		print ("$SelRT  is " + $SelRT + "\n");
+	print ("$SelRTg  is " + $SelRTg + "\n");	print ("$SelRTs  is " + $SelRTs + "\n");
+	print ("$SelRW  is " + $SelRW + "\n");		print ("$SelRWs  is " + $SelRWs + "\n");
+	print ("$SelRTb  is " + $SelRTb + "\n");	print ("$SelRTWs  is " + $SelRTWs + "\n");
+	print ("$SelLRDr  is " + $SelLRDr + "\n");	print ("$SelRRDr  is " + $SelRRDr + "\n");
+*/
+
+	float $BDataA[], $TDataA[], $DDataA[], $WDataA[];
+	
+// ******************************************************************************** //	
+// Section to collect Data of Bodyshell size and position	
+	
+	$BDataA = `objectCenter ($GroupV_A[2])`;
+	$TDataA = `xform -q -bb ($GroupV_A[2])`;
+		for ($s = 3; $s < 9; $s++ )
+			{ $BDataA[$s] = $TDataA[($s-3)];}
+		
+// ******************************************************************************** //	
+// 	Section to set counters dependant on options chosen for Front Hood and or Rearv Trunklid
+			
+	$a = 0;	$i = 2; $b = 0;
+
+	if (`checkBoxGrp -q -value1 HoodsOptionsCheck` == 0) {$a = 1;}
+	if (`checkBoxGrp -q -value2 HoodsOptionsCheck` == 0) {$i = 1;}
+
+// ******************************************************************************** //	
+// 	Section to set position of Front Hood and Rear Trunklid Hinge positions
+		
+	for ($a=$d; $a<$i; $a++)
+		{
+			$DDataA = `objectCenter $GroupHT_A[$a]`;
+			$TDataA = `xform -q -bb $GroupHT_A[$a]`;
+				for ($s = 3; $s < 9; $s++ )
+					{ $DDataA[$s] = $TDataA[($s-3)];}
+			$DDataA[10] = `getAttr ($GroupHT_A[$a] + ".boundingBoxSizeZ")`;	
+//	Front Hood
+		if ($a == 0)
+			{
+			if ($SelFH == 1) 
+					{$Pos[0] = $DDataA[0]; $Pos[1] = $DDataA[7];	$Pos[2] = ($DDataA[8] * 1);
+					 $Pos[3] = 0;	$Pos[4] = 0;	$Pos[5] = ($DDataA[8] - $DDataA[5]) * -1; }
+				
+			if ($SelFH == 2) 
+					{$Pos[0] = $DDataA[0]; $Pos[1] = $DDataA[7];	 $Pos[2] = ($DDataA[5] * 1);
+					 $Pos[3] = 0;	$Pos[4] = 0;	$Pos[5] = ($DDataA[8] - $DDataA[5]) * 1; }
+					 
+			if ($SelFH == 3) 
+					{$Pos[0] = $DDataA[6];	 $Pos[1] = $DDataA[7];	$Pos[2] = ($DDataA[2] * 1);
+					 $Pos[3] = $DDataA[3] * 2;	$Pos[4] = 0;	 $Pos[5] = 0; }
+						
+			if ($SelFH == 4) 
+				{$Pos[0] = $DDataA[3];  $Pos[1] = $DDataA[7]; $Pos[2] = ($DDataA[2] * 1); 
+				 $Pos[3] = $DDataA[6] * 2;	$Pos[4] = 0;	$Pos[5] = 0; }
+			}		 
+//	Rear Trunklid
+		if ($a == 1)
+			{
+			if ($SelRT == 1)
+					{$Pos[0] = $DDataA[0]; $Pos[1] = $DDataA[7];	$Pos[2] = ($DDataA[8] * 1);
+					 $Pos[3] = 0;	$Pos[4] = 0;	$Pos[5] = ($DDataA[8] - $DDataA[5]) * -1; }
+				
+			if ($SelRT == 2)
+					{$Pos[0] = $DDataA[0]; $Pos[1] = $DDataA[7];	 $Pos[2] = ($DDataA[5] * 1);
+					 $Pos[3] = 0;	$Pos[4] = 0;	$Pos[5] = ($DDataA[8] - $DDataA[5]) * 1; }
+					 
+			if ($SelRT == 3)
+					{$Pos[0] = $DDataA[6];	 $Pos[1] = $DDataA[7];	$Pos[2] = ($DDataA[2] * 1);
+					 $Pos[3] = $DDataA[3] * 2;	$Pos[4] = 0;	 $Pos[5] = 0; }
+						
+			if ($SelRT == 4)
+				{$Pos[0] = $DDataA[3];  $Pos[1] = $DDataA[7]; $Pos[2] = ($DDataA[2] * 1); 
+				 $Pos[3] = $DDataA[6] * 2;	$Pos[4] = 0;	$Pos[5] = 0; }
+			}		 
+
+			$Pos[6] = $WPos[6] = abs (($DDataA[8] - $DDataA[5]) * 0.025);	
+			DVY_Hinge(($a), $Names[$a], $Pos);
+				
+			$WPos[1] = $WDataA[4]; $WPos[2] = $WDataA[2];  $WPos[10] = $WDataA[10];
+			if ($a == 0){ $Pos[8] = $BDataA[0]; $Pos[12] = $BDataA[1] * 3; $Pos[7] = $BDataA[8] * 0.9; $Pos[13] = 90;}
+			if ($a == 1){ $Pos[8] = $BDataA[6] * -0.2; $Pos[12] = $BDataA[1] * 3; $Pos[7] = $BDataA[5] * 0.9; $Pos[13] = 90;}
+			
+// Hood and Trunklid Controller Section					
+			$Temp = DVY_Control(($a), $Names[$a], $Pos);
+				$HTControlsA[$a+$b] = `rename $Temp[0] ($DVY_VehName + $Names[$a] + "_Control_1")`;
+				$HTControlsA[$a+$b+1] = `rename $Temp[1]($DVY_VehName + $Names[$a] + "_Controller_1")`;	
+				select -r $Temp[2]; delete;	
+				$b = $b+1;
+				
+		}// End of Section to set position of Front Hood Rear Trunklid Hinge positions
+		
+// ******************************************************************************** //	
+// Section to set position of Tailgate Hinge positions	
+		
+	$b = `checkBoxGrp -q -v3 HoodsOptionsCheck`;
+	if ($b == 1) {$b = 3;}
+		else {$b = 2;}
+
+	for ($a=2; $a<$b; $a++)
+		{
+			$DDataA = `objectCenter $GroupHT_A[$a]`;
+			$TDataA = `xform -q -bb $GroupHT_A[$a]`;
+				for ($s = 3; $s < 9; $s++ )
+					{ $DDataA[$s] = $TDataA[($s-3)];}
+			$DDataA[10] = `getAttr ($GroupHT_A[$a] + ".boundingBoxSizeZ")`;	
+			$DDataA[11] = `getAttr ($GroupHT_A[$a] + ".boundingBoxSizeY")`;	
+			
+			$WDataA = `objectCenter $GroupHT_A[$a+1]`;
+			$TDataA = `xform -q -bb $GroupHT_A[$a+1]`;
+				for ($s = 3; $s < 9; $s++ )
+					{ $WDataA[$s] = $TDataA[($s-3)];}
+			$WDataA[10] = `getAttr ($GroupHT_A[$a+1] + ".boundingBoxSizeY")`;	
+					
+			if ($SelRTg == 1)
+					{$Pos[0] = $DDataA[0]; $Pos[1] = $DDataA[7];	$Pos[2] = ($DDataA[8] * 1);
+					 $Pos[3] = 0;	$Pos[4] = $DDataA[11] * -1;	$Pos[5] = ($DDataA[8] - $DDataA[5]) * -1; }
+				
+			if ($SelRTg == 2)
+					{$Pos[0] = $DDataA[0]; $Pos[1] = $DDataA[4] ;	 $Pos[2] = ($DDataA[5] * 1);
+					 $Pos[3] = 0;	$Pos[4] = $DDataA[11];	$Pos[5] = ($DDataA[8] - $DDataA[5]) * 1; }
+					 
+			if ($SelRTg == 3)
+					{$Pos[0] = $DDataA[6];	 $Pos[1] = $DDataA[7];	$Pos[2] = ($DDataA[2] * 1);
+					 $Pos[3] = $DDataA[3] * 2;	$Pos[4] = 0;	 $Pos[5] = 0; }
+						
+			if ($SelRTg == 4)
+				{$Pos[0] = $DDataA[3];  $Pos[1] = $DDataA[7]; $Pos[2] = ($DDataA[2] * 1); 
+				 $Pos[3] = $DDataA[6] * 2;	$Pos[4] = 0;	$Pos[5] = 0; }
+					 
+			$WPos[6] = $Pos[6] = abs (($DDataA[8] - $DDataA[5]) * 0.025);
+			DVY_Hinge(($a), $Names[$a], $Pos);
+//	Window set up				
+			$WPos[1] = $WDataA[4]; $WPos[2] = $WDataA[5];  $WPos[10] = $WDataA[10]; $Pos[13] = 0;
+			
+			if (`checkBox -q -value TailWindowEnableCheck` == 1) 
+				{print "setting Window\n";	DVY_Window(0, $Names[$a], $WPos);}
+			
+			$Pos[8] = $BDataA[6] * -0.2; $Pos[12] = $BDataA[1] * 3; $Pos[7] = $BDataA[5] * 0.9; $Pos[13] = 90;
+// Tailgate and Window Controller Section							
+			$Temp = DVY_Control(($a), $Names[$a], $Pos);
+				$HTControlsA[$a] = `rename $Temp[0] ($DVY_VehName + $Names[$a] + "_Control_1")`;
+				$HTControlsA[$a+1] = `rename $Temp[1]($DVY_VehName + $Names[$a] + "_Controller_1")`;	
+				
+			if (`checkBox -q -value TailWindowEnableCheck` == 1) 
+					{ $HTControlsA[$a+2] = `rename $Temp[2]($DVY_VehName + $Names[$a] + "Window_Control_1")`;
+					  $HTControlsA[$a+3] = `rename $Temp[3]($DVY_VehName + $Names[$a] + "Window_Controller_1")`;	}
+				else {select -r $Temp[2]; delete;}
+		
+		}// End of Section to set position of Tailgate Hinge positions	
+		
+// ******************************************************************************** //	
+//	Section to set position of Top and Bottom Split Tailgate Hinge positions	
+
+	if ((`checkBoxGrp -q -v4 HoodsOptionsCheck` == 1) && (`radioButtonGrp -q -sl RrSplitTailRadioButtons` < 4))
+		{//	Section to set position of Top Tailgate Hinge positions	
+			for ($a=3; $a<4; $a++)
+					{
+						$DDataA = `objectCenter $GroupHT_A[$a+1]`;
+						$TDataA = `xform -q -bb $GroupHT_A[$a+1]`;
+							for ($s = 3; $s < 9; $s++ )
+								{ $DDataA[$s] = $TDataA[($s-3)];}
+						$DDataA[10] = `getAttr ($GroupHT_A[$a+1] + ".boundingBoxSizeZ")`;	
+						$DDataA[11] = `getAttr ($GroupHT_A[$a+1] + ".boundingBoxSizeY")`;	
+						
+						$WDataA = `objectCenter $GroupHT_A[$a+2]`;
+						$TDataA = `xform -q -bb $GroupHT_A[$a+2]`;
+							for ($s = 3; $s < 9; $s++ )
+								{ $WDataA[$s] = $TDataA[($s-3)];}
+						$WDataA[10] = `getAttr ($GroupHT_A[$a+2] + ".boundingBoxSizeY")`;	
+								
+						if ($SelRTt == 1)
+								{$Pos[0] = $DDataA[0]; $Pos[1] = $DDataA[7];	$Pos[2] = ($DDataA[8] * 1);
+								 $Pos[3] = 0;	$Pos[4] = $DDataA[11] * -1;	$Pos[5] = ($DDataA[8] - $DDataA[5]) * -1; }
+							
+						if ($SelRTt == 0)
+								{$Pos[0] = $DDataA[0]; $Pos[1] = $DDataA[7];	 $Pos[2] = ($DDataA[5] * 1);
+								 $Pos[3] = 0;	$Pos[4] = $DDataA[11];	$Pos[5] = ($DDataA[8] - $DDataA[5]) * 1; }
+								 
+						if ($SelRTt == 2)
+								{$Pos[0] = $DDataA[0]; $Pos[1] = $DDataA[7];	$Pos[2] = ($DDataA[8] * 1);
+								 $Pos[3] = 0;	$Pos[4] = $DDataA[11] * -1;	$Pos[5] = ($DDataA[8] - $DDataA[5]) * -1; }
+									
+						if ($SelRTt == 3)
+								{$Pos[0] = $DDataA[0]; $Pos[1] = $DDataA[7];	$Pos[2] = ($DDataA[8] * 1);
+								 $Pos[3] = 0;	$Pos[4] = $DDataA[11] * -1;	$Pos[5] = ($DDataA[8] - $DDataA[5]) * -1; }
+							 
+								 
+							$WPos[6] = $Pos[6] = abs (($DDataA[8] - $DDataA[5]) * 0.025);	print ("$Pos[6] is " + $Pos[6] + "\n");
+							DVY_Hinge(($a), $Names[$a], $Pos);
+							
+						//	Window set up				
+							$WPos[1] = $WDataA[4]; $WPos[2] = $WDataA[5];  $WPos[10] = $WDataA[10]; $Pos[13] = 0;
+							if (`checkBox -q -value SplitTailWindowEnableCheck` == 1) 
+								{DVY_Window(($a), $Names[$a], $WPos);}
+								
+						// SplitTailgate and Window Controller Section							
+							$Pos[8] = $BDataA[6] * -0.2; $Pos[12] = $BDataA[1] * 2.8; $Pos[7] = $BDataA[5] * 0.75; $Pos[13] = 90;
+							$Temp = DVY_Control(($a), $Names[$a], $Pos);
+								$HTControlsA[$a+1] = `rename $Temp[0] ($DVY_VehName + $Names[$a] + "_Control_1")`;
+								$HTControlsA[$a+2] = `rename $Temp[1]($DVY_VehName + $Names[$a] + "_Controller_1")`;	
+								if ($SelRWs == 1)
+									{$HTControlsA[$a+3] = `rename $Temp[2]($DVY_VehName + $Names[$a] + "Window_Control_1")`;
+								$HTControlsA[$a+4] = `rename $Temp[3]($DVY_VehName + $Names[$a] + "Window_Controller_1")`;	}
+								else {select -r $Temp[2]; delete;}
+					} // End of Section to set position of Top Tailgate Hinge positions	
+					
+			//	Section to set position of Bottom Tailgate Hinge positions	
+				for ($a=4; $a<5; $a++)
+					{
+						$DDataA = `objectCenter $GroupHT_A[$a+2]`;
+						$TDataA = `xform -q -bb $GroupHT_A[$a+2]`;
+							for ($s = 3; $s < 9; $s++ )
+								{ $DDataA[$s] = $TDataA[($s-3)];}
+						$DDataA[10] = `getAttr ($GroupHT_A[$a+2] + ".boundingBoxSizeZ")`;	
+						$DDataA[11] = `getAttr ($GroupHT_A[$a+2] + ".boundingBoxSizeY")`;	
+						
+						if ($SelRTb == 1)
+								{$Pos[0] = $DDataA[0]; $Pos[1] = $DDataA[4];	$Pos[2] = ($DDataA[5] * 1);
+								 $Pos[3] = 0;	$Pos[4] = $DDataA[11] * 1;	$Pos[5] = 0;  }	//($DDataA[8] - $DDataA[5]) * -1;
+							
+						if ($SelRTb == 0)
+								{$Pos[0] = $DDataA[0]; $Pos[1] = $DDataA[7];	 $Pos[2] = ($DDataA[5] * 1);
+								 $Pos[3] = 0;	$Pos[4] = $DDataA[11];	$Pos[5] = ($DDataA[8] - $DDataA[5]) * 1; }
+								 
+						if ($SelRTb == 2)
+								{$Pos[0] = $DDataA[6];	 $Pos[1] = $DDataA[1];	$Pos[2] = ($DDataA[5] * 1);
+								 $Pos[3] = $DDataA[3] * 2;	$Pos[4] = 0;	 $Pos[5] = 0; }
+									
+						if ($SelRTb == 3)
+							
+							{$Pos[0] = $DDataA[3];  $Pos[1] = $DDataA[1]; $Pos[2] = ($DDataA[5] * 1); 
+							 $Pos[3] = $DDataA[6] * 2;	$Pos[4] = 0;	$Pos[5] = 0; }
+								 
+							$WPos[6] = $Pos[6] = abs (($DDataA[8] - $DDataA[5]) * 0.025);	print ("$Pos[6] is " + $Pos[6] + "\n");
+							DVY_Hinge(($a), $Names[$a], $Pos);
+								
+							$WPos[1] = $WDataA[4]; $WPos[2] = $WDataA[5];  $WPos[10] = $WDataA[10]; $Pos[13] = 0;
+							
+						// SplitTailgate and Window Controller Section							
+							$Pos[8] = $BDataA[6] * -0.2; $Pos[12] = $BDataA[1] * 2.5; $Pos[7] = $BDataA[5] * 0.9; $Pos[13] = 90;
+							$Temp = DVY_Control(($a), $Names[$a], $Pos);
+								$HTControlsA[$a+4] = `rename $Temp[0] ($DVY_VehName + $Names[$a] + "_Control_1")`;
+								$HTControlsA[$a+5] = `rename $Temp[1]($DVY_VehName + $Names[$a] + "_Controller_1")`;	
+								select -r $Temp[2]; delete;
+					}	// End of Section to set position of Bottom Tailgate Hinge positions	
+ 
+		}
+
+// ******************************************************************************** //	
+// 	Section to set position of Left and Rear Door Hinge positions
+	$b = 0;
+	if ((`checkBoxGrp -q -v4 HoodsOptionsCheck` == 1) && (`radioButtonGrp -q -sl RrSplitTailRadioButtons` == 4))
+		
+	for ($a=5; $a<7; $a++)
+		{
+			$DDataA = `objectCenter $GroupHT_A[$a+2]`;
+			$TDataA = `xform -q -bb $GroupHT_A[$a+2]`;
+				for ($s = 3; $s < 9; $s++ )
+					{ $DDataA[$s] = $TDataA[($s-3)];}
+			$DDataA[10] = `getAttr ($GroupHT_A[$a+2] + ".boundingBoxSizeZ")`;	
+
+		if ($a == 5)
+			{
+			if ($SelLRDr == 4) 
+					{$Pos[0] = $DDataA[6]; $Pos[1] = $DDataA[1];	$Pos[2] = ($DDataA[5] * 1);
+					 $Pos[3] = $DDataA[0] * -2;	$Pos[4] = 0;	$Pos[5] = 0; }
+			}		 
+
+		if ($a == 6)
+			{
+			if ($SelRRDr == 4)
+					{$Pos[0] = $DDataA[3]; $Pos[1] = $DDataA[1];	$Pos[2] = ($DDataA[5] * 1);
+					 $Pos[3] = $DDataA[0] * -2;	$Pos[4] = 0;	$Pos[5] = 0; }
+			}		 
+
+			$Pos[6] = $WPos[6] = abs (($DDataA[8] - $DDataA[5]) * 0.025);	
+			DVY_Hinge(($a), $Names[$a], $Pos);
+				
+			$WPos[1] = $WDataA[4]; $WPos[2] = $WDataA[2];  $WPos[10] = $WDataA[10];
+			if ($a == 5){ $Pos[8] = $BDataA[6] * 0.2; $Pos[12] = $BDataA[1] * 2.8; $Pos[7] = $BDataA[5] * 0.8; $Pos[13] = 90;}
+			if ($a == 6){ $Pos[8] = $BDataA[6] * -0.2; $Pos[12] = $BDataA[1] * 3.0; $Pos[7] = $BDataA[5] * 0.9; $Pos[13] = 90;}
+		
+		// SplitTailgate and Window Controller Section							
+			$Temp = DVY_Control(($a), $Names[$a], $Pos);
+				$HTControlsA[$a+$b] = `rename $Temp[0] ($DVY_VehName + $Names[$a] + "_Control_1")`;
+				$HTControlsA[$a+$b+1] = `rename $Temp[1]($DVY_VehName + $Names[$a] + "_Controller_1")`;	
+				select -r $Temp[2]; delete;	
+				$b = 2;
+				
+		}// End of Section to set position of Front Hood Rear Trunklid Hinge positions
+		
+// ******************************************************************************** //	
+		$i=0;	for ($each in $DVYHinge) {$DVYHingeH[$i++] = $each;} 
+		$i=0;	for ($each in $DVYHandle) {$DVYHandleH[$i++] = $each;}
+		$i=0;	for ($each in $DVYWindB) {$DVYWinBH[$i++] = $each;}
+		$i=0;	for ($each in $DVYWindT) {$DVYWinTH[$i++] = $each;}
+
+/*		
+		print $DVYHingeH;
+		print $DVYHandleH;
+		print $GroupHT_A;
+		print $DVYWinBH;
+		print $DVYWinTH; print "\n";
+
+		print $Temp; print "\n";
+		print $HTControlsA;	
+*/
+
+		print "End of DVY_HoodandTrunk Procedure which has placed Spheres for Hinges etc\n";
+		
+}

@@ -1,0 +1,107 @@
+/*!
+		@file		skShelfDeleteTab.mel
+		@brief		シェルフタブの削除
+
+		@param	$tab	タブ名
+
+		@retval	0		削除しなかった
+		@retval	1		削除した
+*/
+
+
+
+// ****************************************************************************
+// 外部に公開するコマンド
+// ****************************************************************************
+global	proc	int		skShelfDeleteTab(string $tab)
+{
+	global	string	$gShelfTopLevel;
+
+	// 表示名が $tab のシェルフがあるかチェックする
+/*
+	int		$bExists = 0;
+	string	$shelves[] = tabLayout( "-q", "-childArray", $gShelfTopLevel );
+	for( $shelf in $shelves )
+	{
+		if( 0 == strcmp( $tab, $shelf ) )
+		{
+			$bExists = 1;
+			break;
+		}
+	}
+	if( 1 != $bExists )
+	{
+		return	0;
+//		error( "Not found shelf tab : " + $tab );
+	}
+*/
+	if( 1 != shelfLayout( "-q", "-exists", $gShelfTopLevel + "|" + $tab ) )
+	{
+///		error( "Not found shelf tab : " + $tab );
+		return	0;
+	}
+
+	// delete UI
+	deleteUI( "-layout", $gShelfTopLevel + "|" + $tab );
+
+	// update the preference.
+	int		$nShelves = optionVar( "-q", "numShelves" );
+	int		$shelfNumber = 0;
+	for( $shelfNumber = 1;  $shelfNumber <= $nShelves;  $shelfNumber++ )
+	{
+		if( $tab == optionVar( "-q", "shelfName" + $shelfNumber ) )
+		{
+			break;
+		}
+	}
+	for( $i = $shelfNumber;  $i < $nShelves;  $i++ )
+	{
+		optionVar(
+			"-intValue",	"shelfLoad" + $i, optionVar( "-q", "shelfLoad" + ($i+1) ),
+			"-stringValue",	"shelfName" + $i, optionVar( "-q", "shelfName" + ($i+1) ),
+			"-stringValue", "shelfFile" + $i, optionVar( "-q", "shelfFile" + ($i+1) ) );
+	}
+	optionVar(
+		"-remove", "shelfLoad" + $nShelves,
+		"-remove", "shelfName" + $nShelves,
+		"-remove", "shelfFile" + $nShelves );
+	optionVar( "-intValue", "numShelves", ($nShelves -1) );
+
+	// 設定ファイルの削除
+	string	$shelfDirs = internalVar( "-userShelfDir" );
+	string	$buf[];
+	tokenize( $shelfDirs, ";", $buf );
+	for( $path in $buf )
+	{
+		string	$filePath = $path + "shelf_" + $tab + ".mel";
+		if( filetest( "-r", $filePath ) )
+		{
+			sysFile( "-delete", $filePath );
+		}
+	}
+
+	return	1;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+// ****************************************************************************
+///////////////////////////////////////////////////////////////////////////////
+// ----------------------------------------------------------------------------
+// EOF
+
+
+
+
+
+
+

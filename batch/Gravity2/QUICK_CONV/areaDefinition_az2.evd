@@ -1,0 +1,85 @@
+#----------------------------------------------------------------------------------
+#UTF-8形式で保存してください
+#boolean(真偽値)のデフォルトはfalseです
+#記述者の名前が無いテスト用らしき記述は最適化の為削除する事があります
+#----------------------------------------------------------------------------------
+
+#----------------------------------------------------------------------------------
+#異次元2 az2_a 黒野
+az2_a_root:
+  root:     true
+az2_b_root:                         #通常採掘場用 大倉
+  root:     true
+az2_z_root:                         #無限採掘試作用 増谷
+  root:     true
+
+az2_a_01:
+  occluder: "az2_a_01_occ"
+  low:      "az2_a_01_low"
+az2_a_02:
+  occluder: "az2_a_02_occ"
+  low:      "az2_a_02_low"
+az2_a_03:
+  occluder: "az2_a_03_occ"
+  low:      "az2_a_03_low"
+az2_a_04:
+  occluder: "az2_a_04_occ"
+  low:      "az2_a_04_low"
+az2_a_05:
+  occluder: "az2_a_05_occ"
+  low:      "az2_a_05_low"
+az2_a_06:
+  occluder: "az2_a_06_occ"
+  low:      "az2_a_06_low"
+az2_a_07:
+  occluder: "az2_a_07_occ"
+  low:      "az2_a_07_low"
+az2_a_08:
+  occluder: "az2_a_08_occ"
+  low:      "az2_a_08_low"
+az2_a_09:
+  occluder: "az2_a_09_occ"
+  low:      "az2_a_09_low"
+az2_a_10:
+  occluder: "az2_a_10_occ"
+  low:      "az2_a_10_low"
+az2_a_11:
+  occluder: "az2_a_11_occ"
+  low:      "az2_a_11_low"
+az2_a_16:
+  occluder: "az2_a_16_occ"
+  low:      "az2_a_16_low"
+az2_a_17:
+  occluder: "az2_a_17_occ"
+  low:      "az2_a_17_low"
+az2_a_18:
+  occluder: "az2_a_18_occ"
+  low:      "az2_a_18_low"
+az2_a_19:
+  occluder: "az2_a_19_occ"
+  low:      "az2_a_19_low"
+az2_a_20:
+  occluder: "az2_a_20_occ"
+  low:      "az2_a_20_low"
+az2_a_21:
+  occluder: "az2_a_21_occ"
+  low:      "az2_a_21_low"
+az2_a_22:
+  occluder: "az2_a_22_occ"
+  low:      "az2_a_22_low"
+az2_a_23:
+  occluder: "az2_a_23_occ"
+  low:      "az2_a_23_low"
+az2_a_24:
+  occluder: "az2_a_24_occ"
+  low:      "az2_a_24_low"
+az2_a_25:
+  occluder: "az2_a_25_occ"
+  low:      "az2_a_25_low"
+az2_a_26:
+  occluder: "az2_a_26_occ"
+  low:      "az2_a_26_low"
+az2_a_27:
+  occluder: "az2_a_27_occ"
+  low:      "az2_a_27_low"
+

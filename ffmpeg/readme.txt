@@ -1,0 +1,1 @@
+ffmpegのインストールフォルダ→"D:\freeware\ffmpeg\bin\ffmpeg.exe"

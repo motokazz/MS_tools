@@ -1,0 +1,46 @@
+/*!
+		@file		GPInitializeShelf.mel
+		@brief		シェルフの初期化
+*/
+
+
+////////////////////////////////////////////////////////////////////////////////
+//	シェルフの初期化
+global proc GPInitializeShelf()
+{
+	//	シェルフタブリストを取得
+	string $shelfTabs[] = `GPGetShelfTabList`;
+	
+	//	各タブについて
+	for( $tab in $shelfTabs )
+	{
+		//	プリファレンス変数チェック
+		string $varName = ("GR_SHELFTAB_ACTIVE_" + $tab);
+		if( !`optionVar -exists $varName` )
+		{
+			//	プリファレンス変数が存在しなければ、値=1 で作成
+			optionVar -intValue $varName 1;
+		}
+		
+		//	有効になっていればシェルフタブの初期化
+		if( 0 != `optionVar -q $varName` )
+		{
+			skShelfCreateTab $tab;
+			string $melList[] = `eval ("melList_" + $tab)`;
+			for( $mel in $melList )
+			{
+				if( "" == $mel )
+					continue;
+				if( "" != `match "^//" $mel` )
+					continue;
+				
+				skSystemAddMELinShelf $mel $tab;
+			}
+		}
+		//	無効になっていればシェルフタブの削除
+		else
+		{
+			skShelfDeleteTab $tab;
+		}
+	}
+}

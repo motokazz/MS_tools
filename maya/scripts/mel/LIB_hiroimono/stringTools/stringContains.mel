@@ -1,0 +1,24 @@
+//stringContains, by Julian Love, julian@lightmail.com. Part of the StringTools set.
+//
+//description:	returns 1 if the appears anywhere in the source string.
+//				returns 0 if not.
+//
+//usage:		stringContains string[source string] string[test characters];
+//
+//examples:		stringContains "hello world." "hello";
+//				// Result: 1 //
+//
+//				stringContains "hello world." "werld";
+//				// Result: 0 //
+
+
+global proc int stringContains (string $theString, string $item){
+	string	$matchString = ($item + "+");
+	int		$returnInt = 0;
+
+	if (`match $matchString $theString` == $item){
+		$returnInt = 1;
+	}
+
+	return $returnInt;
+}

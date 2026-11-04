@@ -1,0 +1,15 @@
+/* This file downloaded from Highend3d.com
+''  
+''  Highend3d.com File Information:
+''  
+''    Script Name: Edge Cutter
+''    Author: himampi 
+''    Last Updated: Sep 03, 2007
+''    Update/Change this file at:
+''    http://Highend3d.com/maya/downloads/mel_scripts/polygon/1637.html
+''  
+''  Please do not alter any information above this line
+''  it is generated dynamically by Highend3d.com and will
+''  be changed automatically on any updates.
+*/
+//select a edge and call edgeCutterproc edgeCutter(){$sel=`ls -sl`;string $chk;int $start,$end,$intedg;$name=`ls -hilite`;$start=size($name[0])+4;$end=size($sel[0])-1;$chk=$sel[0];$edgeNum=`substring $chk $start $end`;$intedg=$edgeNum;polySelect -el $intedg;PolySelectConvert 3;polySplitVertex;select $name;polySeparate;$list2=`ls -sl`;$obj1vtx=`polyEvaluate -v $list2[0]`;$obj2vtx=`polyEvaluate -v $list2[1]`;polyMergeVertex  -d 0.0001 -ch 1 ($list2[0]+".vtx[0:"+$obj1vtx[0]+"]");polyMergeVertex  -d 0.0001 -ch 1 ($list2[1]+".vtx[0:"+$obj2vtx[0]+"]");polySoftEdge -a 180 -ch 1 $list2[0];polySoftEdge -a 180 -ch 1 $list2[1];select $list2;}edgeCutter;

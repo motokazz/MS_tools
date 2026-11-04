@@ -1,0 +1,49 @@
+/* This file downloaded from Highend3d.com
+''  
+''  Highend3d.com File Information:
+''  
+''    Script Name: Spiralizer
+''    Author:  
+''    Last Updated: Jun 18, 2008
+''    Update/Change this file at:
+''    http://Highend3d.com/maya/downloads/mel_scripts/modeling/misc/842.html
+''  
+''  Please do not alter any information above this line
+''  it is generated dynamically by Highend3d.com and will
+''  be changed automatically on any updates.
+*/
+//
+// Copyright (C) 2002 by Tom
+// marble@gmx.ch
+//
+// 
+// MODIFY THIS AT YOUR OWN RISK
+//
+//
+//	Description:
+//		This proc creates a spiral out of a nurbs-surface.
+//
+//		This is done by selecting a surface, then
+//		creating a curve-on-surface (which is in
+//		the form of a spiral), then duplicating the curve-on-surface
+//		to get a 3D spiral.
+//
+//	
+
+
+
+global proc string spiralizer( float $numRounds ) {
+string $object[] = `ls -sl`;
+if (!size($object)) { 
+warning " Nothing selected. Nothing was done."; 
+return ""; 
+}
+float $domain=`getAttr ($object[0]+".maxValueU")`;
+string $cos = `curveOnSurface -d 1 -uv 0.0 0.0 -uv $domain (8*$numRounds)
+$object[0]`;
+string $duplicatedCrv[] = `duplicateCurve -ch off $cos`;
+delete $cos;
+delete $object[0];
+return $duplicatedCrv[0];
+}
+

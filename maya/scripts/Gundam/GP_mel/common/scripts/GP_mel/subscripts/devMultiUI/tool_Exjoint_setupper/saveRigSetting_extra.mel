@@ -1,0 +1,180 @@
+//addrig制御アウトプット、キーフレーム版
+global proc captureRigCtrl_extra(string $charaID , string $saveDataPath){
+	string $saveDataFileName = ($saveDataPath + "\\" + $charaID + ".csv");
+	string $defSaveDataFileName = ($saveDataPath + "\\" + $charaID + "_defPose.csv");
+	select -r -hi ("addrig:" + $charaID + "*_ctrl");
+	string $alllist[] = `ls -sl -type transform`;
+	string $ignoreList[] = `ls -sl -type parentConstraint`;
+	string $nodelist[] = stringArrayRemoveExact( $ignoreList , $alllist );
+	string $attributeList[] = {"tx","ty","tz","rx","ry","rz"};
+	int $i,$j,$k;
+
+	string $temps[] , $loadedData[] , $defPoseData[];
+	string $cnctNode;
+
+	float $keyFrames[];
+
+	for($i=0 ; $i<size($nodelist) ; $i++){
+		for($j=0 ; $j<size($attributeList) ; $j++){
+			if (`connectionInfo -isDestination ($nodelist[$i] + "." + $attributeList[$j])`) {
+				$cnctNode = `connectionInfo -sourceFromDestination ($nodelist[$i] + "." + $attributeList[$j])`;
+				if(endsWith($cnctNode,"output")){
+					$keyFrames = `keyframe -query -a -valueChange -timeChange ($nodelist[$i] + "." + $attributeList[$j])`;
+					tokenize $cnctNode "." $temps;
+					string $cnctNodeSc = `connectionInfo -sourceFromDestination ($temps[0] + ".input")`;
+					$loadedData[$k] = ($nodelist[$i] + "." + $attributeList[$j] + "\t" + $cnctNodeSc + "\t");
+					for($item in $keyFrames){
+						$loadedData[$k] = $loadedData[$k] + ($item + "\t");
+					}
+					$loadedData[$k] = $loadedData[$k] + ("\r\n");
+					$k++;
+				}
+			}
+		}
+	}
+	$loadedData = convertData_keyToDriv($loadedData);
+
+	if(`filetest -r $defSaveDataFileName`){
+		$fileId = `fopen $defSaveDataFileName "r"`;
+		string $line ;
+		$line = `fgetline $fileId`;
+		int $i=0;
+
+		while ( size( $line ) > 0 ){
+			$defPoseData[$i] = $line;
+			$line = `fgetline $fileId`;
+			$i++;
+		}
+		fclose $fileId;
+		$loadedData = stringArrayCatenate($defPoseData,$loadedData);
+	}
+
+	$fileId=`fopen $saveDataFileName "w"`;
+
+	for ($loadedItem in $loadedData){
+		if (endsWith($loadedItem,"\n") == 0){
+			$loadedItem = ($loadedItem + "\n");
+		}
+		fprint $fileId ($loadedItem);
+	}
+	fclose $fileId;
+	GP2_MessageDialog ( "exjoint_Setupper_defPose" , {"エクストラジョイント用コントローラのモーションカーブを自動制御情報として、以下に出力しました。",($saveDataFileName)} );
+}
+
+
+global proc captureRigCtrl_extra_defPose(string $charaID , string $saveDataPath){
+	string $saveDataFileName = ($saveDataPath + "\\" + $charaID + "_defpose.csv");
+	select -r ("addrig:" + $charaID + "*_ctrl");
+	string $alllist[] = `ls -sl -type transform`;
+	string $ignoreList[] = `ls -sl -type parentConstraint`;
+	string $nodelist[] = stringArrayRemoveExact( $ignoreList , $alllist );
+	string $attributeList[] = {"tx","ty","tz","rx","ry","rz"};
+	int $i,$j,$k;
+
+	string $temps[] , $loadedData[] , $output[];
+	string $cnctNode;
+
+	float $keyFrames[];
+	clear $output;
+
+	for($i=0 ; $i<size($nodelist) ; $i++){
+		for($j=0 ; $j<size($attributeList) ; $j++){
+			float $val = getAttr ($nodelist[$i] + "." + $attributeList[$j]);
+			if($val >= 0.01 || $val <= -0.01){
+				string $nodeName = `substitute "ctrl" $nodelist[$i] "cal_def"`;
+				$output[$k] = ($nodeName + "." + $attributeList[$j] + "\taddrig:global_default_getnum_child.translateY\t0\t0\t100\t" + $val + "\t\r\n");
+				$k++;
+				string $nodeName = `substitute "ctrl" $nodelist[$i] "cal"`;
+				setAttr ($nodeName + "." + $attributeList[$j]) $val;
+				setAttr ($nodelist[$i] + "." + $attributeList[$j]) 0;
+			}
+		}
+	}
+
+
+	$fileId=`fopen $saveDataFileName "w"`;
+
+	for ($loadedItem in $output){
+		if (endsWith($loadedItem,"\n") == 0){
+			$loadedItem = ($loadedItem + "\n");
+		}
+		fprint $fileId ($loadedItem);
+	}
+	fclose $fileId;
+	GP2_MessageDialog ( "exjoint_Setupper_defPose" , {"エクストラジョイント用コントローラの数値をデフォルト値として、以下に出力しました。",($saveDataFileName),"また、コントローラのtrans・rot値をリセットしています。"} );
+}
+
+
+global proc string ReplyCharaID(){
+	string $lis[] = `file -q -l`;
+	string $tmp[];
+	tokenize `dirname $lis[0]` "/" $tmp;
+	return $tmp[size($tmp)-1];
+}
+
+global proc saveRigSetting_extra(){
+	string $charaID = ReplyCharaID();
+	string $saveDataPath = "M:\\Design\\Motions\\MS\\rig\\setupInfo\\export";
+	sysFile -md $saveDataPath;
+	captureRigCtrl_extra( $charaID , $saveDataPath);
+}
+
+global proc saveRigSetting_extra_defPose(){
+	string $charaID = ReplyCharaID();
+	string $saveDataPath = "M:\\Design\\Motions\\MS\\rig\\setupInfo\\export";
+	sysFile -md $saveDataPath;
+	captureRigCtrl_extra_defPose( $charaID , $saveDataPath);
+}
+
+
+global proc string[] convertData_keyToDriv(string $loadedData[]){
+	source "GP2_Ut";
+	string $exportData[];
+	int $line = -1;
+	string $calNode[] = {"rotate_bst","walk","up","down"};
+	string $ctrNode[] = {"dash","walk","up","down"};
+	string $temp[];
+	int $useflag = 1;
+	int $errorFlag[];
+
+	for ($loadedItem in $loadedData){
+		$temp = tokenize_adv($loadedItem , "\t");
+
+		string $keyNode = $temp[0];
+		string $check;
+		int $lastPart = 4;
+		int $part;
+		float $flm , $val;
+
+		for($j=2 ; $j<size($temp) ; $j++ ){
+			$check = strip($temp[$j]);
+			if($check != ""){
+				$flm = $temp[$j];
+				$j++;
+				$val = $temp[$j];
+				if($val >= 0.01 || $val <= -0.01){$useflag = 1;}
+				if($flm < 10){	$part = 0;	$flm = $flm * 11.0;
+				}else if($flm < 20){	$part = 1;	$flm = ($flm - 10.0) * 11.0;
+				}else if($flm < 30){	$part = 2;	$flm = ($flm - 20.0) * 11.0;
+				}else if($flm < 40){	$part = 3;	$flm = ($flm - 30.0) * 11.0;
+				}else{ $errorFlag[0] = 1;
+				}
+				if($flm == 99){$flm++;}
+
+				if($lastPart != $part){
+					$lastPart = $part;
+					if($useflag == 1){ $line++ ; $useflag = 0;}
+					$nodeName = `substitute "ctrl" $keyNode ("cal_" + $calNode[$part])`;
+					$ctrlName = ("addrig:global_boostType_" + $ctrNode[$part] + "_getnum_child.translateY");
+					$exportData[$line] = ($nodeName + "\t" + $ctrlName + "\t");
+				}
+				$exportData[$line] = ($exportData[$line] + $flm + "\t" + $val + "\t");
+   			}
+		}
+	}
+	if($errorFlag[0]){
+		GP2_MessageDialog ( "自分も何度かやりました" , {"40f以降にキーが打たれています。要確認"} );
+	}
+	return $exportData;
+}
+

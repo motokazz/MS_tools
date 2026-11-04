@@ -1,0 +1,30 @@
+global proc string MS_getAttrNameFromChannelBox(){
+	string $values[]=`channelBox -q -sma mainChannelBox`;
+	string $values2[]=`channelBox -q -ssa mainChannelBox`;
+	
+	string $newValue=stringArrayToString ($values," ")+" "+stringArrayToString ($values2," ");
+	
+	return $newValue;
+	
+}
+
+
+{
+	//Window Check
+	if(`window -exists MS_getAttrNameFromChannelBoxUI`){
+		deleteUI MS_getAttrNameFromChannelBoxUI;
+	}
+	
+	//Create Window
+	
+	window -title "MS_getAttrNameFromChannelBoxUI" MS_getAttrNameFromChannelBoxUI;
+
+	columnLayout;
+
+	textFieldButtonGrp -l "attr" -bl "getAttr" -bc "textFieldButtonGrp -e -tx `MS_getAttrNameFromChannelBox` attr_int;" "attr_int";
+
+	showWindow MS_getAttrNameFromChannelBoxUI;
+}
+
+
+

@@ -1,0 +1,49 @@
+global proc MS_copyAnimEachSelf(){
+	
+	string $sourceAttr=`textFieldButtonGrp -q -tx "sourceAttr"`;
+	string $distAttr=`textFieldButtonGrp -q -tx "distAttr"`;
+	print $sourceAttr;
+	string $obj[]=`ls -sl`;
+	for($each in $obj){
+		
+		copyKey -t ":" -f ":" -at (strip($sourceAttr)) $each;
+		string $distTemp[]=stringToStringArray($distAttr," ");
+		for ($eachDist in $distTemp){
+			pasteKey -connect true -at (strip($eachDist)) $each;
+		}
+		
+	}
+}
+
+global proc string MS_getAttrNameFromChannelBox(){
+	string $values[]=`channelBox -q -sma mainChannelBox`;
+	string $values2[]=`channelBox -q -ssa mainChannelBox`;
+	
+	string $newValue=stringArrayToString ($values," ")+" "+stringArrayToString ($values2," ");
+	
+	return $newValue;
+	
+}
+
+
+global proc MS_copyAnimEachSelfUI(){
+	//Window Check
+	if(`window -exists MS_getAttrNameFromChannelBoxUI`){
+		deleteUI MS_getAttrNameFromChannelBoxUI;
+	}
+	
+	//Create Window
+	
+	window -title "MS_getAttrNameFromChannelBoxUI" MS_getAttrNameFromChannelBoxUI;
+
+	columnLayout;
+
+	textFieldButtonGrp -l "sourceAttr" -bl "getAttr" -bc "textFieldButtonGrp -e -tx `MS_getAttrNameFromChannelBox` sourceAttr;" "sourceAttr";
+	textFieldButtonGrp -l "distAttr" -bl "getAttr" -bc "textFieldButtonGrp -e -tx `MS_getAttrNameFromChannelBox` distAttr;" "distAttr";
+	button -l "MS_copyAnimEachSelf" -c "MS_copyAnimEachSelf";
+	showWindow MS_getAttrNameFromChannelBoxUI;
+}
+
+
+
+

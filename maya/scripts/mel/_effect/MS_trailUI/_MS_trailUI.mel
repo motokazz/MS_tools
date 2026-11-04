@@ -1,0 +1,197 @@
+global proc MS_createJoint_pipe(){
+	int $jointPartsQuantity=`intSliderGrp -q -v jointPartsQuantity`;
+	
+	float $jointLength=`floatSliderGrp -q -v jointLength`;
+	
+	MS_createJoint $jointPartsQuantity $jointLength;
+}
+
+
+
+global proc MS_trailEmitter_pipe(){
+	int $curvedegree=`intSliderGrp -q -v curvedegree`;
+	
+	int $curveStep=`intSliderGrp -q -v curveStep`;
+	
+	int $bspline=`checkBox -q -v bspline`;
+	
+	int $revCurve=`checkBox -q -v revCurve`;
+	
+	int $jointPartsQuantity=`intSliderGrp -q -v jointPartsQuantity`;
+	
+	float $jointLength=`floatSliderGrp -q -v jointLength`;
+	
+	int $tm[]=`MS_selectTime`;
+	
+	string $check[]=`ls -typ transform -sl`;
+	if(!size($check)){
+		confirmDialog -l "warnning" -m "this command is create Expression." -b "continue";
+	}
+	
+	MS_trailEmitter $curvedegree $curveStep $bspline $revCurve $jointPartsQuantity $jointLength;
+}
+
+global proc MS_motionSpline_pipe(){
+	int $curvedegree=`intSliderGrp -q -v curvedegree`;
+	
+	int $curveStep=`intSliderGrp -q -v curveStep`;
+	
+	int $bspline=`checkBox -q -v bspline`;
+	
+	int $revCurve=`checkBox -q -v revCurve`;
+	
+	int $jointPartsQuantity=`intSliderGrp -q -v jointPartsQuantity`;
+	
+	
+	float $jointLength=`floatSliderGrp -q -v jointLength`;
+	int $tm[]=`MS_selectTime`;
+	string $obj[]=`MS_selectFilter`;
+	string $cname=`MS_motionCurve $tm[0] $tm[1] $curvedegree $curveStep $obj $bspline $revCurve`;
+	
+}
+
+global proc MS_trailUI_pipe(){
+	int $curvedegree=`intSliderGrp -q -v curvedegree`;
+	
+	int $curveStep=`intSliderGrp -q -v curveStep`;
+	
+	int $bspline=`checkBox -q -v bspline`;
+	
+	int $revCurve=`checkBox -q -v revCurve`;
+	
+	int $jointPartsQuantity=`intSliderGrp -q -v jointPartsQuantity`;
+	
+	float $jointLength=`floatSliderGrp -q -v jointLength`;
+	
+	string $check[]=`ls -typ transform -sl`;
+	if(!size($check)){
+		confirmDialog -l "warnning" -m "this command is create Expression." -b "continue";
+	}
+
+	MS_trail $curvedegree $curveStep $bspline $revCurve $jointPartsQuantity $jointLength;
+	
+}
+global proc MS_IKspline_pipe(){
+	string $obj[]=`ls -sl`;
+	int $tangentConstraint=`checkBox -q -v "MS_IKspline_tangentConstraint"`;
+	MS_IKspline $obj[0] $obj[1] $tangentConstraint;
+	
+}
+
+global proc MS_trailUI(){
+	//Window Check
+	if(`window -exists MS_trailUI`){
+		deleteUI MS_trailUI;
+	}
+	
+	
+	//Create Window
+	
+	window -title "MS_trailUI" MS_trailUI;
+	columnLayout;
+	
+	text -w 1000 -al "left" -fn "boldLabelFont" -l "MotionTrail CurveProfile";
+	//int $cdg=1;//curvedegree
+	intSliderGrp -l curvedegree -f 1-v 1 -min 1 -max 7 curvedegree;
+	
+	//int $step=1;//curveStep
+	intSliderGrp -l curveStep -f 1 -v 1 curveStep;
+	
+	//int $bspline=1;
+	checkBox -l bspline -v 1 bspline;
+	
+	//bool $revCurve =1;
+	checkBox -l revCurve -v 1 revCurve;
+	
+	separator -w 1000 -h 10;
+	
+	text -w 1000 -al "left" -fn "boldLabelFont" -l "JointProfile";
+	
+	//int $jquant=10;//jointPartsQuantity
+	intSliderGrp -l jointPartsQuantity -f 1 -v 10 jointPartsQuantity;
+	
+	//float $jlength=100;//jointLength
+	floatSliderGrp -l jointLength -max 1000 -f 1 -v 100 jointLength;
+	
+	
+	
+	$tabs=`tabLayout`;
+	
+	//MS_trail===============================================================================
+	$tab1=`columnLayout`;
+//---param---
+	separator -w 1000 -h 10;
+	text -w 1000 -al "left" -fn "boldLabelFont" -l "MS_trail";
+	text -l "1.Select animating something 2.Go!";
+	button -w 200 -bgc 0.8 1 0.8 -l "MS_trail" -c "MS_trailUI_pipe";
+	
+	
+	separator -w 1000 -h 10;
+	
+	text -w 1000 -al "left" -fn "boldLabelFont" -l "createMotionTrail&Emitter";
+	text -l "1.Select animating something 2.Go!";
+	button -w 200 -bgc 1 1 0.8 -l "trailEmitter" -c "MS_trailEmitter_pipe";
+	
+	setParent ..;
+	
+	//misc===============================================================================
+	
+	$tab2=`columnLayout`;
+	
+	//CreateMotionSpline
+	separator -w 1000 -h 10;
+	
+	text -w 1000 -al "left" -fn "boldLabelFont" -l "createMotionSpline";
+	text -l "1.Select animating something 2.Go!";
+	button -w 200 -bgc 0.8 1 0.8 -l "motionSpline" -c "MS_motionSpline_pipe";
+	
+	
+	//JointLoftV2
+	separator -w 200 -h 10;
+	
+	text -w 1000 -al "left" -fn "boldLabelFont" -l "create lofted Polyplane from jointpieces with each full weighted";
+	text -l "1.Select jointpieces 2.Go!";
+	button -w 200 -bgc 1 0.8 0.8 -l "jointLoftV2" -c "MS_jointLoftV2";
+	
+	
+	//MS_createJoints
+	separator -w 200 -h 10;
+	
+	text -w 1000 -al "left" -fn "boldLabelFont" -l "create  joint ";
+	text -l "1.set JointProfile 2.Go!";
+	button -w 200 -bgc 0.8 0.8 1.0 -l "MS_createJoint" -c "MS_createJoint_pipe";
+	
+
+	
+	setParent ..;
+	
+	//tool===============================================================================
+	
+	$tab3=`columnLayout`;
+	
+	separator -w 1000 -h 10;
+	
+	text -w 1000 -al "left" -fn "boldLabelFont" -l "   MS_IKspline";
+	text -l "1.Select a joint 2.Select Spline 3.Go!";
+	checkBox -l "tangentConstraint" -v 0 "MS_IKspline_tangentConstraint";
+	button -w 200 -bgc 1 0.8 0.8 -l "MS_IKspline" -c "MS_IKspline_pipe";
+	
+	
+	setParent ..;
+	
+	//===============================================================================
+	
+	tabLayout -e 
+		-tl $tab1 "MS_trail" 
+		-tl $tab2 "misc" 
+		-tl $tab3 "tool" 
+	$tabs;
+	
+	showWindow MS_trailUI;
+}
+
+
+
+
+
+MS_trailUI;

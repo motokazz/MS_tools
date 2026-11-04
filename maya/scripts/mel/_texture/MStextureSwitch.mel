@@ -1,0 +1,22 @@
+
+global proc MStextureSwitch(int $switch_a){
+//texture wo rendering sinaiyounisuru
+//
+
+//0 = texture is able to render
+//1 = texture is disable to render
+	
+	string $mat_name[]=`ls -mat`;
+	
+	$i=0;
+	for($i=0;$i<size($mat_name);$i++){
+		$dst_name=$mat_name[$i]+".color";
+		print ($dst_name+"\n");
+		int $check=`shadingConnection -e -cs $switch_a $dst_name`;
+		if($check==false){
+			print ($dst_name+"has no tex !\n");
+			continue;
+		}
+	}
+}
+

@@ -1,0 +1,95 @@
+global proc string MS_checkSkinCluster(string $obj){
+string $a[]=`ls -o $obj`;
+//string $a[]=`listRelatives -typ shape $obj`;
+string $b[]=`listConnections -t skinCluster $a`;
+return $b[0];
+
+}
+
+
+global proc MS_setSkinWeight(string $joint[],string $point[]){
+	
+	string $option;
+	
+	for($eachpoint in $point){
+		string $SkinCluster=`MS_checkSkinCluster $eachpoint`;
+		$option="skinPercent ";
+		for($each in $joint){
+			$option=$option+("-transformValue "+$each+" "+(1.0/size($joint))+" ");
+		}
+		$option=$option+$SkinCluster+" "+$eachpoint;
+		print $option;
+		eval $option;
+	}
+	
+}
+
+
+
+global proc MS_skinWeight_pipe(){
+	string $strtgt=`textFieldGrp -q -text TFGTgt`;
+	string $joint[];
+	tokenize ($strtgt,$joint);
+	
+	string $point[] =`filterExpand -sm 31`;
+	
+	MS_setSkinWeight($joint,$point);
+}
+
+global proc MS_skinWeight_easypipe(){
+	
+	$joint=`ls -typ joint -sl`;
+	
+	string $point[] =`filterExpand -sm 31`;
+	
+	MS_setSkinWeight($joint,$point);
+}
+
+
+
+global proc ClickTargetList(){
+	string $objz[] = `ls -typ joint -sl`;
+	
+	string $objzstr=stringArrayToString($objz," ");
+	
+	textFieldGrp -e -tx ($objzstr) TFGTgt;
+	
+}
+
+
+
+{
+	if(`window -exists MS_melpalette`){
+		deleteUI MS_melpalette;
+	}
+	
+	window -title "MS_melpalette" "MS_melpalette";
+	
+	columnLayout;
+	
+	textFieldGrp -en 1 -cw 1 160  "TFGTgt";	
+	button -bgc 1 1 1 -al "center"  -l "SelectTargetObjects" -w 120 -c "ClickTargetList" "CLCTgt";
+	
+	button 
+		-w 80 -h 50 
+		-bgc 0.8 1 0.5 
+		-ann "create Locator by Scene Name." 
+		-l "jointWeight" 
+		-c "MS_skinWeight_pipe" 
+		"SPCLOC";
+	button 
+		-w 80 -h 50 
+		-bgc 0.8 0.5 1 
+		-ann "create Locator by Scene Name." 
+		-l "jointWeighteasy" 
+		-c "MS_skinWeight_easypipe" 
+		"easy";
+		
+	setParent..;
+	
+	showWindow "MS_melpalette";
+	
+}
+
+
+

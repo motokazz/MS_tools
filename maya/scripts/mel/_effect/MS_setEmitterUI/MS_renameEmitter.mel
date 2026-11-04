@@ -1,0 +1,18 @@
+global proc MS_renameEmitter(){
+//global proc MS_renameEmitterAll(string $org,string $rep){
+	$obj=`ls -typ transform -sl`;
+	for ($each in $obj){
+		$EmitterVolume=($each+".EmitterVolume");
+		if(`objExists $EmitterVolume`){
+			string $EVValue=`getAttr($each+".EmitterName")`;
+			print $EVValue;
+			//string $aaa= `substitute $org $EVValue $rep`;
+			//print ($aaa+"\n");
+			//setAttr ($each+".EmitterName") -typ "string" $aaa;
+			rename $each $EVValue;
+		}
+	}
+}
+
+
+

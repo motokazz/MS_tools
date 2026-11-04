@@ -1,0 +1,68 @@
+global proc MS_VFA_Double3(
+	int $strtm,
+	int $endtm,
+	float $minvalue1,
+	float $maxvalue1,
+	float $minvalue2,
+	float $maxvalue2,
+	float $minvalue3,
+	float $maxvalue3,
+
+	string $target,
+	string $obj[],
+	string $attr[])
+{
+	/*
+	親アニメーションの前後のフレーム差でスケルトンをスケーリングする
+	*/
+	
+	float $all[];
+	
+	currentTime ($strtm-1);
+	float $ff[]=`xform -q -ws -t $target`;
+	
+	
+	//すべてのフレーム間で動き距離を検査
+	for($i=$strtm;$i<$endtm;$i++){
+		
+		currentTime $i;
+		
+		float $cf[] = `xform -q -ws -t $target`;
+		//2点間の移動距離を計算
+		float $len = sqrt(($ff[0]-$cf[0])*($ff[0]-$cf[0])+($ff[1]-$cf[1])*($ff[1]-$cf[1])+($ff[2]-$cf[2])*($ff[2]-$cf[2]));
+		
+		$all[$i-$strtm]=$len;
+		
+		$ff= $cf;
+		
+	}
+	
+	
+	//一番大きい動きを検査
+	float $hikaku[]=`sort $all`;
+	float $maxrange=$hikaku[(size($hikaku)-1)];
+	
+	//キーフレーム作成
+	for($each in $obj){
+		for($i=$strtm;$i<$endtm;$i++){
+			
+			float $rate1=($all[$i-$strtm]/$maxrange)*$maxvalue1;
+			if($rate1<$minvalue1){$rate1=$minvalue1;}
+			
+			float $rate2=($all[$i-$strtm]/$maxrange)*$maxvalue2;
+			if($rate2<$minvalue2){$rate2=$minvalue2;}
+			
+			float $rate3=($all[$i-$strtm]/$maxrange)*$maxvalue3;
+			if($rate3<$minvalue3){$rate3=$minvalue3;}
+
+			for($eachAttr in $attr)
+			
+			setAttr ($each+"."+$eachAttr) -type double3 $rate1 $rate2 $rate3 ;
+
+			setKeyframe -at $eachAttr -t $i $each;
+				
+		}
+	}
+}
+
+

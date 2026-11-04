@@ -1,0 +1,21 @@
+cathegory,exec,label,image,annotation,command,link
+creativecrush,ipyui,rockGenerator,rockGenerator,岩作るツール,rockGenerator,
+creativecrush,melc,dg_voro,dg_voro,ボロノイ分割粉砕ツール,dg_voro_py_UI,
+creativecrush,melx,RS_VoronoiTextureFracture,RS_VoronoiTextureFracture,コマンドラインベースのボロノイ,RS_VoronoiTextureFracture,
+creativecrush,melc,AxCrack,AxCrack,ブーリアンベースの粉砕ツール,AxCrack,
+creativecrush,melc,rockGen,rockGen,岩作るツール,rockGen,
+creativecrush,melc,rockGenerator,rockGenerator,岩作るツール,rockGenerator,
+trash,ipyui,launchMayaFPS,launchMayaFPS,launchMayaFPS,launchMayaFPS,
+creativecrush,melc,SnapVertex,SnapVertex,SnapVertex,SnapVertex,
+creativecrush,melc,FBpolyPlanarize,FBpolyPlanarize,FBpolyPlanarize,FBpolyPlanarize,http://www.funkybunnies3d.com/tools.php
+model,py,spPaint3d,spPaint3d,ペイント配置ツール。ATGI対応カスタム,import external_tools.spPaint3d.spPaint3dGui as spPaint3dGui\nimport importlib\nimportlib.reload(spPaint3dGui)\nspPaint3dwin=spPaint3dGui.spPaint3dWin(),
+creativecrush,melc,createTube,createTube,createTube,createTube,
+creativecrush,melc,kpGear,kpGear,kpGear,kpGear,
+model,pyexf,speedCut,speedCut,ブーリアン補助,speedCut,
+creativecrush,melx,FBwireJumbler,FBwireJumbler,FBwireJumbler,FBwireJumbler,http://www.funkybunnies3d.com/tools.php
+creativecrush,py,NitroPoly,NitroPoly,統合モデリングツールキット,import external_tools.NitroPoly as NitroPoly;reload(NitroPoly);NitroPoly.main(),https://srivignesh35.github.io/nitropoly/
+model,py,rapidPlace,rapidPlace,rapidPlace,from external_tools.rapidPlace.rapidPlace2_54 import *\nrapidPlace(),
+model,pyexf,speedCut1.59,speedCut1.59,ブーリアン補助,speedCut1.59,
+model,pyexf,align,align,align,align,
+model,pyexf,cable,cable,cable,cable,
+model,pyexf,multiobject,multiobject,multiobject,multiobject,

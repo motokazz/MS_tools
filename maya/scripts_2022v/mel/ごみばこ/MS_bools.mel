@@ -1,0 +1,36 @@
+global proc MS_core_bools(){
+	
+	string $objz[]=`ls -type transform -sl`;
+	
+	duplicate -n "bla" $objz[0];
+	duplicate -n "blb" $objz[1];
+	polyBoolOp -n "pc_a" -op 2 -ch 0 bla blb;
+	
+	duplicate -n "bla" $objz[0];
+	duplicate -n "blb" $objz[1];
+	polyBoolOp -n "pc_b" -op 3 -ch 0 bla blb;
+
+	delete $objz[0];
+	
+}
+
+global proc MS_bools()
+{
+	if(`window -exists MS_bools`){
+		deleteUI MS_bools;
+	}
+
+	window -title "MS_bools" MS_bools;
+	columnLayout ;
+
+	button -l "do" -command "MS_core_bools" ;
+	
+	button -l "undo" -command "Undo" ;
+	
+	button -l "exit" -command "deleteUI MS_bools" ;
+
+	showWindow MS_bools;
+
+}
+
+MS_bools;

@@ -1,0 +1,248 @@
+/* This file downloaded from Highend3d.com
+''  
+''  Highend3d.com File Information:
+''  
+''    Script Name: Spiral Creator
+''    Author: s0ke 
+''    Last Updated: Jul 07, 2009
+''    Update/Change this file at:
+''    http://Highend3d.com/maya/downloads/mel_scripts/modeling/surface_tools/3165.html
+''  
+''  Please do not alter any information above this line
+''  it is generated dynamically by Highend3d.com and will
+''  be changed automatically on any updates.
+*/
+////////////////////////////////////////////////////////////////////
+//Evan Rinaldo                                                    //
+//Spiral creator - using nurbs circles                            //
+//Creates a spiral out of nurbsCircles then lofts.                //
+//UI allows user to set XYZ scale of circles, increment amount    //                                              
+//number of circles in spiral, and move & rotate circle on Y axis.//
+//													 //		
+//I wrote this program mainly to learn MEL & it's UI creation.    //
+//												      //
+////////////////////////////////////////////////////////////////////
+
+//Create UI
+global proc erSpiralWindow()
+{
+	//Checks for window
+	if (`window -exists spiralUI`)
+		deleteUI spiralUI;
+	
+	//Create window
+	window 
+		-title "ER_Spiral Creator :: Uses nurbsCircles"
+		-widthHeight 200 200 
+		-iconName "Spiral"
+		-maximizeButton off
+		spiralUI;
+
+		//Creates main menubar for resets
+		menuBarLayout;
+			menu -label "Edit";
+			menuItem -label "Default inputs" -command "er_defaultInputs()";
+						
+			//Creates main columnLayout for scrollLayout
+			columnLayout -adjustableColumn 1 ermainColumn;
+
+				//Spiral input layout + slider creation
+				frameLayout  
+					-label "Spiral Inputs"
+					-marginHeight 5
+	  				-collapsable 1
+					-borderStyle "etchedIn"
+					spiralInputs;
+			
+					//Creates columnLayout for inputs section
+					columnLayout -adjustableColumn 1 erinputColumn;
+									
+					//Create sliders
+					floatSliderGrp 
+						-adjustableColumn true
+						-label "Circle Size" 
+						-field true
+						-annotation "XYZ scale value of a nurbsCircle"
+						-minValue 0.00 -maxValue 2.00
+						-columnWidth3 30 50 160
+						-columnAlign3 "both" "both" "both"
+						-step 0.01
+						-value 0
+						scaleC;
+				
+					intSliderGrp   
+						-adjustableColumn true
+						-label "Num Circles" -field true
+						-annotation "Number of circles"		
+						-minValue 3 -maxValue 200
+						-value 50
+						-columnWidth3 20 50 160
+						-columnAlign3 "both" "both" "both"	
+						numCir;
+
+					intSliderGrp   
+						-adjustableColumn true
+						-label "Cir Y Rotate" -field true
+						-annotation "Rotates circle on Y axis"		
+						-minValue 3 -maxValue 50
+						-columnWidth3 20 50 160
+						-columnAlign3 "both" "both" "both"	
+						-value 30
+						yRotate;
+
+					floatSliderGrp 
+						-adjustableColumn true
+						-label "Cir Y Move" -field true
+						-annotation "Move circle on Y axis"		
+						-minValue .1 -maxValue 1.0
+						-value .5
+						-columnWidth3 20 50 160
+						-columnAlign3 "both" "both" "both"	
+						-step 0.001
+						yMove;
+
+					floatSliderGrp 
+						-adjustableColumn true
+						-label "Scale By" -field true
+						-annotation "Scale increment for each consecutive circle" 
+						-minValue 0.00 -maxValue .05
+						-step 0.001
+						-columnWidth3 20 50 160
+						-columnAlign3 "both" "both" "both"	
+						-value .02
+						scaleBy;
+			
+					//Create button & pass floatslider value to createSprial proc
+					//***TERRIBLE FORMAT***need to fix
+					button 
+						-label "Create Spiral" 
+						-command 
+						"createSpiral(`floatSliderGrp -q -v scaleC`, `intSliderGrp -q -v numCir`, `intSliderGrp -q -v yRotate`, `floatSliderGrp -q -v yMove`, `floatSliderGrp -q -v scaleBy`)";
+		
+		//Close main layouts			
+		setParent ermainColumn;
+
+				//Create frame layout for help section
+				frameLayout  
+					-label "Help"
+					-marginHeight 5
+	  				-collapsable 1
+					-collapse 0
+					-borderStyle "etchedIn"
+					erspiralHelp;
+				
+				//Create columnLayout for help section
+				columnLayout -adjustableColumn 1;
+				
+				//Create scrollbar for help section
+				scrollLayout
+					-horizontalScrollBarThickness 0
+					-height 100;				
+				
+				//Text to display help info
+				text -label
+				("Help :: Spiral Creator\n"
+				+"Author: Evan Rinaldo\n"
+				+"Contact: evan_rin@earthlink.net\n"
+				+"============================================\n"
+				+"\n"
+				+"Circle Size:\n"
+				+"This is the scale size for each nurbsCircle created.\n"
+				+"Currently this version only allows for a uniform\n" 
+				+"XYZ scale.\n"
+				+"\n"
+				+"Number of Circles:\n"
+				+"This creates a set number of nurbsCircles.\n"
+				+"*Note* These circles should be deleted, after the\n"
+				+"lofted surface is converted, before a second spiral\n"
+				+"is created.\n"
+				+"\n"
+				+"Circle Y-Rotate\n"
+				+"Rotates a circle on its Y axis.\n"
+				+"--------------------------------------------------------------------------------\n"
+				+"Either of these can be used to tighten or\n"
+				+"stretch out the spiral.\n"
+				+"--------------------------------------------------------------------------------\n"
+				+"Circle Y-Move\n"
+				+"Moves a circle from its previous point on the Y axis\n"
+				+"\n"
+				+"Scale By\n"
+				+"This will scale each consecutive circle by the set\n"
+				+"increment.  Example: scale by = .02, next circle\n"
+				+"will be .04 and so on\n"
+				+"\n"
+				+"Edit Menu\n"
+				+"Default inputs will set inputs back to default values\n"
+				+"that load when the window opens\n");
+			
+				//Close help layout
+				setParent ermainColumn;
+
+showWindow spiralUI;
+}
+
+//Spiral creator proc
+global proc createSpiral (float $scaleC, int $numCir, int $yRotate, float $yMove, float $scaleBy)
+{
+	circle;
+	
+	//move it away from the center
+	move 4 0 0;
+
+	//put the pivot in the worlds center
+	move 0 0 0 nurbsCircle1.rotatePivot;
+	for ($x=1; $x<$numCir; $x++)
+	{
+		duplicate;
+		rotate -relative 0 $yRotate 0;
+		move -relative 0 $yMove 0;
+	
+	}
+
+	//Cast selected circles in $cirSel
+	string $cirSel[] = `select "nurbsCircle*"`;
+	string $cirSel[] = `select -deselect "nurbsCircleShape*"`;
+	string $cirSel[] = `ls -sl`;
+
+	//Loop through circles & increase scale
+	//for each consecutive circle by .02
+	for ($j=0; $j<$numCir; $j++)
+	{
+		setAttr ($cirSel[$j] + ".scaleX") $scaleC;
+		setAttr ($cirSel[$j] + ".scaleY") $scaleC;
+		setAttr ($cirSel[$j] + ".scaleZ") $scaleC;
+		$scaleC += $scaleBy;
+	}
+	loft;	
+}
+
+//Resets values back to default values
+global proc er_defaultInputs()
+{
+	floatSliderGrp
+		-edit 
+		-value 0
+		scaleC;
+	
+	intSliderGrp
+		-edit
+		-value 50
+		numCir;
+	
+	intSliderGrp
+		-edit
+		-value 30
+		yRotate;
+	
+	floatSliderGrp
+		-edit
+		-value 0.500
+		yMove;
+	
+	floatSliderGrp
+		-edit
+		-value 0.020
+		scaleBy;
+}
+	
+erSpiralWindow();

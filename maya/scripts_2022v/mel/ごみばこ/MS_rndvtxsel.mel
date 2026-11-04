@@ -1,0 +1,25 @@
+//
+//template dayo!
+//
+
+
+
+global proc MS_rndvtxsel(){
+	
+	//checker
+	string $nameOfObjs[] = `ls -sl`;
+	
+	if ( size($nameOfObjs[0]) == 0 )
+	{
+		confirmDialog -t "Nothing Selected" -m "Please select an object." -b Continue;
+		return;
+	}
+	
+	
+	int $rndvtx=`rand 57`;
+		string $newname=$nameOfObjs[0]+".vtx["+$rndvtx+"]";
+		select -r  $newname;
+}
+
+MS_rndvtxsel;
+

@@ -1,0 +1,62 @@
+global proc MS_daburiChecker(){
+	string $result[];
+		string $a[]=`ls -typ transform -sl`;
+	for($aaa in $a){
+		string $rel[]=`listSets -ets -type 1 -o $aaa`;
+		for ($each in $rel){
+			string $mat[]=`listConnections ($each+".surfaceShader") `;
+	
+		}
+		if(size($rel)>1){
+			$result[size($result)]=$aaa;
+		}
+	}
+	print $result;
+	select -r $result;
+}
+
+
+global proc MS_selectObjFromSG(){
+	string $a[]=`ls -sl`;
+	string $sg[];
+	string $obj[];
+	string $tmp[];
+	string $tmp2[];
+	for($each in $a){
+		$tmp=`listSets -ets -type 1 -o $each`;
+		for($each2 in $tmp){
+			$tmp2=`listConnections -d 0 -type shape $each2`;
+			$obj=`stringArrayCatenate $obj $tmp2`;
+		}
+	}
+	select -r $obj;
+}
+
+global proc MS_matterToolsUI()
+{
+	if(`window -exists MS_matterTools`){
+		deleteUI MS_matterTools;
+	}
+	
+	window -title "MS_matterTools" MS_matterTools;	
+	
+	columnLayout;
+	
+	button -l "daburiChecker" -c "MS_daburiChecker";
+	button -l "selectObjFromSG" -c "MS_selectObjFromSG";
+	
+	
+	showWindow MS_matterTools;
+}
+
+MS_matterToolsUI;
+
+
+
+
+
+
+
+
+
+

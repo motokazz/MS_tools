@@ -1,0 +1,252 @@
+global proc make_HEpolyUV_Check(){
+	//既にファイルが存在する場合警告
+	string $fileName = `textFieldButtonGrp -q -text mHE_expTFB`;
+	int $fileSizeX = `intField -q -v mHE_sizeXIF`;
+	int $fileSizeY = `intField -q -v mHE_sizeYIF`;
+	string $extTSL[] = `textScrollList -q	-selectItem mHE_extTSL`;
+	string $response = "Yes";
+	if(`filetest -w ($fileName + "." + $extTSL[0])`){
+		$response = `confirmDialog -title "HardEdge_UVExport" 
+			-message ("既に同名のファイルが存在します。以下のファイルを上書きしますか？\r\n\r\n" + $fileName + "." + $extTSL[0])
+			-button "Yes" 
+			-button "No"
+			-defaultButton "No"
+			-cancelButton "No"
+			-dismissString "No"`;	
+	}
+	
+	if( $response == "Yes" ) {
+		make_HEpolyUV_Capture();
+	}
+	string $saveDataFileName = (`getenv "GP_MAYA_ROOT"` + "\\common\\scripts\\GP_mel\\csv\\GP2_mel_saveData.csv");
+	GP2_saveDataSave( $saveDataFileName , "makeHE_exportPath" , $fileName );
+	GP2_saveDataSave( $saveDataFileName , "makeHE_exportXsize" , $fileSizeX );
+	GP2_saveDataSave( $saveDataFileName , "makeHE_exportYsize" , $fileSizeY );
+	confirmDialog -title "HardEdge_UVExport" -message ("出力が完了しました。") -button "OK" ;
+}
+
+proc Hard_Edge_Object(string $object_name)
+{
+
+	string $all_face_list[];
+		string $face_name;
+	string $hard_edge_list[];
+	string $select_UV_list[];
+		string $select_UV_name;
+
+	select -r $object_name;
+
+	ConvertSelectionToFaces;
+	$all_face_list = `ls -sl -fl`;
+	select -r $object_name;
+	polySelectConstraint -mode 3 -type 0x8000 -sm 1;
+	$hard_edge_list = `ls -sl -fl`;
+	if ((`size $hard_edge_list`)!=0)
+	{
+		DetachComponent;
+	}
+	polyExtrudeFacet -keepFacesTogether 1 $all_face_list;
+
+	delete $all_face_list;
+	delete $all_face_list;
+	clear $all_face_list;
+	clear $hard_edge_list;
+
+	polySelectConstraint -mode 0;
+
+}
+
+
+global proc make_HEpolyUV_Capture(){
+	print "現在選択されているオブジェクトのハードエッジUVを画像として出力します。";
+	string $nodeNames[] = `ls -sl`;
+	for($item in $nodeNames){
+		//make_HEpolyUV_oneObj($item);
+		Hard_Edge_Object($item);
+	}
+	string $fileName = `textFieldButtonGrp -q -text mHE_expTFB`;
+	int $fileSizeX = `intField -q -v mHE_sizeXIF`;
+	int $fileSizeY = `intField -q -v mHE_sizeYIF`;
+	string $extTSL[] = `textScrollList -q	-selectItem mHE_extTSL`;
+	int $AAcheck = `checkBox -q -v mHE_AACB`;
+
+	string $command = "uvSnapshot ";
+	if($AAcheck) $command = $command + "-aa ";
+	$command = $command + "-n \"" + $fileName + "." + $extTSL[0] + "\" ";
+	$command = $command + "-xr " + $fileSizeX + " -yr " + $fileSizeY + " ";
+	$command = $command + "-r 255 -g 255 -b 255 ";
+	$command = $command + "-o ";
+	$command = $command + "-ff " + $extTSL[0] + ";";
+//	uvSnapshot -aa -n "C:\\work\\GP2\\test_projects\\1310_getHardEdgeUV\\images\\outUV_AA.tga" -xr 2048 -yr 1024 -r 255 -g 255 -b 255 -o -ff tga;
+
+//	select -r ("edgeTraceChip_*");
+	select -r $nodeNames;
+	print("\r\n\r\n\r\n" + $command + "\r\n\r\n\r\n");
+	eval($command);
+//	doDelete;
+}
+
+
+
+//渡されたノードを元に板を生成
+global proc make_HEpolyUV_oneObj(string $nodeName){
+	int $p = 0;
+	string $workedLine[];
+	string $uvName[];
+
+	select -r $nodeName;
+	polySelectConstraint -mode 3 -type 0x8000 -sm 1;	//境界エッジを選択
+	resetPolySelectConstraint;
+	string $hardEdgeList[] = `ls -sl -fl`;
+	
+	for($edge = 0 ; $edge < size($hardEdgeList) ; $edge++){
+		select $hardEdgeList[$edge];
+		PolySelectConvert 4;
+		string $edgeUVList[] = `ls -sl -fl`;		//エッジの構成UVを取得
+
+		for($tgtUV in $edgeUVList){
+			string $sidedUV[] = get_adjacentUV($tgtUV);
+
+			for($item in $sidedUV){
+				if(stringArrayContains($item , $edgeUVList) == 1 && stringArrayContains(($tgtUV + "-" + $item) , $workedLine) == 0){
+					$uvName[0] = $tgtUV ;
+					$uvName[1] = $item ;
+					makeEdgeTraceChip($uvName , $nodeName);
+					$workedLine[size($workedLine)] = ($item + "-" + $tgtUV);
+				}
+			}
+		}
+	}
+}
+
+global proc string[] get_adjacentUV(string $tgtUV){
+	select -r $tgtUV;
+	GrowPolygonSelectionRegion;
+	select -d $tgtUV;
+	string $res[] = `ls -sl -fl`;
+	return $res;
+}
+
+
+
+//渡された2uvID・ノード名から、UVのコピーを生成
+global proc makeEdgeTraceChip(string $uvName[] , string $nodeName){
+	float $pv[],$val[];
+	int $i=0;
+	for($item in $uvName){
+		$pv = `polyEditUV -query $item`;
+		$val[$i] = $pv[0];
+		$i++;
+		$val[$i] = $pv[1];
+		$i++;
+	}
+	int $p = size(`ls -tr ("edgeTraceChip_" + $nodeName + "_*")`);
+	int $q = size(`ls -tr ("edgeTraceChip_*")`);
+	float $temp = deg_to_rad($q);
+	float $x = sin($temp);
+	float $y = cos($temp);
+	$q = $q * 0.1;
+	polyCreateFacet -ch on -tx 1 -s 1 
+		-p ($x * $q + 1) 0 ($y * $q + 1 ) 
+		-p ($x * $q + 1) 0 ($y * $q - 1 ) 
+		-p ($x * $q - 1) 0 ($y * $q - 1 ) 
+		-p ($x * $q - 1) 0 ($y * $q + 1 ) -n ("edgeTraceChip_" + $nodeName + "_" + $p);
+	polyEditUV -r 0 -u $val[0] -v $val[1] ("edgeTraceChip_" + $nodeName + "_" + $p + ".map[0]") ("edgeTraceChip_" + $nodeName + "_" + $p + ".map[1]");
+	polyEditUV -r 0 -u $val[2] -v $val[3] ("edgeTraceChip_" + $nodeName + "_" + $p + ".map[2]") ("edgeTraceChip_" + $nodeName + "_" + $p + ".map[3]");
+}
+
+
+global proc mHE_editTfData(string $accessedData){
+    string $basicFilter[] = `textScrollList -q	-selectItem mHE_extTSL`;
+	string $result[] = `fileDialog2 -cap "UVキャプチャの保存先を指定してください。" -fileMode 0 -fileFilter $basicFilter[0] -okc "set" -dialogStyle 2`;
+	string $fileName = $result[0];
+	string $temp[] = {`dirname $fileName`,`basenameEx $fileName`};
+	textFieldButtonGrp -e -text ($temp[0] + "/" + $temp[1]) $accessedData;
+}
+
+global proc GP2_makeHardEdgePolyUV(){
+	string $ut = ("source \"" + `getenv "GP_MAYA_ROOT"` + "\\\\common\\\\scripts\\\\GP_mel\\\\subscripts\\\\GP2_Ut.mel\"");
+	eval $ut;
+	string $windowName = "makeHEpolyUV_Window";
+	if(`window -q -exists $windowName`){
+		deleteUI -window $windowName;
+	}
+	window -h 280 -w 530 $windowName;
+	string $form = `formLayout`;
+
+	string $exportName = GP2_saveDataLoad(( `getenv "GP_MAYA_ROOT"` + "\\common\\scripts\\GP_mel\\csv\\GP2_mel_saveData.csv") , "makeHE_exportPath");
+	int $exportXsize = GP2_saveDataLoad(( `getenv "GP_MAYA_ROOT"` + "\\common\\scripts\\GP_mel\\csv\\GP2_mel_saveData.csv") , "makeHE_exportXsize");
+	int $exportYsize = GP2_saveDataLoad(( `getenv "GP_MAYA_ROOT"` + "\\common\\scripts\\GP_mel\\csv\\GP2_mel_saveData.csv") , "makeHE_exportYsize");
+	if($exportName == ""){
+		$exportName = (`internalVar -uwd` + "outUV");
+	}else{
+		$exportName = (`dirname $exportName` + "/outUV");
+	}
+
+	string $toolTitle = `text -l "ハードエッジUVキャプチャ" -al "left" -font "boldLabelFont" mHE_titleTXT`;
+	string $toolExp = `text -l "選択しているオブジェクトの、ハードエッジのみのUV画像を生成します。" -al "left" mHE_expTXT`;
+	string $expPathTFB = `textFieldButtonGrp -label "ファイル名" -text $exportName -buttonLabel "Edit" -bc "mHE_editTfData(\"mHE_expTFB\")" -cw3 60 100 50 -ct3 left both right -ad3 2 mHE_expTFB`;
+	string $expSizeSet = `rowLayout -numberOfColumns 4
+		-columnWidth4 60 80 60 80
+		-adjustableColumn 1
+		-columnAlign  1 "right"
+		-columnAlign  3 "right"
+		-columnAttach 1 "both"  0
+		-columnAttach 2 "both"  0
+		-columnAttach 3 "both"  0
+		-columnAttach 4 "both"  0`;
+		string $tex1 = `text -w 60 -l "サイズ_X"`;
+		string $btn1 = `intField -v $exportXsize mHE_sizeXIF`;
+		string $tex2 = `text -w 60 -l "サイズ_Y"`;
+		string $btn2 = `intField -v $exportYsize mHE_sizeYIF`;
+		setParent ..;
+	string $AAcheck = `checkBox -label "アンチエイリアス" mHE_AACB`;
+	string $extTSL = `textScrollList -allowMultiSelection false
+		-append "bmp"
+		-append "dds"
+		-append "tga"
+		-append "iff"
+		-selectItem "bmp"
+		-showIndexedItem 4 mHE_extTSL`;
+
+	string $exbt = `button -l "出力" -c "make_HEpolyUV_Check();" mHE_expBtn`;
+
+	formLayout -edit
+		-attachForm	 $toolTitle	 "top"	20
+		-attachForm	 $toolTitle	 "left"   20
+		-attachNone	 $toolTitle	 "bottom"
+		-attachForm	 $toolTitle	 "right"  20
+
+		-attachControl  $toolExp	 "top" 5 $toolTitle
+		-attachForm	 $toolExp	 "left"   20
+		-attachNone	 $toolExp	 "bottom"
+		-attachNone	 $toolExp	 "right"
+
+		-attachControl  $expPathTFB	 "top" 5 $toolExp
+		-attachForm	 $expPathTFB	 "left"   20
+		-attachNone	 $expPathTFB	 "bottom"
+		-attachForm	 $expPathTFB	 "right"  20
+
+		-attachControl  $expSizeSet	 "top" 5 $expPathTFB
+		-attachForm	 $expSizeSet	 "left"   20
+		-attachNone	 $expSizeSet	 "bottom"
+		-attachNone	 $expSizeSet	 "right"
+//		-attachForm	 $expSizeSet	 "right"  10
+
+		-attachControl  $AAcheck	 "top" 5 $expSizeSet
+		-attachForm	 $AAcheck	 "left"   20
+		-attachNone	 $AAcheck	 "bottom"
+		-attachForm	 $AAcheck	 "right"  20
+
+		-attachControl  $extTSL	 "top" 5 $AAcheck
+		-attachForm	 $extTSL	 "left"   20
+		-attachControl  $extTSL	 "bottom" 5 $exbt
+		-attachForm	 $extTSL	 "right"  20
+
+		-attachNone	 $exbt	 "top"
+		-attachForm	 $exbt	 "left"   20
+		-attachForm	 $exbt	 "bottom" 20
+		-attachForm	 $exbt	 "right"  20
+	$form;
+	showWindow $windowName;
+}

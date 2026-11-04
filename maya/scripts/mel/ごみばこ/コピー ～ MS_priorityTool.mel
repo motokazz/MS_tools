@@ -1,0 +1,378 @@
+global proc string pad(string $a, int $b) {
+   int $nsize = `size $a`;
+   string $pad = "";
+
+   if($nsize < $b) {
+      for($i = 0; $i < ($b-$nsize); $i++) {
+         $pad = $pad+"0";
+      }
+      return $pad+$a;
+   }
+   else {
+      return $a;
+   }
+
+}
+
+
+
+global proc MS_setCGFXPriority(){
+	int $addPriority=`intSliderGrp -q -v addPriority`;
+	//string $cgfx[]=`ls -typ cgfxShader -sl`;
+	string $cgfx[]=`TAI_nodes_select_kai "cgfx"`;
+	int $newPriority;
+	for($each in $cgfx){
+		if(`attributeExists "Priority" $each`==0){
+			continue;
+		}
+		$priority=`getAttr ($each+".Priority")`;
+		$newPriority=$priority+$addPriority;
+		if($newPriority<10 && $newPriority>-10 ){
+			print ($each+".Priority is "+$newPriority+"\n");
+			setAttr ($each+".Priority") $newPriority;
+		}
+	}
+	
+	MS_checkPriority;
+}
+
+global proc MS_setMeshPriority2(){
+	int $addPriority=`intSliderGrp -q -v addPriority`;
+	//string $meshes[]=`ls -typ mesh -sl`;
+	print"*";
+	string $meshes[]=`TAI_nodes_select_kai "mesh"`;
+	int $newPriority;
+	for($each in $meshes){
+		if(`attributeExists "Priority" $each`==0){
+			continue;
+		}
+		$priority=`getAttr ($each+".Priority")`;
+		$newPriority=$priority+$addPriority;
+		if($newPriority<100 && $newPriority>-100 ){
+			print ($each+".Priority is "+$newPriority+"\n");
+			setAttr ($each+".Priority") $newPriority;
+		}
+	}
+	
+	MS_checkPriority;
+}
+
+
+
+global proc MS_checkPriority(){
+
+/*
+	string $cgfx[]=`ls -typ cgfxShader -sl`;
+	if(size($cgfx)==0){
+		string $cgfx[]=`ls -typ cgfxShader`;
+	}
+	
+	string $meshes[]=`listRelatives -s -f -ni`;
+	if(size($meshes)==0){
+		string $meshes[]=`ls -typ mesh`;
+	}
+*/
+	string $cgfx[]=`TAI_nodes_select_kai "cgfx"`;
+	string $meshes[]=`TAI_nodes_select_kai "mesh"`;
+	string $priorityCheck[];
+	
+	int $i=0;
+	for($each in $cgfx){
+		if(attributeExists ("Priority", $each)==0){continue;}
+		int $priority=`getAttr ($each+".Priority")`;
+		string $renderstage=`getAttr ($each+".RenderStage")`;
+		string $technique=`getAttr ($each+".technique")`;
+		string $padPriority=`pad $priority 3`;
+		if(($renderstage=="" || $renderstage=="background" )&& `gmatch $technique "*alpha*"`){
+			$renderstage="transparent";
+		}else if($renderstage==""){
+			$renderstage="unknown";
+		}
+		
+		$priorityCheck[$i]=($renderstage+":"+$padPriority+":"+$each);
+		
+		$i++;
+		
+	}
+	
+	for($each in $meshes){
+		if(attributeExists ("Priority", $each)==0){continue;}
+		int $priority=`getAttr ($each+".Priority")`;
+		string $padPriority=`pad $priority 3`;
+		$priorityCheck[$i]=("zz_MODEL_zz"+":"+$padPriority+":"+$each);
+		$i++;
+	}
+	
+	
+	$priorityCheck=`sort $priorityCheck`;
+	print $priorityCheck;
+	
+	
+	
+	
+	//##################################################################
+	if(`window -exists MS_priorityCGFXWin`){
+		deleteUI MS_priorityCGFXWin;
+	}
+	
+	
+	//Create Window
+	
+	window -title "MS_priorityCGFXWin" MS_priorityCGFXWin;
+
+	scrollLayout scrollLayout;
+//		columnLayout -adjustableColumn true;
+	formLayout MS_priorityCGFXWin_Layout;
+	$i=1;
+	string $buffer[];
+	text -w 112 -l "renderStage" midasiA;
+	text -w 112 -l "priority" midasiB;
+	text -w 112 -l "object" midasiC;
+	formLayout -e 
+		-af midasiA "left" 16 
+		-af midasiA "top" 0 
+		-af midasiB "left" 128 
+		-af midasiB "top" 0 
+		-af midasiC "left" 180
+		-af midasiC "top" 0 
+	MS_priorityCGFXWin_Layout;
+	
+	for($each in $priorityCheck){
+		tokenize $each ":" $buffer;
+		int $pri=$buffer[1];
+		text -w 112 -fn "boldLabelFont" -l $buffer[0] ("ctrlA"+$i);
+		formLayout -e -af ("ctrlA"+$i) "left" 16 -af ("ctrlA"+$i) "top" ($i*22) MS_priorityCGFXWin_Layout;
+		$editCommand="setAttr "+$buffer[2]+".Priority `intField -q -v ctrlB"+$i+"`;MS_checkPriority;";
+		intField -w 32 -v $pri -changeCommand $editCommand ("ctrlB"+$i);
+		formLayout -e -af ("ctrlB"+$i) "left" 128 -af ("ctrlB"+$i) "top" ($i*22) MS_priorityCGFXWin_Layout;
+		
+
+		
+		
+		if($pri<=0){
+			button -bgc 1.0 0.5 0.5 -w 128 -l $buffer[2] -c ("select -r "+$buffer[2]+";openAEWindow;") ("ctrlC"+$i);
+		}else{
+			button -w 128 -l $buffer[2] -c ("select -r "+$buffer[2]+";openAEWindow;") ("ctrlC"+$i);
+		}
+		formLayout -e -af ("ctrlC"+$i) "left" 160 -af ("ctrlC"+$i) "top" ($i*22) MS_priorityCGFXWin_Layout;
+		
+		
+		$i++;
+	}
+	
+	button -bgc 1.0 0.8 0.8 -w 64 -l "close" -command "deleteUI MS_priorityCGFXWin" "exitButton";
+	formLayout -e -af "exitButton" "left" 160 -af "exitButton" "top" ($i*22+20) MS_priorityCGFXWin_Layout;
+	
+	
+	//Footer
+	showWindow MS_priorityCGFXWin;
+
+	
+}
+
+global proc int matchString( string $strarray[], string $name )
+{
+	for( $i=0; $i<`size $strarray`; $i++ )
+	{
+		if( $strarray[$i] == $name )
+		{
+			return 1;
+		}
+	}
+	return 0;
+}
+
+global proc MS_setMeshPriority()
+{
+	string $transforms[] = `ls -sl -type transform`;
+	
+	for($i=0; $i<`size $transforms`; $i++)
+	{
+		string $meshes[] = `listRelatives -s $transforms[$i]`;
+		for($j=0; $j<`size $meshes`; $j++)
+		{
+			if(!`attributeExists "Priority" $meshes[$j]`)
+			{
+				addAttr -ln Priority -at long  -min -100 -max 100 -dv 0 $meshes[$j];
+			}
+//			setAttr ($meshes[$j]+".Priority") 0;
+		}
+	}
+	
+	string $materials[] = `ls -sl -type cgfxShader`;
+	for($i=0; $i<`size $materials`; $i++)
+	{
+		if(!`attributeExists "Priority" $materials[$i]`)
+		{
+			addAttr -ln Priority -at long  -min -100 -max 100 -dv 0 $materials[$i];
+		
+		}
+	}
+}
+
+
+global proc string[] TAI_nodes_select_kai(string $flag){
+//太さんプログラムここから
+	string $materialNodes[];
+	string $meshNodes[];
+	string $transforms[] = `ls -sl -type transform`;
+	int $count=0;
+	int $count2=0;
+	for( $i=0; $i<`size $transforms`; $i++ )
+	{
+		string $meshes[] = `listRelatives -fullPath -s -noIntermediate $transforms[$i]`;
+		for($j=0; $j<`size $meshes`; $j++)
+		{
+			$meshNodes[$count] = $meshes[$j];
+			$count++;
+			
+			string $sgGroups[] = `listSets -type 1 -object $meshes[$j]`;
+			
+			for($k=0; $k<`size $sgGroups`; $k++)
+			{
+				string $materials[] = `listConnections ($sgGroups[$k]+".surfaceShader")`;
+				
+				for($l=0; $l<`size $materials`; $l++)
+				{
+					string $cgnode[] = `ls -type cgfxShader $materials[$l]`;
+					
+					for($m=0; $m<`size $cgnode`; $m++)
+					{
+						if( !matchString( $materialNodes, $cgnode[$m] ) )
+						{
+							$materialNodes[$count2] = $cgnode[$m];
+							
+							$count2++;
+						}
+					}
+					
+					if( `attributeExists "hardwareShader" $materials[$l]` )
+					{
+						string $fxnode[] = `listConnections ($materials[$l]+".hardwareShader")`;
+						
+						for($m=0; $m<`size $fxnode`; $m++)
+						{
+							if( !matchString( $materialNodes, $fxnode[$m] ) )
+							{
+								$materialNodes[$count2] = $fxnode[$m];
+								
+								$count2++;
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	
+	/* マテリアルがひとつもない場合はすべてのオブジェクトをひろう */
+	if( 0 == size( $meshNodes ) && 0 == size( $materialNodes ) )
+	{
+		string $cmaterial[] = `ls -type cgfxShader`;
+		$count2 = 0;
+		for( $i=0; $i<`size $cmaterial`; $i++ )
+		{
+			$materialNodes[$count2] = $cmaterial[$i];
+			$count2++;
+		}
+		
+		string $transforms[] = `ls -type transform`;
+		int $count=0;
+		for( $i=0; $i<`size $transforms`; $i++ )
+		{
+			string $meshes[] = `listRelatives -fullPath -s -noIntermediate $transforms[$i]`;
+			for($j=0; $j<`size $meshes`; $j++)
+			{
+				$meshNodes[$count] = $meshes[$j];
+				$count++;
+			}
+		}
+		
+		
+		
+	}
+	
+	if($flag=="mesh"){return $meshNodes;}
+	if($flag=="cgfx"){return $materialNodes;}
+//太さんプログラムここまで
+}
+
+global proc MS_priorityTool()
+{
+	
+	//Window Check
+	if(`window -exists MS_priorityTool`){
+		deleteUI MS_priorityTool;
+	}
+	
+	
+	//Create Window
+	
+	window -title "MS_priorityTool" MS_priorityTool;
+
+	scrollLayout scrollLayout;
+//		columnLayout -adjustableColumn true;
+	columnLayout;
+	frameLayout 
+		-l test
+		-borderVisible true 
+		-labelVisible true 
+		-labelAlign "center"
+		-cll 1
+		-w 200
+		-h 50;
+
+
+		columnLayout ;
+	
+	//Contents
+			//text
+			text -label "ThisWindowIsMS_priorityTool";
+			//separator -w 600 -h 40 -st "single";
+	
+			setParent ..;
+		setParent ..;
+	
+	
+	separator -w 600 -h 10 -st "single";
+	//intSilder
+	intSliderGrp -l "additionalPriority" -field true -min -100 -max 100 -v 1 addPriority;
+	separator -w 600 -h 10 -st "single";
+	
+	frameLayout 
+		-l Buttons
+		-borderVisible true 
+		-labelVisible true 
+		-labelAlign "center"
+		-cll 1
+		-w 320
+		-h 100;
+		columnLayout;
+		rowLayout -numberOfColumns 2 -cw2 100 100;
+
+			button -w 80 -bgc 0.8 1.0 0.8 -l "checkPriority" -command "MS_checkPriority" ;
+			button -w 80 -l "setPriority" -command "MS_setMeshPriority;MS_checkPriority;" ;
+			setParent ..;
+		separator -w 600 -h 5 -st "single";
+		rowLayout -numberOfColumns 2 -cw2 100 100;
+	//---------------
+	//Execute Buttons
+	//---------------
+			button -w 100 -bgc 1.0 0.8 0.8 -l "setCGFXPriority" -command "MS_setCGFXPriority" ;
+			button -w 100 -bgc 0.8 0.8 1.0 -l "setMeshPriority" -command "MS_setMeshPriority2" ;
+			setParent ..;
+			
+		separator -w 600 -h 5 -st "single";
+		rowLayout -numberOfColumns 2 -cw2 32 32;
+			button -w 32 -l "undo" -command "Undo" ;
+			button -w 32 -l "exit" -command "deleteUI MS_priorityTool" ;
+			setParent ..;
+		setParent ..;
+	setParent ..;
+	//Footer
+	showWindow MS_priorityTool;
+	
+}
+
+MS_priorityTool;
+

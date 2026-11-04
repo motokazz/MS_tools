@@ -1,0 +1,78 @@
+/*
+改良
+・出来上がるトレイルオブジェクトの自動分割
+・UV自動整理
+・トレイルオブジェクトのタイプを作成
+*/
+
+global proc string MS_ointLoftcheckSkinCluster(string $obj){
+string $a[]=`ls -o $obj`;
+string $b[]=`listConnections -t skinCluster $a`;
+return $b[0];
+}
+
+
+global proc MS_jointLoftsetSkinWeight(string $joint,string $point){
+	
+	string $option;
+	
+		string $SkinCluster=`MS_ointLoftcheckSkinCluster $point`;
+		$option="skinPercent ";
+		$option=$option+("-resetToDefault -transformValue "+$joint+" 1.0 ");
+		$option=$option+$SkinCluster+" "+$point;
+		print $option;
+		eval $option;
+	
+	
+}
+
+
+global proc MS_jointLoftV2(){
+	string $new[];
+	$obj=`ls -l -sl`;
+	
+	//トレイルのポリゴン作成
+	string $com="polyCreateFacet -ch on -tx 1 -s 1 ";
+	for ($each in $obj){
+		float $loc[]=`xform -q -ws -t $each`;
+		$com=($com+"-p "+$loc[0]+" "+$loc[1]+" "+$loc[2]+" ");
+	}
+	$new=`eval $com`;
+	select -r $new[0] $obj;
+	SmoothBindSkin;
+	
+	//スキニング
+	int $i=0;
+	for ($each in $obj){
+		string $vtx=($new[0]+".vtx["+$i+"]");
+		MS_jointLoftsetSkinWeight $each $vtx;
+		$i++;
+	}
+	/*
+	//シェーダー作成＆割付
+	createEF_1;
+	
+	string $shad[]=`ls -sl`;
+	string $sg[]=`listConnections -t shadingEngine`;
+	string $cgfx[]=`listConnections -t cgfxShader`;
+	
+	select -r $new;
+	sets -e -forceElement $sg[0];
+	
+	
+	//MS_VFA
+
+	MS_VFA_Float(
+	`playbackOptions -q -min`,
+	`playbackOptions -q -max`,
+	0,
+	1,
+	$obj[0],
+	$cgfx,
+	{"baseColorAlpha"}
+	
+	);
+	*/
+}
+
+

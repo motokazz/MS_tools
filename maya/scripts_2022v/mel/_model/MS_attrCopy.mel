@@ -1,0 +1,20 @@
+global proc MS_attrCopy(){
+string $obj[]=`ls -sl`;
+int $size=size($obj);
+
+string $target=$obj[$size-1];
+string $attrs[]=`listAttr -r -w -v -s -o -k $target`;
+for($roop in $obj){
+
+	for($each in $attrs){
+		$val=`getAttr ($target+"."+$each)`;
+
+		setAttr ($roop+"."+$each) $val;
+		
+	}
+
+
+}
+
+//print $attrs;
+}

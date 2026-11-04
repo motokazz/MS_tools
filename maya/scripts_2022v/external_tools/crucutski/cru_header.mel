@@ -1,0 +1,242 @@
+/* This file downloaded from Highend3d.com
+''  
+''  Highend3d.com File Information:
+''  
+''    Script Name: Crucutski
+''    Author: greyskull 
+''    Last Updated: Feb 04, 2009
+''    Update/Change this file at:
+''    http://Highend3d.com/maya/downloads/mel_scripts/modeling/poly_tools/2742.html
+''  
+''  Please do not alter any information above this line
+''  it is generated dynamically by Highend3d.com and will
+''  be changed automatically on any updates.
+*/
+global proc string[] cruShapeType(string $obj) {
+	string $output[];
+	string $temp = `nodeType $obj`;
+	
+	if ($temp == "transform") {
+		$output = `listRelatives -s $obj`;
+		
+		if (`objExists $output[0]`) {
+			$output[1] = `nodeType $output[0]`;
+		} else {
+			$output[0] = "";
+			$output[1] = `nodeType $obj`;
+		}
+		
+	}
+	
+	return $output;
+	
+	clear $output;
+}
+
+global proc string cruVersionUp(int $input, int $padding) {
+   int $temp = $input;
+
+   $temp++;
+
+   return cruLeftPad($temp, $padding, "0");
+}
+
+global proc string cruLeftPad(string $input, int $pad_length, string $pad_character) {
+   string $paddedString = "";
+
+   int $length = $pad_length - size($input);
+
+   return (cruStrRepeat($pad_character, $length) + $input);
+}
+
+global proc string cruStrRepeat(string $string, int $times) {
+   string $output = "";
+
+   int $i;
+
+   for ($i = 0; $i < $times; $i++) {
+      $output += $string;
+   }
+
+   return $output;
+}
+
+global proc int cruInArray(string $haystack[], string $needle) {
+   int $i = 0;
+
+   for ($i = 0; $i < size($haystack); $i++) {
+      if ($haystack[$i] == $needle) {
+         return true;
+      }
+   }
+
+   return false;
+}
+
+global proc int cruArrayCompare(string $array1[], string $array2[]) {
+	int $output;
+	
+	int $a = size($array1);
+	int $b = size($array2);
+	
+	int $c;
+	int $d;
+	
+	if ($a > $b) {
+		$output = $a - $b;
+	} else {
+		$output = $b - $a;
+	}
+	
+	return $output;
+}
+
+global proc string cruZip(string $array[]) {
+	string $output;
+	
+	int $i;
+	for ($i = 0; $i < size($array); $i++) {
+		if ($i < 1) {
+			$output = $array[$i];
+		} else {
+			$output = $output + "." + $array[$i];
+		}
+	}
+	
+	return $output;
+	
+	clear $output;
+}
+
+global proc string[] cruUnzip(string $zip) {
+	string $output[];
+	
+	tokenize $zip "." $output;
+	
+	return $output;
+	
+	clear $output;
+}
+
+global proc float[] cruFaceCenter(string $polyObject, int $faceNumber) {
+   float $pos[] = `xform -q -ws -t ($polyObject + ".f[" + $faceNumber + "]")`;
+   int $posSize = size($pos);
+   int $tempSize = 0;
+   int $amount = $posSize / 3;
+   float $temporary[];
+
+   float $X[];
+   float $Y[];
+   float $Z[];
+
+   float $avgX;
+   float $avgY;
+   float $avgZ;
+
+   int $tempCount = 0;
+   int $xCount = 0;
+   int $yCount = 0;
+   int $zCount = 0;
+
+   // get X
+   int $i = 0;
+   for ($i = 0; $i < $posSize; $i++) {
+
+      if ($i % 3 == $i / $posSize) {
+         $X[$xCount] = $pos[$i];
+         $xCount++;
+      } else {
+         $temporary[$tempCount] = $pos[$i];
+         $tempCount++;
+      }
+   }
+
+   $tempSize = size($temporary);
+
+   // get Y & Z
+   int $j = 0;
+   for ($j = 0; $j < size($temporary); $j++) {
+      if ($j % 2 == 0) {
+         $Y[$yCount] = $temporary[$j];
+         $yCount++;
+      } else {
+         $Z[$zCount] = $temporary[$j];
+         $zCount++;
+      }
+   }
+
+   clear $temporary;
+   clear $pos;
+
+   // do our averaging
+   float $averageX = 0;
+   float $averageY = 0;
+   float $averageZ = 0;
+
+   float $finalAverage[];
+   clear $finalAverage;
+
+   int $x = 0;
+   for ($x = 0; $x < size($X); $x++) {
+      $averageX += $X[$x];
+      $averageY += $Y[$x];
+      $averageZ += $Z[$x];
+   }
+
+   $finalAverage[0] = $averageX / size($X);
+   $finalAverage[1] = $averageY / size($Y);
+   $finalAverage[2] = $averageZ / size($Z);
+
+   clear $X; clear $Y; clear $Z;
+
+   return $finalAverage;
+}
+
+global proc string[] cruArrayMesh(string $array[]) {
+	string $output[];
+	int $count = 0;
+	
+	int $i;
+	for ($i = 0; $i < size($array); $i++) {
+		string $shapeType[] = `cruShapeType $array[$i]`;
+		
+		if ($shapeType[1] == "mesh") {
+			$output[$count] = $array[$i];
+			
+			$count++;
+		}
+	}
+	
+	return $output;
+	
+	clear $output;
+}
+
+global proc string[] cruGetMeshOnly(string $list[]) {
+	string $output[];
+	
+	int $count = 0;
+	
+	int $i;
+	for ($i = 0; $i < size($list); $i++) {
+		string $shapeType[] = `cruShapeType $list[$i]`;
+		
+		if ($shapeType[1] == "mesh") {
+			$output[$count] = $list[$i];
+			
+			$count++;
+		}
+		
+		if ($shapeType[0] == "") {
+			delete $list[$i];
+		}
+		
+		clear $shapeType;
+	}
+	
+	$output = sort($output);
+	
+	return $output;
+	
+	clear $output;
+}

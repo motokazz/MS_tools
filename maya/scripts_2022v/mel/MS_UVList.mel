@@ -1,0 +1,36 @@
+global proc MS_UVList(string $obj_name){
+
+	
+	//Window Check
+	if(`window -exists MS_UVList`){
+		deleteUI MS_UVList;
+	}
+	
+	
+	//Create Window
+	
+	window -title "MS_UVList" MS_UVList;
+	
+	frameLayout -label ($obj_name+".UVSet");
+
+		columnLayout ;
+		
+		string $collection1 = `radioCollection`;
+		string $UVSets[]=`polyUVSet -q -auv $obj_name`;
+		for ($name in $UVSets){
+			radioButton -l $name ;
+		}
+		setParent ..;
+	setParent ..;
+	
+	radioCollection -e -select $UVSets[0] $collection1;
+	
+	showWindow MS_UVList;
+	
+}
+
+{
+string $obj_name[]=`ls -sl`;
+MS_UVList $obj_name[0];
+}
+

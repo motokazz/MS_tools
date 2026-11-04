@@ -1,0 +1,6 @@
+{
+python("import sys");
+python("sys.path.append( 'D:/MS_tools' )");
+python("exec('import MS_pyDragDrop')");
+python("exec('reload(MS_pyDragDrop)')");
+}

@@ -1,0 +1,780 @@
+/*
+MS_HRC_XFF_Export.mel
+v1.5
+◆概要
+選択したトップLOCATERの名前をつけて、その子供を全てXFFファイル出力
+シーン全体のエキスポート対応
+
+◆使用方法
+
+１・準備
+出力先の基本となるディレクトリ、
+D:/DATA/xff/
+を作成するとよい。
+
+２・オプション設定
+---チェックボックス---
+ExportModel
+ExportAnim
+ExportMatanim
+IgnoreBindpose
+IgnoreRefferencenode
+※上記チェックボックスは、onで各項目有効
+
+AnimNameIsMotion
+※このチェックボックスがONになっていると、出力されるアニメーション名が「motion」になる。（BG用）
+　OFFのときは、親locaterの名前＋「additionalAnimationName」が有効になる。
+
+---名前入力---
+additionalModelName
+additionalAnimationName
+
+ここに入力した名前が、それぞれの名前に設定される。
+
+
+---出力パス設定---
+filePath
+ここに入力したPATHに出力される。「Brouse」ボタンでブラウザによるディレクトリ選択が可能。
+
+---各種ボタン---
+Camera
+カメラ出力が出来る。出力ファイル名は「additionalAnimationName」＋”.camera.pcxff”になる。
+
+Export
+オブジェクトのエキスポートが出来る。
+出力ファイル名は、親locater名＋「additionalAnimationName」＋”.pcxff”になる。
+出力アニメーション名は、親locater名＋「additionalAnimationName」になる。（AnimNameIsMotionにチェック無しの場合）
+
+Exit
+ウインドウを閉じる。
+
+３・実行
+出力したいオブジェクトを選択して、ボタンを押す。
+
+
+◆詳細
+選択したグループの名前でラベルを作成して、グループごとにファイルを出力します。
+ファイル名もグループの名前で出力されます。
+
+出力前に、テクスチャーファイルを全て.ddsファイルに張り替えます。（fileノードの拡張子記述を強制的に.ddsに書き換えています。）
+
+基本出力先は、このスクリプトを直接いじっていただければ変更できます・・・
+
+◆注意
+同名のオブジェクトがシーンの中に、複数存在するとき、正常にエキスポートできないときがあります。
+
+
+◆改良テーマ
+・設定ファイルを読み込めるようにする。前回出力したパス、セッティングなどを記憶する。
+・出力するごとにロケーターに出力セッティングを記録する。
+・出力時にロケーターに埋め込んだ出力セッティングを読み込んでそのとおりに出力する
+
+
+
+*/
+
+global proc HRC_XFF_Camera_Export(){
+	string $path=`textField -q -fileName "filePath"`;
+	string $ModelName=`textField -q -tx "ModelName"`;//Data//
+	$full_path=($path+$ModelName+".camera.pcxff");
+	XFFexport -f $full_path -ce;
+//cameraAnimExport $full_path "Best Guess";
+}
+global proc MS_ditect_XFF_Export_Seting(int $mode){
+	
+	string $obj[]=`ls -sl`;
+	int $check=`attributeExists "ExportModel" $obj[0]`;
+	int $ExportModel;
+	int $ExportAnim;
+	int $ExportMatanim;
+	int $IgnoreBindpose;
+	string $ModelName;
+	string $AnimationName;
+	int $IgnoreReference;
+	int $LightExport;
+	int $PlacementInfoExport;
+	
+	if(`objExists "|XFF_EXPORT_SETTING"` && !$mode ){
+		$ExportModel			=`getAttr |XFF_EXPORT_SETTING.ExportModel`;
+		$ExportAnim				=`getAttr |XFF_EXPORT_SETTING.ExportAnim`;
+		$ExportMatanim			=`getAttr |XFF_EXPORT_SETTING.ExportMatanim`;
+		$IgnoreBindpose			=`getAttr |XFF_EXPORT_SETTING.IgnoreBindpose`;
+		$ModelName				=`getAttr |XFF_EXPORT_SETTING.ModelName`;
+		$AnimationName			=`getAttr |XFF_EXPORT_SETTING.AnimationName`;
+		$IgnoreReference		=`getAttr |XFF_EXPORT_SETTING.IgnoreReference`;
+		$LightExport			=`getAttr |XFF_EXPORT_SETTING.LightExport`;
+		$PlacementInfoExport	=`getAttr |XFF_EXPORT_SETTING.PlacementInfoExport`;
+		
+	}
+	if($mode && $check){
+		$ExportModel			=`getAttr ($obj[0]+".ExportModel")`;
+		$ExportAnim				=`getAttr ($obj[0]+".ExportAnim")`;
+		$ExportMatanim			=`getAttr ($obj[0]+".ExportMatanim")`;
+		$IgnoreBindpose			=`getAttr ($obj[0]+".IgnoreBindpose")`;
+		$ModelName				=`getAttr ($obj[0]+".ModelName")`;
+		$AnimationName			=`getAttr ($obj[0]+".AnimationName")`;
+		$IgnoreReference		=`getAttr ($obj[0]+".IgnoreReference")`;
+		$LightExport			=`getAttr ($obj[0]+".LightExport")`;
+		$PlacementInfoExport	=`getAttr ($obj[0]+".PlacementInfoExport")`;
+		
+	}
+
+	
+	
+	checkBox -e -v $ExportModel "ExportModel" ;//Data//
+	checkBox -e -v $ExportAnim "ExportAnim" ;//Data//
+	checkBox -e -v $ExportMatanim "ExportMatAnim" ;//Data//
+	checkBox -e -v $IgnoreBindpose "IgnoreBindpose" ;//Data//
+	textField -e -tx $ModelName "ModelName";//Data//
+	textField -e -tx $AnimationName "AnimationName" ;//Data//
+	checkBox -e -v $IgnoreReference "IgnoreReferencenode" ;//Data//
+	checkBox -e -v $LightExport "ExportLight" ;//Data//
+	checkBox -e -v $PlacementInfoExport "PlacementInfo" ;//Data//
+	
+}
+global proc MS_HRC_XFF_Export_core(int $mode){
+	
+	$path=`textField -q -fileName "filePath"`;//出力パス
+	
+	string $AnimationName=`textField -q -tx "AnimationName"` ;//Data//
+	string $ModelName=`textField -q -tx "ModelName"`;//Data//
+	
+	int $ir=`checkBox -q -v "IgnoreReferencenode"` ;//Data//
+	int $ip=`checkBox -q -v "IgnoreBindpose"` ;//Data//
+	int $ex=`checkBox -q -v "ExportMatAnim"` ;//Data//
+	int $ea=`checkBox -q -v "ExportAnim" `;//Data//
+	int $em=`checkBox -q -v "ExportModel"` ;//Data//
+	int $le=`checkBox -q -v "ExportLight"` ;//Data//
+	int $pi=`checkBox -q -v "PlacementInfo"` ;//Data//
+	
+	
+	if($em){$em=0;}else{$em=1;}
+	if($ea){$ea=0;}else{$ea=1;}
+	if($ex){$ex=0;}else{$ex=1;}
+	
+	//モードよりわけ
+	
+	string $obj_name[];
+	
+	//コマンド作成
+	
+	if($mode){
+		$obj_name=`ls -as -sl`;
+
+	//ExportSelected
+		for($each in $obj_name){
+			
+			//たまにオブジェクト名の頭にわけのわからない「｜」がついているのを回避。
+			int $headcheck=startsWith($each,"|");
+			if ($headcheck){$each=endString($each, (size($each)-1));}
+			
+			select -r $each;
+			
+			$full_p_name=($path+$each);
+			
+			//モデル名が空だったらロケーターの名前をモデル名として使う
+			if ($ModelName==""){
+				$ModelName=$each;
+			}
+			//アニメーションの名前が入力されていなければ「motion」を使う
+			if ($AnimationName==""){
+				$AnimationName="motion";
+			}
+			//ライトのエキスポート
+			if($le){
+				$operation=(
+				"em="+$em+
+				";ea="+$ea+
+				";ex="+$ex+
+				";ip="+$ip+
+				";le="+$le+
+				";pi="+$pi+
+				";name="+$AnimationName+
+				";obj="+$ModelName+";"
+				);
+				print ("file -op "+$operation+" -typ \"XFFExport\" -pr -ea "+$full_p_name+";");
+				file -op $operation -typ "XFFExport" -pr -es $full_p_name;
+			
+			}
+
+			
+			$operation=(
+				"em="+$em+
+				";ea="+$ea+
+				";ex="+$ex+
+				";ip="+$ip+
+				";le=0"+
+				";pi="+$pi+
+				";name="+$AnimationName+
+				";obj="+$ModelName+";"
+			);
+			
+			print ("file -op "+$operation+" -typ \"XFFExport\" -pr -ea "+$full_p_name+";");
+			file -op $operation -typ "XFFExport" -pr -es $full_p_name;
+			
+
+		}
+		
+		select -r $obj_name;
+		
+	}else{
+		//ExportAll
+		
+		select -cl;
+		string $sn=`file -sn -q`;
+		string $arrey[];
+		string $scenename[];
+		tokenize $sn "/" $arrey ;
+		tokenize ($arrey[size($arrey)-1]) "." $scenename;
+		
+		
+		
+		if($ModelName==""){
+			$ModelName="model";
+		}
+		
+		$full_p_name=($path+$scenename[0]);
+		$operation=(
+			"em="+$em+
+			";ea="+$ea+
+			";ex="+$ex+
+			";ip="+$ip+
+			";le="+$le+
+			";pi="+$pi+
+			";name="+$AnimationName+
+			";obj="+$ModelName+";"
+		);
+		
+		print ("file -op "+$operation+" -typ \"XFFExport\" -pr -ea "+$full_p_name+";");
+		
+		file -op $operation -typ "XFFExport" -pr -ea $full_p_name;
+		
+	}
+	
+	
+	
+	
+}
+global proc MS_HRC_XFF_Export_TexExtRep_All(int $val_radio)
+{
+
+	string $ext_name[]={"dummy",".dds",".tga",".tif",".jpg"};
+
+	string $rec_obj[]=`ls -sl`;
+
+	select -all;
+
+	string $obj_name[]=`ls -sl -typ file`;
+
+	
+	for($each in $obj_name){
+	
+	string $name=`getAttr ($each+".fileTextureName")`;
+	
+	
+	//ピリオドで分割
+	string $buffer[];
+	tokenize $name "." $buffer;
+	
+	
+		setAttr -type "string" ($each+".fileTextureName") ($buffer[0]+$ext_name[$val_radio]);
+	
+	}
+	if($rec_obj[0]==""){
+		select -cl;
+	}else{
+		select -r $rec_obj;
+	}
+}
+global proc MS_set_XFF_Export_Seting(){
+	
+	string $lsobj[]=`ls -as -sl`;
+	
+for($obj in $lsobj){
+	
+	
+		/* アトリビュートが存在しない場合、アトリビュートを設定する */
+	if( !`attributeExists "ExportModel" $obj` )
+	{
+		addAttr -ln "ExportModel" -at bool  $obj;
+	}
+	if( !`attributeExists "ExportAnim" $obj` )
+	{
+		addAttr -ln "ExportAnim" -at bool  $obj;
+	}
+	if( !`attributeExists "ExportMatanim" $obj` )
+	{
+		addAttr -ln "ExportMatanim" -at bool  $obj;
+	}
+	if( !`attributeExists "ExportMatanim" $obj` )
+	{
+		addAttr -ln "ExportMatanim" -at bool  $obj;
+	}
+	if( !`attributeExists "IgnoreBindpose" $obj` )
+	{
+		addAttr -ln "IgnoreBindpose" -at bool  $obj;
+	}
+	if( !`attributeExists "ModelName" $obj` )
+	{
+		addAttr -ln ModelName -dt "string"  $obj;
+	}
+	if( !`attributeExists "AnimationName" $obj` )
+	{
+		addAttr -ln AnimationName -dt "string"  $obj;
+	}
+	if( !`attributeExists "IgnoreReference" $obj` )
+	{
+		addAttr -ln IgnoreReference -at bool  $obj;
+	}
+	if( !`attributeExists "LightExport" $obj` )
+	{
+		addAttr -ln LightExport -at bool  $obj;
+	}
+	if( !`attributeExists "PlacementInfoExport" $obj` )
+	{
+		addAttr -ln PlacementInfoExport -at bool  $obj;
+	}
+	
+	
+	
+	int $ExportModel=`checkBox -q -v "ExportModel"`;//Data//
+	int $ExportAnim=`checkBox -q -v "ExportAnim" `;//Data//
+	int $ExportMatAnim=`checkBox -q -v "ExportMatAnim" `;//Data//
+	int $IgnoreBindpose=`checkBox -q -v "IgnoreBindpose" `;//Data//
+	string $ModelName=`textField -q -tx "ModelName"`;//Data//
+	string $AnimationName=`textField -q -tx "AnimationName"`;//Data//
+	int $IgnoreReferencenode=`checkBox -q -v "IgnoreReferencenode"`;//Data//
+	int $ExportLight=`checkBox -q -v "ExportLight"`;//Data//
+	int $PlacementInfo=`checkBox -q -v "PlacementInfo"`;//Data//
+	
+	
+	
+	setAttr ($obj+".ExportModel") $ExportModel;//Data//
+	setAttr ($obj+".ExportAnim") $ExportAnim;//Data//
+	setAttr ($obj+".ExportMatanim") $ExportMatAnim;//Data//
+	setAttr ($obj+".IgnoreBindpose") $IgnoreBindpose;//Data//
+	setAttr -type "string" ($obj+".ModelName") $ModelName;//Data//
+	setAttr -type "string" ($obj+".AnimationName") $AnimationName;//Data//
+	setAttr ($obj+".IgnoreReference") $IgnoreReferencenode;//Data//
+	setAttr ($obj+".LightExport") $ExportLight;//Data//
+	setAttr ($obj+".PlacementInfoExport") $PlacementInfo;//Data//
+
+}
+
+}global proc MS_XFF_CreateExportSetting()
+{
+	string $exportSettingNodes[] = `ls -type transform XFF_EXPORT_SETTING`;
+	string $newNodeName="XFF_EXPORT_SETTING";
+	/* 見えないエクスポート設定用のノードを作成する */
+	if( size( $exportSettingNodes ) == 0 )
+	{
+		createNode "transform" -n $newNodeName;
+		setAttr "XFF_EXPORT_SETTING.visibility" 0;
+		setAttr -l true "XFF_EXPORT_SETTING.visibility";
+	}
+	
+	/* アトリビュートが存在しない場合、アトリビュートを設定する */
+	if( !`attributeExists "ExportModel" $newNodeName` )
+	{
+		addAttr -ln "ExportModel" -at bool  $newNodeName;
+	}
+	if( !`attributeExists "ExportAnim" $newNodeName` )
+	{
+		addAttr -ln "ExportAnim" -at bool  $newNodeName;
+	}
+	if( !`attributeExists "ExportMatanim" $newNodeName` )
+	{
+		addAttr -ln "ExportMatanim" -at bool  $newNodeName;
+	}
+	if( !`attributeExists "ExportMatanim" $newNodeName` )
+	{
+		addAttr -ln "ExportMatanim" -at bool  $newNodeName;
+	}
+	if( !`attributeExists "IgnoreBindpose" $newNodeName` )
+	{
+		addAttr -ln "IgnoreBindpose" -at bool  $newNodeName;
+	}
+	if( !`attributeExists "ModelName" $newNodeName` )
+	{
+		addAttr -ln ModelName -dt "string"  $newNodeName;
+	}
+	if( !`attributeExists "AnimationName" $newNodeName` )
+	{
+		addAttr -ln AnimationName -dt "string"  $newNodeName;
+	}
+	if( !`attributeExists "IgnoreReference" $newNodeName` )
+	{
+		addAttr -ln IgnoreReference -at bool  $newNodeName;
+	}
+	if( !`attributeExists "LightExport" $newNodeName` )
+	{
+		addAttr -ln LightExport -at bool  $newNodeName;
+	}
+	if( !`attributeExists "PlacementInfoExport" $newNodeName` )
+	{
+		addAttr -ln PlacementInfoExport -at bool  $newNodeName;
+	}
+	
+	
+	int $ExportModel=`checkBox -q -v "ExportModel"`;//Data//
+	int $ExportAnim=`checkBox -q -v "ExportAnim" `;//Data//
+	int $ExportMatAnim=`checkBox -q -v "ExportMatAnim" `;//Data//
+	int $IgnoreBindpose=`checkBox -q -v "IgnoreBindpose" `;//Data//
+	string $ModelName=`textField -q -tx "ModelName"`;//Data//
+	string $AnimationName=`textField -q -tx "AnimationName"`;//Data//
+	int $IgnoreReferencenode=`checkBox -q -v "IgnoreReferencenode"`;//Data//
+	int $ExportLight=`checkBox -q -v "ExportLight"`;//Data//
+	int $PlacementInfo=`checkBox -q -v "PlacementInfo"`;//Data//
+	
+	
+	
+	setAttr ($newNodeName+".ExportModel") $ExportModel;//Data//
+	setAttr ($newNodeName+".ExportAnim") $ExportAnim;//Data//
+	setAttr ($newNodeName+".ExportMatanim") $ExportMatAnim;//Data//
+	setAttr ($newNodeName+".IgnoreBindpose") $IgnoreBindpose;//Data//
+	setAttr -type "string" ($newNodeName+".ModelName") $ModelName;//Data//
+	setAttr -type "string" ($newNodeName+".AnimationName") $AnimationName;//Data//
+	setAttr ($newNodeName+".IgnoreReference") $IgnoreReferencenode;//Data//
+	setAttr ($newNodeName+".LightExport") $ExportLight;//Data//
+	setAttr ($newNodeName+".PlacementInfoExport") $PlacementInfo;//Data//
+	
+	// 選択のクリア 
+	select -d XFF_EXPORT_SETTING;
+}
+
+
+global proc MS_storeRecallUI ( string $mode ){
+
+	string $prefix="MS_HRC_XFF_ExportUI__";
+	
+	string $floatFieldList[] = {
+		};
+
+	string $intFieldList[] = {
+		};
+
+	string $floatSliderGrpList[] = {
+		};
+
+	string $intSliderGrpList[] = {
+		};
+
+	string $checkBoxList[] = {
+		"IgnoreReferencenode",
+		"IgnoreBindpose",
+		"ExportMatAnim",
+		"ExportAnim",
+		"ExportModel",
+		"ExportLight",
+		"PlacementInfo"
+		};
+
+	string $radioButtonGrpList[] = {
+		};
+
+	string $frameLayoutList[] = {
+		};
+
+	string $textFieldList[] = {
+		"AnimationName",
+		"ModelName"
+		};
+
+	string $textFieldList_file[] = {
+		"filePath"
+		};
+
+	int $cnt;
+
+	if ( $mode == "store" )
+	{
+		for ( $each in $floatFieldList)
+			optionVar -floatValue ($prefix+$each) `floatField -q -value $each`;
+
+		for ( $each in $intFieldList)
+			optionVar -intValue ($prefix+$each) `intField -q -value $each`;
+
+		for ( $each in $floatSliderGrpList)
+			optionVar -floatValue ($prefix+$each) `floatSliderGrp -q -value $each`;
+
+		for ( $each in $intSliderGrpList)
+			optionVar -intValue ($prefix+$each) `intSliderGrp -q -value $each`;
+
+		for ( $each in $checkBoxList)
+			optionVar -intValue ($prefix+$each) `checkBox -q -value $each`;
+
+		for ( $each in $radioButtonGrpList)
+			optionVar -intValue ($prefix+$each) `radioButtonGrp -q -select $each`;
+
+		for ( $each in $frameLayoutList)
+			optionVar -intValue ($prefix+$each) `frameLayout -q -collapse $each`;
+
+		for ( $each in $textFieldList)
+			optionVar -stringValue ($prefix+$each) `textField -q -tx $each`;
+
+		for ( $each in $textFieldList_file)
+			optionVar -stringValue ($prefix+$each) `textField -q -fileName $each`;
+	}
+
+	if ( $mode == "recall" )
+	{
+		for ( $each in $floatFieldList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				floatField -e -value `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $intFieldList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				intField -e -value `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $floatSliderGrpList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				floatSliderGrp -e -value `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $intSliderGrpList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				intSliderGrp -e -value `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $checkBoxList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				checkBox -e -value `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $radioButtonGrpList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				radioButtonGrp -e -select `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $frameLayoutList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				frameLayout -e -collapse `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $textFieldList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				textField -e -tx `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $textFieldList_file)
+			if ( `optionVar -exists ($prefix+$each)` )
+				textField -e -fileName `optionVar -q ($prefix+$each)` $each;
+
+	}
+
+	if ( $mode == "reset" )
+	{
+		for ( $each in $floatFieldList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $intFieldList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $floatSliderGrpList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $intSliderGrpList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $checkBoxList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $radioButtonGrpList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $frameLayoutList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $textFieldList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $textFieldList_file)
+			optionVar -remove ($prefix+$each);
+	}
+}
+
+
+
+
+
+
+
+global proc MS_HRC_XFF_Export_pipe(int $mode){
+	MS_HRC_XFF_Export_TexExtRep_All 1;
+	MS_HRC_XFF_Export_core $mode;
+//	MS_HRC_XFF_Export_TexExtRep_All 2;
+
+}
+
+
+global proc HRC_XFF_ExportUI_get_dir(string $exp_dir,string $dummy){
+
+	textField -e -fileName ($exp_dir+"/") "filePath";
+
+}
+
+global proc HRC_XFF_ExportUI_fileBrowser(){
+global string $gDefaultFileBrowserDir;
+string $orgpath=$gDefaultFileBrowserDir;
+string $path=`textField -q -fileName "filePath"`;
+eval("global string $gDefaultFileBrowserDir=\""+$path+"\"");
+fileBrowser "HRC_XFF_ExportUI_get_dir" "Select Directory" "" 4 ;
+MS_storeRecallUI store;
+eval("global string $gDefaultFileBrowserDir=\""+$orgpath+"\"");
+}
+
+
+
+
+global proc MS_HRC_XFF_ExportUI()
+{
+if(`window -q -ex MS_HRC_XFF_Export`)deleteUI MS_HRC_XFF_Export;
+window MS_HRC_XFF_Export;
+$form=`formLayout`;
+
+//--DataPart--//
+
+
+
+checkBox -recomputeSize 0 -v 0 -cc "MS_storeRecallUI store" -label "IgnoreReferencenode" -width 128 "IgnoreReferencenode" ;//Data//
+checkBox -recomputeSize 0 -v 1 -cc "MS_storeRecallUI store" -label "IgnoreBindpose" -width 128 "IgnoreBindpose" ;//Data//
+checkBox -recomputeSize 0 -v 1 -cc "MS_storeRecallUI store" -label "ExportMatAnim" -width 128 "ExportMatAnim" ;//Data//
+checkBox -recomputeSize 0 -v 1 -cc "MS_storeRecallUI store" -label "ExportAnim" -width 128 "ExportAnim" ;//Data//
+checkBox -recomputeSize 0 -v 1 -cc "MS_storeRecallUI store" -label "ExportModel" -width 128 "ExportModel" ;//Data//
+checkBox -recomputeSize 0 -v 0 -cc "MS_storeRecallUI store" -label "ExportLight" -width 128 "ExportLight" ;//Data//
+checkBox -recomputeSize 0 -v 0 -cc "MS_storeRecallUI store" -label "PlacementInfo" -width 128 "PlacementInfo" ;//Data//
+
+text -label "ModelName" "text7" ;//Data//
+textField -cc "MS_storeRecallUI store" -width 100 "ModelName";//Data//
+text -label "AnimationName" "text6" ;//Data//
+textField -cc "MS_storeRecallUI store" -width 100 "AnimationName" ;//Data//
+//checkBox -recomputeSize 0 -v 1 -label "AnimNameIsMotion" -width 128 "AnimNameIsMotion" ;//Data//
+
+separator -width 300 "separator9" ;//Data//
+
+text -label "filePath" "tex10" ;//Data//
+textField -fileName "D:/DATA/xff/" -width 200 "filePath" ;//Data//
+button -label "Brouse" -c "HRC_XFF_ExportUI_fileBrowser" "Brouse";
+
+separator -width 300 -height 2 "separator8" ;//Data//
+
+
+button
+	-width 80
+	-backgroundColor 1 0.8 0.8
+	-label "Export"
+	-recomputeSize 0
+	-command "MS_HRC_XFF_Export_pipe 1"
+	"Export" ;
+button
+	-width 60
+	-backgroundColor 1 0.8 0.8
+	-label "setSetting"
+	-recomputeSize 0
+	-command "MS_set_XFF_Export_Seting"
+	"setSetting" ;
+button
+	-width 100
+	-backgroundColor 1 0.8 0.8
+	-label "Get Setting from Obj"
+	-recomputeSize 0
+	-command "MS_ditect_XFF_Export_Seting 1;MS_storeRecallUI store;"
+	"GetSettingfromObj";
+button
+	-width 80
+	-backgroundColor 0.8 1 1
+	-label "ExportAll"
+	-recomputeSize 0
+	-command "MS_HRC_XFF_Export_pipe 0"
+	"ExportAll" ;
+button
+	-width 60
+	-backgroundColor 0.8 0.8 1
+	-label "setSetting"
+	-recomputeSize 0
+	-command "MS_XFF_CreateExportSetting"
+	"setSettingAll" ;
+button
+	-width 100
+	-backgroundColor 0.8 1 1
+	-label "Get Setting from Scene"
+	-recomputeSize 0
+	-command "MS_ditect_XFF_Export_Seting 0;MS_storeRecallUI store;"
+	"GetSettingfromScene";
+button
+	-width 48
+	-backgroundColor 0.8 0.8 1
+	-label "Camera"
+	-recomputeSize 0
+	-command "HRC_XFF_Camera_Export"
+	"CameraExport" ;
+button 
+	-width 48
+	-backgroundColor 0.9 1 0.8
+	-label "exit"
+	-recomputeSize 0
+	-command "deleteUI MS_HRC_XFF_Export"
+	"exit" ;
+
+
+formLayout -e
+	-af "ExportModel" "left" 16//Data//
+	-af "ExportModel" "top" 16//Data//
+	-af "ExportAnim" "left" 16//Data//
+	-af "ExportAnim" "top" 32//Data//
+	-af "ExportMatAnim" "left" 16//Data//
+	-af "ExportMatAnim" "top" 48//Data//
+	-af "IgnoreBindpose" "left" 16//Data//
+	-af "IgnoreBindpose" "top" 64//Data//
+	-af "IgnoreReferencenode" "left" 16//Data//
+	-af "IgnoreReferencenode" "top" 80//Data//
+	-af "ExportLight" "left" 16//Data//
+	-af "ExportLight" "top" 96//Data//
+	-af "PlacementInfo" "left" 16//Data//
+	-af "PlacementInfo" "top" 112//Data//
+	
+	-af "text7" "left" 176//Data//
+	-af "text7" "top" 16//Data//
+	-af "ModelName" "left" 176//Data//
+	-af "ModelName" "top" 32//Data//
+	-af "text6" "left" 176//Data//
+	-af "text6" "top" 64//Data//
+	-af "AnimationName" "left" 176//Data//
+	-af "AnimationName" "top" 80//Data//
+
+	-af "separator9" "left" 0//Data//
+	-af "separator9" "top" 136//Data//
+	
+	-af "tex10" "left" 0//Data//
+	-af "tex10" "top" 144//Data//
+	-af "filePath" "left" 0//Data//
+	-af "filePath" "top" 160//Data//
+	-af "Brouse" "left" 224//Data//
+	-af "Brouse" "top" 160//Data//
+	
+	-af "separator8" "left" 0//Data//
+	-af "separator8" "top" 184//Data//
+	
+	-af "Export" "left" 16//Data//
+	-af "Export" "top" 192//Data//
+	-af "setSetting" "left" 100//Data//
+	-af "setSetting" "top" 192//Data//
+	-af "GetSettingfromObj" "left" 180//Data//
+	-af "GetSettingfromObj" "top" 192//Data//
+	
+	-af "ExportAll" "left" 16//Data//
+	-af "ExportAll" "top" 224//Data//
+	-af "setSettingAll" "left" 100//Data//
+	-af "setSettingAll" "top" 224//Data//
+	-af "GetSettingfromScene" "left" 180//Data//
+	-af "GetSettingfromScene" "top" 224//Data//
+	
+	-af "CameraExport" "left" 16//Data//
+	-af "CameraExport" "top" 256//Data//
+	-af "exit" "left" 256//Data//
+	-af "exit" "top" 256//Data//
+	
+//--DataPart--//
+
+$form;
+
+MS_storeRecallUI recall;
+
+showWindow MS_HRC_XFF_Export;
+}
+
+//MS_HRC_XFF_ExportUI;

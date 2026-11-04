@@ -1,0 +1,22 @@
+global proc MS_instanceToVertex(){
+	string $OBJ[]=`ls -typ transform -sl`;
+	string $COMP[]=`filterExpand -sm 31`;
+	string $INST[];
+	float $COMPTR[];
+	float $COMPNRM[];
+	string $CONSTRAINT[];
+	string $LOCATOR[]=`spaceLocator`;
+	int $RAND;
+	for($each in $COMP){ 
+		$RAND=rand(size($OBJ));
+		$INST=`instance $OBJ[$RAND]`;
+		$COMPTR=`xform -q -ws -t $each`;
+		xform -ws -t $COMPTR[0] $COMPTR[1] $COMPTR[2] $INST;
+		$CONSTRAINT=`normalConstraint -weight 1 -aimVector 0 1 0 -upVector 0 1 0 -worldUpType "vector" -worldUpVector 0 1 0 $each $INST`;
+		delete $CONSTRAINT;
+		parent $INST $LOCATOR[0];
+	}
+}
+
+
+

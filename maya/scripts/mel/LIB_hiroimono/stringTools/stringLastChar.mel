@@ -1,0 +1,16 @@
+//stringLastChar, by Julian Love, julian@lightmail.com. Part of the StringTools set.
+//
+//description:	returns the last character in the supplied string
+//
+//usage:		stringLastChar string[source string];
+//
+//examples:		stringLastChar "hello world.";
+//				// Result: . //
+//
+//				stringLastChar "left_wrist_controller";
+//				// Result: r //
+
+
+global proc string stringLastChar (string $item){
+	return `match ".$" $item`;
+}

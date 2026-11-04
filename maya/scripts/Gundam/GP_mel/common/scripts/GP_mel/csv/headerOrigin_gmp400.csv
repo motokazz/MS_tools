@@ -1,0 +1,30 @@
+#ifdef GR_FILE_LINKED
+
+GR_FILE_LINKED( _basepose )
+GR_FILE_LINKED( motion_c100_gmp400_ex_mirageshot_0_00_start )
+GR_FILE_LINKED( motion_c100_gmp400_ex_mirageshot_0_01_loop )
+GR_FILE_LINKED( motion_c100_gmp400_ex_mirageshot_0_02_shoot )
+GR_FILE_LINKED( motion_c100_gmp400_ex_mirageshot_0_03_end )
+GR_FILE_LINKED( motion_c100_gmp400_ex_mirageshot_1_00_start )
+GR_FILE_LINKED( motion_c100_gmp400_ex_mirageshot_1_01_loop )
+GR_FILE_LINKED( motion_c100_gmp400_ex_mirageshot_1_02_shoot )
+GR_FILE_LINKED( motion_c100_gmp400_ex_mirageshot_1_03_end )
+GR_FILE_LINKED( motion_c100_gmp400_ex_mirageshot_UP_0_00_start )
+GR_FILE_LINKED( motion_c100_gmp400_ex_mirageshot_UP_0_01_loop )
+GR_FILE_LINKED( motion_c100_gmp400_ex_mirageshot_UP_0_02_shoot )
+GR_FILE_LINKED( motion_c100_gmp400_ex_mirageshot_UP_0_03_end )
+GR_FILE_LINKED( motion_c100_gmp400_ex_mirageshot_DOWN_0_00_start )
+GR_FILE_LINKED( motion_c100_gmp400_ex_mirageshot_DOWN_0_01_loop )
+GR_FILE_LINKED( motion_c100_gmp400_ex_mirageshot_DOWN_0_02_shoot )
+GR_FILE_LINKED( motion_c100_gmp400_ex_mirageshot_DOWN_0_03_end )
+GR_FILE_LINKED( motion_c100_gmp400_ex_mirageshot_UP_1_00_start )
+GR_FILE_LINKED( motion_c100_gmp400_ex_mirageshot_UP_1_01_loop )
+GR_FILE_LINKED( motion_c100_gmp400_ex_mirageshot_UP_1_02_shoot )
+GR_FILE_LINKED( motion_c100_gmp400_ex_mirageshot_UP_1_03_end )
+GR_FILE_LINKED( motion_c100_gmp400_ex_mirageshot_DOWN_1_00_start )
+GR_FILE_LINKED( motion_c100_gmp400_ex_mirageshot_DOWN_1_01_loop )
+GR_FILE_LINKED( motion_c100_gmp400_ex_mirageshot_DOWN_1_02_shoot )
+GR_FILE_LINKED( motion_c100_gmp400_ex_mirageshot_DOWN_1_03_end )
+
+#undef GR_FILE_LINKED
+#endif // GR_FILE_LINKED

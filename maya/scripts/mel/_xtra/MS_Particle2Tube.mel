@@ -1,0 +1,100 @@
+
+/*
+-------------------
+MS_Particle2Tube.mel
+-------------------
+
+◆概要
+パーティクルのポイントを発生順につないでチューブを作成する
+
+◆使用方法
+スクリプトを実行するとダイアログが出る。
+パーティクルが出ている状態のものを選択して、適当に設定して実行ボタンを押す。
+
+◆詳細
+やってみればわかる。
+
+
+※注意
+
+
+
+
+*/
+
+
+global proc MS_Particle2Tube_exe(){
+
+	$radius=`floatSliderGrp -q -v radius`;
+
+
+	//$rad_rnd=`floatSliderGrp -q -v rand_radius`;
+
+
+	//$val_rnd=`rand $rad_rnd`;
+	
+	//$val_radius=($radius+($radius*$val_rnd));
+	
+	$val_radius=$radius;
+
+$sel = `ls -sl -sn -o`;
+print $sel;
+$part = $sel[0];
+int $count = `getAttr ($part+".count")`;
+print $count;
+int $i = 0;
+
+$pos_v0 = `particle -at position -id 0 -q $part`;
+$pos_v1 = `particle -at position -id 1 -q $part`;
+curve -d 1 -p $pos_v0[0] $pos_v0[1] $pos_v0[2] -p $pos_v1[0] $pos_v1[1] $pos_v1[2] -k 0 -k 1 -n extrudeSeed_Curve;
+
+for($i=2;$i<$count;$i++){
+$pos = `particle -at position -id $i -q $part`;
+extendCurve -cos 0 -ch 0 -em 2 -px $pos[0] -py $pos[1] -pz $pos[2] -s 0 -jn true -rmk true -rpo on "extrudeSeed_Curve" ;
+}
+
+
+
+reverseCurve -ch 0 -rpo 1 "extrudeSeed_Curve";
+
+vector $pos=`getAttr extrudeSeed_Curve.cv[0]`;
+$cv_pos_x=$pos.x;
+$cv_pos_y=$pos.y;
+$cv_pos_z=$pos.z;
+
+circle -c $cv_pos_x $cv_pos_y $cv_pos_z -nr 0 1 0 -sw 360 -r $radius -d 3 -ut 0 -tol 0.01 -s 6 -ch 0 -n extrudeSeed_circle;
+
+extrude extrudeSeed_circle extrudeSeed_Curve;
+
+
+delete extrudeSeed_circle;
+delete extrudeSeed_Curve;
+
+}
+
+global proc MS_Particle2Tube(){
+
+	if(`window -exists MS_Particle2Tube`){
+		deleteUI MS_Particle2Tube;
+	}
+
+	window -title "MS_Particle2Tube" MS_Particle2Tube;
+	columnLayout ;
+
+	floatSliderGrp -l "radius" -field true -min 0.1 -max 10 -v 5 radius;
+
+	floatSliderGrp -l "rand_radius" -field true -min -10 -max 10 -v 0 rand_radius;
+	
+	
+	
+	
+	button -l "do" -command "MS_Particle2Tube_exe" ;
+	button -l "undo" -command "Undo" ;
+	button -l "exit" -command "deleteUI MS_Particle2Tube" ;
+
+	showWindow MS_Particle2Tube;
+
+}
+
+//MS_Particle2Tube;
+

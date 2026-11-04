@@ -1,0 +1,48 @@
+global proc MaterialLister_E(string $Mesh[])
+{
+	string $selected[];
+	string $SGName[];
+	string $Facelist[];
+	string $Shape[];
+	string $MatchFlag;
+	int $FaceSize;
+	int $MeshSize;
+	int $SGSize;
+	
+	$MeshSize =`size $Mesh`;
+	$selected = `textScrollList -q -selectItem MatWinList`;
+	if($selected[0] != "")
+	{
+		clear $Facelist;
+		select -cl;
+		for ($MatName in $selected)
+		{
+			$SGName = `listConnections -t shadingEngine $MatName`;
+			$SGSize =`size $SGName`;
+			for ($k=0;$k<$SGSize;$k++)
+			{
+				$Facelist = `sets -q $SGName[$k]`;
+				$FaceSize =`size $Facelist`;
+
+				for ($i=0;$i<$FaceSize;$i++)
+				{
+					for ($j=0;$j<$MeshSize;$j++)
+					{
+						$MatchFlag =`match $Mesh[$j] $Facelist[$i]`;
+						if ($MatchFlag == $Mesh[$j])
+						{
+							select -add $Facelist[$i];
+						}
+						
+						clear $Shape;
+						$Shape =`listRelatives -pa -shapes $Mesh[$j]`;
+						if ($Facelist[$i] == $Shape[0])
+						{
+							select -add $Facelist[$i];
+						}
+					}
+				}
+			}
+		}
+	}
+}

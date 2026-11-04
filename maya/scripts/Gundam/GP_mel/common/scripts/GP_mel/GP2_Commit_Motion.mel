@@ -1,0 +1,67 @@
+global proc GP2_Commit_Motion()
+{
+	$mot_dir_root = "L:/motion/maya/ms/";
+
+	string $buf[];
+	string $scene_path = `file -q -sn`;
+	$scene_path = `fromNativePath ($scene_path)`;
+	string $dir = `dirname ($scene_path)`;
+	string $current_file_name = `substitute ($dir+"/") $scene_path ""`;
+	string $extension = `fileExtension($current_file_name)`;
+		tokenize $current_file_name "." $buf;
+		$current_file_name = $buf[0];
+		clear $buf;
+		//バージョン除去（ルールは"+"区切り以降）
+		tokenize $current_file_name "+" $buf;
+		$current_file_name = $buf[0];
+
+	string $mot_dir_list[] = `getFileList -folder $mot_dir_root`;
+
+	string $mopID = `getAttr exportFBXWorkTool_saveData.mopID_0`;
+
+	//$mot_dir_list[]中に$mopIDを含む文字列があるか調べる
+	int $num = Find_MopID($mopID, $mot_dir_list);
+
+	//なければディレクトリ作成後、保存。
+	if ($num == -1)
+	{
+		sysFile -makeDir ($mot_dir_root+"/"+$mopID+"_"+$current_file_name);
+		sysFile -copy ($mot_dir_root+"/"+$mopID+"_"+$current_file_name+"/"+"chr000000_rigbase.mb")
+			"L:/motion/maya/ms/motionWork_startScene/chr000000_rigbase.mb";
+		$path = ($mot_dir_root+"/"+$mopID+"_"+$current_file_name);
+		file -rename ($path+"/"+$current_file_name);
+		file -force -save -type "mayaBinary";
+		$path = `toNativePath ($path)`;
+		$command = ("TortoiseProc.exe /command:add /path:"+$path);
+		system $command;
+	}else{
+		$path = ($mot_dir_root+$mot_dir_list[$num]+"/"+$current_file_name);
+		file -rename ($path);
+		file -force -save -type "mayaBinary";
+		$path = ($mot_dir_root+$mot_dir_list[$num]+"/"+$current_file_name+"."+$extension);
+		$path = `toNativePath ($path)`;
+		$command = ("TortoiseProc.exe /command:add /path:"+$path);
+		system $command;
+	}
+}
+
+global proc int Find_MopID(string $mopID, string $mot_dir_list[])
+{
+	string $mot_dir_name;
+	int $i = 0;
+	int $find_flag = 0;
+	for ($mot_dir_name in $mot_dir_list)
+	{
+		if (`gmatch $mot_dir_name ($mopID+"_*")`)
+		{
+			$find_flag = 1;
+			break;
+		}
+		$i++;
+	}
+	if ($find_flag == 0)
+	{
+		$i = -1;
+	}
+	return $i;
+}

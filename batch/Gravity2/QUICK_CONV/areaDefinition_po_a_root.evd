@@ -1,0 +1,134 @@
+#----------------------------------------------------------------------------------
+#UTF-8形式で保存してください
+#boolean(真偽値)のデフォルトはfalseです
+#記述者の名前が無いテスト用らしき記述は最適化の為削除する事があります
+#----------------------------------------------------------------------------------
+
+
+#----------------------------------------------------------------------------------
+#港Ａ
+po_a_root:
+  root:     true
+  low:      "po_a_root_low"
+
+#po_b_root:                  #1stPub用　工数削減の為、いくつかのエリアを削除しました
+#  root:     true
+#po_b_root_tgs:              #TGS用　追加漏れで代わりに追加（鴫原
+#  root:     true
+
+po_a_01:
+  occluder: "po_a_01_occ"
+#  low:      "po_a_01_low" #a,b,cをまとめた_lowを用意したなら定義、使うのと使わないのとどちらが良いかは微妙
+po_a_01a:
+  low:      "po_a_01a_low"
+  part:     true
+po_a_01a_lod2:
+  low:      "po_a_01a_lod2_low"
+  navmesh:  false
+  part:     true
+po_a_01b:
+  low:      "po_a_01b_low"
+  part:     true
+po_a_01b_lod2:
+  low:      "po_a_01b_lod2_low"
+  navmesh:  false
+  part:     true
+po_a_01c:
+  low:      "po_a_01c_low"
+  part:     true
+po_a_01c_lod2:
+  low:      "po_a_01c_lod2_low"
+  navmesh:  false
+  part:     true
+po_a_02:
+  occluder: "po_a_02_occ"
+  low:      "po_a_02_low"
+po_a_02_lod2:
+  low:      "po_a_02_lod2_low"
+  navmesh:  false
+po_a_03:
+  occluder: "po_a_03_occ"
+  low:      "po_a_03_low"
+po_a_03_lod2:
+  low:      "po_a_03_lod2_low"
+  navmesh:  false
+po_a_04:
+  occluder: "po_a_04_occ"
+#  low:      "po_a_04_low" #パーツ化したのでpo_a_04のLowは未使用
+po_a_04a:
+  low:      "po_a_04a_low"
+  part:     true
+po_a_04a_lod2:
+  low:      "po_a_04a_lod2_low"
+  navmesh:  false
+  part:     true
+po_a_04b:
+  low:      "po_a_04b_low"
+  part:     true
+po_a_04b_lod2:
+  low:      "po_a_04b_lod2_low"
+  navmesh:  false
+  part:     true
+po_a_04c:
+  low:      "po_a_04c_low"
+  part:     true
+po_a_04c_lod2:
+  low:      "po_a_04c_lod2_low"
+  navmesh:  false
+  part:     true
+po_a_04d:
+  low:      "po_a_04d_low"
+  part:     true
+po_a_04d_lod2:
+  low:      "po_a_04d_lod2_low"
+  navmesh:  false
+  part:     true
+po_a_04e:
+  low:      "po_a_04e_low"
+  part:     true
+po_a_04e_lod2:
+  low:      "po_a_04e_lod2_low"
+  navmesh:  false
+  part:     true
+bridge_kw_01:
+  low:      "bridge_kw_01_low"
+  part:     true
+bridge_kw_02:
+  low:      "bridge_kw_02_low"
+  part:     true
+po_a_06:
+  occluder: "po_a_06_occ"
+  low:      "po_a_06_low"
+po_a_06_lod2:
+  low:      "po_a_06_lod2_low"
+  navmesh:  false
+po_a_10:
+  occluder: "po_a_10_occ"
+  low:      "po_a_10_low"
+po_a_10_lod2:
+  low:      "po_a_10_lod2_low"
+  navmesh:  false
+po_a_13:
+  occluder: "po_a_13_occ"
+  low:      "po_a_13_low"
+#po_a_13_lod2:
+#  low:      "po_a_13_lod2_low"	#po_a_13_lowが既にDrowが2と軽いモデルなのでlowのlowは不要と判断
+#  navmesh:  false
+po_a_15:
+  occluder: "po_a_15_occ"
+  low:      "po_a_15_low"
+po_a_15_lod2:
+  low:      "po_a_15_lod2_low"
+  navmesh:  false
+po_a_17:
+  occluder: "po_a_17_occ"
+  low:      "po_a_17_low"
+po_a_17_lod2:
+  low:      "po_a_17_lod2_low"
+  navmesh:  false
+po_a_19:
+  occluder: "po_a_19_occ"
+  low:      "po_a_19_low"
+po_a_19_lod2:
+  low:      "po_a_19_lod2_low"
+  navmesh:  false

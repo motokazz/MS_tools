@@ -1,0 +1,24 @@
+#ifdef GR_FILE_LINKED
+
+GR_FILE_LINKED( _basepose )
+GR_FILE_LINKED( motion_c100_gmp107_longrifle_00_start )
+GR_FILE_LINKED( motion_c100_gmp107_longrifle_01_shot )
+GR_FILE_LINKED( motion_c100_gmp107_longrifle_02_end )
+GR_FILE_LINKED( motion_c100_gmp107_longrifle_sky_00_start )
+GR_FILE_LINKED( motion_c100_gmp107_longrifle_sky_01_shot )
+GR_FILE_LINKED( motion_c100_gmp107_longrifle_sky_02_end )
+GR_FILE_LINKED( motion_c100_gmp107_longrifle_UP_00_start )
+GR_FILE_LINKED( motion_c100_gmp107_longrifle_UP_01_shot )
+GR_FILE_LINKED( motion_c100_gmp107_longrifle_UP_02_end )
+GR_FILE_LINKED( motion_c100_gmp107_longrifle_DOWN_00_start )
+GR_FILE_LINKED( motion_c100_gmp107_longrifle_DOWN_01_shot )
+GR_FILE_LINKED( motion_c100_gmp107_longrifle_DOWN_02_end )
+GR_FILE_LINKED( motion_c100_gmp107_longrifle_sky_UP_00_start )
+GR_FILE_LINKED( motion_c100_gmp107_longrifle_sky_UP_01_shot )
+GR_FILE_LINKED( motion_c100_gmp107_longrifle_sky_UP_02_end )
+GR_FILE_LINKED( motion_c100_gmp107_longrifle_sky_DOWN_00_start )
+GR_FILE_LINKED( motion_c100_gmp107_longrifle_sky_DOWN_01_shot )
+GR_FILE_LINKED( motion_c100_gmp107_longrifle_sky_DOWN_02_end )
+
+#undef GR_FILE_LINKED
+#endif // GR_FILE_LINKED

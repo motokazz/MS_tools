@@ -1,0 +1,11 @@
+#ifdef GR_FILE_LINKED
+
+GR_FILE_LINKED( _basepose )
+GR_FILE_LINKED( motion_c100_gmp418_ex_spining_00_start )
+GR_FILE_LINKED( motion_c100_gmp418_ex_spining_01_loop )
+GR_FILE_LINKED( motion_c100_gmp418_ex_spining_02_attack )
+GR_FILE_LINKED( motion_c100_gmp418_ex_spining_03_attackloop )
+GR_FILE_LINKED( motion_c100_gmp418_ex_spining_04_end )
+
+#undef GR_FILE_LINKED
+#endif // GR_FILE_LINKED

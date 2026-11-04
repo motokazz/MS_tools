@@ -1,0 +1,137 @@
+global proc MS_TexExtRep(string $obj,string $ext_name)
+{
+	string $name=`getAttr ($obj+".fileTextureName")`;
+	//ƒsƒŠƒIƒh‚Å•ªŠ„
+	string $buffer[];
+	tokenize $name "." $buffer;
+	setAttr -type "string" ($obj+".fileTextureName") ($buffer[0]+"."+$ext_name);
+	
+	print "-------------------------------------------------\n";
+	print "        Result - Texture Extension Replace\n";
+	print ("texture EXT Replaced to"+$ext_name+"\n");
+	print "-------------------------------------------------\n\n";
+	
+	
+}
+
+global proc MS_TexExtRep_All(string $ext_name)
+{
+	string $obj_name[]=`ls -typ file`;
+	
+	for($each in $obj_name){
+		MS_TexExtRep $each $ext_name;
+	}
+}
+
+global proc MS_TexExtRep_Selected(string $ext_name)
+{
+	string $obj_name[]=`ls -typ file -sl`;
+	
+	for($each in $obj_name){
+		MS_TexExtRep $each $ext_name;
+	}
+}
+
+global proc MS_ReloadTexAll()
+{
+	string $obj_name[]=`ls -typ file`;
+	
+	for($each in $obj_name){
+	string $name=`getAttr ($each+".fileTextureName")`;
+	setAttr ($each+".fileTextureName") -type "string" $name;
+	
+	}
+}
+
+global proc MS_TexRepTools()
+{
+	
+	
+	//Window Check
+	if(`window -exists MS_TexRepTools`){
+		deleteUI MS_TexRepTools;
+	}
+	
+	
+	//Create Window
+	
+	window -wh 600 400 -title "MS_TexRepTools" MS_TexRepTools;
+	
+	
+	formLayout MS_TexRepTools_Layout;
+	
+	//Contents	
+	
+	
+	//text
+	text -label "ThisWindowIs MS_TexRepTools" mainInfo;
+	
+	
+	separator -w 600 -st "single" sepA;
+	
+	button -bgc 1.0 0.8 0.8 -al center -w 80 -l "DDS all" -c "MS_TexExtRep_All dds" dds_all;
+	button -bgc 1.0 1.0 0.8 -al center -w 80 -l "TGA all" -c "MS_TexExtRep_All tga" tga_all;
+	button -bgc 0.8 1.0 1.0 -al center -w 80 -l "TIF all" -c "MS_TexExtRep_All tif" tif_all;
+	button -bgc 0.8 0.8 1.0 -al center -w 80 -l "BMP all" -c "MS_TexExtRep_All bmp" bmp_all;
+
+	button -bgc 0.8 0.7 0.7 -al center -w 80 -l "DDS selected" -c "MS_TexExtRep_Selected dds" dds_selected;
+	button -bgc 0.8 0.8 0.7 -al center -w 80 -l "TGA selected" -c "MS_TexExtRep_Selected tga" tga_selected;
+	button -bgc 0.7 0.8 0.8 -al center -w 80 -l "TIF selected" -c "MS_TexExtRep_Selected tif" tif_selected;
+	button -bgc 0.7 0.7 0.8 -al center -w 80 -l "BMP selected" -c "MS_TexExtRep_Selected bmp" bmp_selected;
+
+	separator -w 600 -st "single" sepB;
+	
+	button -bgc 0.7 1.0 0.7 -al center -w 120 -l "Reload Texture All" -command "MS_ReloadTexAll" reload_all;
+	
+	separator -w 600 -st "single" sepC;
+	
+	//Common Buttons
+	button -w 50 -l "undo" -command "Undo" undoButton;
+	
+	button -w 50 -l "exit" -command "deleteUI MS_TexRepTools" closeWindow;
+	
+	formLayout -e
+		-af mainInfo top 10
+		-af mainInfo left 10
+		
+		-af sepA top 25
+		-af sepA left 10
+		
+		-af dds_all top 60
+		-af dds_all left 10
+		-af tga_all top 60
+		-af tga_all left 90
+		-af tif_all top 60
+		-af tif_all left 170
+		-af bmp_all top 60
+		-af bmp_all left 250
+		
+		-af dds_selected top 30
+		-af dds_selected left 10
+		-af tga_selected top 30
+		-af tga_selected left 90
+		-af tif_selected top 30
+		-af tif_selected left 170
+		-af bmp_selected top 30
+		-af bmp_selected left 250
+		
+		-af sepB top 85
+		-af sepB left 10
+		
+		-af reload_all top 90
+		-af reload_all left 10
+		-af undoButton top 90
+		-af undoButton left 230
+		-af closeWindow top 90
+		-af closeWindow left 280
+		
+		
+		
+	MS_TexRepTools_Layout;
+	//Footer
+	showWindow MS_TexRepTools;
+	
+}
+
+//MS_TexRepTools;
+

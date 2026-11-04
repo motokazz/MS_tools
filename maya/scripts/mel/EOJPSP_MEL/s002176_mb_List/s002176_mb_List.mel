@@ -1,0 +1,291 @@
+global proc s002176_mb_List()
+{
+global string $fyLswindow_mb;
+	if (`window -exists $fyLswindow_mb`)
+	{
+	deleteUI $fyLswindow_mb;	
+	}
+	
+
+$fyLswindow_mb = `window -title " file list"`;
+
+//ベースのレイアウト
+	columnLayout
+		-columnAttach "both" 0
+		-columnAlign "center"
+		-columnWidth 300
+		-rowSpacing 4;
+					setParent ..;
+	
+	//スクロールリスト用	
+		rowLayout -numberOfColumns 2
+		-columnOffset2 2 0
+		-columnAttach2 "both" "both"
+		-columnWidth2 92 140;
+
+		global string $s002176_LeftArea;
+		$s002176_LeftArea = `textScrollList -font "plainLabelFont" -h 180 -selectCommand "fyReFbxList"`;
+
+		global string $s002176_RightArea; 
+		$s002176_RightArea = `textScrollList -font "plainLabelFont" -h 180 -doubleClickCommand "fyMBSelectImp"`;
+			setParent ..;
+
+		rowLayout -numberOfColumns 2
+		-columnOffset2 2 0
+		-columnAttach2 "both" "both"
+		-columnWidth2 92 140;
+		
+			rowLayout -numberOfColumns 4
+				-columnOffset4 0 0 0 0
+				-columnAttach4 "both" "both" "both" "both"
+				-columnWidth4 22 22 22 22;
+
+			symbolButton -image "D:/EOJPSP/tools/mel/s002176_mb_List/fy_mblist_01.bmp" 
+			-annotation "選択フォルダの表示" -c "fyListSelectfolder(1)";
+	
+			symbolButton -image "D:/EOJPSP/tools/mel/s002176_mb_List/fy_mblist_02.bmp" 
+			-annotation "toro1フォルダの表示" -c "fyListSelectfolder(2)";
+	
+			symbolButton -image "D:/EOJPSP/tools/mel/s002176_mb_List/fy_mblist_03.bmp" 
+			-annotation "toro2フォルダの表示" -c "fyListSelectfolder(3)";
+			
+			symbolButton -image "D:/EOJPSP/tools/mel/s002176_mb_List/fy_mblist_01.bmp" 
+			-annotation "toro2フォルダの表示" -c "fyListSelectfolder(4)";
+				setParent ..;
+					
+			rowLayout -numberOfColumns 2
+
+			-columnOffset2 0 0
+			-columnAttach2 "both" "both"
+			-columnWidth2 46 46;
+			
+			button -l "In  <<" -c "s002176_se_cin";
+			button -l ">> Out" -c "s002176_se_cout";
+				setParent ..;
+		setParent ..;
+	setParent ..;
+
+
+	//テキスト読み込みプロシージャ
+	string $fyLIST[] = `fyLoadtexts("D:/EOJPSP/tools/mel/s002176_mb_List/eoj_file_path.txt")`;
+
+	for ($Kaz in $fyLIST)
+	{
+	textScrollList -e -append $Kaz $s002176_LeftArea;
+	}
+
+	showWindow;
+
+	window -edit -widthHeight 242 245 -sizeable false -toolbox 1 $fyLswindow_mb;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////////////
+//選択されたリストアイテムの名前を返す
+global proc string fyListSelectNMs(string $FYListNM)
+{
+
+//global string $s002176_LeftArea;
+string $fyTTT[] = `textScrollList -q -si $FYListNM`;
+
+//print ($fyTTT[0]);
+
+return $fyTTT[0];
+
+}
+/////////////////////////////////////////////////////////////////////////////////////
+
+global proc fyListSelectfolder(int $line_block_num)
+{
+global string $s002176_LeftArea;
+string $fypass_NM = `fyListSelectNMs($s002176_LeftArea)`;
+
+   string $tokenizedLists[];
+   tokenizeList($fypass_NM, $tokenizedLists);
+
+  print $tokenizedLists[$line_block_num];
+  
+//dosコマンドからexplorerを起動
+//パスへ変換時に「/」を「\\」
+  
+ string $mel_enmark="/";
+ string $floder_Path=$tokenizedLists[$line_block_num];
+ string $for_dos_Path = substituteAllString($floder_Path,$mel_enmark,"\\");
+ system("start C:/WINDOWS/explorer.exe "+ $for_dos_Path); 
+
+}
+
+/////////////////////////////////////////////////////////////////////////////////////
+//選択されたリストアイテムからフォルダのリストを返す
+global proc string[] fyCategoryFbx()
+{
+global string $s002176_LeftArea;
+string $fbxfileNM1 = `fyListSelectNMs($s002176_LeftArea)`;
+string $tokenizedLists2[];
+tokenizeList($fbxfileNM1,$tokenizedLists2);
+
+string $fyLIST2[] = `getFileList -fld $tokenizedLists2[1] -fs "*.mb"`;
+
+return $fyLIST2;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////////////
+
+
+//外部テキストを配列(global string[] $FYtxtList[])に入れる
+//string[]で値を返す↓
+
+global proc string[] fyLoadtexts(string $loadFileName)
+{
+ 	//$loadFileName = "D:/EOJPSP/tools/mel/s002176_mb_List/eoj_file_path.txt" ;
+ 	$fileId=`fopen $loadFileName "r"`;
+ 
+ 	string $nextLine = `fgetline $fileId`;
+    	int $i = 0; 
+	string $FYtxtList[];
+
+ 	while ( size( $nextLine ) > 0 ) 
+	{
+		$FYtxtList[$i] = $nextLine;
+		//print ( $FYtxtList[$i]);
+		$i += 1;
+
+ 		$nextLine = `fgetline $fileId`;
+ 	}
+
+
+	fclose $fileId; 
+	
+	//値を返す場合はreturnで。計算の結果の場合はさらに()でくくる
+	return $FYtxtList;
+
+}
+
+/////////////////////////////////////////////////////////////////////////////////////
+//FBXのリストをスクロールリストへ更新して渡す
+global proc fyReFbxList()
+{
+
+
+global string $s002176_RightArea;
+
+textScrollList -e -ra $s002176_RightArea;
+
+string $fyLIST2[];
+string $fyLIST2[] = `fyCategoryFbx`;
+
+
+for ($Kaz2 in $fyLIST2)
+{
+
+	textScrollList -e -append $Kaz2 $s002176_RightArea;
+
+}
+
+}
+
+
+/////////////////////////////////////////////////////////////////////////////////////
+//MBの読み込み
+global proc fyMBSelectImp()
+{
+//file -f -new;
+global string $s002176_RightArea;
+global string $s002176_LeftArea;
+string $tokenizedLists2[];
+
+string $krbNM = `fyListSelectNMs($s002176_LeftArea)`;
+
+string $fbxfileNM1 = `fyListSelectNMs($s002176_LeftArea)`;
+//print($fbxfileNM1);
+
+string $fbxfileNM2 = `fyListSelectNMs($s002176_RightArea)`;
+//print($fbxfileNM2);
+
+string $fbxFullPath = ($fbxfileNM2);
+
+tokenizeList($fbxfileNM1,$tokenizedLists2);
+//print($tokenizedLists2[1]);
+
+string $fbxFullPath = ($tokenizedLists2[1] + $fbxfileNM2);
+print($fbxFullPath);
+
+file -f -options "v=0"  -typ "mayaBinary" -o $fbxFullPath;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////
+
+
+
+/////////////////////////////////////////////////////////////////////////////////////
+//リターンfile名
+global proc string s002176_return_file()
+{
+//file -f -new;
+global string $s002176_RightArea;
+global string $s002176_LeftArea;
+string $tokenizedLists2[];
+
+string $krbNM = `fyListSelectNMs($s002176_LeftArea)`;
+
+string $fbxfileNM1 = `fyListSelectNMs($s002176_LeftArea)`;
+//print($fbxfileNM1);
+
+string $fbxfileNM2 = `fyListSelectNMs($s002176_RightArea)`;
+//print($fbxfileNM2);
+
+string $fbxFullPath = ($fbxfileNM2);
+
+tokenizeList($fbxfileNM1,$tokenizedLists2);
+//print($tokenizedLists2[1]);
+
+string $fbxFullPath = ($tokenizedLists2[1] + $fbxfileNM2);
+//print($fbxFullPath);
+
+return($fbxFullPath);
+}
+
+/////////////////////////////////////////////////////////////////////////////////////
+
+
+	
+
+/////////////////////////////////////////////////////////////////////////////////////
+//チェックアウト
+global proc s002176_se_cout()
+{
+string $filename_path=`s002176_return_file`;
+//print($filename_path);
+
+//頭の「D/」を削る
+ 	string $delmoji = "D:";
+	string $filename_path_delD=`substitute $delmoji $filename_path ""`;
+
+ //string $mel_enmark="/";
+ //string $floder_Path=`s002176_return_file`;
+ //string $filename_path = substituteAllString($floder_Path,$mel_enmark,"\\");
+print($filename_path_delD);
+system("D:/EOJPSP/tools/sirenexplorer/SEConsole.exe -co "+ $filename_path_delD); 
+
+}
+
+/////////////////////////////////////////////////////////////////////////////////////
+
+/////////////////////////////////////////////////////////////////////////////////////
+//チェックイン
+global proc s002176_se_cin()
+{
+string $filename_path=`s002176_return_file`;
+//print($filename_path);
+
+//頭の「D/」を削る
+ 	string $delmoji = "D:";
+	string $filename_path_delD=`substitute $delmoji $filename_path ""`;
+
+//print($filename_path_delD);
+
+system("D:/EOJPSP/tools/sirenexplorer/SEConsole.exe -ci "+ $filename_path_delD); 
+}
+
+/////////////////////////////////////////////////////////////////////////////////////

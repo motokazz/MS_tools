@@ -1,0 +1,79 @@
+/*
+拾いもの注意
+
+ベクトルを角度に変換しY軸の向きを算出する。
+X軸の角度と、Z軸の角度が戻り値。
+
+
+
+*/
+proc float[] MS_globalAngleChecky(vector $vec)
+{
+	float $out[2];
+	float $xAngle, $zAngle, $xyLength, $vecLength;
+	  
+	$xyLength = sqrt(($vec.x) * ($vec.x) +
+					  ($vec.z) * ($vec.z));
+	$vecLength = sqrt(($vec.x) * ($vec.x) +
+					   ($vec.z) * ($vec.z) + 
+					   ($vec.y) * ($vec.y));
+	  
+	// $xyLength will be zero when $vec is pointing
+	// along the +z or -z axis
+	if($xyLength == 0)
+		$zAngle = ($vec.x) > 0 ? deg_to_rad(90) : deg_to_rad(-90);
+	else
+		$zAngle = acos(($vec.z)/$xyLength);
+	  
+	$xAngle = acos($xyLength/$vecLength);
+	  
+	$xAngle = ($vec.z) > 0 ? $xAngle : -$xAngle;
+	$out[0] = rad_to_deg($xAngle);
+	  
+	$zAngle = ($vec.x) > 0 ? -$zAngle : $zAngle;
+	$out[1] = rad_to_deg($zAngle);
+	return $out;
+}
+ 
+proc float[] MS_globalAngleCheck(vector $vec)
+{
+	float $out[2];
+	float $xAngle, $zAngle, $xyLength, $vecLength;
+	  
+	$xyLength = sqrt(($vec.x) * ($vec.x) +
+					  ($vec.y) * ($vec.y));
+	$vecLength = sqrt(($vec.x) * ($vec.x) +
+					   ($vec.y) * ($vec.y) + 
+					   ($vec.z) * ($vec.z));
+	  
+	// $xyLength will be zero when $vec is pointing
+	// along the +z or -z axis
+	if($xyLength == 0)
+		$zAngle = ($vec.x) > 0 ? deg_to_rad(90) : deg_to_rad(-90);
+	else
+		$zAngle = acos(($vec.y)/$xyLength);
+	  
+	$xAngle = acos($xyLength/$vecLength);
+	  
+	$xAngle = ($vec.z) > 0 ? $xAngle : -$xAngle;
+	$out[0] = rad_to_deg($xAngle);
+	  
+	$zAngle = ($vec.x) > 0 ? -$zAngle : $zAngle;
+	$out[1] = rad_to_deg($zAngle);
+	return $out;
+}
+ 
+{
+float $pnpv[]=`polyNormalPerVertex -q -xyz`;
+print $pnpv[0];
+print ",";
+print $pnpv[1];
+print ",";
+print $pnpv[2];
+print "\n";
+
+vector $vec=<<$pnpv[0],$pnpv[1],$pnpv[2]>>;
+float $res[]=`MS_globalAngleChecky $vec`;
+print $res;
+xform -ro $res[0] 0 $res[1] pCone1;
+}

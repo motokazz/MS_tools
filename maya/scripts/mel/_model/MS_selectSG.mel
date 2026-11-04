@@ -1,0 +1,127 @@
+/*
+-------------------
+MS_selectSG
+-------------------
+
+◆概要
+選んでるオブジェクトのマテリアル選択
+
+
+◆使用方法
+実行するとウィンドウ起動
+
+マテリアルの総数がMAX値になっているスライダーが出る
+
+マテリアル数を選択
+
+マテリアル選択したいオブジェクトを選択
+
+実行
+
+
+
+◆詳細
+
+一応、コマンドラインに選んでるマテリアル名がでる。
+
+未完成
+
+
+
+
+
+※注意
+
+*/
+global proc MS_SGM(){
+	
+	global string $list_se[];
+	int $flag_st=`intSliderGrp -q -v matno`;
+	
+	
+	//カレントマテリアル表示
+	global string $cur_mat;
+	$cur_mat=$list_se[$flag_st];
+	print ($cur_mat+"\n");
+	
+	
+	//checker
+	string $nameOfObjs[] = `ls -sl`;
+	if ( size($nameOfObjs[0]) == 0 )
+	{
+		confirmDialog -t "Nothing Selected" -m "Please select an object." -b Continue;
+		return;
+	}
+	
+	
+	
+	
+	InvertSelection;
+	string $ls_InvertSelection[]=`ls -sl`;
+	toggle -state on -template;
+	
+	
+	select $list_se[$flag_st];
+	
+	
+	string $poly_se[]=`ls -sl`;
+	
+	
+	//namecheck
+	string $poly_only[];
+	
+	$k=0;
+	
+	for($k=0;$k<size($nameOfObjs);$k++){
+		
+		string $gcheck=($nameOfObjs[$k]+"*");
+		$i=0;
+		$j=0;
+		for($i=0;$i<size($poly_se);$i++){
+			if(`gmatch $poly_se[$i] $gcheck`){
+				$poly_only[$j]=$poly_se[$i];
+				$j++;
+			}
+		}
+	}
+	
+	toggle -state off -template $ls_InvertSelection;
+	
+	select -r $poly_only;
+
+}
+
+
+global proc MS_selectSG()
+{
+	//checker
+	if(`window -exists MS_selectSG`){
+		deleteUI MS_selectSG;
+	}
+	
+	
+	global string $list_se[];
+	
+	int $check_st=`size($list_se)`;
+	$check_st--;
+	
+	//window
+	window -title "MS_selectSG" MS_selectSG;
+	
+	columnLayout ;
+	
+	intSliderGrp -l "matno" -field true -min 1 -max $check_st -v 1 matno;
+	
+	button -l "select" -command MS_SGM;
+	
+	showWindow MS_selectSG;
+	
+}
+
+
+
+
+
+
+MS_selectSG;
+

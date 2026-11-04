@@ -1,0 +1,97 @@
+//全部入りさん用リギング(PG)
+
+//■□解説□■
+//全キャラのExジョイントを所持したモデル・通称(全部入り)に対し、指定したIDキャラの(addリグ内dummyjoint)-(Root階層内Exjoint)間のコンストレインを行います。
+
+//■□使い方□■
+//Mayaを起動した後、一回以上Bパートのコンパイルを行って下さい。(範囲選択しCtrl+Enter)
+//その後、対象をAパートで指定してコマンドを実行させると、指定したキャラIDのExジョイントへのコンストレインが行われます。
+//※既に一回コンストしたキャラの場合、[select -r chr000000*Constraint;]等でコンストレインノードの選択・削除を行ってから実行して下さい。
+
+//↓↓Aパート↓↓
+
+//※※ここから一括作業用※※
+//処理したいキャラIDで書き換え
+
+string $list[] = {"chr100069","chr100089","chr106029","chr108139","chr109019","chr111179"};
+string $list[] = {"chr900209","chr900309","chr900409","chr900509","chr900609","chr900709","chr900809","chr901009","chr901109","chr901209","chr901309"};
+
+for($item in $list){
+    setUpRigbase_allJointer($item);
+};
+
+//※※ここまで一括作業用※※
+
+
+//※※こちら単体作業用※※
+
+setUpRigbase_allJointer("chr900109");
+
+
+//↑↑Aパート↑↑
+
+
+//↓↓Bパート↓↓
+
+global proc setUpRigbase_allJointer(string $charaID){
+//parent rigTop
+	string $rigRoots[] = `listRelatives -type transform ("addrig:" + $charaID + "_ctrls")`;
+
+	for($i=0 ; $i<size($rigRoots) ; $i++){
+		string $jName = UT_cutUnuseByTokenize($rigRoots[$i] , ":" , 1 , 0);
+		$jName = UT_cutUnuseByTokenize($jName , "_" , 0 , 1);
+		select -r ("chr900000:" + $jName);
+		//string $pList[] = `listRelatives -p ($charaID + ":" + $jName)`;
+		string $pList[] = `listRelatives -p ("chr900000:" + $jName)`;
+		select -r ("chr900000:" + $jName) $rigRoots[$i];
+		pointConstraint -o 0 0 0 -w 1;
+		pointConstraint -remove; 
+		select -r $pList[0] $rigRoots[$i];
+		parentConstraint -mo -weight 1;
+	}
+
+//connect dummy-to-charaJoint
+	string $dummyRoots[] = `listRelatives -type transform ("addrig:" + $charaID + "_dummyJoints")`;
+	string $dummyRootsfull[] = `listRelatives -f -type transform ("addrig:" + $charaID + "_dummyJoints")`;
+	for($i=0 ; $i<size($dummyRoots) ; $i++){
+		string $charaJoint = UT_cutUnuseByTokenize($dummyRoots[$i] , "_" , 2 , 0);
+		select -r ("chr900000:" + $charaJoint) $dummyRootsfull[$i];
+		parentConstraint  -weight 1;
+    }
+
+	select -r -hi ("addrig:" + $charaID + "_dummyJoints");
+	select -d ("addrig:" + $charaID + "_dummyJoints") $dummyRootsfull;
+	string $dummys[] = `ls -sl -type joint`;
+	//$dummys = addrig:エクストラジョイント
+
+	for($i=0 ; $i<size($dummys) ; $i++){
+		string $charaJoint = UT_cutUnuseByTokenize($dummys[$i] , "_" , 1 , 0);
+
+		select -r $dummys[$i] ("chr900000:" + $charaJoint);
+		parentConstraint -mo -weight 1;
+	}
+}
+
+
+
+
+global proc string UT_cutUnuseByTokenize(string $tgt , string $letter , int $unuseSt , int $unuseEd){
+	string $res;
+	string $temp[];
+	tokenize $tgt $letter $temp;
+	string $res = $temp[$unuseSt];
+	$unuseSt++;
+	int $max = size($temp) - $unuseEd;
+	for($p=$unuseSt ; $p < $max ; $p++){
+		$res = ($res + $letter + $temp[$p]);
+	}
+	return $res;
+}
+
+global proc string UT_getNumberdByTokenize(string $tgt , string $letter , int $num){
+	string $temp[];
+	tokenize $tgt $letter $temp;
+	string $res = $temp[$num];
+	return $res;
+}
+

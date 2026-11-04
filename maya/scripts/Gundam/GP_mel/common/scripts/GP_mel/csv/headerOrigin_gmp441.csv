@@ -1,0 +1,20 @@
+#ifdef GR_FILE_LINKED
+
+GR_FILE_LINKED( _basepose )
+GR_FILE_LINKED( motion_c100_gmp441_pose_00_beam_onehand )
+GR_FILE_LINKED( motion_c100_gmp441_pose_01_beam_bothhand )
+GR_FILE_LINKED( motion_c100_gmp441_pose_02_bazooka )
+GR_FILE_LINKED( motion_c100_gmp441_pose_03_machinegun )
+GR_FILE_LINKED( motion_c100_gmp441_pose_04_gatlinggun )
+GR_FILE_LINKED( motion_c100_gmp441_pose_05_longrifle )
+GR_FILE_LINKED( motion_c100_gmp441_pose_06_beam_saber )
+GR_FILE_LINKED( motion_c100_gmp441_pose_07_heat_hawk )
+GR_FILE_LINKED( motion_c100_gmp441_pose_08_double_saber )
+GR_FILE_LINKED( motion_c100_gmp441_pose_09_large_sword )
+GR_FILE_LINKED( motion_c100_gmp441_pose_10_lance )
+GR_FILE_LINKED( motion_c100_gmp441_pose_11_whip )
+GR_FILE_LINKED( motion_c100_gmp441_pose_12_grapple )
+GR_FILE_LINKED( motion_c100_gmp441_pose_13_kenpo )
+
+#undef GR_FILE_LINKED
+#endif // GR_FILE_LINKED

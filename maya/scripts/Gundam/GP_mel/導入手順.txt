@@ -1,0 +1,16 @@
+
+■GP_melの導入手順について（社内用）
+※M:ドライブに既にgb4_dataのリポジトリがある前提となります。
+　ない場合はリポジトリ直下の「GB4DataStartSetup.bat」を先に実行お願いいたします。
+
+１．「driveSetup_UserName.batの説明.jpg」を参考に
+　　「driveSetup_UserName.bat」内のパスを書き換え。
+　　編集ができたら実行お願いいたします。
+
+２．L:ドライブの生成が出来ていることを確認したら
+　　「Maya.env」を各自のMayaフォルダに上書きお願いいたします。
+　　山下の場合：C:\Users\r-yamashita\Documents\maya\2016
+
+
+３．Mayaを起動し、「GP_mel」のシェルフタブがあることを確認できれば
+　　導入は完了となります。

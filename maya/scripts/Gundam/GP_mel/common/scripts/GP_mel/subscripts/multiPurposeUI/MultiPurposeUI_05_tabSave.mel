@@ -1,0 +1,84 @@
+//---------------------------------------------------------------------------------------------------------
+//タブファイルの保存回り
+//---------------------------------------------------------------------------------------------------------
+
+global proc dMPU_saveTabCondition(){
+	dMPU_cleanSubwindow();
+	string $filePath = GP2_dMPU_queFilePath();
+	string $saveTabName = `tabLayout -q -st dMPU_globalTab`;
+		$saveTabName = startString($saveTabName,size($saveTabName)-4);
+
+	string $data[] = dMPU_getTabCondition($filePath , $saveTabName);
+
+	dMPU_SaveData($filePath , $saveTabName , $data);
+	confirmDialog -title "MPUI_savelog" -message "現在のタブの内容を保存しました。。" -button "OK" ;
+}
+
+global proc string[] dMPU_getTabCondition(string $filePath , string $tgtTabName){
+	string $res[];
+	string $temp;
+
+	//UI一覧、最初の二つはBGと管理用レイアウト、それ以降は各UI情報格納
+	string $ctrls[] = `layout -q -ca ($tgtTabName + "_csv")`;
+	$res[0] = ("title," + $tgtTabName);
+
+	$temp = `image -q -i $ctrls[0]`;
+	$temp = fromNativePath( $temp );
+	$filePath = (fromNativePath( $filePath ) + "/" );
+	$temp = `substitute ("^" + $filePath + "*") $temp ""`;
+	$res[1] = ("use_BGImage," + $temp + ":" + `image -q -w $ctrls[0]` + ":" + `image -q -h $ctrls[0]` + ",end" );
+	$res[2] = "addAction";
+
+	int $i,$j,$px,$py,$sx,$sy;
+	string $type,$col,$icon,$command,$ann;
+	float $cpt[];
+
+	for($i=2 ; $i<size($ctrls) ; $i++){
+		if(`checkBox -q -v ($ctrls[$i] + "_deleted")` == 0){
+			$j = size($res);
+			$temp = `substitute ("^" + $tgtTabName + "_csv_*") $ctrls[$i] ""`;
+			$type = dMPU_getUIObjectType($ctrls[$i]);
+			$px	= `intField -q -v ($ctrls[$i] + "_posX")`;
+			$py	= `intField -q -v ($ctrls[$i] + "_posY")`;
+			$cpt= `control -q -bgc ($ctrls[$i])`;
+			$col= ( $cpt[0] + "," + $cpt[1] + "," + $cpt[2] );
+			$sx	= `control -q -w ($ctrls[$i])`;
+			$sy	= `control -q -h ($ctrls[$i])`;
+			$icon = dMPU_getUIParam($ctrls[$i],"-i");
+			$ann =  dMPU_getUIParam($ctrls[$i],"-ann");
+			$command = dMPU_getUIParam($ctrls[$i],"-c");
+
+			$res[$j] = ($temp + "@" + $type + "@" + $px + "@" + $py + "@" + $sx + "@" + $sy + "@" + $col + "@" + $ann + "@" + $icon + "@" + $command + "@end");
+		}
+	}
+	$j = size($res);
+	$res[$j] = ("end of addAction");
+	return $res;
+}
+
+global proc string dMPU_getUIParam(string $ctrl , string $opt){
+	string $res;
+	string $type = dMPU_getUIObjectType($ctrl);
+	if(dMPU_checkOptUseable($type , $opt)){
+		$res = `eval $type -q $opt $ctrl`;
+	}
+	if($res == ""){
+		$res = "-null-";
+	}
+
+	$res = `substituteAllString $res ("\\") "\\\\"`;
+	$res = `substituteAllString $res ("\n") "\\n"`;
+	$res = `substituteAllString $res ("\"") "\\\""`;
+	return $res;
+}
+
+global proc dMPU_SaveData(string $filePath , string $saveTabName , string $saveData[]){
+	string $logFileName = ($filePath + "\\" + $saveTabName + ".csv");
+	$fileId=`fopen $logFileName "w"`;
+	int $i;
+	for($i=0 ; $i<size($saveData) ; $i++){
+		fprint $fileId ($saveData[$i] + "\r\n");
+	}
+	fclose $fileId;
+}
+

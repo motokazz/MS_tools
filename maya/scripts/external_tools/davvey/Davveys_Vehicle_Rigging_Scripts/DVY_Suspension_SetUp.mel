@@ -1,0 +1,635 @@
+/* This file downloaded from Highend3d.com
+''  
+''  Highend3d.com File Information:
+''  
+''    Script Name: Davveys Vehicle Rigging Scripts
+''    Author:  
+''    Last Updated: Jul 21, 2007
+''    Update/Change this file at:
+''    http://Highend3d.com/maya/downloads/mel_scripts/animation/4109.html
+''  
+''  Please do not alter any information above this line
+''  it is generated dynamically by Highend3d.com and will
+''  be changed automatically on any updates.
+*/
+
+
+//////////////////////////////////////////////////////////////////////////////////
+/*			
+	Copyright © 2006 DVY_Suspension_Setup. All rights reserved davvey@ntlworld.com
+
+						- DVY_Suspension_SetUp -
+
+///////////////////////////////////////////////////////////////////////////////
+						  
+	This script is called by DVY_RigVehivle to set up Suspension travel to all wheels.
+	Each wheel will operate independantly and will move vertically to suit the Main
+	Rig Controller's postion relaticve to the Zero point on the XZ plane.
+	
+	If Ground Control is setup then susp[ension travel will be controlled by this until
+	vehicle has lifted to the maximum suspension travel and then wheels will "hang" 
+	there till vehicle returns to with the suspension ddistance from the ground plane.
+
+*/
+//////////////////////////////////////////////////////////////////////////////////
+//					DVY_Suspension_SetUp
+//////////////////////////////////////////////////////////////////////////////////
+
+//================================================================================
+//	GLOBAL VARIABLES
+//================================================================================
+	global int $DVYDebug;
+
+// Integer Flag that allows print statements to be output to
+// message field for tracking purposes.
+	
+//================================================================================
+
+global proc DVY_Suspension_SetUp()
+{// DVY_Suspension_SetUp proc.	
+
+
+// *******************************************************************************//
+//	Global Variables
+	 
+	global int $DVYDebug;
+	
+ 	global string $hier[], $JThier[], $LChier[], $GroupV_A[], $RigControlsA[], $DVY_MuSuspGrp[], $LocGroups[];
+	global string $DVY_VehName;
+	global float $DVYLoc[], $DVYdata[];
+	
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+//	Local Variables
+
+	string $GrdCone[], $Sel[];
+	string $DVYLocS[], $TmpL[];
+
+	string $Grd[], $Joints[], $ControlAtr[], $DVYSusp[]; 
+	string $DVY_SuspGrp[], $DVY_MuSuspGrp[]; 
+	
+	int $a, $b, $c, $i, $j, $q, $r, $R, $s;
+
+	clear $Grd; clear $Joints; clear $DVYSusp;  clear $ControlAtr;	clear $DVY_SuspGrp;
+	
+	string $DPrefix[] = {"LfFr", "RtFr", "LfRr", "RtRr"};
+	
+	float $SuspJtDistA[], $SuspGrdDistA[];			// 1 float value per corner
+
+	string $SuspGrdDistN[], $SuspGrdLocAddN[], $SuspGrdMultDivN[], $SuspGrdClampN[], $SuspRangeN[];
+	string $SuspJtMultDivN[], $SuspJtMultDivNA[], $SuspJtMultDivNB[], $SuspJtDistN[], $SuspJtDN_1[],  $SuspJtAddNA[], $SuspJtAddNB[];		
+	
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+
+	string $DPrefixSp[] = {"LfFr_", "RtFr_", "LfRr_", "RtRr_"};
+	string $DPrefix[] = {"LfFr", "RtFr", "LfRr", "RtRr"};
+	
+	$i = 0;
+	$Grd = {"BodyShell_JnT_1", "Loc_GrdRefN_1", "Loc_GrdN_1", "BodyShell_GrpN_1"};
+	for ($each in $Grd)
+		{$Grd[$i++] = ($DVY_VehName + $each);}
+	print $Grd;
+
+	$Joints = {"LfFr_Susp_JnTA_1", "LfFr_Susp_JnTB_1", "LfFr_Susp_JnTC_1"};
+	
+	$DVYSusp = {"LfFr_Susp", "RtFr_Susp", "LfRr_Susp", "RtRr_Susp"};
+	
+	$DVY_SuspGrp = {"Loc_LfFr_Susp_GrpN_1", "Loc_RtFr_Susp_GrpN_1",
+					"Loc_LfRr_Susp_GrpN_1", "Loc_RtRr_Susp_GrpN_1",
+					"Loc_Fr_Susp_GrpN_1", "Loc_Rr_Susp_GrpN_1", 
+					"Loc_Suspen_GrpN_1"};
+	
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+
+		$LocGroups[0] =  `group -em -name ($DVY_VehName + "Fr_Loc_GrdN_1")`;
+		delete `pointConstraint -offset 0 0 0 -skip y -weight 1 $GroupV_A[4] $LocGroups[0]`;
+		parent $LocGroups[0] $Grd[2];
+		
+		$LocGroups[1] =  `group -em -name ($DVY_VehName + "Rr_Loc_GrdN_1")`;
+		delete `pointConstraint -offset 0 0 0 -skip y -weight 1 $GroupV_A[7] $LocGroups[1]`;
+		parent $LocGroups[1] $Grd[2];	//"Loc_GrdN_1";
+	
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+
+	$R = $r = `size $RigControlsA`-1;
+//	print ("$r is " + $r + "\n");
+	
+	select -r $RigControlsA[2];
+		scale 0.5 0.5 0.5;
+		makeIdentity -apply true -t 1 -r 1 -s 1 -n 0;
+	
+// -------------------------------------------------------------------------------- //
+	
+// ******************************************************************************** //	
+
+	for ($a=0; $a<2; $a++)
+		{ $q = 1;
+		  for ($i=1; $i<$DVYdata[1]+1; $i++)
+			 {
+				select -r $RigControlsA[2];
+				$Sel =  `duplicate -rr -name ($DVY_VehName + $DPrefix[$a] + "_GrdConeRef_" + $q)`;
+				$GrdCone[($i)] = $Sel[0];
+				delete `parentConstraint -weight 1 ($DVY_VehName + $DPrefixSp[$a]  + "Wheel_LocGrd_" + $q++) $GrdCone[($i)] `;
+				parent $GrdCone[$i] $LocGroups[0];
+				select - r $GrdCone[$i];
+				makeIdentity -apply true -t 1 -r 1 -s 1 -n 0;
+				$RigControlsA[$i+$r] = $GrdCone[($i)];
+			}
+			$r = $r + $DVYdata[1];
+		}	
+	
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+//	print ("$r is " + $r + "\n");
+
+	for ($a=2; $a<4; $a++)
+		{ $q = 1;
+		  for ($i=1; $i<$DVYdata[2]+1; $i++)
+			 {
+				select -r $RigControlsA[2];
+				$Sel =  `duplicate -rr -name ($DVY_VehName + $DPrefix[$a] + "_GrdConeRef_" + $q)`;
+				$GrdCone[($i)] = $Sel[0];
+				delete `parentConstraint -weight 1 ($DVY_VehName + $DPrefixSp[$a]  + "Wheel_LocGrd_" + $q++) $GrdCone[($i)] `;
+				parent $GrdCone[$i] $LocGroups[1];
+				select - r $GrdCone[($i)];
+				makeIdentity -apply true -t 1 -r 1 -s 1 -n 0;
+				$RigControlsA[$i+$r] = $GrdCone[($i)];
+			}
+			$r = $r + $DVYdata[2];
+		}	
+		
+//	print ("$RigControlsA is:- \n"); $a=0;
+//		for ($each in $RigControlsA)	{print ("$RigControlsA[" + $a++ + "] is " + $each + "\n"); }
+//		print (" © Davvey..\n");
+	
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+// Setup individual Groups for Suspension Control
+	
+	$i = 0; $j = 0; $s = `size ($DVYSusp)`;
+
+		$DVY_MuSuspGrp[0] = `group -em -name ($DVY_VehName + "Loc_Suspen_GrpN_1")`;
+			parent $DVY_MuSuspGrp[0] $GroupV_A[0];
+		 	pointConstraint -weight 1 $RigControlsA[0] $DVY_MuSuspGrp[0];
+			
+		$DVY_MuSuspGrp[1] = `group -em -name ($DVY_VehName + "Loc_Fr_Susp_GrpN_1")`;
+			delete `pointConstraint -offset 0 0 0 -weight 1 $GroupV_A[4] $DVY_MuSuspGrp[1]`;
+			parent $DVY_MuSuspGrp[1] $DVY_MuSuspGrp[0];
+
+		$DVY_MuSuspGrp[2] = `group -em -name ($DVY_VehName + "Loc_Rr_Susp_GrpN_1")`;
+			delete `pointConstraint -offset 0 0 0 -weight 1 $GroupV_A[7] $DVY_MuSuspGrp[2]`;
+			parent $DVY_MuSuspGrp[2] $DVY_MuSuspGrp[0];
+	
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+
+	$a = $b = 0;
+	for ($a =0; $a<2; $a++)
+		{$q=1;
+		for ($q=1; $q<$DVYdata[1]+1; $q++)
+			{
+				$DVY_MuSuspGrp[$q+2+$b] = `group -em -name ($DVY_VehName + "Loc_" + $DVYSusp[$a] + "_Susp_GrpN_" + $q)`;
+				parent $DVY_MuSuspGrp[$q+2+$b] $DVY_MuSuspGrp[1];
+			}
+			$b= $DVYdata[1];
+		}
+	
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+
+	$b = $DVYdata[1]*2;
+//	print ("$b is " + $b + "\n");	
+	
+	for ($a =2; $a<4; $a++)
+		{$q=1;
+		for ($q=1; $q<$DVYdata[2]+1; $q++)
+			{
+				$DVY_MuSuspGrp[$q+2+$b] = `group -em -name ($DVY_VehName + "Loc_" + $DVYSusp[$a] + "_Susp_GrpN_" + $q)`;
+				parent $DVY_MuSuspGrp[$q+2+$b] $DVY_MuSuspGrp[2];
+			}
+			$b= $b + $DVYdata[2];
+		}
+	
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+// Setup two locators for each wheel Group
+		
+	$a = $b = 0; $c = $DVYdata[1]; $r = 0;
+			
+	for ($a =0; $a<2; $a++)
+		{$q=1;
+			for ($q=1; $q<$DVYdata[1]+1; $q++)
+				{
+					$DVYLocS[$q+$b] = ($DVY_VehName + $DVYSusp[$a] + "_LocB_" + $q);
+					CenterPivot `select -r $DVYLocS[$q+$b]`;
+					delete `parentConstraint -weight 1 ($DVY_VehName + $DVYSusp[$a] + "_LocB_" + $q) $DVY_MuSuspGrp[$q+$r+2]` ;
+					
+					delete `parentConstraint -skipTranslate x -weight 1 ($DVY_VehName + $DVYSusp[$a] + "_LocB_" + $q) $DVY_MuSuspGrp[$q+$r+2] `;
+					select -r $DVY_MuSuspGrp[$q+$r+2] ; makeIdentity -apply true -t 1 -r 1 -s 1 -n 0;	
+					
+					parentConstraint -weight 1 ($DVY_VehName + $DVYSusp[$a] + "_JnTB_" + $q) $DVYLocS[$q+$b];
+					parent $DVYLocS[$q+$b]  $DVY_MuSuspGrp[$q+$r+2];
+					
+					$DVYLocS[$q+$b+$c] = ($DVY_VehName + $DVYSusp[$a] + "_LocC_" + $q);
+					CenterPivot `select -r $DVYLocS[$q+$b+$c]`;
+					parentConstraint -weight 1 ($DVY_VehName + $DVYSusp[$a] + "_JnTC_" + $q) $DVYLocS[$q+$b+$c];
+					parent $DVYLocS[$q+$b+$c]  $DVY_MuSuspGrp[$q+$r+2];
+				}
+			$b = $DVYdata[1] *2;	$r = $DVYdata[1];
+		}	
+	
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+
+	$b = $DVYdata[1] * 2; $c = $DVYdata[2]; $r = $DVYdata[1]*2;
+//	print ("$b is " + $b + "\n");	
+		
+	for ($a =2; $a<4; $a++)
+		{$q=1;
+			for ($q=1; $q<$DVYdata[2]+1; $q++)
+				{
+					$DVYLocS[$q+$b+$b] = ($DVY_VehName + $DVYSusp[$a] + "_LocB_" + $q);
+					CenterPivot `select -r $DVYLocS[$q+$b+$b]`;
+					delete `parentConstraint -weight 1 ($DVY_VehName + $DVYSusp[$a] + "_LocB_" + $q) $DVY_MuSuspGrp[$q+$r+2]` ;
+					
+					delete `parentConstraint -skipTranslate x -weight 1 ($DVY_VehName + $DVYSusp[$a] + "_LocB_" + $q) $DVY_MuSuspGrp[$q+$r+2] `;
+					select -r $DVY_MuSuspGrp[$q+$r+2] ; makeIdentity -apply true -t 1 -r 1 -s 1 -n 0;	
+					
+					parentConstraint -weight 1 ($DVY_VehName + $DVYSusp[$a] + "_JnTB_" + $q) $DVYLocS[$q+$b+$b];
+					parent $DVYLocS[$q+$b+$b]  $DVY_MuSuspGrp[$q+$r+2];
+					
+					$DVYLocS[$q+$b+$b+$c] = ($DVY_VehName + $DVYSusp[$a] + "_LocC_" + $q);
+					CenterPivot `select -r $DVYLocS[$q+$b+$b+$c]`;
+					parentConstraint -weight 1 ($DVY_VehName + $DVYSusp[$a] + "_JnTC_" + $q) $DVYLocS[$q+$b+$b+$c];
+					parent $DVYLocS[$q+$b+$b+$c]  $DVY_MuSuspGrp[$q+$r+2];
+				}
+			$b = $b + ($DVYdata[2] * 2);	$r = $r + $DVYdata[2];
+		}	
+	
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+/*
+	print "$DVY_MuSuspGrp is \n";	
+	print $DVY_MuSuspGrp;
+		
+	print "$DVYLocS is \n";	
+	print $DVYLocS;
+		
+	print ("$RigControlsA is:- \n"); $a=0;
+	for ($each in $RigControlsA)	{print ("$RigControlsA[" + $a++ + "] is " + $each + "\n"); }
+	print (" © Davvey..\n");
+*/
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+
+// Set up Distance Node for Left Front wheel Damper size.	
+		
+	$SuspJtDN_1[0] = `shadingNode -asUtility distanceBetween -name ($DVY_VehName + "SuspJtDN_1")`;
+		connectAttr -f ($DVY_VehName + $DVYSusp[0] + "_LocB_1" + ".center") ($SuspJtDN_1[0] + ".point1");
+		connectAttr -f ($DVY_VehName + $DVYSusp[0] + "_LocC_1" + ".center") ($SuspJtDN_1[0] + ".point2");
+		connectAttr ($SuspJtDN_1[0] + ".distance") ($RigControlsA[0] + ".GrdDist");
+
+// Set default Piston Length.
+		
+		float $JtDist = `getAttr ($SuspJtDN_1[0] + ".distance")`;
+//			print $JtDist;	print "..\n";
+	
+// Set up Distance Node for BodyShell Joint to Ground.				
+		string $Grd_DN_1 = `shadingNode -asUtility distanceBetween -name ($DVY_VehName + "SuspGrd_DN_1")`;
+			connectAttr -f ($Grd[0] + ".translate") ($Grd_DN_1 + ".point2");
+			connectAttr -f ($Grd[1] + ".translate") ($Grd_DN_1 + ".point1");
+			connectAttr ($Grd_DN_1 + ".distance") ($RigControlsA[0] + ".JtDist");
+
+// Set default Height of BodyShell Joint.
+			
+		float $GrdDist = `getAttr ($Grd_DN_1 + ".distance")`;
+//			print $GrdDist;	print "..\n";
+
+// Set up Add Node to convert and move Locator Group Node.
+			
+		string $GrdLoc_AddNA_1 = `createNode addDoubleLinear -name ($DVY_VehName + "SuspGrdLoc_JtAddNA_1")`;
+			connectAttr -f ($Grd_DN_1 + ".distance") ($GrdLoc_AddNA_1 + ".i1");	
+			connectAttr -f ($DVY_VehName + "BodyShell_JnT_1.translateY" )($GrdLoc_AddNA_1 + ".i2");
+			setAttr ($RigControlsA[2] + ".translateY") (-1 * $GrdDist);
+
+		string $MultDvNA_l = `createNode multiplyDivide -name ($DVY_VehName + "SuspMultDvNA_1")`;
+			connectAttr -f ($RigControlsA[0] + ".PistonRange") ($MultDvNA_l + ".i1x");
+			setAttr ($MultDvNA_l + ".i2x") -0.01;
+			connectAttr -f ($RigControlsA[0] + ".PistonRange") ($MultDvNA_l + ".i1y");
+			setAttr ($MultDvNA_l + ".i2y") 0.01;
+
+		string $MultDvNB_l = `createNode multiplyDivide -name ($DVY_VehName + "SuspMultDvNB_1")`;
+			connectAttr -f ($MultDvNA_l + ".ox") ($MultDvNB_l + ".i1x");
+			setAttr ($MultDvNB_l + ".i2x") $JtDist;
+			connectAttr -f ($MultDvNA_l + ".oy") ($MultDvNB_l + ".i1y");
+			setAttr ($MultDvNB_l + ".i2y") $JtDist;
+			connectAttr -f ($MultDvNB_l + ".ox")($RigControlsA[0] + ".MinTr");
+			connectAttr -f ($MultDvNB_l + ".oy")($RigControlsA[0] + ".MaxTr");
+
+		string $JtAddNA_1 = `createNode addDoubleLinear -name ($DVY_VehName + "SuspJtAddNA_1")`;
+			setAttr ($JtAddNA_1 + ".i1") (-1 * $GrdDist);	
+			connectAttr -f ($MultDvNB_l + ".ox")($JtAddNA_1 + ".i2");
+	
+		string $JtAddNB_1 = `createNode addDoubleLinear -name ($DVY_VehName + "SuspJtAddNB_1")`;
+			setAttr ($JtAddNB_1 + ".i1") (-1 * $GrdDist);
+			connectAttr -f ($MultDvNB_l + ".oy")($JtAddNB_1 + ".i2");
+			
+		string $Grd_MultDvNA_l = `createNode multiplyDivide -name ($DVY_VehName + "SuspGrd_MultDvNA_l")`;
+			connectAttr -f ($JtAddNA_1 + ".o") ($Grd_MultDvNA_l + ".i1x");
+			setAttr ($Grd_MultDvNA_l + ".i2x") -1;
+			connectAttr -f ($JtAddNB_1 + ".o")  ($Grd_MultDvNA_l + ".i1y");
+			setAttr ($Grd_MultDvNA_l + ".i2y") -1;
+			connectAttr -f ($Grd_MultDvNA_l + ".ox")($RigControlsA[0] + ".SuspMin");
+			connectAttr -f ($Grd_MultDvNA_l + ".oy")($RigControlsA[0] + ".SuspMax");
+			connectAttr -f 	($DVY_VehName + "BodyShell_JnT_1.translateY" )($Grd_MultDvNA_l + ".i1z");
+			setAttr ($Grd_MultDvNA_l + ".i2z") -1;		
+				
+		string $Grd_ClampNA_l = `shadingNode -asUtility clamp -name ($DVY_VehName + "SuspGrd_ClampNA_l")`;
+			connectAttr -f 	($Grd_MultDvNA_l + ".oz") ($Grd_ClampNA_l + ".inputR");
+			connectAttr -f ($JtAddNA_1 + ".o") ($Grd_ClampNA_l + ".minR");
+			connectAttr -f ($JtAddNB_1 + ".o") ($Grd_ClampNA_l + ".maxR");
+			connectAttr -f  ($Grd_ClampNA_l + ".outputR") ($RigControlsA[2] + ".translateY");
+	
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+
+	$b =0;
+	for ($a=0; $a<2; $a++)
+	{$q=1;
+		for ($q=1; $q<$DVYdata[1]+1; $q++)
+			{
+// Set up Distance Node for each wheel Damper size.	
+
+			 $SuspJtDistN[$i] = `shadingNode -asUtility distanceBetween -name ($DVY_VehName + "Susp_" + $DPrefix[$a] + "_JtDN_" + $q)`;
+				connectAttr -f ($DVY_VehName + $DVYSusp[$a] + "_LocB_" + $q + ".center") ($SuspJtDistN[$i] + ".point1");
+				connectAttr -f ($DVY_VehName + $DVYSusp[$a] + "_LocC_" + $q + ".center") ($SuspJtDistN[$i] + ".point2");
+				connectAttr ($SuspJtDistN[$i] + ".distance") ($RigControlsA[0] + "." + $DPrefix[$a] + "GrdDist" + $q);
+			
+// Set default Piston length each damper.
+				
+			 $SuspJtDistA[$i] = `getAttr ($SuspJtDistN[$i] + ".distance")`;
+//				print $SuspJtDistA[$i];	
+
+// Set up Distance Node for Height for each Top Suspension pivot to Ground.
+			
+			 $GrDistN[$i] = `shadingNode -asUtility distanceBetween -name ($DVY_VehName + "Susp_" + $DPrefix[$a] + "_Grd_DN_" + $q)`;
+				connectAttr -f ($DVY_VehName + $DVYSusp[$a] + "_LocA_" + $q + ".translate") ($GrDistN[$i] + ".point2");
+				connectAttr -f ($DVY_VehName + $DPrefixSp[$a]  + "Wheel_LocGrd_"  + $q + ".translate") ($GrDistN[$i]+ ".point1");
+				connectAttr ($GrDistN[$i]+ ".distance") ($RigControlsA[0] + "." + $DPrefix[$a] + "JtDist" + $q);
+				
+// Set default Height of each Top Suspension Pivot.
+				$SuspGrdDistA[$i] = `getAttr ($GrDistN[$i] + ".distance")`;
+//				print $SuspGrdDistA[$i];	print "..\n";
+				
+// Set up Add Node to convert and move Locator Group Node.
+			
+			$SuspGrdLocAddN[$i] = `createNode addDoubleLinear -name ($DVY_VehName + "Susp_" + $DPrefix[$a] + "_GrdLocAddNA_" + $q)`;
+				connectAttr -f ($GrDistN[$i] + ".distance") ($SuspGrdLocAddN[$i] + ".i1");	
+				connectAttr -f ($DVY_VehName + $DVYSusp[$a] + "_LocA_" + $q + ".translateY") ($SuspGrdLocAddN[$i]+ ".i2");
+				setAttr ($RigControlsA[$q+$b+4] + ".translateY") (-1 * $SuspGrdDistA[$i]);
+			
+
+			$SuspJtMultDivNA[$i] = `createNode multiplyDivide -name ($DVY_VehName + "Susp_" + $DPrefix[$a] + "_MultDvNA_" + $q)`;
+				connectAttr -f ($RigControlsA[0] + "." + $DPrefix[$a] + "PistonRange") ($SuspJtMultDivNA[$i] + ".i1x");
+				setAttr ($SuspJtMultDivNA[$i] + ".i2x") -0.01;
+				connectAttr -f ($RigControlsA[0] + "." + $DPrefix[$a] + "PistonRange") ($SuspJtMultDivNA[$i] + ".i1y");
+				setAttr ($SuspJtMultDivNA[$i] + ".i2y") 0.01;
+	
+			$SuspJtMultDivNB[$i] = `createNode multiplyDivide -name ($DVY_VehName + "Susp" + $DPrefix[$a] + "_MultDvNB_" + $q)`;
+				connectAttr -f ($SuspJtMultDivNA[$i] + ".ox") ($SuspJtMultDivNB[$i] + ".i1x");
+				setAttr ($SuspJtMultDivNB[$i] + ".i2x") $SuspJtDistA[$i];
+				connectAttr -f ($SuspJtMultDivNA[$i] + ".oy") ($SuspJtMultDivNB[$i] + ".i1y");
+				setAttr ($SuspJtMultDivNB[$i] + ".i2y") $SuspJtDistA[$i];
+				connectAttr -f ($SuspJtMultDivNB[$i] + ".ox")($RigControlsA[0] + "." + $DPrefix[$a] + "MinTr" + $q);
+				connectAttr -f ($SuspJtMultDivNB[$i] + ".oy")($RigControlsA[0] + "." + $DPrefix[$a] + "MaxTr" + $q);
+	
+			$SuspJtAddNA[$i] = `createNode addDoubleLinear -name ($DVY_VehName + "Susp_" + $DPrefix[$a] + "_JtAddNA_" + $q)`;
+				setAttr ($SuspJtAddNA[$i] + ".i1") (-1 * $SuspGrdDistA[$i]);	
+				connectAttr -f ($SuspJtMultDivNB[$i] + ".ox")($SuspJtAddNA[$i] + ".i2");
+	
+			$SuspJtAddNB[$i] = `createNode addDoubleLinear -name ($DVY_VehName + "Susp" + $DPrefix[$a] + "_JtAddNB_" + $q)`;
+				setAttr ($SuspJtAddNB[$i] + ".i1") (-1 * $SuspGrdDistA[$i]);
+				connectAttr -f ($SuspJtMultDivNB[$i] + ".oy")($SuspJtAddNB[$i] + ".i2");
+			
+			$SuspGrdMultDivN[$i] = `createNode multiplyDivide -name ($DVY_VehName + "Susp_" + $DPrefix[$a] + "_GrdMultDvNA_" + $q)`;
+				connectAttr -f ($SuspJtAddNA[$i] + ".o") ($SuspGrdMultDivN[$i] + ".i1x");
+				setAttr ($SuspGrdMultDivN[$i] + ".i2x") -1;
+				connectAttr -f ($SuspJtAddNB[$i] + ".o")  ($SuspGrdMultDivN[$i] + ".i1y");
+				setAttr ($SuspGrdMultDivN[$i] + ".i2y") -1;
+				connectAttr -f ($SuspGrdMultDivN[$i] + ".ox")($RigControlsA[0] + "." + $DPrefix[$a] + "SuspMin" + $q);
+				connectAttr -f ($SuspGrdMultDivN[$i] + ".oy")($RigControlsA[0] + "." + $DPrefix[$a] + "SuspMax" + $q);
+				connectAttr -f 	($DVY_VehName + $DVYSusp[$a] + "_LocA_" + $q + ".translateY") ($SuspGrdMultDivN[$i] + ".i1z");
+				setAttr ($SuspGrdMultDivN[$i] + ".i2z") -1;		
+					
+			$SuspGrdClampN[$i] = `shadingNode -asUtility clamp -name ($DVY_VehName + "Susp_" + $DPrefix[$a] + "_GrdClampNA_" + $q)`;
+				connectAttr -f 	($SuspGrdMultDivN[$i] + ".oz") ($SuspGrdClampN[$i] + ".inputR");
+				connectAttr -f ($SuspJtAddNA[$i] + ".o") ($SuspGrdClampN[$i] + ".minR" );
+				connectAttr -f ($SuspJtAddNB[$i] + ".o") ($SuspGrdClampN[$i] + ".maxR" );
+				connectAttr -f  ($SuspGrdClampN[$i] + ".outputR") ($RigControlsA[$q+$b+$R] + ".translateY");
+			
+//			print ("$RigControlsA[" + ($q+$b+$R) + "]" + $RigControlsA[$q+$b+$R] + ".translateY" + " has been connected. \n");
+			
+			$i++;
+			$j++; $j++;
+		
+		} 
+		$b = $DVYdata[1];
+	}
+	
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+
+	$b = $DVYdata[1] * 2;
+	for ($a=2; $a<4; $a++)
+	{$q=1;
+		for ($q=1; $q<$DVYdata[2]+1; $q++)
+			{
+// Set up Distance Node for each wheel Damper size.	
+
+			 $SuspJtDistN[$i] = `shadingNode -asUtility distanceBetween -name ($DVY_VehName + "Susp_" + $DPrefix[$a] + "_JtDN_" + $q)`;
+				connectAttr -f ($DVY_VehName + $DVYSusp[$a] + "_LocB_" + $q + ".center") ($SuspJtDistN[$i] + ".point1");
+				connectAttr -f ($DVY_VehName + $DVYSusp[$a] + "_LocC_" + $q + ".center")  ($SuspJtDistN[$i] + ".point2");
+				connectAttr ($SuspJtDistN[$i] + ".distance") ($RigControlsA[0] + "." + $DPrefix[$a] + "GrdDist" + $q);
+			
+// Set default Piston length each damper.
+				
+			 $SuspJtDistA[$i] = `getAttr ($SuspJtDistN[$i] + ".distance")`;
+				print $SuspJtDistA[$i];	
+
+// Set up Distance Node for Height for each Top Suspension pivot to Ground.
+			
+			 $GrDistN[$i] = `shadingNode -asUtility distanceBetween -name ($DVY_VehName + "Susp_" + $DPrefix[$a] + "_Grd_DN_" + $q)`;
+				connectAttr -f ($DVY_VehName + $DVYSusp[$a] + "_LocA_" + $q + ".translate") ($GrDistN[$i] + ".point2");
+				connectAttr -f ($DVY_VehName + $DPrefixSp[$a]  + "Wheel_LocGrd_"  + $q + ".translate") ($GrDistN[$i]+ ".point1");
+				connectAttr ($GrDistN[$i]+ ".distance") ($RigControlsA[0] + "." + $DPrefix[$a] + "JtDist" + $q);
+				
+// Set default Height of each Top Suspension Pivot.
+				$SuspGrdDistA[$i] = `getAttr ($GrDistN[$i] + ".distance")`;
+				print $SuspGrdDistA[$i];	print "..\n";
+				
+// Set up Add Node to convert and move Locator Group Node.
+			
+			$SuspGrdLocAddN[$i] = `createNode addDoubleLinear -name ($DVY_VehName + "Susp_" + $DPrefix[$a] + "_GrdLocAddNA_" + $q)`;
+				connectAttr -f ($GrDistN[$i] + ".distance") ($SuspGrdLocAddN[$i] + ".i1");	
+				connectAttr -f ($DVY_VehName + $DVYSusp[$a] + "_LocA_" + $q + ".translateY") ($SuspGrdLocAddN[$i]+ ".i2");
+				setAttr ($RigControlsA[$q+$b+4] + ".translateY") (-1 * $SuspGrdDistA[$i]);
+			
+
+			$SuspJtMultDivNA[$i] = `createNode multiplyDivide -name ($DVY_VehName + "Susp_" + $DPrefix[$a] + "_MultDvNA_" + $q)`;
+				connectAttr -f ($RigControlsA[0] + "." + $DPrefix[$a] + "PistonRange") ($SuspJtMultDivNA[$i] + ".i1x");
+				setAttr ($SuspJtMultDivNA[$i] + ".i2x") -0.01;
+				connectAttr -f ($RigControlsA[0] + "." + $DPrefix[$a] + "PistonRange") ($SuspJtMultDivNA[$i] + ".i1y");
+				setAttr ($SuspJtMultDivNA[$i] + ".i2y") 0.01;
+	
+			$SuspJtMultDivNB[$i] = `createNode multiplyDivide -name ($DVY_VehName + "Susp" + $DPrefix[$a] + "_MultDvNB_" + $q)`;
+				connectAttr -f ($SuspJtMultDivNA[$i] + ".ox") ($SuspJtMultDivNB[$i] + ".i1x");
+				setAttr ($SuspJtMultDivNB[$i] + ".i2x") $SuspJtDistA[$i];
+				connectAttr -f ($SuspJtMultDivNA[$i] + ".oy") ($SuspJtMultDivNB[$i] + ".i1y");
+				setAttr ($SuspJtMultDivNB[$i] + ".i2y") $SuspJtDistA[$i];
+				connectAttr -f ($SuspJtMultDivNB[$i] + ".ox")($RigControlsA[0] + "." + $DPrefix[$a] + "MinTr" + $q);
+				connectAttr -f ($SuspJtMultDivNB[$i] + ".oy")($RigControlsA[0] + "." + $DPrefix[$a] + "MaxTr" + $q);
+	
+			$SuspJtAddNA[$i] = `createNode addDoubleLinear -name ($DVY_VehName + "Susp_" + $DPrefix[$a] + "_JtAddNA_" + $q)`;
+				setAttr ($SuspJtAddNA[$i] + ".i1") (-1 * $SuspGrdDistA[$i]);	
+				connectAttr -f ($SuspJtMultDivNB[$i] + ".ox")($SuspJtAddNA[$i] + ".i2");
+	
+			$SuspJtAddNB[$i] = `createNode addDoubleLinear -name ($DVY_VehName + "Susp" + $DPrefix[$a] + "_JtAddNB_" + $q)`;
+				setAttr ($SuspJtAddNB[$i] + ".i1") (-1 * $SuspGrdDistA[$i]);
+				connectAttr -f ($SuspJtMultDivNB[$i] + ".oy")($SuspJtAddNB[$i] + ".i2");
+			
+			$SuspGrdMultDivN[$i] = `createNode multiplyDivide -name ($DVY_VehName + "Susp_" + $DPrefix[$a] + "_GrdMultDvNA_" + $q)`;
+				connectAttr -f ($SuspJtAddNA[$i] + ".o") ($SuspGrdMultDivN[$i] + ".i1x");
+				setAttr ($SuspGrdMultDivN[$i] + ".i2x") -1;
+				connectAttr -f ($SuspJtAddNB[$i] + ".o")  ($SuspGrdMultDivN[$i] + ".i1y");
+				setAttr ($SuspGrdMultDivN[$i] + ".i2y") -1;
+				connectAttr -f ($SuspGrdMultDivN[$i] + ".ox")($RigControlsA[0] + "." + $DPrefix[$a] + "SuspMin" + $q);
+				connectAttr -f ($SuspGrdMultDivN[$i] + ".oy")($RigControlsA[0] + "." + $DPrefix[$a] + "SuspMax" + $q);
+				connectAttr -f 	($DVY_VehName + $DVYSusp[$a] + "_LocA_" + $q + ".translateY") ($SuspGrdMultDivN[$i] + ".i1z");
+				setAttr ($SuspGrdMultDivN[$i] + ".i2z") -1;		
+					
+			$SuspGrdClampN[$i] = `shadingNode -asUtility clamp -name ($DVY_VehName + "Susp_" + $DPrefix[$a] + "_GrdClampNA_" + $q)`;
+				connectAttr -f 	($SuspGrdMultDivN[$i] + ".oz") ($SuspGrdClampN[$i] + ".inputR");
+				connectAttr -f ($SuspJtAddNA[$i] + ".o") ($SuspGrdClampN[$i] + ".minR" );
+				connectAttr -f ($SuspJtAddNB[$i] + ".o") ($SuspGrdClampN[$i] + ".maxR" );
+				connectAttr -f  ($SuspGrdClampN[$i] + ".outputR") ($RigControlsA[$q+$b+$R] + ".translateY");
+			
+//			print ("$RigControlsA[" + ($q+$b+$R) + "]" + $RigControlsA[$q+$b+$R] + ".translateY" + " has been connected. \n");
+			
+			$i++;
+			$j++; $j++;
+		
+		} 
+		$b = $b+$DVYdata[2];
+	}
+	
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+
+	select -r ($DVY_VehName + "Loc_GrdRefN_1"); $Sel = `ls - sl`; string $Loc_GrdRefN_1 = $Sel[0];
+	
+// Parent Constrain Ground Locator group to main Body
+		parentConstraint -mo -weight 1 $Grd[3] ($DVY_VehName + "Loc_GrdN_1");
+		parentConstraint -mo -weight 1 $RigControlsA[2] $Loc_GrdRefN_1;
+	
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+
+	for ($a=0; $a<2; $a++)
+	{$q = 1;
+		for ($q=1; $q<$DVYdata[1]+1; $q++)
+		  {
+			pointConstraint -mo -weight 1 ($DVY_VehName + $DVYSusp[$a] + "_LocC_" + $q) ($DVY_VehName + $DPrefixSp[$a]  + "Wheel_LocB_" + $q);
+			pointConstraint -mo -weight 1 ($DVY_VehName + $DVYSusp[$a] + "_LocGrd_" + $q) ($DVY_VehName + $DVYSusp[$a] + "_JnTC_" + $q);	
+			pointConstraint -mo -weight 1 ($DVY_VehName + $DPrefixSp[$a]  + "Wheel_LocB_" + $q) ($DVY_VehName + $DPrefixSp[$a]  + "Wheel_JnTB_" + $q);	
+		  }
+	}
+	
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+
+	for ($a=2; $a<4; $a++)
+	{$q = 1;
+		for ($q=1; $q<$DVYdata[2]+1; $q++)
+		  {
+			pointConstraint -mo -weight 1 ($DVY_VehName + $DVYSusp[$a] + "_LocC_" + $q) ($DVY_VehName + $DPrefixSp[$a]  + "Wheel_LocB_" + $q);
+			pointConstraint -mo -weight 1 ($DVY_VehName + $DVYSusp[$a] + "_LocGrd_" + $q) ($DVY_VehName + $DVYSusp[$a] + "_JnTC_" + $q);	
+			pointConstraint -mo -weight 1 ($DVY_VehName + $DPrefixSp[$a]  + "Wheel_LocB_" + $q) ($DVY_VehName + $DPrefixSp[$a]  + "Wheel_JnTB_" + $q);	
+		  }
+	}
+	
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+/*	
+		print "\n Suspension Joint Distance Rotate Nodes are..\n";
+		print SuspJtDistN;
+		print "\n Davvey © 2006..\n";
+
+		print "\n Suspension Ground Distance Nodes are..\n";
+		print $SuspGrdDistA; 
+		print "\n Davvey © 2006..\n";
+		
+		print "\n Suspension Ground Corner Distance Nodes are..\n";
+		print $SuspGrdDistN; 
+		print "\n Davvey © 2006..\n";
+		
+		print "\n Suspension Jnt Distance Nodes are..\n";
+		print $SuspJtDN_1;
+		print "\n Davvey © 2006..\n";
+		
+		print "\n Suspension Ground Corner Add Nodes are..\n";
+		print $SuspGrdLocAddN;	
+		print "\n Davvey © 2006..\n";
+		
+		print "\n Suspension Ground Corner Distance Nodes are..\n";
+		print $SuspGrdDistN;	
+		print "\n Davvey © 2006..\n";
+	
+		print "\n Suspension Joint MultiplyDivide A Nodes are..\n";
+		print $SuspJtMultDivNA;
+		print "\n Davvey © 2006..\n";
+		
+		print "\n Suspension Joint MultiplyDivide B Nodes are..\n";
+		print $SuspJtMultDivNB;
+		print "\n Davvey © 2006..\n";
+		
+		print "\n Suspension Joint Add A Nodes are..\n";
+		print $SuspJtAddNA;
+		print "\n Davvey © 2006..\n";
+
+		print "\n Suspension Joint Add B Nodes are..\n";
+		print $SuspJtAddNB;
+		print "\n Davvey © 2006..\n";
+		
+		print "\n Suspension Ground Multiply Nodes are..\n";
+		print $SuspGrdMultDivN;
+		print "\n Davvey © 2006..\n";
+		
+		print "\n Suspension Ground Clamp Nodes are..\n";
+		print $SuspGrdClampN;
+		print "\n Davvey © 2006..\n";
+*/	
+	
+		print "\n DVY_Suspension_SetUp has set up Nodes for suspension movement and ground variations. See help file for more details. Davvey © 2006..\n";
+
+}	// DVY_End of Suspension_SetUp proc.	

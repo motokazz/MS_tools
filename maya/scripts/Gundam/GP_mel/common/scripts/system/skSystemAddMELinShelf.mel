@@ -1,0 +1,166 @@
+/*!
+		@file		skSystemAddMELinShelf.mel
+		@brief		シェルフに MEL を登録する
+		
+		シェルフタブ名を指定しない場合、カレントシェルフタブに追加される
+		コマンド名 = MEL ファイル名と想定して動作する
+		
+		ボタンに登録されるコマンドは以下になる
+			"source \"" + $com + ".mel\";"
+			$com;
+
+		@param	$com	ボタンに設定するコマンド名
+		@param	$tab	シェルフタブ名
+
+*/
+
+
+
+// ****************************************************************************
+// インターフェイス
+// ****************************************************************************
+global	proc	skSystemAddMELinShelf(string $com, string $tab)
+{
+	global string $gShelfTopLevel;
+
+	// シェルフタブ名が指定されていない場合、カレントシェルフタブ名を設定
+	if( "" == $tab )
+	{
+		$tab = tabLayout( "-q", "-selectTab", $gShelfTopLevel );
+	}
+	if( "" == $tab )
+		return;// シェルフが存在しない場合
+
+	// タブ名の存在チェック
+	int		$bTabExists = false;
+	string	$currentTabs[] = tabLayout( "-q", "-tabLabel", $gShelfTopLevel );
+	for( $cur in $currentTabs )
+	{
+		if( 0 == strcmp( $tab, $cur ) )
+		{
+			$bTabExists = true;
+			break;
+		}
+	}
+	if( ! $bTabExists )
+	{
+		// 無かったので新規作成
+		skShelfCreateTab( $tab );
+	}
+
+	// シェルフボタンチェック
+	string	$parent = $gShelfTopLevel + "|" + $tab;
+	string	$label = $com + ";";
+	string	$buttons[] = shelfLayout( "-q", "-childArray", $parent );
+	for( $b in $buttons )
+	{
+		string	$c = shelfButton( "-q", "-label", $b );
+		if( 0 == strcmp( $c, $label ) )
+		{
+			// 既に登録されていたら削除
+//			deleteUI( $b );
+			// 既に登録されていたら何もしない
+			return;
+		}
+	}
+
+	// ヘルプの準備
+	string	$help = "";
+
+	//k-fujii 2008.11.19
+	//string	$helpPath = getenv( "SERVER_HELP_PATH" );
+	string	$helpPath = getenv( "LOCAL_COMMON_HELP_PATH" );
+	$helpPath = fromNativePath( $helpPath ) + "/";
+
+	string	$helpFiles[] = getFileList( "-folder", $helpPath );
+
+	//まずフォルダを探す。
+	for( $file in $helpFiles )
+	{
+		if( "" != match( "^" + $com, $file ) )
+		{
+			$test = $helpPath + $file;
+			$help = $test;
+			if(`filetest -d $test`)
+			{
+				string $index_file = $test + "/index.html";
+				string $index_file2 = $test + "/index.htm";
+				if(`filetest -f $index_file` )
+				{
+					$help = $index_file;
+					print( "index=" + $index_file+ "\n");
+				}
+				else if(`filetest -f $index_file2` )
+				{
+					$help = $index_file2;
+					print( "index=" + $index_file2+ "\n");
+				}
+				break;
+			}
+		}
+	}
+	//さらにファイルがあるか探す。.htmlの場合フォルダもファイルも存在する場合があるが、その場合はファイルを開くようにする。
+	for( $file in $helpFiles )
+	{
+		if( "" != match( "^" + $com, $file ) )
+		{
+			$test = $helpPath + $file;
+			if(`filetest -f $test`)
+			{
+				$help = $test;
+				break;
+			}
+		}
+	}
+	print( "helpFile=" + $help+ "\n");
+	
+	//k-fujii 2008.11.19
+
+	string	$helpCommand = "";
+	if( "" != $help )
+	{
+		$helpCommand = "system( \"load " + $help + "\" )";
+	}
+	else
+	{
+		// help が見つからなかったとき
+		$helpCommand = "print( \"" + $com + " do not have help!! \\n\" )";
+	}
+
+	// シェルフにボタン追加
+	string	$command = "source \"" + $com + ".mel\";" + $com + ";";
+	string	$icon = $com + ".bmp";
+	setParent( $parent );
+	shelfButton( "-label", $label,
+			"-command", $command,
+			"-image1", $icon,
+			"-imageOverlayLabel", "",
+			"-doubleClickCommand", $helpCommand,
+			"-annotation", $com,
+			"-style", shelfLayout( "-q", "-style", $tab ),
+			"-width", shelfLayout( "-q", "-cellWidth", $tab ),
+			"-height", shelfLayout( "-q", "-cellHeight", $tab ) );
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// ****************************************************************************
+// oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
+// ----------------------------------------------------------------------------
+// EOF

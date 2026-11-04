@@ -1,0 +1,46 @@
+global proc eFT_setupMotionInfo(string $path){
+	string $motInfo[] = GP2_motionInfoLoad2($path);
+	textScrollList -e -ra eFT_motionInfoTSL;
+	textScrollList -e -h 600 eFT_motionInfoTSL;
+
+	for($item in $motInfo){
+	    textScrollList -e -a $item eFT_motionInfoTSL;
+	}
+}
+
+global proc string[] GP2_motionInfoLoad2(string $saveDataFileName){
+	if(`filetest -r $saveDataFileName`){
+		int $fileId = `fopen $saveDataFileName "r"`;
+		string $line ;
+		$line = `fgetline $fileId`;
+		int $i=0;
+		string $loadedData[];
+		string $result[],$preResult[];
+
+		while ( size( $line ) > 0 ){
+			string $buffer[];
+			string $divTgt = substituteAllString($line, ",", "@,");
+			tokenize $divTgt "," $buffer;
+
+			for($j=0 ; $j<size($buffer) ; $j++){
+				$result[$j] = substituteAllString($buffer[$j], "@", "");
+				$result[$j] = strip($result[$j]);
+				if( $result[$j] == "" ){
+					if($i != 0){
+						$result[$j] = $preResult[$j];
+					}else{
+						$result[$j] = "-blank-";
+					}
+				}
+				$preResult[$j] = $result[$j];
+				$loadedData[$i] = $loadedData[$i] + $result[$j] + "\t";
+			}
+			$line = `fgetline $fileId`;
+			$i++;
+		}
+		fclose $fileId;
+		return( $loadedData );
+	}else{
+		return({""});
+	}
+}

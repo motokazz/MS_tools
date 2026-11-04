@@ -1,0 +1,101 @@
+#----------------------------------------------------------------------------------
+#UTF-8形式で保存してください
+#boolean(真偽値)のデフォルトはfalseです
+#記述者の名前が無いテスト用らしき記述は最適化の為削除する事があります
+#----------------------------------------------------------------------------------
+
+#----------------------------------------------------------------------------------
+#富裕層 up_a 茂木
+up_a_root:
+  root:     true
+  low:      "up_a_root_low"
+up_b_root:                 #ep11の亡霊都市に一部のエリアを壊せる版 工藤
+  root:     true
+up_c_root:                 #ep12の亡霊都市に一部のエリアが壊された版 工藤
+  root:     true
+
+up_a_00:                   #分割されたup_a_09、up_a_10、up_a_11をまとめるエリア
+  root:     false
+  occluder: "up_a_00_occ"
+up_a_01:
+  occluder: "up_a_01_occ"
+  low:      "up_a_01_low"
+up_a_02:
+  occluder: "up_a_02_occ"
+  low:      "up_a_02_low"
+up_a_04:
+  occluder: "up_a_04_occ"
+  low:      "up_a_04_low"
+up_a_05:
+  occluder: "up_a_05_occ"
+  low:      "up_a_05_low"
+up_a_08:                    #抜けていたのでup_a_08を追加 鴫原
+  occluder: "up_a_08_occ"
+  low:      "up_a_08_low"
+up_a_09:                    #up_a_00で分割されたエリア 工藤
+  low:      "up_a_09_low"
+  part:     true
+up_a_10:                    #up_a_00で分割されたエリア 工藤
+  low:      "up_a_10_low"
+  part:     true
+up_a_11:                    #up_a_00で分割されたエリア 工藤
+  low:      "up_a_11_low"
+  part:     true
+up_a_12:                   #分割されたup_a_12a、up_a_12bをまとめるエリア 工藤
+  root:     true
+  occluder: "up_a_12_occ"
+up_a_12a:                  #分割されたup_a_09、up_a_10をまとめるエリア 工藤
+  root:     false
+  occluder: "up_a_12a_occ"
+up_a_12b:                  #分割されたup_a_11をまとめるエリア 工藤
+  root:     false
+  occluder: "up_a_12b_occ"
+
+
+up_a_02_brk_root:          #実際にはこのエリアは使用しなくて各パーツのmerged.hkxとLODを作るために存在
+  root:     true
+up_a_02_brk_01:
+  occluder: "up_a_02_brk_01"
+  low:      "up_a_02_brk_01"
+up_a_02_brk_02:
+  occluder: "up_a_02_brk_02"
+  low:      "up_a_02_brk_02"
+up_a_02_brk_03:
+  occluder: "up_a_02_brk_03"
+  low:      "up_a_02_brk_03"
+up_a_02_brk_04:
+  occluder: "up_a_02_brk_04"
+  low:      "up_a_02_brk_04"
+up_a_02_brk_05:
+  occluder: "up_a_02_brk_05"
+  low:      "up_a_02_brk_05"
+up_a_02_brk_06:
+  occluder: "up_a_02_brk_06"
+  low:      "up_a_02_brk_06"
+up_a_02_brk_07:
+  occluder: "up_a_02_brk_07"
+  low:      "up_a_02_brk_07"
+up_a_02_brk_08:
+  occluder: "up_a_02_brk_08"
+  low:      "up_a_02_brk_08"
+up_a_02_brk_09:
+  occluder: "up_a_02_brk_09"
+  low:      "up_a_02_brk_09"
+up_a_02_brk_10:
+  occluder: "up_a_02_brk_10"
+  low:      "up_a_02_brk_10"
+up_a_02_brk_11:
+  occluder: "up_a_02_brk_11"
+  low:      "up_a_02_brk_11"
+up_a_02_brk_12:
+  occluder: "up_a_02_brk_12"
+  low:      "up_a_02_brk_12"
+up_a_02_brk_13:
+  occluder: "up_a_02_brk_13"
+  low:      "up_a_02_brk_13"
+up_a_02_brk_14:
+  occluder: "up_a_02_brk_14"
+  low:      "up_a_02_brk_14"
+up_a_02_brk_15:
+  occluder: "up_a_02_brk_15"
+  low:      "up_a_02_brk_15"

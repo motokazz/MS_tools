@@ -1,0 +1,74 @@
+//--------------------------------------------------------------------------
+//
+// ScriptName : AriIconViewer
+// Contents   : Mayaに登録されているデフォルトアイコンを一覧
+// Author     : Ari
+// URL        : http://cgjishu.net/
+// Since      : 2014/05
+// LastUpdate : 2016/08/25
+// Note       : 
+//
+//--------------------------------------------------------------------------
+
+global proc AriIconViewer_buttonGo(string $png){
+	global string $AriIconViewerPreviewIcon;
+	global string $AriIconViewerPreviewLabel;
+	iconTextButton -e -i $png ($AriIconViewerPreviewIcon);
+	textField -e -text $png $AriIconViewerPreviewLabel;
+}
+global proc AriIconViewer_save(){
+	global string $AriIconViewerPreviewIcon;
+	string $png=`iconTextButton -q -i $AriIconViewerPreviewIcon`;
+	global string $AriIconViewerSavePath;
+	if ($AriIconViewerSavePath=="")$AriIconViewerSavePath=`internalVar -ubd`;
+	string $defDirectory=$AriIconViewerSavePath+$png;
+	print ($defDirectory+"\n");
+	string $pathList[]=`fileDialog2 -ds 2 -fm 0 -sff $png -ff "PNG (*.png)" -dir $defDirectory`;
+	string $path=$pathList[0];
+	if(endsWith($path,".png")){
+		print $path;
+		resourceManager -saveAs $png $path;
+		string $basename = basename( $path, "");
+		$AriIconViewerSavePath = startString ($path,size($path)-size($basename));
+	}
+}
+global proc AriIconViewer(){
+	global string $AriIconViewerPreviewIcon;
+	global string $AriIconViewerPreviewLabel;
+	global string $AriIconViewerSarchField;
+	string $pngList[]=`resourceManager -nameFilter "*.png"`;
+	if((`window -ex  AriIconViewer`)==true)deleteUI AriIconViewer;
+	window -title "AriIconViewer"  -w 400 -h 100 AriIconViewer;
+	string $form=`formLayout`;
+	$AriIconViewerPreviewIcon=`iconTextButton -i "commandButton.png"`;
+	$AriIconViewerPreviewLabel=`textField -en 1 -text "commandButton.png" -w 300`;
+	$saveButton=`button -l "png出力" -c "AriIconViewer_save" -w 80`;
+	string $scroll=`scrollLayout -cr true -mcw 200`;
+	flowLayout -h 3500 -cs 1  -wrap true;
+	string $nowString = (startString($pngList[0],1));
+	text -bgc 1 1 1  -w 12 -h 32  -l $nowString;
+	for($png in $pngList){
+		string $oneString = `toupper (startString($png,1))`;
+		if($nowString != $oneString){
+			text -bgc 1 1 1  -w 12 -h 32  -l $oneString;
+			$nowString = $oneString;
+		}
+		iconTextButton -w 32 -h 32 -i $png -c ("AriIconViewer_buttonGo(\""+$png+"\")") ;
+	}
+	setParent..;
+	setParent..;
+	setParent..;
+	formLayout -edit 
+	-af $AriIconViewerPreviewIcon "top"   0
+	-af $AriIconViewerPreviewIcon "left"   0
+	-af $AriIconViewerPreviewLabel "top"   0
+	-ac $AriIconViewerPreviewLabel "left"   0 $AriIconViewerPreviewIcon
+	-af $saveButton "top" 0 
+	-ac $saveButton "left" 0 $AriIconViewerPreviewLabel
+	-af $scroll "top"   60
+	-af $scroll "left"   0
+	-af $scroll "bottom" 0
+	-af $scroll "right" 0
+	$form;
+	showWindow;
+}

@@ -1,0 +1,89 @@
+
+// =============================================
+// ValueSplit2
+// 概要  : 頂点や面の複数名称を単数名で列挙
+// 引数  : $items[]
+// 戻り値: string[]
+// =============================================
+global proc string[] ValueSplit2(string $items[]){
+ int $RetVal[];//戻り値変換用バッファ変数
+ int $Aindex=0;//配列ポインタ用変数
+ string $OrgName;//戻り値変換用文字列バッファ変数
+ string $ResName[];//戻り値
+ for($Faces in $items){ //引数すべてをループ
+        //括弧から値を抜き出す
+        string $Rif[];
+        tokenize $Faces "[*:*]" $Rif;
+        string $Pit[];
+        tokenize $Rif[0] "." $Pit;
+        $OrgName=$Pit[0] +"."+ $Pit[1] + "[";
+        //[:]無
+        if(`gmatch $Faces "*:*"`==0){
+                $RetVal[$Aindex]=(int)$Rif[`size($Rif)`-1];
+                $Aindex++;
+        }else{//[:]が有
+        int $St=(int)$Rif[`size($Rif)`-2];
+        int $Ed=(int)$Rif[`size($Rif)`-1];
+        for($index=$St;$index<=$Ed;$index++){
+                $RetVal[$Aindex]=$index;
+                $Aindex++;
+        }
+        }
+ clear $Rif $Pit;
+ }//引数すべてをループ終了
+ int $inc=0;
+ int $i;
+ for($i=0;$i<`size($RetVal)`;$i++){
+        $ResName[$inc]=$OrgName + (string)$RetVal[$i]+"]";
+        $inc++; 
+ }
+ 
+ clear $RetVal;
+ return $ResName;
+}//プロシージャ終了
+
+
+global proc asdf(string $itemz[]){
+	$i=0;
+	$j=0;
+	string $result[];
+	
+	for ($i=0;$i<size($itemz);$i++){
+		
+		if($new[]=`filterExpand -sm 35 $itemz[$i]`){
+			$k=0;
+			for($k=0;$k<size($new);$k++){
+				$result[$j]=$new[$k];
+				$j++;
+				
+				
+			}
+		}
+		
+		
+		$j++;
+		
+	}
+	return $result;
+	
+	
+}
+
+global proc uvsquare(){
+
+string $item[]=`ls -sl`;
+
+
+
+
+//string $uvlistz[] = `ValueSplit2 $item`;
+$uvlistz=`asdf $item`;
+
+
+confirmDialog -m $uvlistz[0] ;
+polyEditUV -r 0 -u 0.0 -v 0.0 $uvlistz[0];
+polyEditUV -r 0 -u 1.0 -v 0.0 $uvlistz[1];
+polyEditUV -r 0 -u 1.0 -v 1.0 $uvlistz[2];
+polyEditUV -r 0 -u 0.0 -v 1.0 $uvlistz[3];
+}
+uvsquare;

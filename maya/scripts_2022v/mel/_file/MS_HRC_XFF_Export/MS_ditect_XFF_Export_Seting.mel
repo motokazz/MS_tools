@@ -1,0 +1,52 @@
+global proc MS_ditect_XFF_Export_Seting(int $mode){
+	
+	string $obj[]=`ls -sl`;
+	int $check=`attributeExists "ExportModel" $obj[0]`;
+	int $ExportModel;
+	int $ExportAnim;
+	int $ExportMatanim;
+	int $IgnoreBindpose;
+	string $ModelName;
+	string $AnimationName;
+	int $IgnoreReference;
+	int $LightExport;
+	int $PlacementInfoExport;
+	
+	if(`objExists "|XFF_EXPORT_SETTING"` && !$mode ){
+		$ExportModel			=`getAttr |XFF_EXPORT_SETTING.ExportModel`;
+		$ExportAnim				=`getAttr |XFF_EXPORT_SETTING.ExportAnim`;
+		$ExportMatanim			=`getAttr |XFF_EXPORT_SETTING.ExportMatanim`;
+		$IgnoreBindpose			=`getAttr |XFF_EXPORT_SETTING.IgnoreBindpose`;
+		$ModelName				=`getAttr |XFF_EXPORT_SETTING.ModelName`;
+		$AnimationName			=`getAttr |XFF_EXPORT_SETTING.AnimationName`;
+		$IgnoreReference		=`getAttr |XFF_EXPORT_SETTING.IgnoreReference`;
+		$LightExport			=`getAttr |XFF_EXPORT_SETTING.LightExport`;
+		$PlacementInfoExport	=`getAttr |XFF_EXPORT_SETTING.PlacementInfoExport`;
+		
+	}
+	if($mode && $check){
+		$ExportModel			=`getAttr ($obj[0]+".ExportModel")`;
+		$ExportAnim				=`getAttr ($obj[0]+".ExportAnim")`;
+		$ExportMatanim			=`getAttr ($obj[0]+".ExportMatanim")`;
+		$IgnoreBindpose			=`getAttr ($obj[0]+".IgnoreBindpose")`;
+		$ModelName				=`getAttr ($obj[0]+".ModelName")`;
+		$AnimationName			=`getAttr ($obj[0]+".AnimationName")`;
+		$IgnoreReference		=`getAttr ($obj[0]+".IgnoreReference")`;
+		$LightExport			=`getAttr ($obj[0]+".LightExport")`;
+		$PlacementInfoExport	=`getAttr ($obj[0]+".PlacementInfoExport")`;
+		
+	}
+
+	
+	
+	checkBox -e -v $ExportModel "ExportModel" ;//Data//
+	checkBox -e -v $ExportAnim "ExportAnim" ;//Data//
+	checkBox -e -v $ExportMatanim "ExportMatAnim" ;//Data//
+	checkBox -e -v $IgnoreBindpose "IgnoreBindpose" ;//Data//
+	textField -e -tx $ModelName "ModelName";//Data//
+	textField -e -tx $AnimationName "AnimationName" ;//Data//
+	checkBox -e -v $IgnoreReference "IgnoreReferencenode" ;//Data//
+	checkBox -e -v $LightExport "ExportLight" ;//Data//
+	checkBox -e -v $PlacementInfoExport "PlacementInfo" ;//Data//
+	
+}

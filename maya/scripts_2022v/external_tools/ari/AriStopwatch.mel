@@ -1,0 +1,155 @@
+//--------------------------------------------------------------------------
+//
+// ScriptName : AriStopwatch
+// Contents   : ストップウォッチ。記録したフレームにキーを打ったオブジェクト作成も可能。
+// Author     : Ari
+// URL        : http://cgjishu.net/
+// Since      : 2016/05/22
+// LastUpdate : 2016/05/25 スクリプトエディタに表示する情報を修正
+//
+//--------------------------------------------------------------------------
+
+
+
+
+proc float GetFrameRate(){
+	string $frameRateString=`currentUnit -q -time`;
+	float $frameRate=24;
+	if($frameRateString=="game") $frameRate = 15;
+	if($frameRateString=="film") $frameRate = 24;
+	if($frameRateString=="pal")  $frameRate = 25;
+	if($frameRateString=="ntsc") $frameRate = 30;
+	if($frameRateString=="show") $frameRate = 48;
+	if($frameRateString=="palf") $frameRate = 50;
+	if($frameRateString=="ntscf") $frameRate = 60;
+	if($frameRateString=="millisec") $frameRate = 1000;
+	if($frameRateString=="sec") $frameRate = 1;	
+	if($frameRateString=="min") $frameRate = 0.02;	
+	return $frameRate;
+}
+global proc AriStopwatch_TempoGO(int $mode){
+	global float $AriStopwatchStartTime;
+	global float $AriStopwatchStopTotalTime;
+	global string $AriStopwatchTextSL;
+	global string $AriStopwatch_button[5];
+	global string $AriStopwatchFpsTF;
+	string $frameRateString=`currentUnit -q -time`;
+	int $stopwatchMode = true;
+	float $frameRate = GetFrameRate();
+	textField -e -text (" "+$frameRate+" fps") $AriStopwatchFpsTF;
+	float $totalTime=0;
+	float $frame=0;
+	string $appendString=0;
+	if($mode==1 || $mode==4 || $mode==3){
+		$totalTime = `timerX -startTime  $AriStopwatchStartTime`;
+		if($AriStopwatchStartTime==0)$totalTime=0;
+		$frame = $totalTime * $frameRate;
+		$appendString = "Time : "+$totalTime+"	Frame : "+$frame;
+	}
+	if($mode==1){
+		print("Frame Rate : " + $frameRate + "\n0s Start\n");
+		$AriStopwatchStartTime = `timerX`;
+		textScrollList -e -removeAll $AriStopwatchTextSL;
+		if($stopwatchMode){
+			button -e -bgc 1 0.3 0.3  -label "Stop" -c "AriStopwatch_TempoGO(3)"  $AriStopwatch_button[0];
+			button -e -label "Lap" -c "AriStopwatch_TempoGO(4)"   $AriStopwatch_button[1];
+		}
+		else{
+			button -e -bgc 1 0.3 0.3  -label "Lap" -c "AriStopwatch_TempoGO(4)"  $AriStopwatch_button[0];
+			button -e -label "Stop" -c "AriStopwatch_TempoGO(3)"   $AriStopwatch_button[1];
+		}
+		textScrollList -e -append $appendString $AriStopwatchTextSL;
+	}
+	if($mode==2){
+		print($AriStopwatchStopTotalTime +"s ReStart \n");
+		$AriStopwatchStartTime = `timerX` - $AriStopwatchStopTotalTime ;
+		if($stopwatchMode){
+			button -e -bgc 1 0.3 0.3  -label "Stop" -c "AriStopwatch_TempoGO(3)"  $AriStopwatch_button[0];
+			button -e -label "Lap" -c "AriStopwatch_TempoGO(4)"   $AriStopwatch_button[1];
+		}
+		else{
+			button -e -bgc 1 0.3 0.3  -label "Lap" -c "AriStopwatch_TempoGO(4)"  $AriStopwatch_button[0];
+			button -e -label "Stop" -c "AriStopwatch_TempoGO(3)"   $AriStopwatch_button[1];
+		}
+	}
+	if($mode==4){
+		print($totalTime+"s Lap\n");
+		textScrollList -e -append $appendString $AriStopwatchTextSL;
+	}
+	if($mode==3){
+		print($totalTime+"s Stop\n");
+		$AriStopwatchStopTotalTime = $totalTime;
+		textScrollList -e -append $appendString $AriStopwatchTextSL;
+		button -e -bgc 0.3 0.3 1 -label "ReStart" -c "AriStopwatch_TempoGO(2)"  $AriStopwatch_button[0];
+		button -e -label "Reset" -c "AriStopwatch_TempoGO(0)" $AriStopwatch_button[1];
+	}
+	if($mode==0){
+		print("Reset\n");
+		$AriStopwatchStartTime=0;
+		button -e -bgc 0.3 0.3 1 -label "Start" -c "AriStopwatch_TempoGO(1)"  $AriStopwatch_button[0];
+		button -e -label "Reset"  $AriStopwatch_button[1];
+		textScrollList -e -removeAll $AriStopwatchTextSL;
+	}
+}
+global proc AriStopwatch_marking(){
+	global float $AriStopwatchStartTime;
+	global string $AriStopwatchTextSL;
+	string $getList[]=`textScrollList -q -allItems $AriStopwatchTextSL`;
+	print $getList;
+	string $cubeObjMake[]=`polyCube -w 1 -h 1 -d 1 -sx 1 -sy 1 -sz 1 -ax 0 1 0 -cuv 4 -ch 1 -n "AriStopwatchCube"`;
+	string $cubeObj=$cubeObjMake[0];
+	for($get in $getList){
+		string $sepa[];
+		tokenize $get " " $sepa;
+		$frameSt = $sepa[4];
+		int $frame = int(float($frameSt)+0.5);
+		setAttr ($cubeObj+".sx") 1;
+		setAttr ($cubeObj+".sy") 1;
+		setAttr ($cubeObj+".sz") 1;
+		setKeyframe -t ($frame-1) -at scale $cubeObj;	
+		setAttr ($cubeObj+".sx") 2;
+		setAttr ($cubeObj+".sy") 2;
+		setAttr ($cubeObj+".sz") 2;
+		setKeyframe -t ($frame) -at scale $cubeObj;	
+		setAttr ($cubeObj+".sx") 1;
+		setAttr ($cubeObj+".sy") 1;
+		setAttr ($cubeObj+".sz") 1;
+		setKeyframe -t ($frame+1) -at scale $cubeObj;	
+	}
+}
+global proc AriStopwatch(){
+	global string $AriStopwatchTextSL;
+	global string $AriStopwatchFpsTF;
+	global string $AriStopwatch_button[5];
+	global float $AriStopwatchStartTime;
+	$AriStopwatchStartTime=0;
+	if((`window -ex  AriStopwatch`)==true)deleteUI AriStopwatch;
+	window -title "AriStopwatch"  -w 300 -h 400  AriStopwatch;
+	$form=`formLayout`;
+	float $frameRate = GetFrameRate();
+	$AriStopwatchFpsTF = `textField -ed false -text (" "+$frameRate+" fps")`;
+	$AriStopwatchTextSL =`textScrollList`;
+	$AriStopwatch_button[0] = `button  -h 50-bgc 0.3 0.3 1 -label "Start" -c "AriStopwatch_TempoGO(1)"`;
+	$AriStopwatch_button[1] = `button  -h 50 -label "Reset" -c "AriStopwatch_TempoGO(0)"`;
+	string $makeButton = `button -w 100 -h 30 -label "Make" -c "AriStopwatch_marking"`;
+	setParent..;
+	formLayout -e
+	-af $makeButton "bottom" 0
+	-af $makeButton "left" 0
+	-af $makeButton "right" 0
+	-af $AriStopwatch_button[0] "left"  0
+	-ac $AriStopwatch_button[0] "bottom"  0 $makeButton
+	-ap $AriStopwatch_button[0] "right" 0 50
+	-ac $AriStopwatch_button[1] "left"  0 $AriStopwatch_button[0]
+	-ap $AriStopwatch_button[1] "right" 0 100
+	-ac $AriStopwatch_button[1] "bottom"  0 $makeButton
+	-af $AriStopwatchFpsTF "top" 0
+	-af $AriStopwatchFpsTF "left" 0
+	-af $AriStopwatchFpsTF "right" 0
+	-af $AriStopwatchTextSL "left"   0
+	-af $AriStopwatchTextSL "right"  0
+	-ac $AriStopwatchTextSL "top"    0 $AriStopwatchFpsTF
+	-ac $AriStopwatchTextSL "bottom" 0 $AriStopwatch_button[0]
+	$form;
+	showWindow;
+}

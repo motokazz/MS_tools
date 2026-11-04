@@ -1,0 +1,140 @@
+/*-----------------------------------------------------------------------------
+ アニメーションデータをバッチエクスポートする。 
+ ファイル名からモデル名とアニメーション名をエクスポートする。 
+ */
+global proc MS_BatchRefferenceScene( string $exportDir, string $basename )
+{
+
+	string $charsetName = `startString $basename 4`;
+	$stringLengthN = `size $basename`;
+	$stringLength = `size $basename` - 4;
+	string $animName = `endString $basename $stringLength`;
+	
+	string $filename = $exportDir + $charsetName + $animName + "_eff.mb";
+	
+	print("baseName = [" + $basename + "] " + $stringLengthN + ":\n");
+	print ("charName = [" + $charsetName + "] : animName [" + $animName + "]\n" );
+	print ("fileName = [" + $filename + "]\n" );
+	
+//ここからシーン読み込み後のコマンド
+
+//ここまで
+	
+	string $option = ("file -rename \""+ $filename + "\";file -f -options \"v=0\" -type \"mayaBinary\" -save;");
+	
+	evalEcho( $option );
+}
+
+global proc MS_BatchRefferenceAll()
+{
+	string $sourceDir=`textField -q -fileName "refferencePath"`;
+	string $exportDir=`textField -q -fileName "exportPath"`;
+	string $workspace = $sourceDir;
+	print ( "------------------------------\nexport directory : " + $workspace + "\n\n" );
+	
+	//***************** MB 
+	{
+		string $scenefiles[] = `getFileList -folder $workspace -filespec "*.mb"`;
+		for( $i=0; $i<`size $scenefiles`; $i++ )
+		{
+			string $realname = $workspace + $scenefiles[$i];
+			print ( $realname + "\n" );
+			
+			string $filebase = `basename $realname ".mb"`;
+			//FileNameMender $filebase;
+			string $filebasex = `basenameEx $filebase`;
+			
+			print ( "export : [" + $filebasex + "]\n" );
+			
+			//ファイル読み込み
+			file -f -new;
+			file -r -type "mayaBinary" -gl -namespace $filebasex -options "v=0" $realname;
+			
+			//scriptNodeの実行
+			string $scriptNodeName[]=`ls -typ script`;//読み込み時のスクリプトをリスト
+			for ($each in $scriptNodeName){
+				if (`gmatch $each "*sceneConfigurationScriptNode*"`){
+					string $setTimeCommand=`scriptNode -q -bs $each`;
+					eval $setTimeCommand;
+				}
+			}
+			
+			//string $setTimeCommand=`scriptNode -q -bs ($filebasex+":sceneConfigurationScriptNode")`;
+
+			
+			MS_BatchRefferenceScene( $exportDir, $filebasex );
+			
+		}
+		file -f -new;
+	}
+	//***************** MA 
+	{
+		string $scenefiles[] = `getFileList -folder $workspace -filespec "*.ma"`;
+		for( $i=0; $i<`size $scenefiles`; $i++ )
+		{
+			string $realname = $workspace + $scenefiles[$i];
+			print ( $realname + "\n" );
+			
+			//file -f -options "v=0"  -typ "mayaAscii" -o $realname;
+			
+			string $filebase = `basename $realname ".ma"`;
+			//FileNameMender $filebase;
+			string $filebasex = `basenameEx $filebase`;
+			int $stringLengthNX = `size $filebasex`;
+			
+			print ( "export : [" + $filebasex + "]\n" );
+			
+			//MS_BatchRefferenceScene( $exportDir, $filebasex );
+			
+			file -f -new;
+		}
+		file -f -new;
+	}
+	print ("file convert end...\n");
+}
+
+
+global proc MS_BatchRefference_getDir_refferencePath(string $exp_dir,string $dummy){
+
+	textField -e -fileName ($exp_dir+"/") "refferencePath";
+
+}
+
+global proc MS_BatchRefference_getDir_exportPath(string $exp_dir,string $dummy){
+
+	textField -e -fileName ($exp_dir+"/") "exportPath";
+
+}
+
+global proc MS_BatchRefference_fileBrowser(string $command,string $controlID){
+	global string $gDefaultFileBrowserDir;
+	string $orgpath=$gDefaultFileBrowserDir;
+	string $path=`textField -q -fileName $controlID`;
+	eval("global string $gDefaultFileBrowserDir=\""+$path+"\"");
+	fileBrowser $command "Select Directory" "" 4 ;
+	eval("global string $gDefaultFileBrowserDir=\""+$orgpath+"\"");
+}
+
+global proc MS_BatchRefference()
+{
+	if(`window -q -ex MS_BatchRefference`)deleteUI MS_BatchRefference;
+	window MS_BatchRefference;
+	columnLayout;
+	
+	//--DataPart--//
+	text -label "refferencePath" ;//Data//
+	textField -fileName `workspace -q -rd` -width 200 "refferencePath" ;//Data//
+	button -label "Brouse" -c "MS_BatchRefference_fileBrowser MS_BatchRefference_getDir_refferencePath refferencePath";
+	
+	text -label "exportPath" ;//Data//
+	textField -fileName `workspace -q -rd` -width 200 "exportPath" ;//Data//
+	button -label "Brouse" -c "MS_BatchRefference_fileBrowser MS_BatchRefference_getDir_exportPath exportPath";
+	
+	
+	button -label "batchRefference" -c "MS_BatchRefferenceAll";
+	//--DataPart--//
+	showWindow MS_BatchRefference;
+}
+
+
+

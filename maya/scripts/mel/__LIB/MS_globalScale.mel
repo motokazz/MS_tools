@@ -1,0 +1,22 @@
+global proc float[] MS_globalScale(string $source){
+	string $attr[]={"sx","sy","sz"};
+	string $obj[]=`ls -l -sl $source`;
+	string $list[];
+	
+	float $ret[];
+	
+	tokenize ($obj[0],"|",$list);
+	$i=0;
+	for($eachAttr in $attr){
+		float $val=1;
+		for($each in $list){
+			$val=$val*`getAttr ($each+"."+$eachAttr)`;
+		}
+		$ret[$i]=$val;
+		$i++;
+	}
+	return $ret;
+}
+
+
+

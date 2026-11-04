@@ -1,0 +1,60 @@
+/*
+MS_Reverse
+何でも反転ツール
+コンポーネント反転はポリゴンのみ対応。
+*/
+
+global proc MS_Reverse(){
+	
+	string $obj[]=`ls -l -typ transform -sl`;
+	
+	string $snode[];
+	string $comp[];
+	string $check;
+	
+	for ($each in $obj){
+		
+		$snode=`listRelatives -s -f $each`;
+		$check=`objectType $snode[0]`;
+		
+		
+		//NURBSサーフェイス反転
+		if ($check=="nurbsSurface"){
+		reverseSurface -d 1 -ch 0 -rpo 1 $each;
+
+		}
+
+		//NURBSカーブ反転
+		if ($check=="nurbsCurve"){
+		reverseCurve -ch 0 -rpo 1 $each;
+
+		}
+
+		//ポリゴン法線反転
+		if ($check=="mesh"){
+		polyNormal -normalMode 0 -ch 0  $each;
+		}
+		
+		
+		
+	}
+	if(!size($obj)){
+		$comp=`filterExpand -sm 34`;
+	
+		for($each in $comp){
+			$check=`objectType $each`;
+			
+			//ポリゴン法線反転
+			if ($check=="mesh"){
+				polyNormal -normalMode 0 -ch 0  $each;
+			}
+		
+		}
+	}
+	
+	select -r $obj;
+	select -r $comp;
+}
+
+//MS_Reverse;
+

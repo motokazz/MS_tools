@@ -1,0 +1,84 @@
+//s000192_EoJ_Ret_min_max_anim Ver1.0
+//animation,ƒAƒjƒ[ƒVƒ‡ƒ“,UV,translate,rotate,scale,ˆÚ“®,‰ñ“],ƒXƒP[ƒ‹,Å‘å’l,Å¬’l
+//ƒIƒvƒVƒ‡ƒ“‚Å“ü‚ê‚ç‚ê‚é‚Pƒm[ƒh‚ÌTRS,UVƒAƒjƒ‚ÌÅ¬AÅ‘åƒtƒŒ[ƒ€‚ğ•Ô‚·
+/*-------------------------------------
+Sony Computer Entertainment
+World Wide Studios
+JapanStudio
+Graphic Design Dept.
+X“c@‹`Í:Yoshifumi Morita
+-------------------------------------*/
+//|||||||||||||||||||||||||||||||||||||||||||||||||||//
+//y“à—ez	ˆø”‚ÉˆêŒÂ‚Ìƒm[ƒh–¼‚ğ‚½‚¹‚é‚Æ‚»‚Ìƒm[ƒh‚ÌTRS‹y‚ÑUVƒAƒjƒ[ƒVƒ‡ƒ“‚ÌÅ¬ƒtƒŒ[ƒ€AÅ‘åƒtƒŒ[ƒ€‚ğ•Ô‚·
+//
+//yˆø”z	ƒm[ƒh–¼i1ŒÂ‚Ì‚İj
+//y•Ô‚è’lz	int@array@oÅ¬ƒAƒjƒ[ƒVƒ‡ƒ“ƒtƒŒ[ƒ€C@Å‘åƒAƒjƒ[ƒVƒ‡ƒ“ƒtƒŒ[ƒ€p
+//y‘®z	s000192_EoJ_Ret_min_max_anim
+//|||||||||||||||||||||||||||||||||||||||||||||||||||//
+global proc int[] s000192_EoJ_Ret_min_max_anim(string $node_name) 
+{
+	int $ret_val[] = {};
+	int $frame_array[] = {};
+	int $index_no = 0;
+/*TRS node animation frame check*/
+	string $attr_type[] = {".tx", ".ty", ".tz", ".rx", ".ry", ".rz", ".sx", ".sy", ".sz"};
+	for($i in $attr_type)
+	{
+		$anim_index = `keyframe -q -kc ($node_name + $i)`;
+		for($j = 0; $j < $anim_index; $j++)
+		{
+			$time_v = `keyframe -in $j -q ($node_name + $i)`;
+			$frame_array[$index_no] = $time_v[0];
+			$index_no++;
+		}
+	}
+/*texture UV animation frame check*/
+	/*
+	$shape_node = `listRelatives -s $node_name`;
+	if(`objectType $shape_node[0]` == "mesh"){
+		$sg_name = `listConnections -s 1 ($shape_node[0] + ".instObjGroups[0]")`;
+		if(`connectionInfo -id ($sg_name[0] + ".surfaceShader")`){
+			$mat_name = `listConnections -d 1 ($sg_name[0] + ".surfaceShader")`;
+			if(`connectionInfo -id ($mat_name[0]+".color")`){
+				$file_name = `listConnections -d 1 ($mat_name[0] + ".color")`;
+				$place_name = `listConnections -d 1 ($file_name[0] + ".uvCoord")`;
+			
+				$anim_index = `keyframe -q -kc ($place_name[0] + ".ofu")`;
+				if($anim_index > 0){
+					$time_v = `keyframe -in 0 -q ($place_name[0] + ".ofu")`;
+					$frame_array[$index_no] = $time_v[0];
+					$index_no++;
+					$time_v = `keyframe -in ($anim_index - 1) -q ($place_name[0] + ".ofu")`;
+					$frame_array[$index_no] = $time_v[0];
+					$index_no++;
+				}
+				
+				$anim_index = `keyframe -q -kc ($place_name[0] + ".ofv")`;
+				
+				if($anim_index > 0){
+					$time_v = `keyframe -in 0 -q ($place_name[0] + ".ofv")`;
+					$frame_array[$index_no] = $time_v[0];
+					$index_no++;
+					$time_v = `keyframe -in ($anim_index - 1) -q ($place_name[0] + ".ofv")`;
+					$frame_array[$index_no] = $time_v[0];
+					$index_no++;
+				}
+			}
+		}
+	}
+	*/
+/*return value*/
+	if(`size $frame_array` > 1)
+	{
+		$frame_array = `sort $frame_array`;
+		$ret_val[0] = $frame_array[0];
+		$ret_val[1] = $frame_array[(`size $frame_array` - 1)];	
+	}
+	else
+	{
+		$ret_val[0] = 0;
+		$ret_val[1] = 0;
+	}
+	return $ret_val;
+}
+

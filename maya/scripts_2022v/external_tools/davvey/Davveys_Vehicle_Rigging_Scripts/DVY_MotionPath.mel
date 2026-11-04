@@ -1,0 +1,88 @@
+/* This file downloaded from Highend3d.com
+''  
+''  Highend3d.com File Information:
+''  
+''    Script Name: Davveys Vehicle Rigging Scripts
+''    Author:  
+''    Last Updated: Jul 21, 2007
+''    Update/Change this file at:
+''    http://Highend3d.com/maya/downloads/mel_scripts/animation/4109.html
+''  
+''  Please do not alter any information above this line
+''  it is generated dynamically by Highend3d.com and will
+''  be changed automatically on any updates.
+*/
+
+
+///////////////////////////////////////////////////////////////////////////////
+/*			
+	Copyright © 2006 DVY_MotionPath. All rights reserved davvey@ntlworld.com
+
+					- DVY_MotionPath -
+
+///////////////////////////////////////////////////////////////////////////////
+
+	This script is clled from the Vehicle Rigging UI.
+		
+	To setup Vehicle to Motion Path. Select Rig_Controller and Motion Path.
+	This will set up and parent a locator under Vehicle Top Node and constrain
+	the Rig Controls to the motion path via the locator. The remaining controls
+	will operate as usual and wheels will either auto rotate based on movement 
+	or based on wheel spin settings
+			
+*/
+/////////////////////////////////////////////////////////////////////////////////
+//					DVY_MotionPath Procedure
+/////////////////////////////////////////////////////////////////////////////////
+
+//===============================================================================
+//	GLOBAL VARIABLES
+//================================================================================
+	global int $DVYDebug;
+
+// Integer Flag that allows print statements to be output to
+// message field for tracking purposes.
+	
+//================================================================================
+
+global proc DVY_MotionPath()
+{
+	 
+// *******************************************************************************//	
+//	Global Variables
+
+	global string $GroupV_A[];
+	global string $DVY_VehName;
+	
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+//	Local Variables
+
+	string $Temp[],$DVYSel[];
+
+		$DVYSel = `ls -sl`;
+		select -cl  ;
+	
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+
+	$Temp = `spaceLocator -p 0 0 0 -name ($DVY_VehName + "Motion_Path_Loc_1")`;
+		parent $Temp[0] $GroupV_A[0]; 
+			makeIdentity -apply true -t 1 -r 1 -s 1 -n 0;
+			reorder -relative -12 $Temp[0];
+	
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+
+		select -r $Temp[0];	select -add $DVYSel[1] ;
+			pathAnimation -fractionMode true -follow true -followAxis z -upAxis y
+				-worldUpType "scene" -inverseUp false -inverseFront false -bank false
+				-startTimeU `playbackOptions -query -minTime`
+				-endTimeU  `playbackOptions -query -maxTime`;
+			
+		parentConstraint -mo -weight 1 $Temp[0] $DVYSel[0];
+
+}

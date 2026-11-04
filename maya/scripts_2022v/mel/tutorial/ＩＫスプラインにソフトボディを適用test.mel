@@ -1,0 +1,10 @@
+global proc test() 
+{ 
+string $selejoint[2] = `ls -sl -type "joint"`; 
+string $ikname[3]; 
+string $softparticle[]; 
+$ikname = `ikHandle -sol ikSplineSolver -sj $selejoint[0] -ee $selejoint[1]`; 
+$softparticle = `soft -c -dh -g 1 -h 0 $ikname[2]`; 
+select -r $softparticle[0]; 
+} 
+test; 

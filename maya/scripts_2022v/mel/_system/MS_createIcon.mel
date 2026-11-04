@@ -1,0 +1,21 @@
+global proc MS_createIcon(){
+	//今の画面をアイコンにして使いたい
+	playblast  
+		-st 1 -et 1
+		-format "bmp" 
+		-clearCache 1 
+		-viewer 0
+		
+		-showOrnaments 0
+		-percent 100 
+		-widthHeight 32 32
+		
+		-filename "MS_icon"
+		//-compression none
+		
+	;
+	
+	
+	
+	
+}

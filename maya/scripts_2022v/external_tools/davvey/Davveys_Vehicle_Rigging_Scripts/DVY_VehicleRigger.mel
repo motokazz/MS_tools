@@ -1,0 +1,1905 @@
+/* This file downloaded from Highend3d.com
+''  
+''  Highend3d.com File Information:
+''  
+''    Script Name: Davveys Vehicle Rigging Scripts
+''    Author:  
+''    Last Updated: Jul 21, 2007
+''    Update/Change this file at:
+''    http://Highend3d.com/maya/downloads/mel_scripts/animation/4109.html
+''  
+''  Please do not alter any information above this line
+''  it is generated dynamically by Highend3d.com and will
+''  be changed automatically on any updates.
+*/
+
+///////////////////////////////////////////////////////////////////////////////
+/*			
+	Copyright © 2006 DVY_Vehicle Rigger. All rights reserved davvey@ntlworld.com
+
+						 - DVY_VehicleRigger -
+						 
+///////////////////////////////////////////////////////////////////////////////
+				
+	This set of scripts will build a Vehicle Rig for wheel rotation, suspension
+	and steering. Also it will rig Doors, Front Hood (Bonnet), Rear Trunk (Boot) or
+	or Rear Tailgate or Split Tailgate or Rear Left and Right Doors.
+	This script is called by the GUI DVY_Vehicle Rigger.mel
+
+	This script currently has minimsl error checking if you find it useful please
+	let me know and I will rewrite it with full error checking.
+	
+	This script was written to demonstrate the use of Utility nodes to replace
+	expressions for vehicle control etc.
+	
+	I am currently working on building a full suite of scripts to allow rigging
+	of all the various parts of any wheeled vehicle. The intention is to build a
+	set of "modular" scripts to allow rigging oif individual parts and or a fullly
+	rigged vehicle.
+	
+	Directions:
+	
+	Source and run DVY_Vehicle Rigger.mel, use default values is you have named them 
+	as shown or selct each item in turn and load required field. Also you can type names
+	in the field as required. Script will error out if not all items are found.
+	Once all fields correct press "Rig Vehicle" button. 
+	
+	Each Tab must be initialized by selecting the relevant CheckBox on the first Tab.
+	To set up the Doors and Hood Section, select the required items using the check
+	boxes, then select the items or use default values (same as wheel section method).
+	Once all field completed press the "Set Hinge Position" Button on that Tab.
+	Repeat for Hood etc Tab if required , then adjust position of the Blue Spheres to
+	the exact position you want the Hinge point to be. Then adjust the Red Spheres to
+	the `Handle` position for item item. The Blue Spheres can be Translated and Rotated,
+	the Red just Translated. The Red handle sphere is used to set the angle of rotation
+	of the Hinge. The limit of opening angle is 110 degrees but this can be changed 
+	using the Controllers `Y` Translate Axis limits in the Attribute Editor
+	
+	The Window Spheres (green and Yellow) carry out a similar function but are used
+	to set up a sliding action to simulate Window opening.
+	
+	Structure of intial Vehicle is as follows :-
+	
+	Vehicle Top Node
+	 |___
+		|
+		|___BodyShell Group
+			|
+		  	|_____BodyWork_Group 
+		  	|	  |
+		  	|	  |__Door_GrpN_1
+			|	  |	 |
+		  	|	  |	 |__LfFr_Door_GrpN_1
+			|	  |	 |__RtFr_Door_GrpN_1
+			|	  |	 |__LfRr_Door_GrpN_1
+			|	  |	 |__RtRr_Door_GrpN_1 
+			|	  |
+			|	  |__Fr_Hood_GrpN_1
+			|	  |__Rr_Trunk_GrpN_1 or Rr_Tailgate_GrpN_1 
+			|	  |
+			|	  |					 or	(Rr_TopTailgate_GrpN_1
+			|	  |						 Rr_BotTailgate_GrpN_1)
+			|	  |
+			|	  |					 or (LfRr_Tailgate_GrpN_1
+			|	  |						 RtRr_TailDoor_GrpN_1)
+			|	  |
+			|	  |
+			|	  |__Remaining Chassis parts(contains all geometry except Wheels.
+			|
+		  	|___Wheels Grp_1 
+			  	|___
+					|Fr_Wheels_Grp_1
+					|	|
+					|	|__ LfFr_Wheel_Grp_1	(Wheel Group Naming must follow
+					|	|__ RtFr_Wheel_Grp_1	  this structure i.e 
+					|	|__ LfFr_Wheel_Grp_2	  LfFr_Wheel_Grp_1,  LfFr_Wheel _Grp_2
+					|	|__ RtFr_Wheel_Grp_2	  order is not important within each of
+					|							  the Group Nodes.)
+					|Rr_Wheels_Grp_1
+						|
+						|__ LfRr_Wheel_Grp_1
+						|__ RtRr_Wheel_Grp_1
+						|__ LfRr_Wheel_Grp_2
+						|__ RtRr_Wheel_Grp_2	
+			
+			
+	Basic Procedure:
+		Main procedure uses a $GroupV_A to store main groups from GUI and 
+		build a rig of joints with locators as reuired.
+		Joints are constrained to individual locators.
+		Also some locators are constrained to individual joints.
+		
+		Wheels can be individually controlled based on distnace moved or set
+		to spin based on time (see help file for more info).
+		
+		There are 4 Main "Rig Contollers" plus auxillary Controllers.
+		
+		Rig_ControllerN_1 :-
+		
+			Controls movement and rotation of main vehicle.
+			Also houses attributes for setting range of suspension travel
+			using attribute Piston Range. Also there are also individual
+			range settings for each wheel(not active yet).
+		
+		Steering_ControllerN_1 
+		
+			Controls steering for Front and Rear Wheels. The front steering
+			is active by default, to activate Rear steering set "Rr Steer"
+			to On. Setting the "Fr Steer Ratio" and "Rr Steer Ratios" to a 
+			negative value will reverse direction of rotation.
+			Set "Fr Steer to Off will set vehicle to have rerar steering.
+			The ratio can be set anywhere between -1 and 1, this will
+			reduce effect of rotation to simulat the Rear wheel steer you
+			now see on some high performance cars.
+		
+		Bank_ControllerN_1
+		
+			This will Bank the Vehicle by a mavximum of 5 degrees in both 
+			X and Z +/- axis and still allow full susupension control.
+			The maximum range can be altered in the attribute editor by adjusting
+			the X and Z axis rotate limits.
+			
+		VehicleTilt_ControllerN_1
+		
+			This will tilt the Chassis group as reguired. Also each indiviual
+			Wheel can be moved up and down by moving each wheel Group Ground 
+			Locator to simulate ground variations.
+			
+			Also if Doors and Hand and TRunk Options are selected then there will
+			be individual controllers for each Door or BodyShell Section. Plus
+			individual controllers for each opening window (sliding open).
+			
+		Auxillary Controllers 
+			(For Door, Window, Front Hood and Rear Runk or Tailgate)
+			
+			The Auxillary Controllers are set up for each individual section i.e.
+			Left Front passenger Door, Right Front Passenger Door. If required
+			a Window Controller will be added as required. The controls are set
+			up so that transaltion in the Horizontal direction will drive the
+			opening or closing by rotation of the relevant section or item.
+			The Window Contollers work in the Vertical direction and open the
+			window by a sliding action.
+	
+		Floor Control
+
+			There is an option to set up an automatic wheel control for each
+			wheel by setting up a Geometry Constaint to a "Ground Plane".
+			This has an auto ON/OFF setup which releases the wheels once car
+			leaves the ground a distance greater than suspension travel.
+			
+		Motion Path
+		
+			To setup Vehicle to Motion Path. Select Rig_Controller and Motion
+			Path. This will set up and parent a locator under Vehicle Top Node
+			and constrain the Rig Controls to the motion path via the locator.
+			The remain controls will operate as usual and wheels will either 
+			auto rotate based on movement or based on wheel spin settings
+			
+*/	
+	
+//////////////////////////////////////////////////////////////////////////
+//					DVY_VehicleRigger Procedure
+//////////////////////////////////////////////////////////////////////////
+
+// DVY_VehicleRigger;
+	
+//============================================================================
+//	GLOBAL VARIABLES
+//============================================================================
+	global int $DVYDebug;
+
+// Integer Flag that allows print statements to be output to
+// message field for tracking purposes.
+		
+//============================================================================
+
+	
+global proc DVY_VehicleRigger()
+{
+	global int $DVYDebug;
+	global string $GroupV_A[]; clear $GroupV_A; 
+	global string $DVY_VehName;
+	global string $DVYSide ="NA";	global string $DVYPos ="NA"; 	global string $DVYLocn ="NA";
+
+	global string $DVYList = "VehicleGroupTextScrollList";
+	global string $DVYVehicleList[]; clear $DVYVehicleList;
+	global float $DVYdata[], $DVYGUIData[]; clear $DVYGUIData;
+	
+//============================================================================
+	string $DVYSel[];
+
+	string $SpringSetup;		// Spring Tab Name
+	string $VehicleOptions;		// Vehicle location Tab Nmae.
+	string $TempSel;	int $DVYName = 0; 	string $Named[];	string $Name;
+//============================================================================
+	
+	//	Check for any "Window History" and delete if it exists.
+//	 	if (`windowPref -exists DVY_VehiclRigWindow`) windowPref -r DVY_VehiclRigWindow;
+//			windowPref -edit -topLeftCorner 250 700 -widthHeight 315 600 DVY_VehicleRigWindow;
+	
+	//Check for multiple similar windows.
+		if (`window -q -ex DVY_VehicleRigWindow`) deleteUI DVY_VehicleRigWindow; 
+		if (`windowPref -q -ex DVY_VehicleRigWindow`) {windowPref -remove DVY_VehicleRigWindow;}
+	//Build window.
+		window -w 875 -h 780 -tlc 80 350 -rtf 1 -s 1 -title "Davvey's Vehicle Rigger v1.52" DVY_VehicleRigWindow;
+	
+	//Build 'Edit' menu.
+		global string $Path;
+		$Path = `internalVar -uad`;
+		$Path = ($Path + "Documentation" + "\/Davveys_Rig_Help_File.pdf");
+//		print ("Path is " + $Path + "\n");
+		
+	string $menuBarLayout = `menuBarLayout`;
+		menu -label "File"; 
+ 			menuItem -label "Close" -command "deleteUI DVY_VehicleRigWindow";		
+		menu -label "Help"; 
+	// 		menuItem -label "SetUp Help" -command "DVY_HelpWin";
+			menuItem -label "SetUp Help" -command "system(\"load \" + $Path)";
+			
+		menu -label "About"; 
+	 		menuItem -label "About Davvey's Rig" -command " DVY_AboutWin;";	
+			
+//--------------------------------------------------------------------------------------
+//	
+//							End of MenuBar Panel Layout
+//
+//--------------------------------------------------------------------------------------
+				
+	string $PaneLayout = `paneLayout -height 780 -paneSize 1 25 100 -configuration "vertical2" "DVY_Rig_PaneLayout"`;
+			
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//	
+//				Start Of Outliner Panel Layout to allow selection of Vehicle Parts
+//
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++	
+// THIS IS THE OUTLINER PANEL
+	
+	string $OutlinerFrame = `frameLayout -borderStyle "etchedOut" -collapsable false 
+										 -label "DVY_Outliner PanelInfo" -labelVisible false` ;
+	
+	string $panel = `outlinerPanel -menuBarVisible false`;
+		string $outliner = `outlinerPanel -query -outlinerEditor $panel`;
+			outlinerEditor -edit
+				-mainListConnection "worldList" 
+				-selectionConnection "modelList" 
+				-showShapes false
+				-showAttributes false
+				-showConnected false
+				-showAnimCurvesOnly false
+				-autoExpand false
+				-showDagOnly true
+				-ignoreDagHierarchy false
+				-expandConnections false
+				-showCompounds false
+				-showNumericAttrsOnly false
+				-highlightActive true
+				-autoSelectNewObjects false
+				-doNotSelectNewObjects false
+				-transmitFilters false
+				-showSetMembers false
+				-setFilter DefaultGeometryFilter
+			$outliner;
+			
+		setParent..;
+	setParent..;
+	
+//--------------------------------------------------------------------------------------
+//	
+//							End of Outliner Panel Layout
+//
+//--------------------------------------------------------------------------------------
+
+			
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//	
+//						Start Of RigPane Layout to hold Vehicle Name and Info
+//
+//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++	
+//	Define a Pane Layout for all the Rigging Tabs and Buttons.
+	
+	string $RigPaneLayout = `paneLayout -paneSize 1 100 17 -paneSize 3 100 27 -configuration "horizontal3" "RigPane"`;	
+		
+// Create Vehicle Name Pane
+		
+	string $VehicleN = `columnLayout -cat "both" 2 -cal "center" -adjustableColumn true "VehicleNamePanel:"`;
+
+	
+	iconTextStaticLabel -w 360 -h 50 -st "iconOnly" -i1 "DavveyLogo.xpm" VIMage ;		
+
+// Title and Info Section for the "Initial Setup" tab. 
+		
+		text -height 2 -label " " ;	//Spacer
+		separator -height 5 -style "double" ;
+		text -bgc .5 .5 1 -height 20 -align "center" -font "boldLabelFont" -label "Davvey's Vehicle Rigger.";
+		
+//		text -bgc .5 .5 1 -height 20 -align "center" -font "boldLabelFont" -label "Setup Vehicle Group Options Setup.";
+		separator -height 5 -style "double";
+		text -height 2 -label " " ;	//Spacer
+		
+	rowColumnLayout -nc 3 -cw 1 300 -cat 1 "both" 5 -cal 1 "center"
+						  -cw 2 300 -cat 2 "both" 5 -cal 2 "center" ;
+	
+		textField -text "Davveys_Car_" -ann "Enter Vehicle Name and Press button" VehicleGrpNTextField;
+		textField -text " " -editable false VehicleGrpNameTextField;
+			
+	setParent..;	
+	
+	rowColumnLayout -nc 1 -cw 1 610 -cat 1 "both" 50 -cal 1 "center" "VehicleNameC";	
+	
+		text -height 2 -label " ";	
+		button -bgc 0.7 1 0.7 -label "Enter Vehicle Name  >>"
+				-command "$TempSel[0] = `textField -q -tx VehicleGrpNTextField`;\ $DVY_VehName = $TempSel[0];\ textField -edit -text $TempSel[0] VehicleGrpNameTextField;";
+		text -height 2 -label " ";	
+		
+	setParent $RigPaneLayout;	
+	
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//	
+//						Start Of Tab Layout to hold Vehicle Tab Layouts
+//
+//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++	
+	global string $Tabs, $Tab01, $Tab02, $Tab03, $Tab04, $Tab05, $Tab06;
+		
+	$Tabs = `tabLayout -innerMarginWidth 1 -innerMarginHeight 1	 "TabLayout"`;
+		
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//	
+//							Start of Setup and Info Tab
+//
+//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++			
+	global string $BodyShellFrame, $BodyShellFrameC, $SetupInfoFrameC, $SetupHelpFrameC;
+	
+	$Tab01 = `columnLayout -adjustableColumn true -cat "both" 1 "Setup"`;	
+
+	rowColumnLayout -nc 1 -cw 1 610 -cat 1 "both" 2 -cal 1 "center" "VehicleList2";	
+		
+		separator -h 10 -style "double";
+			
+// Startof BodyShell "Checkbox" Section. If not selected then no Options will be setup.
+
+	checkBoxGrp -numberOfCheckBoxes 4 -labelArray4 "Wheels" "Front and Rear Doors" "Hood and Trunk" "Ancillaries"
+		-enable1 true -enable2 false -enable3 false -enable4 false 
+		-label "Sections to Setup:- " 
+		-cw 1 110 -cal 1 "right" 
+		-cw 2 65 -cal 2 "left"
+		-cw 3 130 -cal 3 "left"
+		-cw 4 170 -cal 4 "left"
+		-cw 5 170 -cal 4 "left"
+			
+			-onCommand1 "frameLayout -edit -enable true -vis true -collapse false $BodyShellFrame; frameLayout -edit -collapse true $SetupInfoFrameC; frameLayout -edit -collapse true $SetupHelpFrameC; checkBoxGrp -edit -enable2 true SetUpOptionsCheck; checkBoxGrp -edit -enable3 true SetUpOptionsCheck;"
+						 
+			-onCommand2 "columnLayout -edit -enable true $Tab03;"
+						  
+			-onCommand3 "columnLayout -edit -enable true $Tab04; checkBoxGrp -edit -enable false HoodsOptionsCheck;"		
+						 
+			-onCommand4 "columnLayout -edit -enable false $Tab05;"
+					
+			-offCommand1 "frameLayout -edit -enable false -vis false -collapse false $BodyShellFrame; frameLayout -edit -collapse false $SetupInfoFrameC; frameLayout -edit -collapse false $SetupHelpFrameC; checkBoxGrp -edit -enable2 false SetUpOptionsCheck; checkBoxGrp -edit -enable3 false SetUpOptionsCheck;"
+						  
+			-offCommand2 "columnLayout -edit -enable false $Tab03;"
+			
+			-offCommand3 "columnLayout -edit -enable false $Tab04;"
+			
+			-offCommand4 "columnLayout -edit -enable false $Tab05;"
+			
+		SetUpOptionsCheck;
+
+// End of BodyShell "Checkbox" Section. If not selected then no Options will be setup.
+//***********************************************************************************	
+// Create a Frame Layout to hold Setup Info etc.
+	string $SetupInfoFrame = `frameLayout -borderStyle "etchedOut" -collapsable false
+										  -label "Setup Info" -labelVisible false` ;
+				
+// Create a Layout for Title Section of the Setup Frame.
+	string $SetupInfoColumn = `columnLayout -adjustableColumn true -cat "both" 2 "SetupInfoColumn"`;	
+
+// Create a collapsible frame layout
+	string $SetupInfoFrameC = `	frameLayout -collapsable true -collapse false -label "  Info"` ;	
+		
+// Create a collapsable Frame for Setup Info.
+	string $SetupInfoColumnC = `columnLayout -adjustableColumn true -cat "both" 2 "SetupInfoColumnC"`;	
+
+		separator -h 10 -style "double";
+			text -bgc 1 1 .85 -height 5 -label "" ;	//Space
+			text -bgc 1 1 .85 -align "left" -label
+				" This a copy of the GUI I am building for Vehicle Rigging. Not all sections are currently available. Sections will be greyed out";
+			text -bgc 1 1 .85 -align "left" 
+				-label " but visible for comments and to give an idea of what I am hoping to eventually end up with as a Vehicle Rigging script pack.";
+			text -bgc 1 1 .85 -align "left" 
+				-label " The UI will only run the sections that are currently scripted with the accompanying scripts included. These are based on the ";
+			text -bgc 1 1 .85 -align "left" 
+				-label " original scripts contained in `Davvey's Vehicle Rigging`. Each Field is disabled until the prevous field has been 'Intialized'.";
+			text -bgc 1 1 .85 -align "left" -label " I have tried to make the 'Rigging Setup' flow in a logical form.\n";
+			separator -bgc 1 1 .85 -height 5 -style "double";
+			text -bgc 1 1 .85 -height 5 -label "" ;	//Spacer
+			text -bgc 1 1 .85 -align "left" -font "boldLabelFont" -label " So any comments good or bad please let me know. Also if you like it please rate the Script Pack at";
+			text -bgc 1 1 .85 -align "left" -font "boldLabelFont" -label " http://highend3d.com/maya/downloads/mel_scripts/animation/4109.html";
+			text -bgc 1 1 .85 -align "left" -font "boldLabelFont" -label " Please contact me at Davvey@ntlworld.com with feedback or suggestions. thanks and enjoy.";
+			text -bgc 1 1 .85 -height 5 -label "" ;	//Spacer
+		separator -height 5 -style "double";
+		text -height 5 -label "" ;	//Spacer
+		
+	setParent $SetupInfoColumn ;
+	
+// End of Title Set up Info Inroduction.
+			
+//***********************************************************************************	
+// Create a collapsible frame layout
+	
+	string $SetupHelpFrameC = `	frameLayout -collapsable true -collapse false 
+											-label "  BodyShell Help Section"` ;	
+		
+// Create a collapsable Frame for Setup Info.
+	
+	string $SetupHelpColumnC = `columnLayout -adjustableColumn true -cat "both" 2 "SetupHelpColumnC"`;	
+
+		separator -h 5 -style "double";
+		text -height 5 -label " ";
+		text -height 5 -bgc 1 1 0.85 -label " ";
+		text -bgc 1 1 0.85 -align "left" 
+			-label " Select the Top node and press button, then the Group node for the BodyShell Group and also the Body Geometry Group.";
+		text -bgc 1 1 0.85 -align "left" 
+			-label " You can use the default names if your model has been named using the recommeneded names or select what is your";
+		text -bgc 1 1 0.85 -align "left" 
+			-label " Top node etc and press button, to load your named items as required.";
+		separator -bgc 1 1 .85 -height 5 -style "double";
+		text -height 5 -bgc 1 0.5 0.5 -label " ";
+		text -height 20 -bgc 1 0.5 0.5 -align "left" -font "boldLabelFont" -label " (Select Check Box for each section and load required fields and postion Hinge Spheres first):";
+		text -height 15 -bgc 1 0.5 0.5 -align "left" -font "boldLabelFont" -label " Set Doors and Hood/Trunk options before pressing the Rig Vehicle Button";
+		text -height 5 -bgc 1 0.5 0.5 -label " ";
+		separator -h 5 -style "double";
+		
+	setParent $Tab01 ;
+				
+// Create a Non Collapsible frame for the BodyShell Section.
+	
+	string $BodyShellFrame = `frameLayout -labelVisible false -vis false -enable false -collapsable false
+										  -label "  Body Section Wheels Section" ` ;
+		
+	string $BodyShellFrameC= `rowColumnLayout -nc 1 -cw 1 610 -cat 1 "both" 50 -cal 1 "center" "VehicleList1"`;
+
+		text -height 5 " ";	
+		textField -height 25 -text "Top_Node" "VehicleTopNodeTxField";
+		button -bgc 0.7 1 0.7 -label  "Vehicle Top Node  >>" -height 20
+			-command "$TempSel = `ls - sl`; $DVYVehicleList[1] = $TempSel[0]; textField -edit -text $TempSel VehicleTopNodeTxField;";	
+		
+		textField -height 25 -text "BodyShell_GrpN_1" "VehicleBodyShellGrpTxField";
+		button -bgc 0.7 1 0.7 -label  "BodyShell Group  >>" -height 20 
+			-command "$TempSel = `ls - sl`; $DVYVehicleList[2] = $TempSel[0]; textField -edit -text $TempSel VehicleBodyShellGrpTxField;";	
+		
+		textField -height 25 -text "BodyWork_GrpN_1" "VehicleBodyShellTxField";
+		button -bgc 0.7 1 0.7 -label  "BodyShell   >>" -height 20
+			-command "$TempSel = `ls - sl`; $DVYVehicleList[3] = $TempSel[0]; textField -edit -text $TempSel VehicleBodyShellTxField;";	
+	
+	setParent $Tab01;
+		
+//***********************************************************************************	
+// Create a collapsible frame layout for Vehicle type Radio Button Collection.
+	
+		string $SetupVehTypeFrame = `frameLayout -borderStyle "etchedOut" -collapsable true -collapse true
+												 -label "  Vehicle Type Section (Not available yet)"` ;
+		
+// Define the layout for the controls for the Vehicle type Radio Button Collection.
+		string $SetupVehTypeColumn = `columnLayout -adjustableColumn true -cat "both" 1 "SetupVehTypeColumn"`;		
+
+		
+// Title Section for Vehicle Type Selection.
+		separator -height 5 ;
+		text -bgc 1 1 .85 -height 5 -label "" ;	//Space
+		text -bgc 1 1 .85 -align "left" -label "    Please Select the Vehicle Type. If you are Unsure of the type or style of the Vehicle please to see Help Section for more Info.";
+		text -bgc 1 1 .85 -height 5 -label "" ;	//Spacer
+		separator -height 5 -style "double";
+		text -height 5 -label "" ;	//Spacer
+		
+		setParent.. ;
+	setParent.. ;	
+			
+//***********************************************************************************	
+		
+	setParent $Tab01 ;
+//***********************************************************************************	
+//	Vehicle Type Radio button selection Group
+//	This will set various selection options on each tab.
+		
+// Create a Non collapsible frame layout for Vehicle type Radio Button Collection.
+	
+	string $SetupVehTypeFrameC = `frameLayout -collapsable false -label "  Vehicle Type Section" -labelVisible false` ;
+
+// Define the layout for the controls for the Vehicle type Radio Button Collection.
+
+	string $SetupVehTypeColumnC = `columnLayout -adjustableColumn true -cat "both" 1 "SetupVehTypeColumnC"`;		
+	
+	text -height 5 -label "" ;	//Spacer			
+		
+// Radio Collection Group
+	
+	string $VehicleTypeRadioCol = `radioButtonGrp -enable false -numberOfRadioButtons 4
+		 		-label "Vehicle Type :-" -cal 1 "right" 
+				-columnWidth5 90 100 90 80 110
+				-labelArray4 "Car" "Truck only"  "Trailer" "Truck + Trailer"`;
+
+		text -height 2 -label "" ;	//Spacer
+
+		radioButtonGrp -numberOfRadioButtons 4 -enable false -shareCollection $VehicleTypeRadioCol
+			 		-label "" -cal 1 "left" 
+					-columnWidth5 90 100 90 80 110
+					-labelArray4  "Steerable Trailer" "Bike" "Trike" "Unicycle" ;
+		
+		text -height 2 -label "" ;	//Spacer	
+
+		radioButtonGrp -numberOfRadioButtons 4 -enable false -shareCollection $VehicleTypeRadioCol
+			 		-label "" -cal 1 "left" 
+					-columnWidth5 90 100 90 80 110
+					-labelArray4 "Half Tracked"  "Full Tracked" "Other"	"????"  
+			"VehicleTypeRadioButtons";
+			
+// End of Radio Collection Group
+		
+	text  -height 2 -label "";		// Spacer		
+			
+// End of Vehicle Type Selection Frame
+			
+	setParent $Tab01 ;
+			
+//***********************************************************************************	
+		
+	setParent $Tabs;
+	
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//	
+//							Start of Wheels Tab
+//
+//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++			
+	
+	global string $WheelsFrame, $WheelsFrontFrame, $WheelsRearFrame, $WheelsFrameC, $WheelsInfoFrameC, $WheelsFrontFrameC, $WheelsRearFrameC;
+
+	$Tab02 = `columnLayout -enable true -adjustableColumn true -cat "both" 5 "Wheels"`;	
+	
+//***********************************************************************************	
+		
+//***********************************************************************************	
+// Wheels CheckBox Section to enable the Wheels Tab.
+	
+	checkBox -label "Enable Wheels Section" -align "left" 
+		-onCommand 
+					"checkBoxGrp -edit -enable true WheelsOptionsCheck; frameLayout -edit -collapse true $WheelsInfoFrameC; frameLayout -edit -collapse true $WheelsFrontFrameC; frameLayout -edit -collapse true $WheelsRearFrameC;"
+			
+		-offCommand	
+					"frameLayout -edit -enable false -vis false -collapse false $WheelsFrontFrame; frameLayout -edit -enable false -vis false -collapse false $WheelsRearFrame; checkBoxGrp -edit -value1 false WheelsOptionsCheck; checkBoxGrp -edit -value2 false WheelsOptionsCheck; checkBoxGrp -edit -enable false WheelsOptionsCheck; frameLayout -edit -collapse false $WheelsInfoFrameC; frameLayout -edit -collapse false $WheelsFrontFrameC; frameLayout -edit -collapse false $WheelsRearFrameC;"
+			WheelsEnableCheck;						  
+
+	// End of Wheels "Checkbox" Section. If not selected then no Door Options will be setup.
+		
+//***********************************************************************************	
+			
+	// Wheels Options "CheckBox Section Section to enable front and rear Wheels and the type of opening required.	
+		checkBoxGrp -numberOfCheckBoxes 2 -labelArray2 "Front Wheels" "Rear Wheels" 
+					-label "Wheels Options Buttons" 
+					-enable1 false -enable2 false 
+					-cw 1 130 -cal 1 "right" -cw 2 110 -cw 3 110 
+					
+				-onCommand1 "frameLayout -edit -enable true -vis true -collapse false $WheelsFrontFrame;"
+				-onCommand2 "frameLayout -edit -enable true -vis true -collapse false $WheelsRearFrame;"
+				
+				-offCommand1 "frameLayout -edit -enable false -vis false -collapse false $WheelsFrontFrame;"
+				-offCommand2 "frameLayout -edit -enable false -vis false -collapse false $WheelsRearFrame;"
+			WheelsOptionsCheck;
+	
+	setParent..;	
+	setParent $Tab02;
+	
+// End of Wheels Options "Checkbox" Sectin. If not selected then no Wheels Options will be setup.
+
+
+//***********************************************************************************	
+// Create a collapsible frame layout for Wheels Info Section.
+	$WheelsInfoFrameC = `frameLayout -borderStyle "etchedOut" -enable true -vis true -collapsable true -collapse false -label "  Wheels Info"` ;
+				
+// Define the layout of controls added to the Wheels Info Frame.
+	string $WheelsInfoColumnC = `columnLayout -cat "both" 5 -cal "center" -adjustableColumn true "WheelInfo:"`;
+
+		separator -bgc 1 1 0.85 -h 10 -style "double";
+		text -height 5 -bgc 1 0.5 0.5 -label " ";
+		text -height 20 -bgc 1 0.5 0.5 -font "boldLabelFont" -align "left" 
+			-label " This Tab is not activated if the Wheels Checkbox has not been selected on the Setup Tab:";
+		separator -bgc 1 1 0.85 -h 10 -style "double";
+		text -height 40 -bgc 1 1 0.85 -align "left" 
+			-label " This section will set up both Suspension and rotation for the Front and Rear Wheels. Also the scripts will set up steering\n for both Axle sets. The steering will default to Front steering only but this can be swapped to Rear only or Rear can be\n activated also. (See Help files for more info):";
+		text -height 5 -bgc 1 1 0.85 -label " ";
+		separator -h 10 -style "double";
+		
+	setParent $Tab02;
+
+		
+//***********************************************************************************	
+	// Create a collapsible frame layout
+		string $WheelsFrontFrameC = `frameLayout -borderStyle "etchedIn" -label "  Front Wheels Help Section"
+									-vis true -labelVisible true -enable true
+									-collapsable true -collapse false`;
+	
+	// Define the layout of controls added to the window.
+		string $WheelsFrontColumnC = `columnLayout -cat "both" 5 -cal "center" -adjustableColumn true "FrontWheelInfo:"`;
+
+		separator -h 10 -style "double";
+		text -height 5 -bgc 1 1 0.85 -label " ";
+		text -height 40 -bgc 1 1 0.85 -align "left" 
+			-label " Select the Group node for each Wheel in turn.\n Then set the number of axles for the Front Wheels.\n Setting to Zero will force scripts to only set up other Wheel Groups:";
+		text -height 5 -bgc 1 1 0.85 -label " ";
+		separator -h 10 -style "double";
+		
+	setParent $Tab02;
+	
+	// Create a Non Collapsible frame for the Front Wheels Section.
+	string $WheelsFrontFrame = `frameLayout -labelVisible false -label "  Front Wheels Section"
+										 		-vis false -enable false -collapsable false` ;
+		
+		rowColumnLayout -nc 1 -cw 1 610 
+						-cat 1 "both" 10 -cal 1 "center" "FrontWheelRig";	
+		
+		text -height 2 " ";
+		separator -h 10 -style "double";
+
+// Int Slider Group for Front Axle count
+		
+		intSliderGrp -cal 1 "right" -cal 2 "center" -cal 3 "right"
+					-adjustableColumn 3
+					-columnWidth3 110 50 150
+					-label "No. of Front Axles :-" 
+					-field true
+					-minValue 0 
+					-maxValue 10
+					-step 1
+					-value 1
+				FrontAxleSlider;
+		
+		separator -h 10 -style "double";
+		text -height 2 " ";
+			
+		rowColumnLayout -nc 1 -cw 1 610 -cat 1 "both" 50 -cal 1 "center" "VehicleList1";	
+
+			textField -height 25 -text "LfFr_Wheel_Grp_1" "LfFr_WheelTxField";
+			text -height 2 " ";
+			button -bgc 0.7 1 0.7 -label "Left Front Wheel Group >>" -height 20
+				-command "$TempSel = `ls - sl`; $DVYVehicleList[4] = $TempSel[0]; textField -edit -text $TempSel LfFr_WheelTxField;";	
+			text -height 2 " ";
+			
+			textField -height 25 -text "RtFr_Wheel_Grp_1" "RtFr_WheelTxField";
+			text -height 2 " ";
+			button -bgc 0.7 1 0.7 -label "Right Front Wheel Group >>" -height 20
+				-command "$TempSel = `ls - sl`; $DVYVehicleList[5] = $TempSel[0]; textField -edit -text $TempSel RtFr_WheelTxField;";	
+			text -height 2 " ";
+		
+	setParent $Tab02;
+
+//***********************************************************************************	
+// Create a collapsible frame layout
+	
+	string $WheelsRearFrameC = `frameLayout -borderStyle "etchedOut" -label "  Rear Wheels Help Section"
+									-vis true -labelVisible true -enable true -collapsable true -collapse false`;
+	
+// Define the layout of controls added to the window.
+	
+	string $WheelsRearColumnC = `columnLayout -cat "both" 5 -cal "center" -adjustableColumn true "RearWheelInfo:"`;
+
+		separator -h 10 -style "double";
+		text -height 5 -bgc 1 1 0.85 -label " ";
+		text -height 40 -bgc 1 1 0.85 -align "left" 
+			-label " Select the Group node for each Wheel in turn.\n Then set the number of axles for the Rear Wheels.\n Setting to Zero will force scripts to only set up other Wheel Groups:";
+		text -height 5 -bgc 1 1 0.85 -label " ";
+		separator -h 10 -style "double";
+		
+	setParent $Tab02;
+		
+	// Create a Non Collapsible frame for the Rear Wheels Section.
+	string $WheelsRearFrame = `frameLayout -labelVisible false -label "Rear Wheels Section" -vis false -enable false -collapsable false` ;
+
+	string $WheelsRearColumn = `rowColumnLayout -nc 1 -cw 1 610 -cat 1 "both" 10 -cal 1 "center" "RearWheelRig"`;	
+		
+		text -height 2 " ";
+		separator -h 10 -style "double";
+
+		intSliderGrp -cal 1 "right" -cal 2 "center" -cal 3 "right"
+					-adjustableColumn 3
+					-columnWidth3 110 50 150
+					-label "No. of Rear Axles :-" 
+					-field true
+					-minValue 0 
+					-maxValue 10
+					-step 1
+					-value 1
+				RearAxleSlider;
+			
+			separator -h 10 -style "double";
+			text -height 2 " ";
+	
+		rowColumnLayout -nc 1 -cw 1 610 -cat 1 "both" 50 -cal 1 "center" "VehicleList2";	
+
+			textField -height 25 -text "LfRr_Wheel_Grp_1" "LfRr_WheelTxField";
+			text -height 2 " ";
+			button -bgc 0.7 1 0.7 -label "Left Rear Wheel Group >>" -height 20
+				-command "$TempSel = `ls - sl`; $DVYVehicleList[6] = $TempSel[0]; textField -edit -text $TempSel LfRr_WheelTxField;";	
+			text -height 2 " ";
+		
+			textField -height 25 -text "RtRr_Wheel_Grp_1" "RtRr_WheelTxField";
+			text -height 2 " ";
+			button -bgc 0.7 1 0.7 -label "Right Rear Wheel Group >>" -height 20
+				-command "$TempSel = `ls - sl`; $DVYVehicleList[7] = $TempSel[0]; textField -edit -text $TempSel RtRr_WheelTxField;";	
+			text -height 2 " ";
+		
+		setParent $Tab02;
+	setParent $Tabs;	
+	
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//	
+//							Start of Front and Rear Door Tab
+//
+//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++			
+	global string $DoorsInfoFrameC, $DoorsFrontFrameC, $DoorsRearFrameC, $DoorsFrontFrame, $DoorsRearFrame;
+		
+		
+	$Tab03 = `columnLayout -enable false -adjustableColumn true -cat "both" 1 "Doors"`;	
+//***********************************************************************************	
+		
+//***********************************************************************************	
+// Doors CheckBox Section to enable the Doors Tab.
+	
+	checkBox -label "Enable Doors Section" -align "left" 
+		-onCommand 
+				"checkBoxGrp -edit -enable true DoorsOptionsCheck; frameLayout -edit -collapse true $DoorsFrontFrameC; frameLayout -edit -collapse true $DoorsRearFrameC; frameLayout -edit -collapse true $DoorsInfoFrameC; checkBoxGrp -edit -enable3 false DoorsOptionsCheck; checkBoxGrp -edit -enable4 false DoorsOptionsCheck;"
+			
+		-offCommand	
+				"frameLayout -edit -enable false -vis false -collapse false $DoorsFrontFrame; frameLayout -edit -enable false -vis false -collapse false $DoorsRearFrame; frameLayout -edit -collapse false $DoorsInfoFrameC; checkBoxGrp -edit -value1 false DoorsOptionsCheck; checkBoxGrp -edit -value2 false DoorsOptionsCheck; checkBoxGrp -edit -value3 false DoorsOptionsCheck; checkBoxGrp -edit -value4 false DoorsOptionsCheck; checkBoxGrp -edit -enable false DoorsOptionsCheck; frameLayout -edit -collapse false $DoorsFrontFrameC; frameLayout -edit -collapse false $DoorsRearFrameC;"
+			DoorsEnableCheck;						  
+
+	// End of Doors "Checkbox" Section. If not selected then no Door Options will be setup.
+//***********************************************************************************	
+			
+	// Doors Options "CheckBox Section Section to enable front and rear Doors and the type of opening required.	
+		checkBoxGrp -numberOfCheckBoxes 4 -labelArray4 "Front Doors" "Rear Doors" "Front Windows" "Rear Windows"
+					-label "Doors Options Buttons" 
+					-enable1 false -enable2 false -enable3 false -enable4 false 
+					-cw 1 130 -cal 1 "right"
+					-cw 2 130 -cal 2 "left"
+					-cw 3 130 -cal 3 "left"
+					-cw 4 130 -cal 4 "left"
+					
+				-onCommand1 "frameLayout -edit -enable true -vis true -collapse false $DoorsFrontFrame; textField -edit -enable false -vis false LfFr_WindowTxField; textField -edit -enable false -vis false RtFr_WindowTxField; button -edit -enable false -vis false LfFr_WindowButton; button -edit -enable false -vis false RtFr_WindowButton; checkBoxGrp -edit -enable3 true DoorsOptionsCheck; checkBoxGrp -edit -value3 false DoorsOptionsCheck;"
+				
+				-onCommand2 "frameLayout -edit -enable true -vis true -collapse false $DoorsRearFrame; textField -edit -enable false -vis false LfRr_WindowTxField; textField -edit -enable false -vis false RtRr_WindowTxField; button -edit -enable false -vis false LfRr_WindowButton; button -edit -enable false -vis false RtRr_WindowButton; checkBoxGrp -edit -enable4 true DoorsOptionsCheck; checkBoxGrp -edit -value4 false DoorsOptionsCheck;"
+
+				-onCommand3 "textField -edit -enable true -vis true LfFr_WindowTxField; textField -edit -enable true -vis true RtFr_WindowTxField; button -edit -enable true -vis true LfFr_WindowButton; button -edit -enable true -vis true RtFr_WindowButton;"
+							 
+				-onCommand4 "textField -edit -enable true -vis true LfRr_WindowTxField; textField -edit -enable true -vis true RtRr_WindowTxField; button -edit -enable true -vis true LfRr_WindowButton; button -edit -enable true -vis true RtRr_WindowButton;"
+				
+				-offCommand1 "frameLayout -edit -enable false -vis false -collapse false $DoorsFrontFrame; textField -edit -enable false -vis false LfFr_WindowTxField; textField -edit -enable false -vis false RtFr_WindowTxField; button -edit -enable false -vis false LfFr_WindowButton; button -edit -enable false -vis false RtFr_WindowButton; checkBoxGrp -edit -value3 false -enable3 false DoorsOptionsCheck;"
+							  
+				-offCommand2 "frameLayout -edit -enable false -vis false -collapse false $DoorsRearFrame; textField -edit -enable false -vis false LfRr_WindowTxField; textField -edit -enable false -vis false RtRr_WindowTxField; button -edit -enable false -vis false LfRr_WindowButton; button -edit -enable false -vis false RtRr_WindowButton; checkBoxGrp -edit -value4 false -enable4 false DoorsOptionsCheck;"
+							  
+				-offCommand3 "textField -edit -enable false -vis false LfFr_WindowTxField; textField -edit -enable false -vis false RtFr_WindowTxField; button -edit -enable false -vis false LfFr_WindowButton; button -edit -enable false -vis false RtFr_WindowButton;"
+							  
+				-offCommand4 "textField -edit -enable false -vis false LfRr_WindowTxField; textField -edit -enable false -vis false RtRr_WindowTxField; button -edit -enable false -vis false LfRr_WindowButton; button -edit -enable false -vis false RtRr_WindowButton;"
+			DoorsOptionsCheck;
+	
+	setParent $Tab03;
+	
+// End of Doors Options "Checkbox" Sectin. If not selected then no Doors Options will be setup.
+	
+//***********************************************************************************	
+// Create a collapsible frame layout for Doors Info Section.
+	$DoorsInfoFrameC = `frameLayout -borderStyle "etchedOut" -enable true -vis true -collapsable true -collapse false -label "  Doors Info"` ;
+				
+// Define the layout of controls added to the Doors Info Frame.
+	string $DoorsInfoColumnC = `columnLayout -cat "both" 5 -cal "center" -adjustableColumn true "DoorsInfo:"`;
+
+		separator -bgc 1 1 0.85 -h 5 -style "double";
+		text -height 5 -bgc 1 0.5 0.5 -label " ";
+		text -height 17 -bgc 1 0.5 0.5 -font "boldLabelFont" -align "left" 
+			-label " This Tab is not activated if the Doors Checkbox has not been selected on the Setup Tab:";
+		separator -bgc 1 1 0.85 -h 8 -style "double";
+		text -height 25 -bgc 1 1 0.85 -align "left" 
+			-label " This section will set up both Front and Rear Door Hinged opening and also `sliding` opening windows. The Scripts will install\n controllers for each item to be set up and generate Spheres to be positioned for hinge positions etc. (See Help files for more info):";
+		separator -h 10 -bgc 1 1 0.85 -style "double";
+		text -height 15 -bgc 1 0.5 0.5 -align "left" -font "boldLabelFont"
+			-label	" Once all fields have been loaded then press the `Set Hinge and Handle Button` to load the Spheres.";
+		text -height 15 -bgc 1 0.5 0.5 -align "left" -font "boldLabelFont"
+			-label	" If wrong Hinge Location/orientation is chosen please undo this step and reset correct hinge positions\n before proceding. This is to ensure Joint Orientations are correctly set.";
+		text -height 15 -bgc 1 0.5 0.5 -align "left" -font "boldLabelFont"
+			-label	" Note:- Position and Angle adjustment is allowed but not `swapping` over of spheres etc. ";
+		text -height 2 -bgc 1 0.5 0.5 -label " ";
+		separator -h 5 -style "double";
+		
+	setParent $Tab03;
+		
+		
+//***********************************************************************************	
+// Create a collapsible frame layout
+	$DoorsFrontFrameC = `frameLayout -borderStyle "etchedIn" -label "  Front Doors Help Section"
+									 -labelVisible true -enable true -collapsable true `;
+	
+// Define the layout of controls added to the window.
+		
+	string $DoorsFrontColumnC = `columnLayout -cat "both" 5 -cal "center" -adjustableColumn true "FrontDoorInfo:"`;
+
+		separator -h 5 -style "double";
+		text -height 3 -bgc 1 1 0.85 -label " ";
+		text -height 53 -bgc 1 1 0.85 -align "left" 
+			-label " Select the Radio Button for each door hinge position. Select the Group node for each Door Group Node in turn and Press\n button to load item. Once all fields have been loaded then press the `Set Hinge and Handle Button` to load the Spheres\n used to set the Hinge etc positions. Set the Blue sphere to exact hinge position, then set handle position.\n Also the hinge angle can be set by rotating the Blue Sphere.";
+		text -height 40 -bgc 1 1 0.85 -align "left" 
+			-label " If Window Operation is required then select each window in turn and press the Button to load the item. Then set the\n Green Sphere for the bottom of the window and the yellow for the Top. Also the Green Sphere can be rotated to adjust\n the slide angle of the window:";
+		text -height 2 -bgc 1 1 0.85 -label " ";
+		separator -h 5 -style "double";
+		
+	setParent $Tab03;
+		
+// Row Setup for the Front Door Hinge Positions.
+
+// Create a Non Collapsible frame for the Rear Doors Section.
+
+	string $DoorsFrontFrame = `frameLayout -labelVisible false -label "Front Doors Section" -vis false -enable false -collapsable false` ;
+
+	string $DoorsFrontColumn = `rowColumnLayout -nc 1 -cw 1 610 -cat 1 "both" 10 -cal 1 "center" "FrontDoorRig"`;	
+
+		text -height 5 -label " ";
+
+// Front Door Hinge Radio Button Group	
+		
+		radioButtonGrp 	-columnWidth5 150 100 100 100 100
+				-cal 1 "left" 
+				-numberOfRadioButtons 4 
+				-label " Front Door Hinge Position:-" 
+				-select 1
+				-labelArray4 "Front" "Rear" "Top" "Bottom"
+			FrDoorRadioButtons;	
+
+	rowColumnLayout -nc 2 -cw 1 300 -cat 1 "both" 10 -cal 1 "center" -cw 2 300 -cat 2 "both" 10 -cal 2 "center" ;
+		
+		textField -height 25 -text "LfFr_Door_GrpN_1" "LfFr_DoorTxField";
+		textField -enable false -vis false -height 25 -text "LfFr_Window_1" "LfFr_WindowTxField";
+		
+		button -bgc 0.7 1 0.7 -label "Left Front Door Group >>" -height 20
+			-command "$TempSel = `ls - sl`; $DVYVehicleList[8] = $TempSel[0]; textField -edit -text $TempSel LfFr_DoorTxField;";	
+		button -enable false -vis false -bgc 0.7 1 0.7 -label "Left Front Window >>" -height 20
+			-command "$TempSel = `ls - sl`; $DVYVehicleList[9] = $TempSel[0]; textField -edit -text $TempSel LfFr_WindowTxField;"
+			LfFr_WindowButton;	
+
+		textField -height 25 -text "RtFr_Door_GrpN_1" "RtFr_DoorTxField";
+		textField -enable false -vis false -height 25 -text "RtFr_Window_1" "RtFr_WindowTxField";
+
+		button -bgc 0.7 1 0.7 -label "Right Front Door Group >>" -height 20
+			-command "$TempSel = `ls - sl`; $DVYVehicleList[10] = $TempSel[0]; textField -edit -text $TempSel LfFr_DoorTxField;";	
+		button -enable false -vis false -bgc 0.7 1 0.7 -label "Right Front Window >>" -height 20
+			-command "$TempSel = `ls - sl`; $DVYVehicleList[11] = $TempSel[0]; textField -edit -text $TempSel RtFr_WindowTxField;"
+			RtFr_WindowButton;	
+		
+	setParent $Tab03;
+		
+//***********************************************************************************	
+// Create a collapsible frame layout
+		string $DoorsRearFrameC = `frameLayout -borderStyle "etchedIn" -label "  Rear Doors Help Section"
+									-vis true -labelVisible true -enable true -collapsable true -collapse false`;
+	
+// Define the layout of controls added to the window.
+		string $DoorsRearColumnC = `columnLayout -cat "both" 5 -cal "center" -adjustableColumn true "RearDoorInfo:"`;
+
+		separator -h 5 -style "double";
+		text -height 3 -bgc 1 1 0.85 -label " ";
+		text -height 53 -bgc 1 1 0.85 -align "left" 
+			-label " Select the Radio Button for each door hinge position. Select the Group node for each Door Group Node in turn and Press\n button to load item. Once all fields have been loaded then press the `Set Hinge and Handle Button` to load the Spheres\n used to set the Hinge etc positions. Set the Blue sphere to exact hinge position, then set handle position.\n Also the hinge angle can be set by rotating the Blue Sphere.";
+		text -height 40 -bgc 1 1 0.85 -align "left" 
+			-label " If Window Operation is required then select each window in turn and press the Button to load the item. Then set the\n Green Sphere for the bottom of the window and the yellow for the Top. Also the Green Sphere can be rotated to adjust\n the slide angle of the window:";
+		separator -h 5 -style "double";
+		
+	setParent $Tab03;
+	
+//***********************************************************************************	
+// Create a Non Collapsible frame for the Rear Doors Section.
+	
+	string $DoorsRearFrame = `frameLayout -labelVisible false -vis false -enable false -collapsable false
+										  -label "Rear Doors Section"` ;
+
+	string $DoorsRearColumn = `rowColumnLayout -nc 1 -cw 1 610 -cat 1 "both" 10 -cal 1 "center" "RearDoorRig"`;	
+		
+		text -height 5 -label " ";
+	
+// Rear Door Hinge Radio Button Group	
+	
+		radioButtonGrp 	-columnWidth5 150  100 100 100 100
+				-cal 1 "left" 
+				-numberOfRadioButtons 4 
+				-label " Rear Door Hinge Position:-" 
+				-select 1
+				-labelArray4 "Front" "Rear" "Top" "Bottom"
+			RrDoorRadioButtons;	
+
+		
+// End of Rear Doors Radio Button Group	
+//***********************************************************************************	
+		
+	rowColumnLayout -nc 1 -cw 1 610 -cat 1 "both" 10 -cal 1 "center" "VehicleBody3";	
+		text -height 5 -label " ";
+		
+	rowColumnLayout -nc 2 -cw 1 300 -cat 1 "both" 10 -cal 1 "center" -cw 2 300 -cat 2 "both" 10 -cal 2 "center" ;
+		
+		textField -height 25 -text "LfRr_Door_GrpN_1" "LfRr_DoorTxField";
+		textField -enable false -vis false -height 25 -text "LfRr_Window_1" "LfRr_WindowTxField";
+		
+		button -bgc 0.7 1 0.7 -label "Left Rear Door Group >>" -height 20
+			-command "$TempSel = `ls - sl`; $DVYVehicleList[12] = $TempSel[0]; textField -edit -text $TempSel LfRr_DoorTxField;";	
+		button  -enable false -vis false -bgc 0.7 1 0.7 -label "Left Rear Window >>" -height 20
+			-command "$TempSel = `ls - sl`; $DVYVehicleList[13] = $TempSel[0]; textField -edit -text $TempSel LfRr_WindowTxField;"
+			LfRr_WindowButton;	
+
+		textField -height 25 -text "RtRr_Door_GrpN_1" "RtRr_DoorTxField";
+		textField  -enable false -vis false -height 25 -text "RtRr_Window_1" "RtRr_WindowTxField";
+
+		button -bgc 0.7 1 0.7 -label "Right Rear Door Group >>" -height 20
+			-command "$TempSel = `ls - sl`; $DVYVehicleList[14] = $TempSel[0]; textField -edit -text $TempSel LfRr_DoorTxField;";	
+		button  -enable false -vis false -bgc 0.7 1 0.7 -label "Right Rear Window >>" -height 20
+			-command "$TempSel = `ls - sl`; $DVYVehicleList[15] = $TempSel[0]; textField -edit -text $TempSel RtRr_WindowTxField;"
+			RtRr_WindowButton;	
+
+		setParent..;
+	setParent $Tab03;
+	
+		separator -h 10 -style "double";
+		
+	rowColumnLayout -nc 1 -cw 1 610 -cat 1 "both" 50 -cal 1 "center" "VehicleBody4";	
+		
+		text -height 2 " ";
+		button -height 25 -bgc 1.0 0.8 0.0 -label "Set Door Hinge, Handle and Window Positions"
+			-command "DVY_Doors;"
+				DoorButton;	
+
+	setParent $Tabs;	
+	
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//	
+//							Start of Front Hood and Rear Trunk Tab
+//
+//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++			
+	
+	global string $HoodsInfoFrameC, $HoodsFrontFrameC, $HoodsRearFrameC, $HoodsFrontFrame, $HoodsRearFrame;
+	global string $TrunkRearFrame, $TailRearFrame, $SplitTailRearFrame, $RearTailDoorsFrame;
+		 
+	$Tab04 = `columnLayout -enable false -adjustableColumn true -cat "both" 1 "Hood and Trunk"`;	
+	
+//***********************************************************************************	
+// Hood and Trunk/Tailgate  CheckBox Section to enable the Hood and Trunk Tab.
+	
+	checkBox -label "Enable Hoods Section" -align "left" 
+		-onCommand "checkBoxGrp -edit -enable true HoodsOptionsCheck; frameLayout -edit -collapse true $HoodsInfoFrameC; frameLayout -edit -collapse true $HoodsFrontFrameC; frameLayout -edit -collapse true $HoodsRearFrameC;"
+			
+		-offCommand	"frameLayout -edit -enable false -vis false -collapse false $HoodsFrontFrame; frameLayout -edit -enable false -vis false -collapse false $TrunkRearFrame; checkBoxGrp -edit -value1 false HoodsOptionsCheck; checkBoxGrp -edit -value2 false HoodsOptionsCheck; checkBoxGrp -edit -value3 false HoodsOptionsCheck; checkBoxGrp -edit -value4 false HoodsOptionsCheck; checkBoxGrp -edit -enable false HoodsOptionsCheck; frameLayout -edit -collapse false $HoodsInfoFrameC; frameLayout -edit -collapse false $HoodsFrontFrameC; frameLayout -edit -collapse false $HoodsRearFrameC;"
+			HoodsEnableCheck;						  
+
+// End of Hoods "Checkbox" Section. If not selected then no Hood Options will be setup.
+		
+//***********************************************************************************	
+// Hoods Options "CheckBox Section Section to enable Rear Trunk and the type of opening required.	
+	
+		checkBoxGrp -numberOfCheckBoxes 4 -label "Hood and Trunk Options Buttons:" 
+					-labelArray4 "Front Hood" "Rear Trunk" "Rear Tailgate" "Split Tailgate or Rear Doors"
+					-enable1 false -enable2 false -enable3 false -enable4 false 
+					-cw 1 180 -cal 1 "right"
+					-cw 2 80 -cal 2 "left"
+					-cw 3 80 -cal 3 "left" 
+					-cw 4 90 -cal 4 "left"
+					-cw 5 150 -cal 5 "left"
+					
+				-onCommand1 "frameLayout -edit -enable true -vis true -collapse false $HoodsFrontFrame;"
+				
+				-onCommand2 "frameLayout -edit -enable true -vis true $TrunkRearFrame; checkBoxGrp -edit -value3 false -enable3 false HoodsOptionsCheck; checkBoxGrp -edit -value4 false -enable4 false HoodsOptionsCheck;"
+  //						 checkBox -edit -value false SplitTailWindowEnableCheck;"
+
+				-onCommand3 "frameLayout -edit -enable true -vis true $TailRearFrame; checkBoxGrp -edit -value2 false -enable2 false HoodsOptionsCheck; checkBoxGrp -edit -value4 false -enable4 false HoodsOptionsCheck;"
+  //						 checkBox -edit -enable true -value false SplitTailWindowEnableCheck;"
+							 
+				-onCommand4 "frameLayout -edit -enable true -vis true $SplitTailRearFrame; textField -edit -enable false -vis false Rr_TailWinTxField; checkBoxGrp -edit -value2 false -enable2 false HoodsOptionsCheck; checkBoxGrp -edit -value3 false -enable3 false HoodsOptionsCheck; checkBox -edit -enable true -value false SplitTailWindowEnableCheck;"
+//							 button -edit -enable false -vis false Rr_TailWindowButton;"
+							 
+				-offCommand1 "frameLayout -edit -enable false -vis false -collapse false $HoodsFrontFrame; textField -edit -enable false -vis false LfFr_WindowTxField; textField -edit -enable false -vis false RtFr_WindowTxField; checkBoxGrp -edit -value3 false HoodsOptionsCheck; checkBox -edit -value false -enable false SplitTailWindowEnableCheck; checkBox -edit -value false -enable false TailWindowEnableCheck;"
+							  
+				-offCommand2 "frameLayout -edit -enable false -vis false $TrunkRearFrame; checkBoxGrp -edit -enable3 true HoodsOptionsCheck; checkBoxGrp -edit -enable4 true HoodsOptionsCheck; checkBox -edit -value false -enable false SplitTailWindowEnableCheck; checkBox -edit -value false -enable false TailWindowEnableCheck;"
+							  
+				-offCommand3 "frameLayout -edit -enable false -vis false $TailRearFrame; checkBoxGrp -edit -enable2 true HoodsOptionsCheck; checkBoxGrp -edit -enable4 true HoodsOptionsCheck; checkBox -edit -value false -enable false SplitTailWindowEnableCheck; checkBox -edit -value false -enable false TailWindowEnableCheck; textField -edit -enable false -vis false Rr_TailWinTxField; button -edit -enable false -vis false Rr_TailWindowButton;"
+							  
+				-offCommand4 "frameLayout -edit -enable false -vis false $SplitTailRearFrame; checkBoxGrp -edit -enable2 true HoodsOptionsCheck; checkBoxGrp -edit -enable3 true HoodsOptionsCheck; checkBox -edit -value false -enable false SplitTailWindowEnableCheck; checkBox -edit -value false -enable false TailWindowEnableCheck; textField -edit -enable false -vis false Rr_TailWinTxField; button -edit -enable false -vis false Rr_TailWindowButton;"
+				HoodsOptionsCheck;
+	
+	setParent $Tab04;
+	
+// End of Hoods Options "Checkbox" Sectin. If not selected then no Hoods Options will be setup.
+//***********************************************************************************	
+// Create a collapsible frame layout for Doors Info Section.
+	$HoodsInfoFrameC = `frameLayout -borderStyle "etchedOut" -enable true -vis true -collapsable true -collapse false -label "  Front Hood, Trunk, Tailgate and Rear Doors Info"` ;
+				
+// Define the layout of controls added to the Doors Info Frame.
+	string $HoodsInfoColumnC = `columnLayout -cat "both" 5 -cal "center" -adjustableColumn true "HoodsInfo:"`;
+
+		separator -bgc 1 1 0.85 -h 5 -style "double";
+		text -height 5 -bgc 1 0.5 0.5 -label " ";
+		text -height 17 -bgc 1 0.5 0.5 -font "boldLabelFont" -align "left" 
+			-label " This Tab is not activated if the Hood and Trunk Checkbox has not been selected on the Setup Tab:";
+		separator -bgc 1 1 0.85 -h 8 -style "double";
+		text -height 15 -bgc 1 1 0.85 -align "left" 
+			-label " This section will set up both Front Hood and Rear Trunk, Tailaget or Split Rear Doors hinged opening and also `sliding` opening";
+		text -height 15 -bgc 1 1 0.85 -align "left" 
+			-label " windows (where required). The Scripts will install controllers for each item to be set up and generate Spheres to be positioned ";
+		text -height 15 -bgc 1 1 0.85 -align "left" 
+			-label " for hinge positions etc. (See Help files for more info):";
+		text -height 5 -bgc 1 0.5 0.5 -align "left" -label " ";
+		text -height 15 -bgc 1 0.5 0.5 -align "left" -font "boldLabelFont"
+			-label	" Once all fields have been loaded then press the `Set Hinge and Handle Button` to load the Spheres.";
+		text -height 15 -bgc 1 0.5 0.5 -align "left" -font "boldLabelFont"
+			-label	" If wrong Hinge Location/orientation is chosen please undo this step and reset correct hinge positions\n before proceding. This is to ensure Joint Orientations are correctly set.";
+		text -height 15 -bgc 1 0.5 0.5 -align "left" -font "boldLabelFont"
+			-label	" Note:- Position and Angle adjustment is allowed but not `swapping` over of spheres etc. ";
+		text -height 5 -bgc 1 0.5 0.5 -label " ";
+		separator -h 5 -style "double";
+		
+	setParent $Tab04;
+	
+//***********************************************************************************	
+// Create a collapsible frame layout
+	$HoodsFrontFrameC = `frameLayout -borderStyle "etchedIn" -label "  Front Hood Help Section"
+									 -labelVisible true -enable true -collapsable true `;
+	
+// Define the layout of controls added to the window.
+		
+	string $HoodsFrontColumnC = `columnLayout -cat "both" 5 -cal "center" -adjustableColumn true "FrontHoodInfo:"`;
+
+		separator -bgc 1 1 0.85 -h 10 -style "double";
+		text -height 55 -bgc 1 1 0.85 -align "left" 
+			-label " Select the Radio Button for The Front Hood hinge position. Select the Group node for Front Hood Group Node in turn and Press\n button to load item. Once all fields have been loaded then press the `Set Hinge and Handle Button` to load the Spheres\n used to set the Hinge etc positions. Set the Blue sphere to exact hinge position, then set handle position.\n Also the hinge angle can be set by rotating the Blue Sphere.";
+		text -height 2 -bgc 1 1 0.85 -label " ";
+		separator -h 10 -style "double";
+		
+	setParent $Tab04;
+		
+//***********************************************************************************	
+// Create a Non Collapsible frame for the Rear Hoods Section.
+
+	string $HoodsFrontFrame = `frameLayout -labelVisible false -label "Front Hoods Section" -vis false -enable false -collapsable false` ;
+
+	string $HoodsFrontColumn = `rowColumnLayout -nc 1 -cw 1 610 -cat 1 "both" 10 -cal 1 "center" "FrontHoodRig"`;	
+
+		text -height 2 -label " ";
+
+// Front Hood Hinge Radio Button Group	
+		
+		radioButtonGrp 	-columnWidth5 150 100 100 100 100 -label " Front Hood Hinge Position:-" 
+				-labelArray4 "Front" "Rear" "Left" "Right"
+				-cal 1 "left" 
+				-numberOfRadioButtons 4 
+				-select 2
+			FrHoodRadioButtons;	
+		
+		textField -height 20 -text "Fr_Hood_GrpN_1" "Fr_HoodTxField";
+		text -height 2 " ";		text -height 2 " ";
+		
+		button -bgc 0.7 1 0.7 -label "Front Hood Group >>" -height 20
+			-command "$TempSel = `ls - sl`; $GroupD_A[0] = $TempSel[0]; textField -edit -text $TempSel Fr_HoodTxField;";	
+		
+	setParent $Tab04;
+		
+//***********************************************************************************	
+// Create a collapsible frame layout
+	
+	string $HoodsRearFrameC = `frameLayout -borderStyle "etchedIn" -vis true -labelVisible true -enable true -collapsable true
+										   -collapse false -label "  Rear Trunk, Tailgate and Rear Doors Help Section"`;
+	
+// Define the layout of controls added to the window.
+	
+	string $HoodsRearColumnC = `columnLayout -cat "both" 5 -cal "center" -adjustableColumn true "RearHoodInfo:"`;
+
+		separator -h 10 -style "double";
+		text -height 5 -bgc 1 1 0.85 -label " ";
+		text -height 15 -bgc 1 1 0.85 -align "left" 
+			-label " Depending on CheckBox selected various fields will be shown. Also Radio Buttons will appear for various hinge positions etc.";
+		text -height 15 -bgc 1 1 0.85 -align "left" 
+			-label " If `Standard` Trunk Lid chosen select Radio Button for Hinge Positon and select item for field or use default field name.";
+		text -height 15 -bgc 1 1 0.85 -align "left" 
+			-label " If `Tailgate` style chosen then an option to set up a Window will also appear. Select item to load field etc.";
+		text -height 15 -bgc 1 1 0.85 -align "left" 
+			-label " If `Split Tailgate or Rear Doors` is chosen then various options (including Windows) will appear to set hinge etc. positions.";
+		text -height 15 -bgc 1 1 0.85 -align "left"
+			-label " If Window Operation is required then select window press the Button to load the item. Then set the Green Sphere for the bottom";
+		text -height 18 -bgc 1 1 0.85 -align "left" 
+			-label " of the window and the yellow for the Top. Also the Green Sphere can be rotated to adjust the slide angle of the window:";
+		separator -h 10 -style "double";
+		
+	setParent $Tab04;
+	
+//***********************************************************************************			
+// Create a Non Collapsible frame for the Rear Trunk Lid Section.
+	
+	string $TrunkRearFrame = `frameLayout -labelVisible false -label "Rear Trunk Section" -vis false -enable false -collapsable false` ;
+
+	string $TrunkRearColumn = `rowColumnLayout -nc 1 -cw 1 610 -cat 1 "both" 10 -cal 1 "center" "RearTrunkRig"`;	
+		
+		text -height 2 -label " ";
+	
+// Rear Hood Hinge Radio Button Group	
+	
+		radioButtonGrp 	-columnWidth5 150 80 80 80 80 -label " Rear Trunk Lid Hinge Position:-"
+				-labelArray4 "Front" "Rear" "Left" "Right"
+				-cal 1 "left" 
+				-numberOfRadioButtons 4 
+				-select 1
+			RrHoodRadioButtons;	
+		
+// End of BodyShell Hood Radio Button Group	
+//***********************************************************************************	
+//	Rear Trunklid Section
+		
+	rowColumnLayout -nc 1 -cw 1 610 -cat 1 "both" 10 -cal 1 "center" "Trunk1";	
+		
+		textField -height 20 -text "Rr_Trunk_GrpN_1" "Rr_TrunkTxField";
+
+		button -bgc 0.7 1 0.7 -label "Rear Trunk Lid Group >>" -height 20
+			-command "$TempSel = `ls - sl`; $DVYVehicleList[16] = $TempSel[0]; textField -edit -text $TempSel Rr_TrunkTxField;";	
+		
+		setParent..;
+	setParent $Tab04;
+	
+//***********************************************************************************	
+// Create a Non Collapsible frame for the Rear Tailgate Section.
+	
+	string $TailRearFrame = `frameLayout -labelVisible false -label "Rear Tail Section" -vis false -enable false -collapsable false` ;
+
+	string $TailRearColumn = `rowColumnLayout -nc 1 -cw 1 610 -cat 1 "both" 10 -cal 1 "center" "RearTailRig"`;	
+		
+// Tailgate Window CheckBox Section.
+	
+	checkBox -enable false -vis false -label "Enable Tailgate Window" -align "left" 
+		-onCommand "textField -edit -enable true -vis true Rr_TailWinTxField; button -edit -enable true -vis true Rr_TailWindowButton;"
+			
+		-offCommand	"textField -edit -enable false -vis false Rr_TailWinTxField; button -edit -enable false -vis false Rr_TailWindowButton;"
+			TailWindowEnableCheck;						  
+	text -height 5 -label " ";
+
+// End of Tailgate Window.
+		
+//***********************************************************************************	
+// Rear Tailgate Hinge Radio Button Group	
+	
+	radioButtonGrp 	-columnWidth5 150 80 80 80 80 -label " Rear Tailgate Hinge Position:-" 
+				-labelArray4 "Top" "Bottom" "Left" "Right"
+				-cal 1 "left" 
+				-numberOfRadioButtons 4 
+				-select 1
+			RrTailRadioButtons;	
+		
+// End of Rear Tailgate Hinge Radio Button Group	
+//***********************************************************************************	
+		
+	rowColumnLayout -nc 1 -cw 1 610 -cat 1 "both" 10 -cal 1 "center" "Tail1";	
+		
+		textField -height 20 -text "Rr_Tailgate_GrpN_1" "Rr_TailTxField";
+		button -bgc 0.7 1 0.7 -label "Rear Tailgate Group >>" -height 20
+			-command "$TempSel = `ls - sl`; $DVYVehicleList[17] = $TempSel[0]; textField -edit -text $TempSel Rr_TailTxField;";	
+		
+		textField -enable false -vis false -height 20 -text "Rr_TailgateWindow_1" "Rr_TailWinTxField";
+		button -enable false -vis false -bgc 0.7 1 0.7 -label "Rear Tailgate Window >>" -height 20
+			-command "$TempSel = `ls - sl`; $DVYVehicleList[18] = $TempSel[0]; textField -edit -text $TempSel Rr_TailWinTxField;"
+			Rr_TailWindowButton;
+		
+		setParent..;
+	setParent $Tab04;
+	
+//***********************************************************************************	
+// Create a Non Collapsible frame for the Rear SplitTailgate Section.
+	
+	string $SplitTailRearFrame = `frameLayout -labelVisible false  -vis false -enable false -collapsable false
+											  -label "Rear SplitTail Section"`;
+	
+	string $SplitTailRearColumn = `rowColumnLayout -nc 1 -cw 1 610 -cat 1 "both" 10 -cal 1 "center" "RearSplitTailRig"`;	
+		
+		text -height 2 -label " ";
+		
+//***********************************************************************************	
+// Rear Hood Hinge Radio Button Group	
+	
+	radioButtonGrp 	-columnWidth5 150 120 100 100 120 -label " SplitTailgate Hinge Position:-" 
+					-labelArray4 "Top and Bottom" "Top and Left" "Top and Right" "Left and Right Doors"
+					-cal 1 "left" 
+					-numberOfRadioButtons 4 
+			-onCommand1 "textField -edit -enable true -vis true Rr_TopTailTxField; textField -edit -enable true -vis true Rr_BotTailTxField; button -edit -enable true -vis true Rr_SplitTailTopButton; button -edit -enable true -vis true Rr_SplitTailBotButton;"
+//						  checkBox -edit -enable true -vis true SplitTailWindowEnableCheck;"
+						  
+			-onCommand2 "textField -edit -enable true -vis true Rr_TopTailTxField; textField -edit -enable true -vis true Rr_BotTailTxField; button -edit -enable true -vis true Rr_SplitTailTopButton; button -edit -enable true -vis true Rr_SplitTailBotButton;"
+// 						  checkBox -edit -enable true -vis true SplitTailWindowEnableCheck;"
+						  
+			-onCommand3 "textField -edit -enable true -vis true Rr_TopTailTxField; textField -edit -enable true -vis true Rr_BotTailTxField; button -edit -enable true -vis true Rr_SplitTailTopButton; button -edit -enable true -vis true Rr_SplitTailBotButton;"
+//						  checkBox -edit -enable true -vis true SplitTailWindowEnableCheck;"
+						  
+			-onCommand4 "textField -edit -enable true -vis true LfRr_TailDoorTxField; textField -edit -enable true -vis true RtRr_TailDoorTxField; button -edit -enable true -vis true LfRr_TailDoorButton; button -edit -enable true -vis true RtRr_TailDoorButton;"
+//						  checkBox -edit -enable false -vis false -value false SplitTailWindowEnableCheck;"
+						  
+			-offCommand1 "textField -edit -enable false -vis false Rr_TopTailTxField; textField -edit -enable false -vis false Rr_BotTailTxField; textField -edit -enable false -vis false Rr_SplitTailWinTxField; button -edit -enable false -vis false Rr_SplitTailWindowButton; button -edit -enable false -vis false Rr_SplitTailTopButton; button -edit -enable false -vis false Rr_SplitTailBotButton; checkBox -edit -enable false -value false SplitTailWindowEnableCheck;"
+						  
+			-offCommand2 "textField -edit -enable false -vis false Rr_TopTailTxField; textField -edit -enable false -vis false Rr_BotTailTxField; textField -edit -enable false -vis false Rr_SplitTailWinTxField; button -edit -enable false -vis false Rr_SplitTailWindowButton; button -edit -enable false -vis false Rr_SplitTailTopButton; button -edit -enable false -vis false Rr_SplitTailBotButton; checkBox -edit -enable false -value false SplitTailWindowEnableCheck;"
+						  
+			-offCommand3 "textField -edit -enable false -vis false Rr_TopTailTxField; textField -edit -enable false -vis false Rr_BotTailTxField; textField -edit -enable false -vis false Rr_SplitTailWinTxField; button -edit -enable false -vis false Rr_SplitTailWindowButton; button -edit -enable false -vis false Rr_SplitTailTopButton; button -edit -enable false -vis false Rr_SplitTailBotButton; checkBox -edit -enable false -value false SplitTailWindowEnableCheck;"
+						  
+			-offCommand4 "textField -edit -enable false -vis false LfRr_TailDoorTxField; textField -edit -enable false -vis false RtRr_TailDoorTxField; textField -edit -enable false -vis false Rr_SplitTailWinTxField; button -edit -enable false -vis false Rr_SplitTailWindowButton; button -edit -enable false -vis false LfRr_TailDoorButton; button -edit -enable false -vis false RtRr_TailDoorButton;"
+						  
+			RrSplitTailRadioButtons;	
+		
+// End of BodyShell Hood Radio Button Group	
+//***********************************************************************************	
+	
+// Split Tailgate Window CheckBox Section.
+	
+	checkBox -enable false -vis false -label "Enable Tailgate Window" -align "left" 
+		-onCommand "textField -edit -enable true -vis true Rr_SplitTailWinTxField; button -edit -enable true -vis true Rr_SplitTailWindowButton;"
+			
+		-offCommand	"textField -edit -enable false -vis false Rr_SplitTailWinTxField; button -edit -enable false -vis false Rr_SplitTailWindowButton;"
+			SplitTailWindowEnableCheck;		
+	
+	text -height 2 -label " ";
+
+	// End of Tailgate Window.
+//***********************************************************************************	
+		
+	rowColumnLayout -nc 1 -cw 1 610 -cat 1 "both" 10 -cal 1 "center" "SplitTail1";	
+		text -height 2 -label " ";
+		
+		textField -enable false -vis false -height 20 -text "Rr_TopTailgate_GrpN_1" "Rr_TopTailTxField";
+		button -enable false -vis false -bgc 0.7 1 0.7 -label "Rear TopTailgate Group >>" -height 20
+				-command "$TempSel = `ls - sl`; $DVYVehicleList[19] = $TempSel[0]; textField -edit -text $TempSel Rr_TopTailTxField;"
+			Rr_SplitTailTopButton;
+		
+		textField -enable false -vis false -height 20 -text "Rr_TailgateWindow_1" "Rr_SplitTailWinTxField";
+		button -enable false -vis false -bgc 0.7 1 0.7 -label "Rear Tailgate Window >>" -height 20
+				-command "$TempSel = `ls - sl`; $DVYVehicleList[20] = $TempSel[0]; textField -edit -text $TempSel Rr_SplitTailWinTxField;"
+			Rr_SplitTailWindowButton;
+		
+		textField -enable false -vis false -height 20 -text "LfRr_TailDoor_GrpN_1" "LfRr_TailDoorTxField";
+		button -enable false -vis false -bgc 0.7 1 0.7 -label "Left Rear TailDoor Group >>" -height 20
+				-command "$TempSel = `ls - sl`; $DVYVehicleList[21] = $TempSel[0]; textField -edit -text $TempSel LfRr_TailDoorTxField;"
+			LfRr_TailDoorButton;
+		
+		textField -enable false -vis false -height 20 -text "Rr_BotTailgate_GrpN_1" "Rr_BotTailTxField";
+		button -enable false -vis false -bgc 0.7 1 0.7 -label "Rear Bottom Tailgate Group >>" -height 20
+				-command "$TempSel = `ls - sl`; $DVYVehicleList[22] = $TempSel[0]; textField -edit -text $TempSel Rr_BotTailTxField;"
+			Rr_SplitTailBotButton;
+		
+		textField -enable false -vis false -height 20 -text "RtRr_TailDoor_GrpN_1" "RtRr_TailDoorTxField";
+		button -enable false -vis false -bgc 0.7 1 0.7 -label "Right Rear TailDoor Group >>" -height 20
+				-command "$TempSel = `ls - sl`; $DVYVehicleList[23] = $TempSel[0]; textField -edit -text $TempSel RtRr_TailDoorTxField;"
+			RtRr_TailDoorButton;
+		text -height 2 " ";
+		
+		setParent..;
+	setParent $Tab04;
+//***********************************************************************************	
+	
+	separator -h 10 -style "double";
+	
+	rowColumnLayout -nc 1 -cw 1 610 -cat 1 "both" 50 -cal 1 "center" "VehicleBody5";
+	
+		text -height 2 " ";
+		button -height 25 -bgc 0.0 1.0 0.7 -label "Set Hood and Trunk/Tailgate/Rear Doors Hinge, Handle and Window Positions"
+			-command "DVY_HoodandTrunk;"
+				HoodButton;	
+		text -height 2 " ";
+
+		
+	setParent $Tabs ;
+
+//---------------------------------------------------------------------------------------------
+//	
+//							End of Hood and Trunk Tab
+//
+//---------------------------------------------------------------------------------------------
+	
+
+//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//	
+//							Start Of Ancillaries Tab Layout
+//
+//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+	
+	
+	// Start Of Initial Ancillaries Tab Layout..
+	
+	global string $AncillariesInfoFrameC;			global string $AncillariesInfoFrame;
+	global string $AncillariesFrontWipersFrameC;	global string $AncillariesFrontWipersFrame;
+	global string $AncillariesRearWipersFrameC;		global string $AncillariesRearWipersFrame;
+	global string $AncillariesFrontSeatsFrameC;		global string $AncillariesFrontSeatsFrame;
+	global string $AncillariesRearSeatsFrameC;		global string $AncillariesRearSeatsFrame;
+	
+	string $Tab05 = `columnLayout -adjustableColumn true -columnAttach "both" 1 "Ancillaries"`;		
+		
+	string $AncillariesRowLayout = `rowLayout -numberOfColumns 2
+								-columnWidth 1 140 -columnAlign 1 "left" -columnAttach 1 "both" 1
+								-columnWidth 2 420 -columnAlign 2 "left" -columnAttach 2 "both" 1
+							"AncillariesRow"`;	
+		
+	checkBox -label "Enable Ancillary Section" -align "left" 
+			-onCommand "checkBoxGrp -edit -enable true AncillariesOptionsCheck; frameLayout -edit -collapse true $AncillariesInfoFrameC; frameLayout -edit -collapse true $AncillariesFrontWipersFrameC; frameLayout -edit -collapse true $AncillariesRearWipersFrameC; frameLayout -edit -collapse true $AncillariesFrontSeatsFrameC; frameLayout -edit -collapse true $AncillariesRearSeatsFrameC;"
+				
+			-offCommand	"checkBoxGrp -edit -enable false AncillariesOptionsCheck; frameLayout -edit -collapse false $AncillariesInfoFrameC; frameLayout -edit -collapse false $AncillariesFrontWipersFrameC; frameLayout -edit -collapse false $AncillariesRearWipersFrameC; frameLayout -edit -collapse false $AncillariesFrontSeatsFrameC; frameLayout -edit -collapse false $AncillariesRearSeatsFrameC;"
+		AncillariesEnableCheck;
+		
+	// End of Ancillaries "Checkbox" Section. If not selected then no Ancillaries Options will be setup.	
+		checkBoxGrp -numberOfCheckBoxes 4 -labelArray4 "FrontWipers" "FrontSeats" "RearSeats" "RearWipers"
+					-label "Ancillary Options" 
+					-enable1 false -enable2 false -enable3 false -enable4 false
+					-columnWidth 1 90 -columnAlign 1 "right"
+					-columnWidth 2 80
+					-columnWidth 3 80 
+					-columnWidth 4 80
+					-columnWidth 5 80
+		
+				-onCommand1 "frameLayout -edit -enable false -visible true -collapse false $AncillariesFrontWipersFrame;"
+				-onCommand2 "frameLayout -edit -enable false -visible true -collapse false $AncillariesFrontSeatsFrame;"
+				-onCommand3 "frameLayout -edit -enable false -visible true -collapse false $AncillariesRearSeatsFrame;"
+				-onCommand4 "frameLayout -edit -enable false -visible true -collapse false $AncillariesRearWipersFrame;"
+
+				-offCommand1 "frameLayout -edit -enable true -visible false -collapse false $AncillariesFrontWipersFrame;"
+				-offCommand2 "frameLayout -edit -enable true -visible false -collapse false $AncillariesFrontSeatsFrame;"
+				-offCommand3 "frameLayout -edit -enable true -visible false -collapse false $AncillariesRearSeatsFrame;"
+				-offCommand4 "frameLayout -edit -enable true -visible false -collapse false $AncillariesRearWipersFrame;"
+			
+			AncillariesOptionsCheck;
+/*
+				-onCommand1 "frameLayout -edit -enable true -visible true -collapse false $AncillariesFrontWipersFrame;"
+				-onCommand2 "frameLayout -edit -enable true -visible true -collapse false $AncillariesFrontSeatsFrame;"
+				-onCommand3 "frameLayout -edit -enable true -visible true -collapse false $AncillariesRearSeatsFrame;"
+				-onCommand4 "frameLayout -edit -enable true -visible true -collapse false $AncillariesRearWipersFrame;"
+*/
+	
+	setParent $Tab05 ;
+		
+	// End of Ancillaries "Checkbox" Section. If not selected then no Ancillaries will be setup.	
+		
+	// Ancillaries Title Section 
+		
+	// BodyShell Title Section 
+		separator -bgc 1 1 0.85 -h 10 -style "double";
+		text -height 5 -bgc 1 0.5 0.5 -label " ";
+		text -height 20 -bgc 1 0.5 0.5 -font "boldLabelFont" -align "left" 
+			-label " This Tab is not yet available for use:";
+		separator -bgc 1 1 0.85 -h 10 -style "double";
+		text -height 5 -label "" ;	//Spacer
+		separator -height 5 -style "double" ;
+		text -bgc .8 .8 1 -height 20 -align "center" -font "boldLabelFont" -label "Tab for setting up Ancillaries layout etc.";
+		separator -height 5 -style "double";
+		text -height 5 -label "" ;	//Spacer
+		
+	// Create a collapsible frame layout for Ancillaries Info Section.
+		string $AncillariesInfoFrameC = `frameLayout -borderStyle "etchedOut" -label "  Ancillaries Info"
+										-labelVisible true -visible true -enable true
+										-collapsable true -collapse false` ;
+				
+	// Define the layout of controls added to the Ancillaries Info Frame.
+		string $AncillariesInfoColumnC = `columnLayout -adjustableColumn true -columnAttach "both" 1 "AncillariesInfoColumnC"`;	
+
+	
+	//Title and Info Section for the "Ancillaries Title Section". 
+		separator -height 5 ;
+		text -bgc 1 1 .85 -height 10 -label "" ;	//Space
+		text -bgc 1 1 .85 -align "left" -label "  To Activate this Tab please use CheckBox labelled \"Enable Ancillaries Section\".\n  Then select the CheckBoxes for the sections you wish to setup.\n  Then select each part of the relevant Ancillaries Group and press the corresponding \"OK  >>\" Button.";
+		text -bgc 1 1 .85 -height 10 -label "" ;	//Spacer
+		separator -height 5 -style "double";
+		text -height 10 -label "" ;	//Spacer
+		
+	setParent $Tab05;
+	
+	// End of Ancillaries Title and Info Inroduction.
+
+	
+//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//	
+//						Start of Front Wipers Section
+//
+//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+		
+
+	// Create a collapsible frame layout for Ancillaries FrontWipers Section Info.
+		string $AncillariesFrontWipersFrameC = `frameLayout -borderStyle "etchedOut" -label " Front Wipers Section"
+											-labelVisible true -visible true -enable true
+											-collapsable true -collapse false` ;
+		
+	// Define the layout of controls added to the window.
+		string $AncillariesFrontWipersColumnC = `columnLayout -adjustableColumn true -columnAttach "both" 1 "AncillariesFrontWipersColumnC"`;		
+
+	// Spacer and Front Wipers Titles.
+		separator -height 5 ;
+		text -bgc 1 1 .85 -height 5 -label "" ;	//Space
+		text -bgc 1 1 .85 -align "left" -label "  Front Wipers:- Select number of Front Wipers in use.\n  Then select the Front Wipers arm and the FrontWiper Blades." ;
+		text -bgc 1 1 .85 -height 5 -label "" ;	//Spacer
+		separator -height 5 -style "double";
+		text -height 5 -label "" ;	//Spacer
+	
+	setParent $Tab05;
+		
+	// Create a Non collapsible frame layout for Ancillaries FrontWipers Section.
+		string $AncillariesFrontWipersFrame = `frameLayout -label "  FrontWipers Section"
+										-labelVisible false -visible false -enable false
+										-collapsable false` ;
+		
+		
+	// Define the layout of controls added to the Ancillaries FrontWipers Opening Section..
+		string $AncillariesFrontWipersColumn = `columnLayout  -adjustableColumn true -columnAttach "both" 1 "AncillariesFrontWipersColumn"`;		
+	
+		text -height 2 -label"" ;  //Spacer
+			
+	// Row Setup for the Ancillaries FrontWipers Section.
+		
+	// Ancillaries FrontWipers Radio Button Group	
+		radioButtonGrp 	-columnAlign 1 "left" 
+				-columnWidth4 150 90 90 90
+				-numberOfRadioButtons 3 
+				-label " No. of Front Wipers Option:-" 
+				-labelArray3 "One" "Two" "Three" 
+				-select 2 
+			AncillariesFrontWipersRadioButtons;	
+				
+	// Spacer
+		separator -height 10 -style "single";
+		
+	// End of Ancillaries FrontWipers Radio Button Group	
+		
+	//	Start of FrontWipers Selection section
+		rowLayout -numberOfColumns 3  
+			-columnWidth 1 185 -columnAttach 1 "both" 1 -columnAlign 1 "center" 
+			-columnWidth 2 185 -columnAttach 2 "both" 1 -columnAlign 2 "center"  
+			-columnWidth 3 185 -columnAttach 3 "both" 1 -columnAlign 3 "center" ;
+		
+	// Front Wiper No. 1 Section	
+		rowColumnLayout -numberOfColumns 2 
+ 			-columnWidth 1 120 -columnAttach 1 "both" 1 -columnAlign 1 "center" 
+ 			-columnWidth 2 62 -columnAttach 2 "both" 1 -columnAlign 2 "center" ;
+			
+		textField -text "" -editable true -enable false FrWiperArm01;
+		button -enable false  -bgc .5 1 .5 -label "Arm No.1"
+			-command "DVY_AddToLists(\"FrWiperArm01\", \"SelectedList\",38,4);"	
+		 FrWiperArmButton01;
+		
+	setParent..;
+	
+	// Front Wiper No. 2 Section	
+		rowColumnLayout -numberOfColumns 2 
+ 			-columnWidth 1 120 -columnAttach 1 "both" 1 -columnAlign 1 "center" 
+ 			-columnWidth 2 62 -columnAttach 2 "both" 1 -columnAlign 2 "center" ;
+			
+		textField -text "" -editable true -enable false FrWiperArm02;
+		button -enable false  -bgc .5 1 .5 -label "Arm No.2"
+			-command "DVY_AddToLists(\"FrWiperArm02\",\"SelectedList\",39,4);"	
+		 FrWiperArmButton02;
+	
+	setParent..;
+	
+	// Front Wiper No. 3 Section
+		rowColumnLayout -numberOfColumns 2 
+ 			-columnWidth 1 120 -columnAttach 1 "both" 1 -columnAlign 1 "center" 
+ 			-columnWidth 2 62 -columnAttach 2 "both" 1 -columnAlign 2 "center" ;
+	
+		textField -text "" -editable true -enable false FrWiperArm03;
+		button -enable false  -bgc .5 1 .5 -label "Arm No.3"
+			-command "DVY_AddToLists(\"FrWiperArm03\", \"SelectedList\",40,4);"	
+		FrWiperArmButton03;
+					
+	// End of FrontWipers Selection Section
+		
+		text -height 2 -label"" ;  //Spacer
+			
+	//	End of FrontWipers/Bonnet Opening section		
+			
+	setParent $Tab05 ;
+
+//---------------------------------------------------------------------------------------------
+//
+//						End Of Front Wipers Section
+//
+//---------------------------------------------------------------------------------------------
+		
+		
+
+	
+//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//	
+//						Start of Front Seats Section
+//
+//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+		
+
+	// Create a collapsible frame layout for Ancillaries FrontSeats Section Info.
+		string $AncillariesFrontSeatsFrameC = `frameLayout -borderStyle "etchedOut" -label " Front Seats Section"
+											-labelVisible true -visible true -enable true
+											-collapsable true -collapse false` ;
+		
+	// Define the layout of controls added to the window.
+		string $AncillariesFrontSeatsColumnC = `columnLayout -adjustableColumn true -columnAttach "both" 1 "AncillariesFrontSeatsColumnC"`;		
+
+	// Spacer and Front Seats Titles.
+		separator -height 5 ;
+		text -bgc 1 1 .85 -height 5 -label "" ;	//Space
+		text -bgc 1 1 .85 -align "left" -label "  Front Seats:- Select number of Front Seats in use.\n  Then select the Front Seats." ;
+		text -bgc 1 1 .85 -height 5 -label "" ;	//Spacer
+		separator -height 5 -style "double";
+		text -height 5 -label "" ;	//Spacer
+	
+	setParent $Tab05;
+		
+	// Create a Non collapsible frame layout for Ancillaries FrontSeats Section.
+		string $AncillariesFrontSeatsFrame = `frameLayout -visible false -enable false -collapsable false -labelVisible false -label "  FrontSeats Opening Section Section"` ;
+		
+	// Define the layout of controls added to the Ancillaries FrontSeats Opening Section..
+		string $AncillariesFrontSeatsColumn = `columnLayout  -adjustableColumn true -columnAttach "both" 1 "AncillariesFrontSeatsColumn"`;		
+		text -height 2 -label"" ;  //Spacer
+			
+	// Row Setup for the Ancillaries FrontSeats Section.
+		
+	// Ancillaries FrontSeats Radio Button Group	
+		radioButtonGrp 	-columnAlign 1 "left" 
+				-columnWidth4 150 90 90 90
+				-numberOfRadioButtons 3 
+				-label " No. of Front Seats Option:-" 
+				-labelArray3 "One" "Two" "Three" 
+				-select 2 
+			AncillariesFrontSeatsRadioButtons;	
+				
+	// Spacer
+		separator -height 10 -style "single";
+		
+	// End of Ancillaries FrontSeats Radio Button Group	
+		
+	//	Start of FrontSeats Selection section
+		rowLayout -numberOfColumns 3  
+			-columnWidth 1 185 -columnAttach 1 "both" 1 -columnAlign 1 "right" 
+			-columnWidth 2 185 -columnAttach 2 "both" 1 -columnAlign 2 "center"  
+			-columnWidth 3 185 -columnAttach 3 "both" 1 -columnAlign 3 "left"  ;
+		
+	// Front Seat No. 1 Section	
+		rowColumnLayout -numberOfColumns 2 
+ 			-columnWidth 1 120 -columnAttach 1 "both" 1 -columnAlign 1 "center" 
+ 			-columnWidth 2 62 -columnAttach 2 "both" 1 -columnAlign 2 "center" ;
+			
+		textField -enable false  -text "" -editable true FrSeat01;
+		button -enable false  -bgc .5 1 .5 -label "Seat No.1"
+			-command "DVY_AddToLists(\"FrSeat01\", \"SelectedList\",41,4);"	
+		 FrSeatButton01;
+		
+	setParent..;
+	
+	// Front Seat No. 2 Section	
+		rowColumnLayout -numberOfColumns 2 
+ 			-columnWidth 1 120 -columnAttach 1 "both" 1 -columnAlign 1 "center" 
+ 			-columnWidth 2 62 -columnAttach 2 "both" 1 -columnAlign 2 "center"  ;
+			
+		textField -enable false  -text "" -editable true FrSeat02;
+		button -enable false  -bgc .5 1 .5 -label "Seat No.2"
+			-command "DVY_AddToLists(\"FrSeat02\", \"SelectedList\",42,4);"	
+		 FrSeatButton02;
+	
+	setParent..;
+	
+	// Front Seat No. 3 Section
+		rowColumnLayout -numberOfColumns 2 
+ 			-columnWidth 1 120 -columnAttach 1 "both" 1 -columnAlign 1 "center" 
+ 			-columnWidth 2 62 -columnAttach 2 "both" 1 -columnAlign 2 "center" ;
+	
+		textField -enable false  -text "" -editable true FrSeat03;
+		button -enable false  -bgc .5 1 .5 -label "Seat No.3"
+			-command "DVY_AddToLists(\"FrSeat03\", \"SelectedList\",43,4);"	
+		FrSeatButton03;
+					
+	// End of FrontSeats Selection Section
+		
+		text -height 2 -label"" ;  //Spacer
+			
+	//	End of FrontSeats/Bonnet Opening section		
+			
+	setParent $Tab05 ;
+
+//---------------------------------------------------------------------------------------------
+//
+//						End Of Front Seats Section
+//
+//---------------------------------------------------------------------------------------------
+		
+		
+	
+//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//	
+//						Start of Rear Seats Section
+//
+//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+		
+
+	// Create a collapsible frame layout for Ancillaries RearSeats Section Info.
+		string $AncillariesRearSeatsFrameC = `frameLayout -borderStyle "etchedOut" -label " Rear Seats Section" 
+											-labelVisible true -visible true -enable true
+											-collapsable true -collapse false` ;
+		
+	// Define the layout of controls added to the window.
+		string $AncillariesRearSeatsColumnC = `columnLayout -adjustableColumn true -columnAttach "both" 1 "AncillariesRearSeatsColumnC"`;		
+
+	// Spacer and Rear Seats Title
+		separator -height 5 ;
+		text -bgc 1 1 .85 -height 5 -label "" ;	//Space
+		text -bgc 1 1 .85 -align "left" -label "  RearSeats:- Select number of Rear Seats in use.\n  Then select the Rear Seats." ;
+		text -bgc 1 1 .85 -height 5 -label "" ;	//Spacer
+		separator -height 5 -style "double";
+		text -height 5 -label "" ;	//Spacer
+	
+	setParent $Tab05;
+
+	// Create a Non collapsible frame layout for Ancillaries RearSeats Opening Section.
+		string $AncillariesRearSeatsFrame = `frameLayout -visible false -enable false -collapsable false -labelVisible false -label "  RearSeats Opening Section Section"` ;
+		
+	// Define the layout of controls added to the Ancillaries RearSeats Opening Section..
+		string $AncillariesRearSeatsColumn = `columnLayout -adjustableColumn true -columnAttach "both" 1 "AncillariesRearSeatsColumn"`;		
+	
+		text -height 2 -label"" ;  //Spacer
+			
+	// Row Setup for the Ancillaries RearSeats Section.
+		
+	// Ancillaries RearSeats Radio Button Group	
+		radioButtonGrp 	-columnAlign 1 "left" 
+				-columnWidth4 150 90 90 90
+				-numberOfRadioButtons 3
+				-label " No. of Rear Seats Option:-" 
+				-labelArray3 "One" "Two" "Three" 
+				-select 2 
+			AncillariesRearSeatsRadioButtons;	
+				
+	// Spacer
+		separator -height 10 -style "single";
+		
+	// End of Ancillaries RearSeats Radio Button Group	
+		
+	//	Start of RearSeats Selection section
+		rowLayout -numberOfColumns 3  
+			-columnWidth 1 185 -columnAttach 1 "both" 1 -columnAlign 1 "right" 
+			-columnWidth 2 185 -columnAttach 2 "both" 1 -columnAlign 2 "center"  
+			-columnWidth 3 185 -columnAttach 3 "both" 1 -columnAlign 3 "left"  ;
+	// Rear Seat No. 1 Section	
+		rowColumnLayout -numberOfColumns 2 
+ 			-columnWidth 1 120 -columnAttach 1 "both" 1 -columnAlign 1 "center" 
+ 			-columnWidth 2 62 -columnAttach 2 "both" 1 -columnAlign 2 "center" ;
+			
+		textField -enable false  -text "" -editable true RrSeat01;
+		button -enable false  -bgc .5 1 .5 -label "Seat No.1"
+			-command "DVY_AddToLists(\"RrSeat01\", \"SelectedList\",44,4);"	
+		 RrSeatButton01;
+		
+	setParent..;
+	
+	// Rear Seat No. 2 Section	
+		rowColumnLayout -numberOfColumns 2 
+ 			-columnWidth 1 120 -columnAttach 1 "both" 1 -columnAlign 1 "center" 
+ 			-columnWidth 2 62 -columnAttach 2 "both" 1 -columnAlign 2 "center"  ;
+			
+		textField -enable false  -text "" -editable true RrSeat02;
+		button -enable false  -bgc .5 1 .5 -label "Seat No.2"
+			-command "DVY_AddToLists(\"RrSeat02\", \"SelectedList\",45,4);"	
+		 RrSeatButton02;
+	
+	setParent..;
+	
+	// Rear Seat No. 3 Section
+		rowColumnLayout -numberOfColumns 2 
+ 			-columnWidth 1 120 -columnAttach 1 "both" 1 -columnAlign 1 "center" 
+ 			-columnWidth 2 62 -columnAttach 2 "both" 1 -columnAlign 2 "center" ;
+	
+		textField -enable false  -text "" -editable true RrSeat03;
+		button -enable false  -bgc .5 1 .5 -label "Seat No.3"
+			-command "DVY_AddToLists(\"RrSeat03\", \"SelectedList\",46,4);"	
+		RrSeatButton03;
+					
+	// End of RearSeats Selection Section
+		
+		text -height 2 -label"" ;  //Spacer
+			
+	//	End of RearSeats/Bonnet Opening section		
+			
+	setParent $Tab05 ;
+
+//---------------------------------------------------------------------------------------------
+//
+//						End Of Rear Seats Setup Section
+//
+//---------------------------------------------------------------------------------------------
+
+		
+	
+//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//	
+//						Start of Rear Wipers Section
+//
+//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+		
+
+	// Create a collapsible frame layout for Ancillaries RearWipers Section Info.
+		string $AncillariesRearWipersFrameC = `frameLayout -borderStyle "etchedOut" -label " Rear Wipers Section" 
+											-labelVisible true -visible true -enable true
+											-collapsable true -collapse false` ;
+		
+	// Define the layout of controls added to the window.
+		string $AncillariesRearWipersColumnC = `columnLayout -adjustableColumn true -columnAttach "both" 1 "AncillariesRearWipersColumnC"`;		
+
+		
+	// Spacer and Rear Wipers Title
+		separator -height 5 ;
+		text -bgc 1 1 .85 -height 5 -label "" ;	//Space
+		text -bgc 1 1 .85 -align "left" -label "  RearWipers:- Select number of Rear Wipers in use.\n  Then select the Rear Wipers arm and the RearWiper Blades." ;
+		text -bgc 1 1 .85 -height 5 -label "" ;	//Spacer
+		separator -height 5 -style "double";
+		text -height 5 -label "" ;	//Spacer
+	
+	setParent $Tab05;
+
+	
+	// Create a Non collapsible frame layout for Ancillaries RearWipers Opening Section.
+		string $AncillariesRearWipersFrame = `frameLayout -visible false -enable false -collapsable false -labelVisible false -label "  RearWipers Opening Section Section"` ;
+		
+	// Define the layout of controls added to the Ancillaries RearWipers Opening Section..
+		string $AncillariesRearWipersColumn = `columnLayout -adjustableColumn true -columnAttach "both" 1 "AncillariesRearWipersColumn"`;		
+	
+		text -height 2 -label"" ;  //Spacer
+			
+	// Row Setup for the Ancillaries RearWipers Section.
+		
+	// Ancillaries RearWipers Radio Button Group	
+		radioButtonGrp 	-columnAlign 1 "left" 
+				-columnWidth4 150 90 90 90
+				-numberOfRadioButtons 3
+				-label " No. of Rear Wipers Option:-" 
+				-labelArray3 "One" "Two" "Three" 
+				-select 1 
+			AncillariesRearWipersRadioButtons;	
+				
+	// Spacer
+		separator -height 10 -style "single";
+		
+	// End of Ancillaries RearWipers Radio Button Group	
+		
+	//	Start of RearWipers Selection section
+		rowLayout -numberOfColumns 3  
+			-columnWidth 1 185 -columnAttach 1 "both" 1 -columnAlign 1 "right" 
+			-columnWidth 2 185 -columnAttach 2 "both" 1 -columnAlign 2 "center"  
+			-columnWidth 3 185 -columnAttach 3 "both" 1 -columnAlign 3 "left"  ;
+		
+	// Rear Wiper No. 1 Section	
+		rowColumnLayout -numberOfColumns 2 
+ 			-columnWidth 1 120 -columnAttach 1 "both" 1 -columnAlign 1 "center" 
+ 			-columnWidth 2 62 -columnAttach 2 "both" 1 -columnAlign 2 "center" ;
+			
+		textField -enable false  -text "" -editable true RrWiperArm01;
+		button -enable false  -bgc .5 1 .5 -label "Arm No.1"
+			-command "DVY_AddToLists(\"RrWiperArm01\", \"SelectedList\",47,4);"	
+		 RrWiperArmButton01;
+		
+	setParent..;
+	
+	// Rear Wiper No. 2 Section	
+		rowColumnLayout -numberOfColumns 2 
+ 			-columnWidth 1 120 -columnAttach 1 "both" 1 -columnAlign 1 "center" 
+ 			-columnWidth 2 62 -columnAttach 2 "both" 1 -columnAlign 2 "center"  ;
+			
+		textField -enable false  -text "" -editable true RrWiperArm02;
+		button -enable false  -bgc .5 1 .5 -label "Arm No.2"
+			-command "DVY_AddToLists(\"RrWiperArm02\", \"SelectedList\",48,4);"	
+		 RrWiperArmButton02;
+	
+	setParent..;
+	
+	// Rear Wiper No. 3 Section
+		rowColumnLayout -numberOfColumns 2 
+ 			-columnWidth 1 120 -columnAttach 1 "both" 1 -columnAlign 1 "center" 
+ 			-columnWidth 2 62 -columnAttach 2 "both" 1 -columnAlign 2 "center" ;
+	
+		textField -enable false  -text "" -editable true RrWiperArm03;
+		button -enable false  -bgc .5 1 .5 -label "Arm No.3"
+			-command "DVY_AddToLists(\"RrWiperArm03\", \"SelectedList\",49,4);"	
+		RrWiperArmButton03;
+					
+					
+	// End of RearWipers Selection Section
+		
+		text -height 2 -label"" ;  //Spacer
+			
+	//	End of RearWipers/Bonnet Opening section		
+			
+	setParent $Tab05 ;
+
+//---------------------------------------------------------------------------------------------
+//
+//						End Of Rear Wipers Setup Section
+//
+//---------------------------------------------------------------------------------------------
+
+	setParent $Tab05 ;
+	
+	//End of Ancillaries Tab.
+			
+	setParent $Tabs ;
+
+//-------------------------------------------------------------------------------------
+//	
+//							End of Ancillaries Tab
+//
+//-------------------------------------------------------------------------------------	
+	
+	
+		
+		
+		setParent $Tabs;	
+	setParent $RigPaneLayout;
+	
+//***********************************************************************************	
+// 	Section for Main Buttons.
+	
+	columnLayout -cat "both" 2 -cal "center" -adjustableColumn true "ButtonsPanel:";
+		
+		separator -h 5 -style "double";
+		
+//***********************************************************************************	
+// 	Rig Vehicle
+		
+	rowColumnLayout -nc 3 -cw 1 100 -cw 2 100 -cw 3 410
+			-cat 1 "both" 5 -cal 1 "center"
+			-cat 2 "both" 5 -cal 2 "center"
+			-cat 3 "both" 5 -cal 3 "center"
+		"VehicleBody4";	
+		text -height 5 -label " "; text -height 5 -label " "; text -height 5 -label " ";
+		button -enable false -height 25 -bgc 0.7 1.0 0.7 -label "Save Settings" -command ""
+				Vehicle_SaveButton;	
+		button -enable false -height 25 -bgc 1.0 1.0 0.7 -label "Load Settings" -command ""
+				Vehicle_LoadButton;	
+		button -height 25 -bgc 0.7 0.7 1 -label "Rig Vehicle (after setting hinges etc. (if required)" -command "DVY_RigVehicle($GroupV_A, $DVYdata);"
+				Vehicle_Builder;	
+		text -height 5 -label " "; text -height 5 -label " "; text -height 5 -label " ";
+		
+	setParent..;	
+	
+//***********************************************************************************	
+// 	Rig	Wheels to Ground Plane
+	
+	rowColumnLayout -nc 1 -cw 1 610 -cat 1 "both" 5 -cal 1 "center" "VehicleRig";	
+
+		separator -h 10 -style "double";
+		text -height 5 -label " ";
+		text -height 30 -bgc 1 0.85 0.85 -align "left" 
+			-label " To setup Auto wheel control to the Ground generate an object named GroundPlane. Once constructed ensure rig is at default\n position, press button and script will set up ground control. See help file for more info:";
+		separator -h 5 -style "double";
+
+	setParent..;
+	
+	rowColumnLayout -nc 1 -cw 1 610 -cat 1 "both" 50 -cal 1 "center" "VehicleRigButton";	
+
+		button -height 25 -bgc 1 0.5 0.5  -label "Rig Wheels to Ground Plane" -command "DVY_FloorRig;"
+				Floor_Rig;	
+		text -height 5 " ";
+		
+	setParent..;	
+//***********************************************************************************	
+//	Rig Controller to Motion Path
+	
+	rowColumnLayout -nc 1 -cw 1 610 -cat 1 "both" 5 -cal 1 "center" "VehiclePath";	
+
+		separator -h 5 -style "double";
+		text -height 5 -label " ";
+		text -height 30 -bgc 0.85 1 0.85 -align "left" 
+			-label " To setup Vehicle to Motion Path. Select Rig_Controller and Motion Path. This will set up and parent a locator under the\n Vehicle Top Node and constrain Rig Controls. See help file for more info:";
+		separator -h 5 -style "double";
+
+	setParent..;
+	
+	rowColumnLayout -nc 1 -cw 1 610 -cat 1 "both" 50 -cal 1 "center" "VehiclePathButton";	
+
+		button -height 25 -bgc 0.5 1 0.5  -label "Attach Vehicle to Motion Path" -command "DVY_MotionPath;"
+				D_Motion_Path;	
+		text -height 5 " ";
+
+	setParent..;		
+//***********************************************************************************	
+//	Show the Vehicle Rigger window.
+	
+	showWindow DVY_VehicleRigWindow;
+}

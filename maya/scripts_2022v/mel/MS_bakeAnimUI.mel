@@ -1,0 +1,298 @@
+global proc int[] MS_bakeAnim_selectTime(){
+	/*
+	タイムスライダーから時間を取得
+	
+	スライダーで範囲選択がある場合はその範囲内を
+	そうでない場合は現在のタイムスライダーの範囲を返す
+	
+	*/
+	//グローバル宣言しないとプロシージャ内でタイムスライダーを特定できない。
+	global string $gPlayBackSlider;
+	
+	string $buf[];
+	
+	string $tc=`timeControl -q -rng -gt $gPlayBackSlider`;
+	
+	tokenize $tc ":\"" $buf;
+	
+	int $st=$buf[0];
+	int $ed=$buf[1];
+	if(($ed-$st)<=1){
+		$st=`playbackOptions -q -min`;
+		$ed=`playbackOptions -q -max`;
+	}
+	return {$st,$ed};
+}
+
+global proc float[] MS_bakeAnim_globalScale(string $source){
+	print ($source+"\n");
+	string $attr[]={"sx","sy","sz"};
+	string $obj[]=`ls -l $source`;
+	string $list[];
+	float $ret[];
+	tokenize ($obj[0],"|",$list);
+
+	$i=0;
+	for($eachAttr in $attr){
+		float $val=1.0;
+		string $longName="";//フルパス作成のため
+		for($each in $list){
+			$longName=($longName+"|"+$each);
+			print ($longName+"."+$eachAttr+"\n");
+			$val=$val*`getAttr ($longName+"."+$eachAttr)`;
+		}
+		$ret[$i]=$val;
+		$i++;
+	}
+	return $ret;
+}
+
+global proc MS_bakeSimulation(){
+	int $tm[]=`MS_bakeAnim_selectTime`;
+	string $objs[]=`ls -sl`;
+	
+	string $values[]=`channelBox -q -sma mainChannelBox`;
+	string $values2[]=`channelBox -q -ssa mainChannelBox`;
+	
+	string $option="bakeResults ";
+	
+	for($each in $values){
+		$option=$option+"-at \""+$each+"\" ";
+	}
+	for($each in $values2){
+		$option=$option+"-at \""+$each+"\" ";
+	}
+	
+	$option =$option+"-sm 1 ";
+	$option =$option+"-t \""+$tm[0]+":"+$tm[1]+"\" ";
+	$option =$option+"-sb 1 -dic 1 ";
+	$option =$option+"-pok 1 -sac 0 ";
+	$option =$option+"-cp 0 -s 1 ";
+	$option =$option+(stringArrayToString ($objs," "))+";";
+		print $option;
+	eval $option;
+	
+	
+}
+
+global proc MS_copyAnim(string $source,string $dist){
+
+	string $sourceArray[]=stringToStringArray($source,"<>");
+	string $distArray[]=stringToStringArray($dist,"<>");
+	
+	if(size($sourceArray)!=size($distArray)){
+		confirmDialog -t "Error!" -m "source to dist no kazuga chigauyo!\nonasi kazuno object wo erandene."-b Continue;
+	}else{
+		$i=0;
+		for($each in $sourceArray){
+			if(`copyKey -t ":" -f ":" -at "tx" $each`)
+				pasteKey -connect true -time 0 -at "rx" $distArray[$i];
+			if(`copyKey -t ":" -f ":" -at "ty" $each`)
+				pasteKey -connect true -time 0 -at "ry" $distArray[$i];
+			if(`copyKey -t ":" -f ":" -at "tz" $each`)
+				pasteKey -connect true -time 0 -at "rz" $distArray[$i];
+			
+			if(`copyKey -t ":" -f ":" -at "rx" $each`)
+				pasteKey -connect true -time 0 -at "rx" $distArray[$i];
+			if(`copyKey -t ":" -f ":" -at "ry" $each`)
+				pasteKey -connect true -time 0 -at "ry" $distArray[$i];
+			if(`copyKey -t ":" -f ":" -at "rz" $each`)
+				pasteKey -connect true -time 0 -at "rz" $distArray[$i];
+			
+			if(`copyKey -t ":" -f ":" -at "sx" $each`)
+				pasteKey -connect true -time 0 -at "sx" $distArray[$i];
+			if(`copyKey -t ":" -f ":" -at "sy" $each`)
+				pasteKey -connect true -time 0 -at "sy" $distArray[$i];
+			if(`copyKey -t ":" -f ":" -at "sz" $each`)
+				pasteKey -connect true -time 0 -at "sz" $distArray[$i];
+			$i++;
+		}
+	}
+}
+
+global proc MS_copyAnim_pipe(){
+	string $temp=`textFieldGrp -q -tx SourceName`;
+	string $tempb=`textFieldGrp -q -tx DistName`;
+	MS_copyAnim $temp $tempb;
+}
+
+global proc MS_bakeAnim_createDummy(int $strtm,int $endtm,string $source){
+	//getAttr(create Option)
+	string $option;
+	string $values[]=`channelBox -q -sma mainChannelBox`;
+	string $values2[]=`channelBox -q -ssa mainChannelBox`;
+	string $attr[]=`stringArrayCatenate $values $values2`;
+	if (size($attr)){
+		for($each in $attr){
+			$option=$option+("-at "+$each+" ");
+		}
+	}else{
+		$option="-at tx -at ty -at tz -at rx -at ry -at rz -at sx -at sy -at sz ";
+	}
+	
+	//getObjects
+	string $sourceArray[]=stringToStringArray($source,"<>");
+	string $dummyLoc[];
+	$k=0;
+	for($dummy in $sourceArray){
+		string $temp[]=`spaceLocator`;
+		$dummyLoc[$k]=$temp[0];
+		$k++;
+	}
+	
+	//core
+	for($i=$strtm;$i<=$endtm;$i++){
+		currentTime $i;
+		
+		int $j=0;
+		for($each in $sourceArray){
+			
+			string $expVertex[]=`filterExpand -sm 31 $each`;
+			if (size($expVertex)){
+				float $loc[]=`xform -q -ws -t $each`;
+				xform -ws -t $loc[0] $loc[1] $loc[2] $dummyLoc[$j];
+				setKeyframe -at tx -at ty -at tz $dummyLoc[$j];
+			}else{
+				string $shape[]=`listRelatives -typ shape $each`;
+				float $loc[]=`xform -q -ws -piv $each`;
+				float $rot[]=`xform -q -ws -ro $each`;
+				float $scl[]=`MS_bakeAnim_globalScale $each`;
+				xform -ws -t $loc[0] $loc[1] $loc[2] $dummyLoc[$j];
+				xform -ws -ro $rot[0] $rot[1] $rot[2] $dummyLoc[$j];
+				xform -ws -s $scl[0] $scl[1] $scl[2] $dummyLoc[$j];
+				
+				eval("setKeyframe "+$option+$dummyLoc[$j]);
+				//setKeyframe -at tx -at ty -at tz -at rx -at ry -at rz -at sx -at sy -at sz $dummyLoc[$j];
+			}
+			$j++;
+		}
+		
+	}
+	$i=0;
+	for($eachdummy in $dummyLoc){
+		//rename $eachdummy "MS_bakeAnim_createDummy1";
+		string $nameOptimized[];
+		string $temp=$sourceArray[$i];
+		tokenize($temp,"|:",$nameOptimized);
+		rename $eachdummy ("Dummy_"+$nameOptimized[size($nameOptimized)-1]);
+		$i++;
+	}
+}
+
+global proc MS_bakeAnim(int $strtm,int $endtm,string $sourceArray[],string $distArray[]){
+	//string $sourceArray[]=stringToStringArray($source,"<>");
+	//string $distArray[]=stringToStringArray($dist,"<>");
+	
+	if(size($sourceArray)!=size($distArray)){
+		confirmDialog -t "Error!" -m "source to dist no kazuga chigauyo!\nonasi kazuno object wo erandene."-b Continue;
+	}else{
+
+		for($i=$strtm;$i<=$endtm;$i++){
+			currentTime $i;
+			int $j=0;
+			for($each in $sourceArray){
+			string $shape[]=`listRelatives -typ shape $each`;
+			float $loc[]=`xform -q -ws -piv $each`;
+			float $rot[]=`xform -q -ws -ro $each`;
+			print $each;
+			float $scl[]=`MS_bakeAnim_globalScale $each`;
+			xform -ws -t $loc[0] $loc[1] $loc[2] $distArray[$j];
+			xform -ws -ro $rot[0] $rot[1] $rot[2] $distArray[$j];
+			xform -ws -s $scl[0] $scl[1] $scl[2] $distArray[$j];
+			setKeyframe -at tx -at ty -at tz -at rx -at ry -at rz -at sx -at sy -at sz $distArray[$j];
+			$j++;
+			}
+		}
+	}
+}
+
+global proc MS_bakeAnim_pipe(){
+	int $tm[]=`MS_bakeAnim_selectTime`;
+	string $source=`textFieldGrp -q -tx SourceName`;
+	string $dist=`textFieldGrp -q -tx DistName`;
+	string $sourceArray[]=stringToStringArray($source,"<>");
+	string $distArray[]=stringToStringArray($dist,"<>");	
+	MS_bakeAnim $tm[0] $tm[1] $sourceArray $distArray;
+	
+}
+
+global proc MS_bakeAnim_createDummy_pipe(){
+
+	int $tm[]=`MS_bakeAnim_selectTime`;
+	
+	string $temp=`textFieldGrp -q -tx SourceName`;
+	MS_bakeAnim_createDummy $tm[0] $tm[1] $temp;
+	
+}
+
+
+global proc MS_bakeAnim_takeSource(){
+	string $obj[];
+	string $checkComponent[]=`filterExpand -sm 31`;
+	if(!size($checkComponent)){
+		$obj=`ls -l -sl`;
+	}else{
+		$obj=`filterExpand -sm 31`;
+	}
+	$list=stringArrayToString($obj,"<>");
+	textFieldGrp -e -tx $list SourceName;
+}
+
+
+global proc MS_bakeAnim_takeDist(){
+	string $obj[];
+	string $checkComponent[]=`filterExpand -sm 31`;
+	if(!size($checkComponent)){
+		$obj=`ls -l -sl`;
+	}else{
+		$obj=`filterExpand -sm 31`;
+	}
+	$list=stringArrayToString($obj,"<>");
+	textFieldGrp -e -tx $list DistName;
+}
+
+
+global proc MS_bakeAnimUI(){
+	if(`window -exists MS_bakeAnim`){deleteUI "MS_bakeAnim";}
+	window -t MS_bakeAnim MS_bakeAnim;
+	
+	columnLayout;
+	frameLayout -w 200 -cll 1 -cl 1 -l "help";
+	columnLayout;
+	text -rs 1 -l "1:select SourceObj and \n press [takeSource]button.";
+	text -l "2:select DistObj and \n press [takeDist]button.";
+	text -l "3:select Attribute from \n channelBox.";
+	text -l "   if select nothing when \n bake attribute to [trans][rot][scal].";
+	text -l "4:go.";
+	setParent ..;
+	setParent ..;
+	textFieldGrp -en 1 -w 200  "SourceName";
+	button -bgc 0.8 0.8 1.0 -w 100 -l "take Source" -c "MS_bakeAnim_takeSource";
+	
+	textFieldGrp -en 1 -w 200  "DistName";
+	
+	button -bgc 0.8 1.0 0.8 -w 100 -l "take Dist" -c "MS_bakeAnim_takeDist";
+	
+	separator -w 1000 -h 20;
+	
+	button -bgc 1.0 0.8 0.8 -w 100-l "MS_bakeAnim" -c "MS_bakeAnim_pipe" "exec";
+	
+	separator -w 1000 -h 20;
+	
+	button -bgc 1.0 0.8 1.0 -w 100-l "MS_bakeSimulation" -c "MS_bakeSimulation" "MS_bakeSimulation";
+	
+	separator -w 1000 -h 20;
+	
+	button -bgc 1.0 1.0 0.8 -w 100-l "createDummy" -c "MS_bakeAnim_createDummy_pipe" "dummy";
+	
+	separator -w 1000 -h 20;
+	
+	button -bgc 0.8 1.0 1.0 -w 100-l "copyAnim" -c "MS_copyAnim_pipe" "copyAnim";
+	
+	showWindow MS_bakeAnim;
+	
+}
+
+
+
+

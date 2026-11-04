@@ -1,0 +1,51 @@
+//頂点数で選択オブジェクトを振り分け。
+//最小値と最大値を設定して、その範囲内にあるオブジェクトのリストのみを返す。
+
+global proc string[] MS_vertexcountFiltering(int $min,int $max){
+	string $obj[]=`ls -sl`;
+	string $newobj[];
+	for($each in $obj){
+		int $num[]=`polyEvaluate -v $each`;
+		if($num[0]>=$min && $num[0]<=$max){
+			$newobj=stringArrayCatenate ($newobj,{$each});
+		}
+	}
+	return $newobj;
+}
+
+global proc MS_vertexcountFiltering_command(){
+	string $filtering[]=MS_vertexcountFiltering(`intField -q -v minField`,`intField -q -v maxField`);
+	select -r $filtering;
+}
+
+//  Name: uiDesigner2006
+//Modify: Leson lai
+//   Msn: TNTII1981@hotmail.com
+//Thanks for original uiDesigner.
+global proc MS_vertexcountFiltering()
+{
+if(`window -q -ex MyTools_MS_vertexcountFiltering`)deleteUI MyTools_MS_vertexcountFiltering;
+window MyTools_MS_vertexcountFiltering;
+formLayout myUIFormLayout;
+//--DataPart--//
+button -label "filtering" -command "MS_vertexcountFiltering_command;" "button4" ;//Data//
+intField -minValue 1 -v 1000 "maxField" ;//Data//
+intField -minValue 1 -v 1 "minField" ;//Data//
+text -label "max" "text7" ;//Data//
+text -label "min" "text6" ;//Data//
+formLayout -e
+	-af "button4" "left" 64//Data//
+	-af "button4" "top" 112//Data//
+	-af "maxField" "left" 64//Data//
+	-af "maxField" "top" 64//Data//
+	-af "minField" "left" 64//Data//
+	-af "minField" "top" 32//Data//
+	-af "text7" "left" 16//Data//
+	-af "text7" "top" 64//Data//
+	-af "text6" "left" 16//Data//
+	-af "text6" "top" 32//Data//
+//--DataPart--//
+myUIFormLayout;
+showWindow MyTools_MS_vertexcountFiltering;
+}
+//MS_vertexcountFiltering;

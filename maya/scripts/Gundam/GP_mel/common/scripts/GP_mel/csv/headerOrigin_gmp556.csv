@@ -1,0 +1,16 @@
+#ifdef GR_FILE_LINKED
+
+GR_FILE_LINKED( _basepose )
+GR_FILE_LINKED( motion_c100_gmp556_pg_boostslash_00_start )
+GR_FILE_LINKED( motion_c100_gmp556_pg_boostslash_01_dash )
+GR_FILE_LINKED( motion_c100_gmp556_pg_boostslash_02_slash1start )
+GR_FILE_LINKED( motion_c100_gmp556_pg_boostslash_03_slash1back )
+GR_FILE_LINKED( motion_c100_gmp556_pg_boostslash_04_slash2start )
+GR_FILE_LINKED( motion_c100_gmp556_pg_boostslash_05_slash2back )
+GR_FILE_LINKED( motion_c100_gmp556_pg_boostslash_06_slash3start )
+GR_FILE_LINKED( motion_c100_gmp556_pg_boostslash_07_slash3back )
+GR_FILE_LINKED( motion_c100_gmp556_pg_boostslash_08_slash4start )
+GR_FILE_LINKED( motion_c100_gmp556_pg_boostslash_09_slash4back )
+
+#undef GR_FILE_LINKED
+#endif // GR_FILE_LINKED

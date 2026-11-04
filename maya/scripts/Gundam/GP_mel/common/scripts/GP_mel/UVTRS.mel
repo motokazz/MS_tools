@@ -1,0 +1,213 @@
+//UVTRS ver1.0
+
+//made by Takahiro Nakajima
+//nkj@lib.net
+
+//概要：UV編集ユーティリティです。
+//MayaのUVエディタでUV頂点を選択しておいて使用します。
+
+
+
+//You can use this script with your own risk.
+
+global proc UVTRS()
+{
+//ダミー
+}
+
+//--------------------------------------------------------
+global proc string pickComponentType(string$componentName)
+{
+//This returns $componentName's component type.
+
+string $listA[];
+$wordNum = `tokenize $componentName "." $listA`;
+string $typeWithNum = $listA[$wordNum - 1];
+
+string $listB[];
+$wordNum = `tokenize $typeWithNum "[" $listB`;
+string $type = $listB[0];
+
+return $type;
+}
+//--------------------------------------------------------
+global proc uvMoveAsValue(float$value,int$type)
+{
+//This moves selected UV vertex or faces in UV Texture Editor as $value.
+//If $type=0, the UV vertices are moved along U axis.
+//If $type=1, the UV vertices are moved along V axis.
+
+	if($type==0)
+	{
+	polyEditUV -u $value;
+	}
+	if($type==1)
+	{
+	polyEditUV -v $value;
+	}
+}
+//--------------------------------------------------------
+global proc uvMoveAsPixelValue(float$value,int$type,int$resolution)
+{
+//This moves selected UV vertex or faces in UV Texture Editor as $value.
+//$value is the number of pixels and $resolution is the size of texture.
+//If $type=0, the UV vertices are moved along U axis.
+//If $type=1, the UV vertices are moved along V axis.
+
+	if($resolution!=0)
+	{
+	$resoFloat = (float)$resolution;
+	float $distance = $value / $resoFloat;
+		if($type==0)
+		{
+		polyEditUV -u $distance;
+		}
+		if($type==1)
+		{
+		polyEditUV -v $distance;
+		}
+	}
+}
+//--------------------------------------------------------
+global proc uvRotateAsValue(float$value,int$type)
+{
+//This rotates selected UV vertex or faces in UV Texture Editor as $value.
+//If $type=other than 1, the UV vertices are rotated around 0,0 of UV Texture Editor.
+//If $type=1, the UV vertices are rotated around the center of selection region.
+
+string $sel[] = `ls -sl`;
+string $componentType = `pickComponentType $sel[0]`;
+	if($componentType=="map")
+	{
+	float $ctrU = 0.0;
+	float $ctrV = 0.0;
+		if($type == 1)
+		{
+		float $bbList[] = `polyEvaluate -bc2`;
+		$ctrU = (($bbList[0] + $bbList[1]) / 2);
+		$ctrV = (($bbList[2] + $bbList[3]) / 2);	
+		}
+	polyEditUV -pu $ctrU -pv $ctrV -a $value;
+	}
+}
+//--------------------------------------------------------
+global proc uvScaleAsValue(float$value,int$type,int$direction)
+{
+//This scales selected UV vertex or faces in UV Texture Editor as $value.
+//If $type=other than 1, the UV vertices are scaled centering around 0,0 of UV Texture Editor.
+//If $type=1, the UV vertices are scaled centering around the center of selection region.
+//If $direction = 0, this scales UVs along U.
+//If $direction = 1, this scales UVs along V.
+
+string $sel[] = `ls -sl`;
+string $componentType = `pickComponentType $sel[0]`;
+	if($componentType=="map")
+	{
+	float $ctrU = 0.0;
+	float $ctrV = 0.0;
+		if($type == 1)
+		{
+		float $bbList[] = `polyEvaluate -bc2`;
+		$ctrU = (($bbList[0] + $bbList[1]) / 2);
+		$ctrV = (($bbList[2] + $bbList[3]) / 2);	
+		}
+		if($direction==0)
+		{
+		polyEditUV -pu $ctrU -pv $ctrV -su $value;
+		}
+		else if($direction==1)
+		{
+		polyEditUV -pu $ctrU -pv $ctrV -sv $value;
+		}
+	}
+}
+//--------------------------------------------------------
+global proc UVTRSex(int$TRStype,int$type,int$negative,int$direction)
+{
+//executer for UVTRS.
+
+float$value;
+
+int$direction;
+int$resolution = `intField -q -v UVTRSObject|layout|texSize`;
+float $multiplyNum = 1.0;
+	if($negative==1)
+	{
+	$multiplyNum = (-1.0);
+	}
+
+	if($TRStype==0)
+	{
+	$value = `floatField -q -v UVTRSObject|layout|moveValue`;
+	$value = $value * $multiplyNum;
+	int $switch = `checkBox -q -v UVTRSObject|layout|pixelMove`;
+		if($switch==0)
+		{
+		uvMoveAsValue $value $type;
+		}
+		else if($switch==1)
+		{
+		uvMoveAsPixelValue $value $type $resolution;
+		}
+	}
+	else if($TRStype==1)
+	{
+	$value = `floatField -q -v UVTRSObject|layout|rotateValue`;
+	uvRotateAsValue $value $type;
+	}
+	else if($TRStype==2)
+	{
+	$value = `floatField -q -v UVTRSObject|layout|scaleValue`;
+	uvScaleAsValue $value $type $direction;
+	}
+
+}
+//-------------------------------------
+//Make a window.
+{
+string $title = "UVTRS";
+string $object = "UVTRSObject";
+	if(`window -ex $object` == 1)
+	{
+	deleteUI $object;
+	}
+
+window -t $title $object;
+columnLayout -p $object "layout";
+//-----
+text -l "UVTRS ver1.0";
+separator -w 90;
+//-----
+text -l "[Move]";
+text -l "distance:";
+floatField -v 0.0 moveValue;
+checkBox -v 0 -l "pixel step" pixelMove;
+text -l "pixel step tex size:";
+intField -v 512 texSize;
+button -w 90 -c "UVTRSex 0 1 0 0" -l "Up";
+button -w 90 -c "UVTRSex 0 1 1 0" -l "Down";
+button -w 90 -c "UVTRSex 0 0 0 0" -l "Right";
+button -w 90 -c "UVTRSex 0 0 1 0" -l "Left";
+separator -w 90;
+//-----
+text -l "[Rotate]";
+floatField -v 90.0 rotateValue;
+button -w 90 -c "UVTRSex 1 0 0 0" -l "World";
+button -w 90 -c "UVTRSex 1 1 0 0" -l "Local";
+separator -w 90;
+//-----
+text -l "[Scale]";
+floatField -v 1.0 scaleValue;
+button -w 90 -c "UVTRSex 2 0 0 0" -l "World U";
+button -w 90 -c "UVTRSex 2 0 0 1" -l "World V";
+button -w 90 -c "UVTRSex 2 1 0 0" -l "Local U";
+button -w 90 -c "UVTRSex 2 1 0 1" -l "Local V";
+separator -w 90;
+
+
+window -e -w 90 -h 470 $object;
+showWindow $object;
+}
+//-------------------------------------
+
+//The end of the script.

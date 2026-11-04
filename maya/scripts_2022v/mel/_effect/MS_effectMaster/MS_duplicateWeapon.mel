@@ -1,0 +1,55 @@
+global proc MS_duplicateWeapon(string $target[],float $offsetValue){
+	
+	vector $loc=`MS_ditectCenter 1`;
+	
+//選択ポリゴンの複製を作成
+	string $dup[]=`MS_duplicateFace`;
+	select -r $dup;
+	PolySelectConvert 3;
+	
+	int $vertexs[]=`polyEvaluate -v`;
+	string $newOptions;
+	for($i=0;$i<$vertexs[0];$i++){
+		$newOptions=($newOptions+"-n "+$offsetValue);
+	}
+	eval ("moveVertexAlongDirection "+$newOptions);
+	
+	
+	
+//ロケーター作成＆親子関係
+	string $newLoc[]=`spaceLocator`;
+	MS_constraint (1,"",0,1,0,0,0,0,0,0,$target,$newLoc);
+	
+	editDisplayLayerMembers "defaultLayer" $dup;
+	
+	select -r $dup;
+	
+	//アトリビュートアンロック
+	for ($each in $dup){
+		string $lockedAttr[]=`listAttr -l $each`;
+		for($eachAttr in $lockedAttr){
+			setAttr -l false ($each+"."+$eachAttr);
+		}
+	}
+	
+	/*
+	select -r $dup;
+	
+	PolySelectConvert 3;
+	
+	vector $loc=`MS_ditectCenter 0`;
+	
+	string $targetLoc[]=`spaceLocator`;
+	
+	xform -ws -t ($loc.x) ($loc.y) ($loc.z) $targetLoc[0];
+	*/
+	
+	parent $dup $newLoc[0] ;
+	
+	rename $dup "MS_duplicateWeapon_mesh";
+	rename $newLoc[0]  "MS_duplicateWeapon";
+	//delete $targetLoc;
+	
+}
+
+

@@ -1,0 +1,62 @@
+#----------------------------------------------------------------------------------
+#UTF-8形式で保存してください
+#boolean(真偽値)のデフォルトはfalseです
+#記述者の名前が無いテスト用らしき記述は最適化の為削除する事があります
+#----------------------------------------------------------------------------------
+
+#----------------------------------------------------------------------------------
+#世界の柱 co_a 落合
+co_a_root:
+  root:     true
+  occluder: "co_a_root_occ"
+
+co_a_01:
+  occluder: "co_a_01_occ"
+  low:      "co_a_01_low"
+co_a_02:
+  occluder: "co_a_02_occ"
+  low:      "co_a_02_low"
+co_a_03:
+  occluder: "co_a_03_occ"
+  low:      "co_a_03_low"
+co_a_04:
+  occluder: "co_a_04_occ"
+  low:      "co_a_04_low"
+co_a_05:
+  occluder: "co_a_05_occ"
+  low:      "co_a_05_low"
+co_a_06:
+  occluder: "co_a_06_occ"
+  low:      "co_a_06_low"
+co_a_07:
+  occluder: "co_a_07_occ"
+  low:      "co_a_07_low"
+co_a_08:
+  occluder: "co_a_08_occ"
+  low:      "co_a_08_low"
+co_a_09:
+  occluder: "co_a_09_occ"
+  low:      "co_a_09_low"
+co_a_10:
+  occluder: "co_a_10_occ"
+  low:      "co_a_10_low"
+co_a_11:
+  occluder: "co_a_11_occ"
+  low:      "co_a_11_low"
+co_a_12:
+  occluder: "co_a_12_occ"
+  low:      "co_a_12_low"
+  
+#----------------------------------------------------------------------------------
+#世界の柱 co_b 落合
+co_b_root:
+  root:     true
+
+co_wallset_oc_01:
+  low:      "co_wallset_oc_01_low"
+  part:     true
+
+co_wall_oc_05:
+  low:      "co_wall_oc_05_low"
+  part:     true
+

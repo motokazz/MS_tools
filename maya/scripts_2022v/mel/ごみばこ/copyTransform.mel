@@ -1,0 +1,25 @@
+global proc copyTransform(string $source,string $dist){
+
+	float $tx,$ty,$tz,$rx,$ry,$rz,$sx,$sy,$sz;
+
+	$tx =	getAttr ($dist + ".tx");
+		setAttr ($source+ ".tx") $tx;
+	$ty =	getAttr ($dist + ".ty");
+		setAttr ($source+ ".ty") $ty;
+	$tz =	getAttr ($dist + ".tz");
+		setAttr ($source+ ".tz") $tz;
+
+	$rx =	getAttr ($dist + ".rx");
+		setAttr ($source+ ".rx") $rx ;
+	$ry =	getAttr ($dist + ".ry");
+		setAttr ($source+ ".ry") $ry;
+	$rz =	getAttr ($dist + ".rz");
+		setAttr ($source+ ".rz") $rz;
+
+	$sx =	getAttr ($dist + ".sx");
+		setAttr ($source+ ".sx") $sx;
+	$sy =	getAttr ($dist + ".sy");
+		setAttr ($source+ ".sy") $sy;
+	$sz =	getAttr ($dist + ".sz");
+		setAttr ($source+ ".sz") $sz ;
+}

@@ -1,0 +1,24 @@
+uDlg = new Window("dialog","ms_UICreator",[100,100,356,356]);
+uDlg.panel0 = uDlg.add("panel",[6,1,251,246],"mainPanel");
+uDlg.panel1 = uDlg.add("panel",[14,65,243,126],"BaseSetting");
+uDlg.panel2 = uDlg.add("panel",[14,129,243,190],"FrameSetting");
+uDlg.panel3 = uDlg.add("panel",[14,17,243,62],"SourceFolder");
+uDlg.panel0.button0 = uDlg.panel0.add("button",[7,191,231,223], "ContactSheet");
+uDlg.panel1.edittext0 = uDlg.panel1.add("edittext",[167,31,215,47], "256");
+uDlg.panel1.edittext1 = uDlg.panel1.add("edittext",[103,31,151,47], "256");
+uDlg.panel1.statictext0=uDlg.panel1.add("statictext",[156,34,170,44], "H");
+uDlg.panel1.statictext1=uDlg.panel1.add("statictext",[91,34,107,44], "W");
+uDlg.panel1.statictext2=uDlg.panel1.add("statictext",[14,34,65,44], "Pattorn");
+uDlg.panel1.edittext2 = uDlg.panel1.add("edittext",[167,11,215,27], "2048");
+uDlg.panel1.edittext3 = uDlg.panel1.add("edittext",[103,11,151,27], "2048");
+uDlg.panel1.statictext3=uDlg.panel1.add("statictext",[14,14,77,24], "NewCanvas");
+uDlg.panel1.statictext4=uDlg.panel1.add("statictext",[156,14,170,24], "H");
+uDlg.panel1.statictext5=uDlg.panel1.add("statictext",[91,14,107,24], "W");
+uDlg.panel2.edittext4 = uDlg.panel2.add("edittext",[103,31,151,47], "1");
+uDlg.panel2.statictext6=uDlg.panel2.add("statictext",[14,31,77,43], "FrameSkip");
+uDlg.panel2.edittext5 = uDlg.panel2.add("edittext",[103,13,151,29], "0");
+uDlg.panel2.statictext7=uDlg.panel2.add("statictext",[14,14,83,24], "StartFrame");
+uDlg.panel3.button1 = uDlg.panel3.add("button",[191,7,215,31], "e");
+uDlg.panel3.edittext6 = uDlg.panel3.add("edittext",[7,7,183,31], "EditText");
+
+uDlg.show();

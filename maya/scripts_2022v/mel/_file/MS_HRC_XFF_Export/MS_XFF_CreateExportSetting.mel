@@ -1,0 +1,80 @@
+global proc MS_XFF_CreateExportSetting()
+{
+	string $exportSettingNodes[] = `ls -type transform XFF_EXPORT_SETTING`;
+	string $newNodeName="XFF_EXPORT_SETTING";
+	/* 見えないエクスポート設定用のノードを作成する */
+	if( size( $exportSettingNodes ) == 0 )
+	{
+		createNode "transform" -n $newNodeName;
+		setAttr "XFF_EXPORT_SETTING.visibility" 0;
+		setAttr -l true "XFF_EXPORT_SETTING.visibility";
+	}
+	
+	/* アトリビュートが存在しない場合、アトリビュートを設定する */
+	if( !`attributeExists "ExportModel" $newNodeName` )
+	{
+		addAttr -ln "ExportModel" -at bool  $newNodeName;
+	}
+	if( !`attributeExists "ExportAnim" $newNodeName` )
+	{
+		addAttr -ln "ExportAnim" -at bool  $newNodeName;
+	}
+	if( !`attributeExists "ExportMatanim" $newNodeName` )
+	{
+		addAttr -ln "ExportMatanim" -at bool  $newNodeName;
+	}
+	if( !`attributeExists "ExportMatanim" $newNodeName` )
+	{
+		addAttr -ln "ExportMatanim" -at bool  $newNodeName;
+	}
+	if( !`attributeExists "IgnoreBindpose" $newNodeName` )
+	{
+		addAttr -ln "IgnoreBindpose" -at bool  $newNodeName;
+	}
+	if( !`attributeExists "ModelName" $newNodeName` )
+	{
+		addAttr -ln ModelName -dt "string"  $newNodeName;
+	}
+	if( !`attributeExists "AnimationName" $newNodeName` )
+	{
+		addAttr -ln AnimationName -dt "string"  $newNodeName;
+	}
+	if( !`attributeExists "IgnoreReference" $newNodeName` )
+	{
+		addAttr -ln IgnoreReference -at bool  $newNodeName;
+	}
+	if( !`attributeExists "LightExport" $newNodeName` )
+	{
+		addAttr -ln LightExport -at bool  $newNodeName;
+	}
+	if( !`attributeExists "PlacementInfoExport" $newNodeName` )
+	{
+		addAttr -ln PlacementInfoExport -at bool  $newNodeName;
+	}
+	
+	
+	int $ExportModel=`checkBox -q -v "ExportModel"`;//Data//
+	int $ExportAnim=`checkBox -q -v "ExportAnim" `;//Data//
+	int $ExportMatAnim=`checkBox -q -v "ExportMatAnim" `;//Data//
+	int $IgnoreBindpose=`checkBox -q -v "IgnoreBindpose" `;//Data//
+	string $ModelName=`textField -q -tx "ModelName"`;//Data//
+	string $AnimationName=`textField -q -tx "AnimationName"`;//Data//
+	int $IgnoreReferencenode=`checkBox -q -v "IgnoreReferencenode"`;//Data//
+	int $ExportLight=`checkBox -q -v "ExportLight"`;//Data//
+	int $PlacementInfo=`checkBox -q -v "PlacementInfo"`;//Data//
+	
+	
+	
+	setAttr ($newNodeName+".ExportModel") $ExportModel;//Data//
+	setAttr ($newNodeName+".ExportAnim") $ExportAnim;//Data//
+	setAttr ($newNodeName+".ExportMatanim") $ExportMatAnim;//Data//
+	setAttr ($newNodeName+".IgnoreBindpose") $IgnoreBindpose;//Data//
+	setAttr -type "string" ($newNodeName+".ModelName") $ModelName;//Data//
+	setAttr -type "string" ($newNodeName+".AnimationName") $AnimationName;//Data//
+	setAttr ($newNodeName+".IgnoreReference") $IgnoreReferencenode;//Data//
+	setAttr ($newNodeName+".LightExport") $ExportLight;//Data//
+	setAttr ($newNodeName+".PlacementInfoExport") $PlacementInfo;//Data//
+	
+	// 選択のクリア 
+	select -d XFF_EXPORT_SETTING;
+}

@@ -1,0 +1,124 @@
+global proc float[] MS_globalScale(string $source){
+	string $attr[]={"sx","sy","sz"};
+	string $obj[]=`ls -l -sl $source`;
+	string $list[];
+	
+	float $ret[];
+	
+	tokenize ($obj[0],"|",$list);
+	$i=0;
+	for($eachAttr in $attr){
+		float $val=1;
+		for($each in $list){
+			$val=$val*`getAttr ($each+"."+$eachAttr)`;
+		}
+		$ret[$i]=$val;
+		$i++;
+	}
+	return $ret;
+}
+
+
+
+global proc int[] MS_selectTime(){
+	/*
+	タイムスライダーから時間を取得
+	
+	スライダーで範囲選択がある場合はその範囲内を
+	そうでない場合は現在のタイムスライダーの範囲を返す
+	
+	*/
+	//グローバル宣言しないとプロシージャ内でタイムスライダーを特定できない。
+	global string $gPlayBackSlider;
+	
+	string $buf[];
+	
+	string $tc=`timeControl -q -rng -gt $gPlayBackSlider`;
+	
+	tokenize $tc ":\"" $buf;
+	
+	int $st=$buf[0];
+	int $ed=$buf[1];
+	if(($ed-$st)<=1){
+		$st=`playbackOptions -q -min`;
+		$ed=`playbackOptions -q -max`;
+	}
+	return {$st,$ed};
+}
+
+
+
+global proc MS_MFC_keepTurningPoint(
+	int $strtm,
+	int $endtm,
+	string $obj
+	
+)
+{
+	int $i=0;
+	int $num=0;
+	int $allfr[];
+	
+	
+	for($i=$strtm;$i<$endtm;$i++){
+		int $check=0;
+		$a=`getAttr -t ($i-1) $obj`;
+		$b=`getAttr -t ($i) $obj`;
+		$c=`getAttr -t ($i+1) $obj`;
+		if($a<$b && $b>$c){$check=1;}
+		if($a>$b && $b<$c){$check=2;}
+		print $check;
+		if(!$check){
+			$allfr[$num]=$i;
+			$num++;
+		}
+	}
+	
+	for($each in $allfr){
+		cutKey -t ($each+":"+$each) -option keys $obj;
+	}
+	
+	print "\n";
+}
+
+
+
+//MS_ModifyFunctionCurve
+
+global proc MS_MFC_keepTurningPoint_pipe(){
+
+	string $values[]=`channelBox -q -sma mainChannelBox`;
+	string $values2[]=`channelBox -q -ssa mainChannelBox`;
+	
+	$obj=`ls -sl`;
+	
+	int $tm[]=`MS_selectTime`;
+	
+	for ($eachobj in $obj){
+		for($eachvalues in $values){
+			string $name=$eachobj+"."+$eachvalues;
+			MS_MFC_keepTurningPoint($tm[0],$tm[1],$name);
+		}
+		
+		for($eachvalues in $values2){
+			string $name=$eachobj+"."+$eachvalues;
+			MS_MFC_keepTurningPoint($tm[0],$tm[1],$name);
+		}
+	}
+}
+
+global proc MS_MFCUI(){
+	if(`window -exists MS_MFCUI`){deleteUI MS_MFCUI;}
+	window -t "MS_MFC" "MS_MFCUI";
+	columnLayout;
+	text -al left -w 1000 -fn "boldLabelFont" -l "1:selectObjects&Channels. \n2:go";
+	button -l "keepTurningPoint" -c "MS_MFC_keepTurningPoint_pipe" MS_MFC_keepTurningPoint_pipe;
+	
+	window -e -w 200 -h 200"MS_MFCUI";
+	showWindow "MS_MFCUI";
+	
+	
+}
+
+
+

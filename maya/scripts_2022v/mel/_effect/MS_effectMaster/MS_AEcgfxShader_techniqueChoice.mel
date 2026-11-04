@@ -1,0 +1,13 @@
+// Callback when user chooses a "technique" radio button.
+global proc MS_AEcgfxShader_techniqueChoice( string $sNodeName, string $sChoice )
+{                                      
+    string $sCmd = "setAttr -type \"string\" " +
+                      $sNodeName + ".technique" +
+                      " \"" + $sChoice + "\"";
+    print ( $sCmd + ";\n" );
+    evalDeferred $sCmd;                // use evalDeferred so Maya will display
+                                       //   the setAttr command on undo/redo
+}                                      // AEcgfxShader_techniqueChoice
+
+
+

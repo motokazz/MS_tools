@@ -1,0 +1,15 @@
+global proc MS_positiveLeafCurve(float $a,float $b){
+//ê≥ótã»ê¸
+$pi=3.1415926535*2;
+$rep=100;
+$obj=`ls -sl`;
+$newCurve=`curve -d 3 -p 0 0 0`;
+
+for($i=0;$i<$rep;$i++){
+	float $r=sin($a*(($pi/$rep)*$i));
+	$x=$b*$r*cos(($pi/$rep)*$i);
+	$y=$b*$r*sin(($pi/$rep)*$i);
+	curve -a -p $x $y 0 $newCurve;
+}
+curve -a -p 0 0 0 $newCurve;
+}

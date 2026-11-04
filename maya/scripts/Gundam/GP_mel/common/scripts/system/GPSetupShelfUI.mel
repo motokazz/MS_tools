@@ -1,0 +1,137 @@
+/*!
+		@file		GPSetupShelfUI.mel
+		@brief		シェルフの設定
+*/
+
+////////////////////////////////////////////////////////////////////////////////
+/**
+ * 適用.
+ */
+global proc GPSetupShelfUI_OnApply( string $formName )
+{
+	string $shelfTabs[] = `GPGetShelfTabList`;
+	for( $tab in $shelfTabs )
+	{
+		string $varName = ("GR_SHELFTAB_ACTIVE_" + $tab);
+		int $check = `checkBox -q -value ("GPSetupShelfUI_TabActiveCheck_"+$tab+$formName)`;
+		optionVar -intValue $varName $check;
+		if( $check )
+		{
+			global string $gShelfTopLevel;
+			if( `shelfLayout -q -exists ($gShelfTopLevel + "|" + $tab)` )
+				continue;
+		
+			skShelfCreateTab $tab;
+			string $melList[] = `eval ("melList_" + $tab)`;
+			for( $mel in $melList )
+			{
+				if( "" == $mel )
+					continue;
+				if( "" != `match "^//" $mel` )
+					continue;
+				
+				skSystemAddMELinShelf $mel $tab;
+			}
+		}
+		else
+		{
+			skShelfDeleteTab $tab;
+		}
+	}
+}
+
+/**
+ * リセット.
+ */
+global proc GPSetupShelfUI_OnReset( string $tab )
+{
+	global string $gShelfTopLevel;
+
+	string $varName = ("GR_SHELFTAB_ACTIVE_" + $tab);
+	if( `optionVar -q $varName` )
+	{
+		//	シェルフタブの生成
+		skShelfCreateTab $tab;
+		
+		//	一旦シェルフボタンを全削除
+		string $buttons[] = `shelfLayout -q -childArray ($gShelfTopLevel+"|"+$tab)`;
+		for( $button in $buttons )
+		{
+			deleteUI $button;
+		}
+		
+		//	シェルフボタンの生成
+		string $melList[] = `eval ("melList_" + $tab)`;
+		for( $mel in $melList )
+		{
+			if( "" == $mel )
+				continue;
+			if( "" != `match "^//" $mel` )
+				continue;
+			
+			skSystemAddMELinShelf $mel $tab;
+		}
+	}
+}
+
+/**
+ * Form生成.
+ */
+global proc string GPSetupShelfUIForm( string $formName )
+{
+	string $shelfTabs[] = `GPGetShelfTabList`;
+	
+	string $form = `formLayout $formName`;
+	{
+		string $shelfList = `scrollLayout -horizontalScrollBarThickness 0`;
+		columnLayout;
+		{
+			for( $tab in $shelfTabs )
+			{
+				string $varName = ("GR_SHELFTAB_ACTIVE_" + $tab);
+				rowLayout -numberOfColumns 2 -columnAlign 2 center;
+				{
+					int $check = 1;
+					if( `optionVar -exists $varName` )
+						$check = `optionVar -q $varName`;
+					checkBox -label $tab -value $check ("GPSetupShelfUI_TabActiveCheck_"+$tab+$formName);
+					button -label "RESET" -command ("GPSetupShelfUI_OnReset "+$tab) -width 60;
+				} setParent ..;
+			}
+		} setParent ..; setParent ..;
+		
+		string $applyButton = `button -label "Apply" -command ("GPSetupShelfUI_OnApply "+$formName) -height 30`;
+		
+		formLayout -edit
+			-af	$applyButton	left	5
+			-af	$applyButton	right	5
+			-af	$applyButton	bottom	5
+			
+			-af	$shelfList		top		5
+			-af	$shelfList		left	5
+			-af	$shelfList		right	5
+			-ac	$shelfList		bottom	5	$applyButton
+			$form;
+	} setParent ..;
+	
+	return $form;
+}
+ 
+/**
+ * Window起動.
+ */
+global proc GPSetupShelfUI()
+{
+	//	ウィンドウ生成
+	string $window = "GPSetupShelfWindow";
+	if( `window -exists $window` )
+		deleteUI $window;
+	window -title "GP Shelf Setup" $window;
+	
+	//	Form生成
+	GPSetupShelfUIForm "GPSetupShelfForm";
+	
+	//	ウィンドウの表示
+	window -e -width 200 -height 300 $window;
+	showWindow $window;
+}

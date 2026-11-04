@@ -1,0 +1,21 @@
+//stringNthWord, by Julian Love, julian@lightmail.com. Part of the StringTools set.
+//
+//description:	returns the word from the specified position in the source string based
+//				on the word char. Index starts with at 1.
+//
+//usage:		stringNthWord string[source string] int[position] string[character that separates words];
+//
+//examples:		stringNthWord "hello world." 1 " ";
+//				// Result: hello //
+//
+//				stringNthWord "left_wrist_controller" 2 "_";
+//				// Result: wrist //
+
+
+global proc string stringNthWord (string $text, int $position, string $wordChar){
+	string $wordList[];
+	
+	tokenize $text $wordChar $wordList;
+	
+	return $wordList[($position -1)];
+}

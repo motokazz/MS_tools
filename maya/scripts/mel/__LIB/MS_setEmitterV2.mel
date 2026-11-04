@@ -1,0 +1,52 @@
+
+
+global proc MS_setEmitterV2(string $EmitterName,int $strtm,int $endtm,int $BeforeFlame0,int $AfterFlame0,int $rnd1,int $noKey){
+	//オリジナルからの改良点、フレーム指定を（スタート時間、継続時間）と言う指定から（スタート時間、終了時間）と言う指定に。
+
+	string $obj[]=`ls -sl`;
+	for($name in $obj){
+		
+		select -r $name;
+		setEmitterInfo;
+		
+		setAttr -type "string" ($name+".EmitterName") $EmitterName;
+		
+		if(!$noKey){
+		
+		
+		
+		$strtm=$strtm+rand ($rnd1);
+		
+		
+//スタートフレーム設定
+		if($BeforeFlame0){
+			
+			currentTime ($strtm-1);
+			setKeyframe -v 0 ($name+".EmitterVolume");
+		
+		}
+		currentTime $strtm ;
+		setKeyframe -v 1 ($name+".EmitterVolume");
+		
+		currentTime ($endtm-1);
+		setKeyframe -v 1 ($name+".EmitterVolume");
+		
+//エンドフレーム設定
+		if($AfterFlame0){
+			
+			currentTime ($endtm);
+			setKeyframe -v 0 ($name+".EmitterVolume");
+		
+		}
+
+		
+		keyTangent -ott step ($name+".EmitterVolume");
+		
+		currentTime ($endtm-1);
+		
+		}
+	}
+}
+
+
+

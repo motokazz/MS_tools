@@ -1,0 +1,94 @@
+proc ms_cr(string $obj_a){
+
+
+string $obj_a_tx=$obj_a+".tx";
+string $obj_a_ty=$obj_a+".ty";
+string $obj_a_tz=$obj_a+".tz";
+
+string $obj_a_rpx=$obj_a+".rotatePivotX";
+string $obj_a_rpy=$obj_a+".rotatePivotY";
+string $obj_a_rpz=$obj_a+".rotatePivotZ";
+
+float $orgx=`getAttr $obj_a_tx`;
+float $orgy=`getAttr $obj_a_ty`;
+float $orgz=`getAttr $obj_a_tz`;
+float $flpx=`getAttr $obj_a_rpx`;
+float $flpy=`getAttr $obj_a_rpy`;
+float $flpz=`getAttr $obj_a_rpz`;
+
+setAttr $obj_a_tx (-$flpx);
+setAttr $obj_a_ty (-$flpy);
+setAttr $obj_a_tz (-$flpz);
+
+makeIdentity -apply true -t 1 -r 1 -s 0 -n 0;
+
+setAttr $obj_a_tx ($orgx+$flpx);
+setAttr $obj_a_ty ($orgy+$flpy);
+setAttr $obj_a_tz ($orgz+$flpz);
+
+}
+
+
+global proc MS_rndlocate(){
+	int $rndx=`intSliderGrp -q -v rndx`;
+	int $rndy=`intSliderGrp -q -v rndy`;
+	int $rndz=`intSliderGrp -q -v rndz`;
+	int $rndrot=`intSliderGrp -q -v rndrot`;
+	
+	$objz=`ls -sl`;
+	
+	int $i;
+	for($i=0;$i<size($objz);$i++){
+		
+		ms_cr $objz[$i];
+		
+		$rndtx=`rand $rndx`-($rndx/2);
+		$rndty=`rand $rndy`-($rndy/2);
+		$rndtz=`rand $rndz`-($rndz/2);
+
+		move -a -ws $rndtx $rndty $rndtz $objz[$i];
+		
+		
+		$rndrx=`rand $rndrot`-($rndrot/2);
+		$rndry=`rand $rndrot`-($rndrot/2);
+		$rndrz=`rand $rndrot`-($rndrot/2);
+		
+		rotate $rndrx $rndry $rndrz $objz[$i];
+		
+	}
+}
+
+
+global proc MS_slider()
+{
+	if(`window -exists MS_slider`){
+		deleteUI MS_slider;
+	}
+
+	window -title "Slider for testobj" MS_slider;
+	columnLayout ;
+
+	intSliderGrp -l "rndx" -field true -min 1 -max 1000 -v 500 rndx;
+	intSliderGrp -l "rndy" -field true -min 1 -max 1000 -v 500 rndy;
+	intSliderGrp -l "rndz" -field true -min 1 -max 1000 -v 500 rndz;
+	
+	intSliderGrp -l "rndrot"-field true -min 0 -max 360 -v 360 rndrot;
+	
+	button -l "do" -command "MS_rndlocate" ;
+	button -l "undo" -command "Undo MS_rndlocate" ;
+	button -l "exit" -command "deleteUI MS_slider" ;
+
+	showWindow MS_slider;
+
+}
+
+
+
+//MS_rndlocate 1000;
+
+MS_slider;
+
+
+
+
+

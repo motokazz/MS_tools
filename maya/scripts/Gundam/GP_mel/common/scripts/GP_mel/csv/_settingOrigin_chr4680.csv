@@ -1,0 +1,14 @@
+<?xml version="1.0" ?>
+<root>
+
+
+	<IK mChain="J_Lude_201" mJoint="J_Lhiji_202" mEffector="J_Lte_203" mType="normal" />
+	<IK mChain="J_Rude_101" mJoint="J_Rhiji_102" mEffector="J_Rte_103" mType="normal" />
+	<IK mChain="J_Lfmomo_400" mJoint="J_Lfhiza_401" mEffector="J_Lfasi_402" mType="normal" />
+	<IK mChain="J_Rfmomo_300" mJoint="J_Rfhiza_301" mEffector="J_Rfasi_302" mType="normal" />
+	<IK mChain="J_Lrmomo_410" mJoint="J_Lrhiza_411" mEffector="J_Lrasi_412" mType="normal" />
+	<IK mChain="J_Rrmomo_310" mJoint="J_Rrhiza_311" mEffector="J_Rrasi_312" mType="normal" />
+
+        <RANGE mTrans="5" mRotLR="20" mTransFace="10" mRotCenter="10" mRotFace="10" mRotChain="10" mScale="3" />
+
+</root>

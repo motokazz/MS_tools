@@ -1,0 +1,16 @@
+#ifdef GR_FILE_LINKED
+GR_FILE_LINKED( _basepose )
+GR_FILE_LINKED( motion_c100_gmp443_ex_beam_5_00_start )
+GR_FILE_LINKED( motion_c100_gmp443_ex_beam_5_01_loop )
+GR_FILE_LINKED( motion_c100_gmp443_ex_beam_5_02_shoot )
+GR_FILE_LINKED( motion_c100_gmp443_ex_beam_5_03_end )
+GR_FILE_LINKED( motion_c100_gmp443_ex_beam_UP_5_00_start )
+GR_FILE_LINKED( motion_c100_gmp443_ex_beam_UP_5_01_loop )
+GR_FILE_LINKED( motion_c100_gmp443_ex_beam_UP_5_02_shoot )
+GR_FILE_LINKED( motion_c100_gmp443_ex_beam_UP_5_03_end )
+GR_FILE_LINKED( motion_c100_gmp443_ex_beam_DOWN_5_00_start )
+GR_FILE_LINKED( motion_c100_gmp443_ex_beam_DOWN_5_01_loop )
+GR_FILE_LINKED( motion_c100_gmp443_ex_beam_DOWN_5_02_shoot )
+GR_FILE_LINKED( motion_c100_gmp443_ex_beam_DOWN_5_03_end )
+#undef GR_FILE_LINKED
+#endif // GR_FILE_LINKED

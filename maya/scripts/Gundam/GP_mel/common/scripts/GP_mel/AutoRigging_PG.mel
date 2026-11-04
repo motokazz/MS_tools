@@ -1,0 +1,1140 @@
+//リグ設定ツール(補助骨関節版)
+//機能1、あらかじめ用意したリグコントローラ・ダミー骨のシーンをインポート
+//機能2、キャラクターのモデルデータをリファレンス
+//機能3、コントローラー、ダミー骨、キャラクターの骨をコンストレイン・再設定
+//
+//「骨の入ったキャラデータ」と「ダミー骨→コントローラ構造のrigシーン」を接続し、Rigbaseシーンを作るスクリプトです。
+//キャラ固有骨があるので、一発で全部設定するのは難しい、かも。
+//
+//20160706	PG専用として独立
+//20140902	エクストラジョイントの統合により存在しない骨へのリグが大量発生、存在しないエクストラジョイントへの対応を追加
+//20140312	Addrig系調整
+//20121012	盾リグ設定再構築
+//20121009	手形状変化・追加対応(basepose.mb時にスケール変化キャンセル)
+//20121002	CSS対応
+//20120927	手形状変化に対応
+//20120808	盾リグの動作を精査
+//20120709	膝PVをデフォルトローカルへ
+//20120706	上半身スケール取得のミスを修正
+//20120705^ 下半身に骨追加(hip)、リグ「hip」からの回転値のみ、jointrootの変わりに受け取る。
+//20120612	バックパックの接続方式変更に対応(骨名称backpack_250→backpack_290)
+//20120518	ストフリのバックパック骨名変更へ対応
+//			その他細々と
+//20120502	jointOrientを切る事になったので、dummy→model骨のorientConstをオフセット自動計算へ。
+//			多分、baserig調整したほうが綺麗な流れ。
+//20120425	エラーチェック用の進捗表示を追加
+//20120413	rigバージョン9へ対応(腿付け根・肩アーマー・下腕調整)	ver16
+//20120315	ネットワーク更新式に変更
+
+//--------------------------------------------------------------------------------
+global proc string getVersion(){
+	string $ARTversion = "ver1.34_20160706";
+	return ($ARTversion);
+}
+//--------------------------------------------------------------------------------
+global proc doMyImport(string $file,string $type)
+{
+	file -import $file; 
+}
+
+global proc rigImport(){
+	confirmDialog -title "Auto rigging tool" -message ("最新版rigのMayaシーンデータをインポートします。")
+		-button "OK" -defaultButton "OK";
+	string $fileName = (`getenv "GP_MAYA_ROOT"` + "\\common\\scripts\\GP_mel\\CSS\\");
+	file -i -type "mayaBinary" -ignoreVersion -gl -loadReferenceDepth "all" -options "v=0" ( $fileName + "baserig.mb");
+	
+/*
+	confirmDialog -title "Auto rigging tool" -message ("リグの新規設定を行います。\n使用するrigのMayaシーンデータを選択して下さい。\r\n当ツールのバージョンは1.31、対応するbaserigのバージョンは15となります。")
+		-button "OK" -defaultButton "OK";
+	string $myDir = "S:\\motion\\Rigging_source";
+	string $oldDir = `workspace -q -fn`;
+	catch(`setProject  $myDir `);
+	fileBrowserDialog -m 0 -fc "doMyImport" -ft "mayaBinary" -an "Import_Rig" -om "Import";
+	setProject $oldDir;
+*/
+
+}
+
+//--------------------------------------------------------------------------------
+global proc chrImport(){
+	confirmDialog -title "Auto rigging tool" -message ("使用するキャラクターのMayaシーンデータを選択して下さい。")
+		-button "OK" -defaultButton "OK";
+	projectViewer Reference;
+}
+
+//--------------------------------------------------------------------------------
+//骨ロックチェック
+global proc int GPAutoRigging_lockCheck(){
+	select -r -hi "*:root";
+	string $chjoints[] = `ls -sl -type joint`;
+	int $checklist[];
+	string $checkmes = "";
+	int $checksum = 0;
+	for($i = 0 ; $i < size($chjoints) ; $i++ ){
+		$checklist[$i] = $checklist[$i] + `getAttr -lock ($chjoints[$i] + ".tx")`;
+		$checklist[$i] = $checklist[$i] + `getAttr -lock ($chjoints[$i] + ".ty")`;
+		$checklist[$i] = $checklist[$i] + `getAttr -lock ($chjoints[$i] + ".tz")`;
+		$checklist[$i] = $checklist[$i] + `getAttr -lock ($chjoints[$i] + ".rx")`;
+		$checklist[$i] = $checklist[$i] + `getAttr -lock ($chjoints[$i] + ".ry")`;
+		$checklist[$i] = $checklist[$i] + `getAttr -lock ($chjoints[$i] + ".rz")`;
+		$checklist[$i] = $checklist[$i] + `getAttr -lock ($chjoints[$i] + ".sx")`;
+		$checklist[$i] = $checklist[$i] + `getAttr -lock ($chjoints[$i] + ".sy")`;
+		$checklist[$i] = $checklist[$i] + `getAttr -lock ($chjoints[$i] + ".sz")`;
+		$checksum = $checksum + $checklist[$i];
+		if($checklist[$i]){$checkmes = ($checkmes + $chjoints[$i] + "\n" );}
+	}
+	select -cl;
+	if($checksum){
+		string $SSwindow = "CSSsystem";
+		if ( `window -exists $SSwindow` != 1 ){
+			confirmDialog -title "Auto rigging tool" -message ("以下のジョイントがロックされています。\n" + $checkmes )
+			-button "OK" -defaultButton "OK";
+		}
+		return(1);
+	}
+	return(0);
+}
+
+//--------------------------------------------------------------------------------
+//レイヤー確認
+//モデル側のレイヤー状態を確認する
+global proc int GPAutoRigging_layerCheck(){
+	int $checkList[];
+	string $checkmes;
+
+	string $layName = `objectLayer "*:root"`;
+	if($layName == "defaultLayer"){
+		$checkList[0] = 1;
+		$checkmes = ("root\n");
+	}
+
+	$layName = `objectLayer "*:parts"`;
+	if($layName == "defaultLayer"){
+		$checkList[1] = 1;
+		$checkmes = ($checkmes + "parts\n");
+	}
+
+	if($checkList[0] || $checkList[1]){
+		string $SSwindow = "CSSsystem";
+		if ( `window -exists $SSwindow` != 1 ){
+			confirmDialog -title "Auto rigging tool" -message ("以下のオブジェクトが、defaultLayerに入っています。\n" + $checkmes + "\nモーション作業用に表示状態を設定しますので、\n何らかのディスプレイレイヤーに格納して下さい。")
+			-button "OK" -defaultButton "OK";
+		}
+		return(1);
+	}
+	return(0);
+}
+
+//--------------------------------------------------------------------------------
+//キャラ体格に合わせた、リグのサイズ調整
+global proc rigScale(){
+//scale loaded_rig
+
+	float $chsizey = `getAttr "*:jointroot_000.ty"`;	//腰の高さ取得
+	$chsizey = $chsizey/122.105;		//122.105はrigのデフォ腰高さ
+	//計算結果、1より大きい→足長
+	//計算結果、1より小さい→足短
+/*
+	setAttr rig.sx (9.4*$chsizey);
+	setAttr rig.sy (9.4*$chsizey);
+	setAttr rig.sz (9.4*$chsizey);
+*/
+
+	spaceLocator -p 0 0 0 -n ArmLength_root;
+	spaceLocator -p 0 0 0 -n ArmLength_tip;
+	parent ArmLength_tip ArmLength_root ;
+
+	select -r "*:J_L_wrist_30?" ArmLength_root ;
+	pointConstraint -offset 0 0 0 -weight 1;
+	select -r "*:J_L_upArm_30?" ArmLength_tip ;
+	pointConstraint -offset 0 0 0 -weight 1;
+
+	float $amsizey = `getAttr ArmLength_tip.ty`;
+	$amsizey = $amsizey/51.292;
+	$amsizey = $amsizey/$chsizey;		//ルートのスケール分をキャンセル
+
+	setAttr rig.sx (9.4*$chsizey);
+	setAttr rig.sy (9.4*$chsizey);
+	setAttr rig.sz (9.4*$chsizey);
+	setAttr rig_pelvis.sx (1*$amsizey);
+	setAttr rig_pelvis.sy (1*$amsizey);
+	setAttr rig_pelvis.sz (1*$amsizey);
+
+	select -r ArmLength_root ;
+	doDelete;
+}
+
+//--------------------------------------------------------------------------------
+//ダミー階層をキャラ階層へ位置あわせ
+//その後逆順へコンスト
+global proc jointConnect(){
+	//connect dummy-charajoint
+	select -r -hi "*:jointroot_000";
+	string $chjoints[] = `ls -sl -type joint`;
+	int $i=0;
+	for ( $i=0 ; $i<size($chjoints) ; $i++){
+		string $divjlist[];
+		int $lasjlist = `tokenize $chjoints[$i] ":" $divjlist`;
+		$lasjlist--;
+		string $chtgt = $divjlist[$lasjlist];	//キャラ側骨のショートネーム
+		string $dmtgt = ("dummy_" + $chtgt);	//ダミー回想骨
+		if( size(`ls $dmtgt`) <=2 ){
+			select -r -hi dummy_root;
+			string $tmp[] = `ls -sl $dmtgt`;
+			$dmtgt = $tmp[0];
+		}
+		if (size(`ls $dmtgt`) > 0){
+			select -r  ("*:" + $chtgt) $dmtgt;
+		}
+		if (size(` ls -sl `) == 2){
+			pointConstraint -offset 0 0 0 -weight 1;
+			pointConstraint -remove;
+			select -r  $dmtgt ("*:" + $chtgt);
+			pointConstraint -offset 0 0 0 -weight 1;
+//			orientConstraint -offset 0 0 0 -weight 1;
+			orientConstraint -mo -weight 1;
+			scaleConstraint -mo -weight 1;
+			select -cl;
+		}
+	}
+	select -r dummy_root_1 "*:root" ;
+	pointConstraint -mo -weight 1;
+	
+	select -r jointroot_000_orientConstraint1 jointroot_000_scaleConstraint1 ;
+	delete;
+
+}
+
+//--------------------------------------------------------------------------------
+//逆順コンストレインを整理
+global proc tmpBreak(){
+	//cut tmp-constrain
+select -r 
+	rig_body_pointConstraint1 
+	rig_pelvis_pointConstraint1 
+	rig_neck_pointConstraint1 
+	rig_r_collor_pointConstraint1 
+	rig_l_collor_pointConstraint1 
+	rig_r_shoulder_pointConstraint1 
+	rig_l_shoulder_pointConstraint1 
+	rig_r_sArmor_pointConstraint1 
+	rig_l_sArmor_pointConstraint1 
+	rig_r_elbow_pointConstraint1 
+	rig_l_elbow_pointConstraint1 
+	rig_r_arm_pointConstraint1 
+	rig_l_arm_pointConstraint1 
+	rig_r_skirtF_dummy_pointConstraint1 
+	rig_l_skirtF_dummy_pointConstraint1 
+	rig_r_skirtS_dummy_pointConstraint1 
+	rig_l_skirtS_dummy_pointConstraint1 
+	rig_r_skirtB_dummy_pointConstraint1 
+	rig_l_skirtB_dummy_pointConstraint1 
+	rig_r_foot_pointConstraint1 
+	rig_l_foot_pointConstraint1 
+	rig_r_knee_pointConstraint1 
+	rig_l_knee_pointConstraint1 
+	rig_r_knee_offset_pointConstraint1 
+	rig_l_knee_offset_pointConstraint1 
+	rig_r_ankle_pointConstraint1 
+	rig_l_ankle_pointConstraint1 
+	rotate_pointConstraint1 
+	rotate_pointConstraint2 
+	rig_l_wrist_dummy_pointConstraint1 
+	rig_r_wrist_dummy_pointConstraint1 
+	rig_l_weapon_pointConstraint1 
+	rig_r_weapon_pointConstraint1 
+	rig_l_foot_armor_pointConstraint1 
+	rig_r_foot_armor_pointConstraint1 
+	rig_booster_pointConstraint1 
+	rig_l_shield_offset_pointConstraint1
+	rig_c_skirtF_dummy_pointConstraint1
+	rig_c_skirtB_dummy_pointConstraint1
+	primeIK_dummy_J_R_wrist_204_pointConstraint1 
+	primeIK_dummy_J_R_foreArm_203_pointConstraint1 
+	primeIK_dummy_J_R_elbow_202_pointConstraint1 
+	primeIK_dummy_J_R_upArm_201_pointConstraint1 
+
+	primeIK_dummy_J_L_wrist_304_pointConstraint1 
+	primeIK_dummy_J_L_foreArm_303_pointConstraint1 
+	primeIK_dummy_J_L_elbow_302_pointConstraint1 
+	primeIK_dummy_J_L_upArm_301_pointConstraint1 
+
+
+//	Lbuki_weapon_ctrl_pointConstraint1 
+//	baserig:rig_l_shield_offset_pointConstraint1 baserig:rig_l_shield_offset_orientConstraint1 
+	;
+
+
+
+	doDelete;
+}
+
+//--------------------------------------------------------------------------------
+//動作を止めていたIKを再起動
+global proc ikSwitch(){
+	//reboot IK
+	select -cl  ;
+	select -r ik_l_hand ik_r_hand ik_l_foot ik_r_foot ;
+	setAttr "ik_l_hand.ikBlend" 1;
+	setAttr "ik_r_hand.ikBlend" 1;
+	setAttr "ik_l_foot.ikBlend" 1;
+	setAttr "ik_r_foot.ikBlend" 1;
+}
+
+//--------------------------------------------------------------------------------
+//位置合わせしたコントローラを、移動値フリーズ
+global proc rigFreeze(){
+	//freeze rig transform
+	select -r rig_body ;makeIdentity -apply true -t 1 -r 0 -s 0 -n 0;doBakeNonDefHistory( 1, {"prePost" });
+	select -r rig_pelvis ;makeIdentity -apply true -t 1 -r 0 -s 0 -n 0;doBakeNonDefHistory( 1, {"prePost" });
+	select -r rig_neck ;makeIdentity -apply true -t 1 -r 0 -s 0 -n 0;doBakeNonDefHistory( 1, {"prePost" });
+
+	select -r rig_r_collor ;makeIdentity -apply true -t 1 -r 0 -s 0 -n 0;doBakeNonDefHistory( 1, {"prePost" });
+	select -r rig_r_shoulder ;makeIdentity -apply true -t 1 -r 0 -s 0 -n 0;doBakeNonDefHistory( 1, {"prePost" });
+	select -r rig_r_arm ;makeIdentity -apply true -t 1 -r 0 -s 0 -n 0;doBakeNonDefHistory( 1, {"prePost" });
+	select -r rig_r_elbow ;makeIdentity -apply true -t 1 -r 0 -s 0 -n 0;doBakeNonDefHistory( 1, {"prePost" });
+	select -r rig_r_sArmor ;makeIdentity -apply true -t 1 -r 0 -s 0 -n 0;doBakeNonDefHistory( 1, {"prePost" });
+	select -r rig_r_weapon ;makeIdentity -apply true -t 1 -r 0 -s 0 -n 0;doBakeNonDefHistory( 1, {"prePost" });
+
+	select -r rig_l_collor ;makeIdentity -apply true -t 1 -r 0 -s 0 -n 0;doBakeNonDefHistory( 1, {"prePost" });
+	select -r rig_l_shoulder ;makeIdentity -apply true -t 1 -r 0 -s 0 -n 0;doBakeNonDefHistory( 1, {"prePost" });
+	select -r rig_l_arm ;makeIdentity -apply true -t 1 -r 0 -s 0 -n 0;doBakeNonDefHistory( 1, {"prePost" });
+	select -r rig_l_elbow ;makeIdentity -apply true -t 1 -r 0 -s 0 -n 0;doBakeNonDefHistory( 1, {"prePost" });
+	select -r rig_l_sArmor ;makeIdentity -apply true -t 1 -r 0 -s 0 -n 0;doBakeNonDefHistory( 1, {"prePost" });
+	select -r rig_l_weapon ;makeIdentity -apply true -t 1 -r 0 -s 0 -n 0;doBakeNonDefHistory( 1, {"prePost" });
+
+	select -r rig_l_knee ;makeIdentity -apply true -t 1 -r 0 -s 0 -n 0;doBakeNonDefHistory( 1, {"prePost" });
+	select -r rig_l_ankle ;makeIdentity -apply true -t 1 -r 0 -s 0 -n 0;doBakeNonDefHistory( 1, {"prePost" });
+	select -r rig_l_foot ;makeIdentity -apply true -t 1 -r 0 -s 0 -n 0;doBakeNonDefHistory( 1, {"prePost" });
+	select -r rig_l_foot_armor ;makeIdentity -apply true -t 1 -r 0 -s 0 -n 0;doBakeNonDefHistory( 1, {"prePost" });
+
+	select -r rig_r_knee ;makeIdentity -apply true -t 1 -r 0 -s 0 -n 0;doBakeNonDefHistory( 1, {"prePost" });
+	select -r rig_r_ankle ;makeIdentity -apply true -t 1 -r 0 -s 0 -n 0;doBakeNonDefHistory( 1, {"prePost" });
+	select -r rig_r_foot ;makeIdentity -apply true -t 1 -r 0 -s 0 -n 0;doBakeNonDefHistory( 1, {"prePost" });
+	select -r rig_r_foot_armor ;makeIdentity -apply true -t 1 -r 0 -s 0 -n 0;doBakeNonDefHistory( 1, {"prePost" });
+
+	select -r rig_booster ;makeIdentity -apply true -t 1 -r 0 -s 0 -n 0;doBakeNonDefHistory( 1, {"prePost" });
+}
+
+//--------------------------------------------------------------------------------
+//コンストレイン付け直し
+//リグ→ダミー骨階層
+global proc reConst(){
+	//re_constrain
+	select -r rig_location dummy_root_1 ;
+	pointConstraint -mo -weight 1;
+	orientConstraint -mo -weight 1;
+
+	select -r rig_hip dummy_jointroot_000 ;
+	pointConstraint -mo -weight 1;
+
+	select -r rig_hip dummy_J_hip_400 ;
+	orientConstraint -mo -weight 1;
+
+	select -r rig_pelvis dummy_J_chest_001 ;
+	pointConstraint -mo -weight 1;
+	orientConstraint -mo -weight 1;
+
+	select -r rig_l_collor dummy_J_L_shoulder_300 ;
+	orientConstraint -mo -weight 1;
+
+
+	select -r rig_l_sArmor dummy_J_L_sldArmor_310 ;
+	pointConstraint -mo -weight 1;
+
+
+	select -r dummy_J_L_foreArm_303 rig_l_wrist_dummy ;
+	parentConstraint -mo -weight 1;
+
+
+	select -r Lbuki_switch_ctrl dummy_J_L_weapon_305 ;
+	pointConstraint -mo -weight 1;
+
+
+	select -r rig_r_collor dummy_J_R_shoulder_200 ;
+	orientConstraint -mo -weight 1;
+
+
+	select -r rig_r_sArmor dummy_J_R_sldArmor_210 ;
+	pointConstraint -mo -weight 1;
+
+
+	select -r dummy_J_R_foreArm_203 rig_r_wrist_dummy ;
+	parentConstraint -mo -weight 1;
+
+	select -r Rbuki_switch_ctrl dummy_J_R_weapon_205 ;
+	pointConstraint -mo -weight 1;
+
+	select -r rig_r_skirtF dummy_J_R_skirtF_440 ;
+	parentConstraint -mo -weight 1;
+
+	select -r rig_r_skirtB dummy_J_R_skirtB_441 ;
+	parentConstraint -mo -weight 1;
+
+	select -r rig_r_skirtS dummy_J_R_skirtS_442 ;
+	parentConstraint -mo -weight 1;
+
+	select -r rig_l_skirtF dummy_J_L_skirtF_443 ;
+	parentConstraint -mo -weight 1;
+
+	select -r rig_l_skirtB dummy_J_L_skirtB_444 ;
+	parentConstraint -mo -weight 1;
+
+	select -r rig_l_skirtS dummy_J_L_skirtS_445 ;
+	parentConstraint -mo -weight 1;
+
+	select -r rig_r_skirtF_dummy_constlocator rig_r_skirtF_dummy ;
+	pointConstraint -mo -weight 1;
+
+	select -r rig_l_skirtF_dummy_constlocator rig_l_skirtF_dummy ;
+	pointConstraint -mo -weight 1;
+
+	select -r rig_r_skirtS_dummy_constlocator rig_r_skirtS_dummy ;
+	pointConstraint -mo -weight 1;
+
+	select -r rig_l_skirtS_dummy_constlocator rig_l_skirtS_dummy ;
+	pointConstraint -mo -weight 1;
+
+	//以下、ダミー骨追加分
+	//3本IKに対応する形で肘を調整
+	select -r rig_r_kataP dummy_J_R_armCnct_220 ;
+	pointConstraint -mo -weight 1;
+	orientConstraint -mo -weight 1;
+
+	select -r rig_l_kataP dummy_J_L_armCnct_320 ;
+	pointConstraint -mo -weight 1;
+	orientConstraint -mo -weight 1;
+
+	select -r rig_r_foot_armor dummy_J_R_ftArmor_425 ;
+	pointConstraint -mo -weight 1;
+	orientConstraint -mo -weight 1;
+
+	select -r rig_l_foot_armor dummy_J_L_ftArmor_435 ;
+	pointConstraint -mo -weight 1;
+	orientConstraint -mo -weight 1;
+
+	select -r rig_booster dummy_J_booster_501 ;
+	pointConstraint -mo -weight 1;
+	orientConstraint -mo -weight 1;
+
+
+}
+
+//--------------------------------------------------------------------------------
+//アトリビュート設定
+//主にロック
+global proc setAt(){
+
+	setAttr "etc.visibility" 0;
+
+	string $lockAt[] = {
+	 "rig.sx", "rig.sy", "rig.sz",
+	 "rig_pelvis.sx", "rig_pelvis.sy", "rig_pelvis.sz",
+	 "rig_hip.tx", "rig_hip.ty", "rig_hip.tz",
+//	 "rig_neck.tx", "rig_neck.ty", "rig_neck.tz",
+	 "rig_r_collor.tx", "rig_r_collor.ty", "rig_r_collor.tz",
+	 "rig_r_shoulder.tx", "rig_r_shoulder.ty", "rig_r_shoulder.tz",
+	 "rig_r_wrist.tx", "rig_r_wrist.ty", "rig_r_wrist.tz",
+	 "rig_l_collor.tx", "rig_l_collor.ty", "rig_l_collor.tz",
+	 "rig_l_shoulder.tx", "rig_l_shoulder.ty", "rig_l_shoulder.tz",
+	 "rig_l_wrist.tx", "rig_l_wrist.ty", "rig_l_wrist.tz",
+	 "rig_r_ankle.tx", "rig_r_ankle.ty", "rig_r_ankle.tz",
+	 "rig_l_ankle.tx", "rig_l_ankle.ty", "rig_l_ankle.tz",
+	 "rig_r_kataP.ty", "rig_l_kataP.ty", "rig_r_kataP.rx",
+	 "rig_l_kataP.rx", "rig_r_kataP.rz", "rig_l_kataP.rz",
+	 "rig_c_skirtB.rpx","rig_location.rpx","rig_origin.rpx","rig_all.rpx","rig_body.rpx","rig_hip.rpx","rig_l_skirtF.rpx","rig_l_skirtS.rpx","rig_l_skirtB.rpx","rig_r_skirtF.rpx","rig_r_skirtS.rpx","rig_r_skirtB.rpx","rig_pelvis.rpx","rig_neck.rpx","rig_r_collor.rpx","rig_r_shoulder.rpx","rig_r_arm.rpx","rig_r_elbow.rpx","rig_r_wrist.rpx","rig_l_collor.rpx","rig_l_shoulder.rpx","rig_l_arm.rpx","rig_l_elbow.rpx","rig_l_wrist.rpx","rig_r_foot.rpx","rig_r_ankle.rpx","rig_l_foot.rpx","rig_l_ankle.rpx","rig_l_sArmor.rpx","rig_r_sArmor.rpx","rig_l_knee_polevector.rpx","rig_r_knee_polevector.rpx","rig_l_knee.rpx","rig_r_knee.rpx","rig_l_shield.rpx","rig_l_weapon.rpx","rig_r_weapon.rpx","rig_l_kataP.rpx","rig_r_kataP.rpx","rig_l_foot_armor.rpx","rig_r_foot_armor.rpx","rig_booster.rpx","rig_r_momo_closeControl.rpx","rig_l_momo_closeControl.rpx","rig_c_skirtF.rpx","rig_c_skirtB.rpy","rig_location.rpy","rig_origin.rpy","rig_all.rpy","rig_body.rpy","rig_hip.rpy","rig_l_skirtF.rpy","rig_l_skirtS.rpy","rig_l_skirtB.rpy","rig_r_skirtF.rpy","rig_r_skirtS.rpy","rig_r_skirtB.rpy","rig_pelvis.rpy","rig_neck.rpy","rig_r_collor.rpy","rig_r_shoulder.rpy","rig_r_arm.rpy","rig_r_elbow.rpy","rig_r_wrist.rpy","rig_l_collor.rpy","rig_l_shoulder.rpy","rig_l_arm.rpy","rig_l_elbow.rpy","rig_l_wrist.rpy","rig_r_foot.rpy","rig_r_ankle.rpy","rig_l_foot.rpy","rig_l_ankle.rpy","rig_l_sArmor.rpy","rig_r_sArmor.rpy","rig_l_knee_polevector.rpy","rig_r_knee_polevector.rpy","rig_l_knee.rpy","rig_r_knee.rpy","rig_l_shield.rpy","rig_l_weapon.rpy","rig_r_weapon.rpy","rig_l_kataP.rpy","rig_r_kataP.rpy","rig_l_foot_armor.rpy","rig_r_foot_armor.rpy","rig_booster.rpy","rig_r_momo_closeControl.rpy","rig_l_momo_closeControl.rpy","rig_c_skirtF.rpy","rig_c_skirtB.rpz","rig_location.rpz","rig_origin.rpz","rig_all.rpz","rig_body.rpz","rig_hip.rpz","rig_l_skirtF.rpz","rig_l_skirtS.rpz","rig_l_skirtB.rpz","rig_r_skirtF.rpz","rig_r_skirtS.rpz","rig_r_skirtB.rpz","rig_pelvis.rpz","rig_neck.rpz","rig_r_collor.rpz","rig_r_shoulder.rpz","rig_r_arm.rpz","rig_r_elbow.rpz","rig_r_wrist.rpz","rig_l_collor.rpz","rig_l_shoulder.rpz","rig_l_arm.rpz","rig_l_elbow.rpz","rig_l_wrist.rpz","rig_r_foot.rpz","rig_r_ankle.rpz","rig_l_foot.rpz","rig_l_ankle.rpz","rig_l_sArmor.rpz","rig_r_sArmor.rpz","rig_l_knee_polevector.rpz","rig_r_knee_polevector.rpz","rig_l_knee.rpz","rig_r_knee.rpz","rig_l_shield.rpz","rig_l_weapon.rpz","rig_r_weapon.rpz","rig_l_kataP.rpz","rig_r_kataP.rpz","rig_l_foot_armor.rpz","rig_r_foot_armor.rpz","rig_booster.rpz","rig_r_momo_closeControl.rpz","rig_l_momo_closeControl.rpz","rig_c_skirtF.rpz"};
+
+	for($lockAttr in $lockAt){
+		setAttr -lock true $lockAttr;
+	}
+
+	//膝PVをデフォルトローカル化
+	setAttr "rig_r_knee_polevector.Parent" 1;
+	setAttr "rig_l_knee_polevector.Parent" 1;
+
+
+	select -r dummy_J_R_upArm_201_constlocator dummy_J_L_upArm_301_constlocator ;
+	doDelete;
+}
+
+
+//--------------------------------------------------------------------------------
+//足付け根スライド機能
+//1204　追加
+global proc GPAutoRigging_setupMC(){
+//計算=足を開いた際に付け根が中央方向へスライド
+//サブ階層の追従を解除
+	select -r momo_l_offset_pointConstraint1 momo_r_offset_pointConstraint1 ;
+	doDelete;
+	select -r rig_r_momo_closeControl_dummy_pointConstraint1 rig_l_momo_closeControl_dummy_pointConstraint1 ;
+	doDelete;
+	select -r "subIK_*_pointConstraint1";
+	doDelete;
+	select -r footIKPos_l_offset_pointConstraint1 footIKPos_r_offset_pointConstraint1 ;
+	doDelete;
+
+//自動計算ノードをコントローラ上に接続
+	select -r momo_l_driven rig_l_momo_closeControl_dummy ;
+	pointConstraint -offset 0 0 0 -weight 1;
+
+	select -r momo_r_driven rig_r_momo_closeControl_dummy ;
+	pointConstraint -offset 0 0 0 -weight 1;
+
+//本IKのコントローラでサブIKも制御
+	select -r rig_l_ankle subIK_l_foot ;
+	pointConstraint -offset 0 0 0 -weight 1;
+	select -r rig_l_knee_polevector subIK_l_foot ;
+	poleVectorConstraint -weight 1;
+
+	select -r rig_r_ankle subIK_r_foot ;
+	pointConstraint -offset 0 0 0 -weight 1;
+	select -r rig_r_knee_polevector subIK_r_foot ;
+	poleVectorConstraint -weight 1;
+
+//サブIK起動
+	select -r subIK_l_foot ;
+	ikHandle -e -eh;
+	select -r subIK_r_foot ;
+	ikHandle -e -eh;
+
+//サブIKから計算されたノードに追従するコントローラを、本IKに接続
+	select -r rig_r_momo_closeControl dummy_J_R_upLeg_420 ;
+	pointConstraint -offset 0 0 0 -weight 1;
+
+	select -r rig_l_momo_closeControl dummy_J_L_upLeg_430 ;
+	pointConstraint -offset 0 0 0 -weight 1;
+
+	string $lockAt[] = {
+		"rig_r_momo_closeControl.rx", "rig_r_momo_closeControl.ry", "rig_r_momo_closeControl.rz",
+		"rig_l_momo_closeControl.rx", "rig_l_momo_closeControl.ry", "rig_l_momo_closeControl.rz"};
+
+	for($lockAttr in $lockAt){
+		setAttr -lock true $lockAttr;
+	}
+}
+
+
+//--------------------------------------------------------------------------------
+//ハイゴッグ腕用・双方向接続
+global proc GPAutoRigging_setupHygoggArm(){
+
+	select -r getAttr_R_offset_pointConstraint1 getAttr_L_offset_pointConstraint1 getAttr_L_pv_offset_pointConstraint1 getAttr_R_pv_offset_pointConstraint1 J_R_upArm_201_offset_pointConstraint1 J_L_upArm_301_offset_pointConstraint1 ;
+	doDelete;
+
+
+	select -r dummy_J_R_shoulder_200 getAttr_R_offset;
+	parentConstraint -mo -weight 1;
+	select -r dummy_J_R_shoulder_200 getAttr_R_pv_offset;
+	parentConstraint -mo -weight 1;
+	select -r dummy_J_R_shoulder_200 J_R_upArm_201_offset;
+	parentConstraint -mo -weight 1;
+	select -r dummy_J_L_shoulder_300 getAttr_L_offset;
+	parentConstraint -mo -weight 1;
+	select -r dummy_J_L_shoulder_300 getAttr_L_pv_offset;
+	parentConstraint -mo -weight 1;
+	select -r dummy_J_L_shoulder_300 J_L_upArm_301_offset;
+	parentConstraint -mo -weight 1;
+
+
+
+	select -r primeIK_dummy_J_R_upArm_201 dummy_J_R_upArm_201 ;
+	orientConstraint -mo -weight 1;
+	select -r primeIK_dummy_J_R_elbow_202 dummy_J_R_elbow_202 ;
+	orientConstraint -mo -weight 1;
+	select -r primeIK_dummy_J_R_foreArm_203 dummy_J_R_foreArm_203 ;
+	orientConstraint -mo -weight 1;
+
+	select -r primeIK_dummy_J_L_upArm_301 dummy_J_L_upArm_301;
+	orientConstraint -mo -weight 1;
+	select -r primeIK_dummy_J_L_elbow_302 dummy_J_L_elbow_302;
+	orientConstraint -mo -weight 1;
+	select -r primeIK_dummy_J_L_foreArm_303 dummy_J_L_foreArm_303;
+	orientConstraint -mo -weight 1;
+
+
+	select -r dummy_J_R_upArm_201 subarm_r_dummyConnector;
+	orientConstraint -offset 0 0 0 -weight 1;
+	orientConstraint -remove;
+	select -r subarm_r_dummyConnector dummy_J_R_upArm_201;
+	orientConstraint -offset 0 0 0 -weight 1;
+
+	select -r dummy_J_L_upArm_301 subarm_l_dummyConnector;
+	orientConstraint -offset 0 0 0 -weight 1;
+	orientConstraint -remove;
+	select -r subarm_l_dummyConnector dummy_J_L_upArm_301;
+	orientConstraint -offset 0 0 0 -weight 1;
+
+	expression -s "dummy_J_L_upArm_301_orientConstraint1.primeIK_dummy_J_L_upArm_301W0 = (1 - subArm_L_ctrl.ctrl_switch);\ndummy_J_L_upArm_301_orientConstraint1.subarm_l_dummyConnectorW1 = subArm_L_ctrl.ctrl_switch;\ndummy_J_R_upArm_201_orientConstraint1.primeIK_dummy_J_R_upArm_201W0 = (1 - subArm_R_ctrl.ctrl_switch);\ndummy_J_R_upArm_201_orientConstraint1.subarm_r_dummyConnectorW1 = subArm_R_ctrl.ctrl_switch;"  -o rig_R_elbow_pos -ae 1 -uc all ;
+}
+
+//--------------------------------------------------------------------------------
+//肩アーマー、x:yzブレンド値調整
+//腕の長さから発生しうる最大値を取り、0.9をmax、0.1をminとする。
+global proc GPAutoRiggingTool_sArmorSetup(){
+	float $x = `getAttr rig_r_sArmor_weightDriver.tx `;
+	$x = `pow $x 2`;
+
+	float $y = `getAttr rig_r_sArmor_weightDriver.ty `;
+	$y = `pow $y 2`;
+
+	float $z = sqrt ($x + $y);
+
+	keyframe -option over -index 0 -absolute -floatChange ($z * -0.9) -valueChange 0 rig_r_sArmor_rotSwitch_xRotW0 ;
+	keyframe -option over -index 1 -absolute -floatChange ($z * -0.1) -valueChange 1 rig_r_sArmor_rotSwitch_xRotW0 ;
+	keyframe -option over -index 0 -absolute -floatChange ($z * -0.9) -valueChange 1 rig_r_sArmor_rotSwitch_yRotW1 ;
+	keyframe -option over -index 1 -absolute -floatChange ($z * -0.1) -valueChange 0 rig_r_sArmor_rotSwitch_yRotW1 ;
+
+	keyframe -option over -index 0 -absolute -floatChange ($z * 0.1) -valueChange 1 rig_l_sArmor_rotSwitch_xRotW1 ;
+	keyframe -option over -index 1 -absolute -floatChange ($z * 0.9) -valueChange 0 rig_l_sArmor_rotSwitch_xRotW1 ;
+	keyframe -option over -index 0 -absolute -floatChange ($z * 0.1) -valueChange 0 rig_l_sArmor_rotSwitch_yRotW0 ;
+	keyframe -option over -index 1 -absolute -floatChange ($z * 0.9) -valueChange 1 rig_l_sArmor_rotSwitch_yRotW0 ;
+}
+
+//--------------------------------------------------------------------------------
+//ストライクフリーダムガンダム、翼処理
+//wingではなくBPRなどが良いかと思われる
+global proc sfWingSetup(){
+	sfWingConnect();
+	select -r rig_Rwing_all_constlocator rig_Lwing_all_constlocator ;
+	group -n "rot_cansel"; xform -os -piv 0 0 0 ;
+
+	select -r "*:J_mune_001" ;
+	string $tgname[] = `ls -sl`;
+	spaceLocator -p 0 0 0 -n "allWing_connect";
+	select -r $tgname[0] "allWing_connect";
+	pointConstraint -offset 0 0 0 -weight 1;
+	orientConstraint -offset 0 0 0 -weight 1;
+
+	select -r rot_cansel rig_Rwing_group ;
+	parentConstraint -mo -weight 1;
+	select -r rot_cansel rig_Lwing_group ;
+	parentConstraint -mo -weight 1;
+
+	parent rot_cansel allWing_connect ;
+	parent allWing_connect etc ;
+	//レイヤーに追加
+	select -r rig_Rwing_all rig_Rwing00 rig_RwingF01 rig_RwingF02A rig_RwingF02B rig_RwingB01 rig_RwingB02A rig_RwingB02B rig_Lwing_all rig_Lwing00 rig_LwingF01 rig_LwingF02A rig_LwingF02B rig_LwingB01 rig_LwingB02A rig_LwingB02B ;
+	editDisplayLayerMembers -noRecurse CH_rig_layer `ls -selection`;
+	$createSetResult = `sets -name "selection_set_wing"`;
+}
+
+global proc sfWingConnect(){
+	select -r rig_Lwing00 "*:J_Lbackpack_271" ;
+	parentConstraint -mo -weight 1;
+
+	select -r rig_LwingF01 "*:J_Lbackpack_272" ;
+	parentConstraint -mo -weight 1;
+
+	select -r rig_LwingF02A "*:J_Lbackpack_273" ;
+	parentConstraint -mo -weight 1;
+
+	select -r rig_LwingF02B "*:J_Lbackpack_274" ;
+	parentConstraint -mo -weight 1;
+
+	select -r rig_LwingB01 "*:J_Lbackpack_275" ;
+	parentConstraint -mo -weight 1;
+
+	select -r rig_LwingB02A "*:J_Lbackpack_276" ;
+	parentConstraint -mo -weight 1;
+
+	select -r rig_LwingB02B "*:J_Lbackpack_277" ;
+	parentConstraint -mo -weight 1;
+
+	select -r rig_Rwing00 "*:J_Rbackpack_281" ;
+	parentConstraint -mo -weight 1;
+
+	select -r rig_RwingF01 "*:J_Rbackpack_282" ;
+	parentConstraint -mo -weight 1;
+
+	select -r rig_RwingF02A "*:J_Rbackpack_283" ;
+	parentConstraint -mo -weight 1;
+
+	select -r rig_RwingF02B "*:J_Rbackpack_284" ;
+	parentConstraint -mo -weight 1;
+
+	select -r rig_RwingB01 "*:J_Rbackpack_285" ;
+	parentConstraint -mo -weight 1;
+
+	select -r rig_RwingB02A "*:J_Rbackpack_286" ;
+	parentConstraint -mo -weight 1;
+
+	select -r rig_RwingB02B "*:J_Rbackpack_287" ;
+	parentConstraint -mo -weight 1;
+}
+
+//--------------------------------------------------------------------------------
+//レイヤー設定
+//処理後のレイヤー表示、非表示を設定する
+global proc laySetup(){
+	string $layName = `objectLayer "*:root"`;
+	setAttr ($layName + ".visibility") 0;
+
+	$layName = `objectLayer "*:parts"`;
+	setAttr ($layName + ".visibility") 1;
+	setAttr ($layName + ".displayType") 2;
+
+	$layName = `objectLayer "dummy_root"`;
+	setAttr ($layName + ".visibility") 0;
+
+	$layName = `objectLayer "rig_origin"`;
+	setAttr ($layName + ".visibility") 1;
+	setAttr ($layName + ".displayType") 0;
+}
+
+//--------------------------------------------------------------------------------
+//完了報告
+//エラーメッセージを返したいけれど、発生状況を想定できない
+global proc endMes(){
+	string $SSwindow = "CSSsystem";
+	if ( `window -exists $SSwindow` != 1 ){
+		confirmDialog -title "Auto rigging tool" -message ("作業が完了しました。")
+		-button "OK" -defaultButton "OK"
+		-cancelButton "OK" -dismissString "OK";
+	}
+}
+
+//--------------------------------------------------------------------------------
+//モデルデータ調整
+//骨ロックとレイヤーを調整する
+//他にも直す物があれば追加する予定
+global proc GPAutoRigging_repairModelState(){
+	//今の状態を一時保存
+	string $rigFile[] = `file -q -r`;
+	string $chrPass[];
+	tokenize $rigFile[0] "/" $chrPass;
+	int $max = `size($chrPass)`;
+	$max--;
+	for($i=1 ; $i<$max ; $i++){
+		$chrPass[0] = ($chrPass[0] + "/" + $chrPass[$i]);
+	}
+	
+
+	string $SSwindow = "CSSsystem";
+	if ( `window -exists $SSwindow` != 1 ){
+		confirmDialog -title "Auto rigging tool" -message ("モデルデータの調整を行います。\n" + ($chrPass[0] + "/Rigging_tmp.mb") + "に現在の状態を保存しました。")
+		-button "OK" -defaultButton "OK"
+		-cancelButton "OK" -dismissString "OK";
+	}
+
+
+
+	file -rename ($chrPass[0] + "/Rigging_tmp");
+	file -f -s -options "v=0" -type "mayaBinary";
+
+	//キャラモデルロード
+	file -f -o -iv -options "v=0" -type "mayaBinary" $rigFile[0];
+	
+//骨ロック全解除
+	select -r -hi "root";
+	string $chjoints[] = `ls -sl -type joint`;
+	string $attrList[] = {".tx",".ty",".tz",".rx",".ry",".rz",".sx",".sy",".sz"};
+	for($i = 0 ; $i < size($chjoints) ; $i++ ){
+		for($j = 0 ; $j < 9 ; $j++ ){
+			setAttr -lock 0 ($chjoints[$i] + $attrList[$j]);
+		}
+	}
+
+//レイヤー調整
+	select -r -hi root parts;
+	string $layName;
+	string $chjoints[] = `ls -sl`;
+	for($i = 0 ; $i < size($chjoints) ; $i++ ){
+		$layName = `objectLayer $chjoints[$i]`;
+		if($layName != "defaultLayer"){
+			delete $layName;
+		}
+	}
+	select -r parts ;
+	createDisplayLayer -name "model" -number 1 ;
+	select -r root ;
+	createDisplayLayer -name "joint" -number 1 ;
+	select -cl;
+
+	file -f -s -options "v=0" -type "mayaBinary";
+
+//作業完了として、元の状態を開きなおす
+	file -f -o -options "v=0" -type "mayaBinary" ($chrPass[0] + "/Rigging_tmp.mb");
+}
+//--------------------------------------------------------------------------------
+//全体処理
+//rig機能の追加時は、ここに条件付で処理を組み込むこと
+global proc rigAttach(){
+
+//中断用オプション
+	int $i, $percent;
+	float $calCount = 0;
+	progressWindow -title "Rigging_Status"
+		-progress $percent
+		-status "キャラジョイントのロックをチェック...: 0%"
+		-isInterruptable false;
+
+	int $lockCheck = GPAutoRigging_lockCheck();
+		$i++;	$calCount = ( ($i * 100) / 14);	$percent = int( $calCount );
+		progressWindow -e -progress $percent -status ("キャラデータのレイヤをチェック... : "+$percent+"%");
+
+	int $layerCheck = GPAutoRigging_layerCheck();
+		$i++;	$calCount = ( ($i * 100) / 14);	$percent = int( $calCount );
+		progressWindow -e -progress $percent -status ("キャラデータのジョイント・レイヤ調整... : "+$percent+"%");
+
+	if($lockCheck || $layerCheck){
+		int $repFlag = `checkBox -q -v errorRepCb`;
+		if($repFlag){
+			GPAutoRigging_repairModelState();
+		}else{
+			return;
+		}
+	}
+		$i++;	$calCount = ( ($i * 100) / 14);	$percent = int( $calCount );
+		progressWindow -e -progress $percent -status ("リグのスケール調整... : "+$percent+"%");
+	
+	rigScale();
+		print "rigScale() completed.\n";
+		$i++;	$calCount = ( ($i * 100) / 14);	$percent = int( $calCount );
+		progressWindow -e -progress $percent -status ("dummy⇒chara間のコンストレイン... : "+$percent+"%");
+
+	jointConnect();
+		print "jointConnect() completed.\n";
+		$i++;	$calCount = ( ($i * 100) / 14);	$percent = int( $calCount );
+		progressWindow -e -progress $percent -status ("dummy⇒rig間のコンストレインを削除... : "+$percent+"%");
+
+	tmpBreak();
+		print "tmpBreak() completed.\n";
+		$i++;	$calCount = ( ($i * 100) / 14);	$percent = int( $calCount );
+		progressWindow -e -progress $percent -status ("IKの有効化... : "+$percent+"%");
+
+	ikSwitch();
+		print "ikSwitch() completed.\n";
+		$i++;	$calCount = ( ($i * 100) / 14);	$percent = int( $calCount );
+		progressWindow -e -progress $percent -status ("リグ調整のフリーズ... : "+$percent+"%");
+
+	rigFreeze();
+		print "rigFreeze() completed.\n";
+		$i++;	$calCount = ( ($i * 100) / 14);	$percent = int( $calCount );
+		progressWindow -e -progress $percent -status ("rig⇒dummy間のコンストレイン... : "+$percent+"%");
+
+	reConst();
+		print "reConst() completed.\n";
+		$i++;	$calCount = ( ($i * 100) / 14);	$percent = int( $calCount );
+		progressWindow -e -progress $percent -status ("肩アーマー制御調整... : "+$percent+"%");
+
+	GPAutoRiggingTool_sArmorSetup();
+		print "sArmorSetup() completed.\n";
+		$i++;	$calCount = ( ($i * 100) / 14);	$percent = int( $calCount );
+		progressWindow -e -progress $percent -status ("バックパック処理... : "+$percent+"%");
+
+	string $wcheck[] = `ls rig_Rwing_all_constlocator`;
+	if(size($wcheck)){
+		sfWingSetup();	//羽ありなら独自処理へ(ストフリ)
+			print "sfWingSetup() completed.\n";
+	}
+		$i++;	$calCount = ( ($i * 100) / 14);	$percent = int( $calCount );
+		progressWindow -e -progress $percent -status ("腿付け根調整... : "+$percent+"%");
+
+	string $wcheck[] = `ls momocloser_waistpos`;
+	if(size($wcheck)){
+		GPAutoRigging_setupMC();
+			print "GPAutoRigging_setupMC() completed.\n";
+	}
+		$i++;	$calCount = ( ($i * 100) / 14);	$percent = int( $calCount );
+
+
+		progressWindow -e -progress $percent -status ("基本コントローラのロック調整... : "+$percent+"%");
+
+	GPAutoRigging_setupHygoggArm();
+		print "GPAutoRigging_setupHygoggArm() completed.\n";
+		$i++;	$calCount = ( ($i * 100) / 14);	$percent = int( $calCount );
+
+	
+		progressWindow -e -progress $percent -status ("基本コントローラのロック調整... : "+$percent+"%");
+
+	setAt();
+		print "setAt() completed.\n";
+		$i++;	$calCount = ( ($i * 100) / 14);	$percent = int( $calCount );
+		progressWindow -e -progress $percent -status ("レイヤーの表示設定... : "+$percent+"%");
+
+	laySetup();
+		print "laySetup() completed.\n";
+		$percent = 100;	progressWindow -e -progress $percent -status ("作業完了 : "+$percent+"%");
+
+	endMes();
+	progressWindow -endProgress;
+}
+
+
+
+//--------------------------------------------------------------------------------
+//手の形状切り替え用
+
+global proc int HandTypeSysSetupExec(){
+/*
+	if(size(`ls HandTypeSys`) > 0){
+		return(1);
+	}
+*/
+	string $a[] = `ls "*:root"`;
+	if(size($a) > 1){
+		return(2);//骨が大杉
+	}else if(size($a) == 0){
+		return(3);//骨なし
+	}
+	string $joints[] = {"J_R_handA_206" , "J_R_handB_207" , "J_R_handC_208" , "J_L_handA_306" , "J_L_handB_307" , "J_L_handC_308" };
+	string $control[] = {"rig_r_wrist.HandType_R" , "rig_l_wrist.HandType_L"};
+	string $command , $modelID;//	string $modelID;
+	string $temp[];
+	int $i;
+
+	tokenize $a[0] ":" $temp;
+	for($i = 0; $i < size($temp)-1; $i++){ $modelID = ($modelID + $temp[$i] + ":"); }
+
+	$command = "if(`file -q -sn -shn` != \"_basepose.mb\"){\r\n";
+		for($i = 0; $i < size($joints); $i++){
+			$command = $command + ("\tif(" +  $control[$i/3] + " != " + ($i%3) + " ){\r\n");
+				$command = $command + ("\t\t" + $modelID + $joints[$i] + ".scaleX = 0.001;\r\n");
+				$command = $command + ("\t\t" + $modelID + $joints[$i] + ".scaleY = 0.001;\r\n");
+				$command = $command + ("\t\t" + $modelID + $joints[$i] + ".scaleZ = 0.001;\r\n");
+				$command = $command + ("\t}else{\r\n");
+				$command = $command + ("\t\t" + $modelID + $joints[$i] + ".scaleX = 1.000;\r\n");
+				$command = $command + ("\t\t" + $modelID + $joints[$i] + ".scaleY = 1.000;\r\n");
+				$command = $command + ("\t\t" + $modelID + $joints[$i] + ".scaleZ = 1.000;\r\n");
+				$command = $command + ("\t}\r\n");
+		}
+		$command = $command + ("}else{\r\n");
+		for($i = 0; $i < size($joints); $i++){
+			$command = $command + ("\t" + $modelID + $joints[$i] + ".scaleX = 1.000;\r\n");
+			$command = $command + ("\t" + $modelID + $joints[$i] + ".scaleY = 1.000;\r\n");
+			$command = $command + ("\t" + $modelID + $joints[$i] + ".scaleZ = 1.000;\r\n");
+		}
+		$command = $command + ("}\r\n");
+
+	if(size(`ls HandTypeSys`) == 0){
+		//初回限定処理
+		addAttr -ln "HandType_R"  -at "enum" -en "グー:手刀:シャイニングフィンガー:"  rig_r_wrist;
+		setAttr -e -keyable true rig_r_wrist.HandType_R;
+		addAttr -ln "HandType_L"  -at "enum" -en "グー:手刀:シャイニングフィンガー:"  rig_l_wrist;
+		setAttr -e -keyable true rig_l_wrist.HandType_L;
+		spaceLocator -p 0 0 0 -n HandTypeSys;
+		parent HandTypeSys etc ;
+		expression -s $command -ae 1 -o HandTypeSys -uc all ;
+		return(0);
+	}else{
+		//2回目以降処理
+		string $getInfo = $modelID + $joints[0] + ".scaleX";
+		if (`connectionInfo -isDestination $getInfo`) {
+			$getInfo = `connectionInfo -sourceFromDestination $getInfo`;
+			tokenize $getInfo "." $temp;
+			expression -e -s $command $temp[0];
+		}else{
+			expression -s $command -ae 1 -o HandTypeSys -uc all ;
+		}
+		return(1);
+	}
+}
+
+//--------------------------------------------------------------------------------
+//手の形状切り替え用
+global proc HandTypeSysSetup(){
+	string $SSwindow = "CSSsystem";
+	if ( `window -exists $SSwindow` != 1 ){
+		confirmDialog -title "Auto rigging tool" -message ("現在開いているリグに、手形状の切り替え機構を追加します。")
+		-button "OK" -defaultButton "OK"
+		-cancelButton "OK" -dismissString "OK";
+	}
+	int $res = HandTypeSysSetupExec();
+	string $mes;
+	switch($res){
+	case 0:
+		$mes = "正常に処理が行われました。";
+		break;
+	case 1:
+		$mes = "ノード「HandTypeSys」が見つかりました。\r\n既に処理が行われている可能性があります。\r\nエクスプレッションのみ、最新版に更新しました。";
+		break;
+	case 2:
+		$mes = "ノード「root」が2つ以上見つかりました。\r\n処理対象のキャラクターが2体以上いる可能性があります。";
+		break;
+	case 3:
+		$mes = "ノード「root」が見つかりませんでした。処理対象のキャラクターが検出できません。";
+		break;
+	}
+
+	if ( `window -exists $SSwindow` != 1 || $res !=0 ){
+		confirmDialog -title "Auto rigging tool" -message $mes
+			-button "OK" -defaultButton "OK"
+			-cancelButton "OK" -dismissString "OK";
+	}
+}
+
+
+//--------------------------------------------------------------------------------
+//(GP2)addrig階層のセットアップ
+global proc aRT_GP2_connectAddrig(){
+	string $sceneList[] = `file -q -shn -r`;
+	string $charaID = basenameEx($sceneList[0]);
+
+	file -r -type "mayaBinary" -gl -mergeNamespacesOnClash false -namespace "addrig" -options "v=0;" "L:/motion/maya/ms/rig/full_rig_pg/addrig.mb";
+
+	if(size(`ls ("addrig:" + $charaID + "_ctrls")`)){
+		setAttr "addrig:global_default_ctrl.translateY" 0;
+		setAttr ("addrig:" + $charaID + "_ctrls.v") 1;
+
+	//parent rigTop
+		string $rigRoots[] = `listRelatives -type transform ("addrig:" + $charaID + "_ctrls")`;
+
+		for($i=0 ; $i<size($rigRoots) ; $i++){
+			string $jName = UT_cutUnuseByTokenize($rigRoots[$i] , ":" , 1 , 0);
+			$jName = UT_cutUnuseByTokenize($jName , "_" , 0 , 1);
+			if(size(`ls ($charaID + ":" + $jName)`)!= 0){
+				select -r ($charaID + ":" + $jName);
+				string $pList[] = `listRelatives -p ($charaID + ":" + $jName)`;
+				select -r $pList[0] $rigRoots[$i];
+				parentConstraint -mo -weight 1;
+			}
+		}
+
+	//connect dummy-to-charaJoint
+		string $dummyRoots[] = `listRelatives -type transform ("addrig:" + $charaID + "_dummyJoints")`;
+
+		for($i=0 ; $i<size($dummyRoots) ; $i++){
+			string $charaJoint = UT_cutUnuseByTokenize($dummyRoots[$i] , "_" , 2 , 0);
+			select -r ($charaID + ":" + $charaJoint) $dummyRoots[$i];
+			parentConstraint  -weight 1;
+		}
+
+		select -r -hi ("addrig:" + $charaID + "_dummyJoints");
+		select -d ("addrig:" + $charaID + "_dummyJoints") $dummyRoots;
+		string $dummys[] = `ls -sl -type joint`;
+
+		for($i=0 ; $i<size($dummys) ; $i++){
+			string $charaJoint = UT_cutUnuseByTokenize($dummys[$i] , "_" , 1 , 0);
+			if(size(`ls ($charaID + ":" + $charaJoint)`)!= 0){
+				select -r $dummys[$i] ($charaID + ":" + $charaJoint);
+				parentConstraint -mo -weight 1;
+			}
+		}
+		setAttr "addrig:global_default_ctrl.translateY" 100;
+	}else{
+		print("addrigをロードしました。専用のコントローラはありません。");
+	}
+}
+
+
+
+
+//shield_rigging
+global proc GP2_setupShieldRig(){
+	file -import -type "mayaBinary" -mergeNamespacesOnClash false -rpr "shield_rig" -options "v=0;"  -pr "L:/motion/maya/ms/rig/full_rig/shields.mb";
+	parent rig_shields rig ;
+	select -r rig_l_shield rig_shields ;
+	parentConstraint -weight 1;
+
+	string $shie[] = {"elbow","S","M","L","XL","XXL"};
+	string $axis[] = {"X","Y","Z"};
+	for($size in $shie){
+		for($jiku in $axis){
+			setDrivenKeyframe -currentDriver addrig:global_default_getnum_child.translateY ("shield_" + $size + "_cal.rotate" + $jiku);
+		}
+	}
+	setAttr "addrig:global_default_ctrl.translateY" 0;
+	for($size in $shie){
+		for($jiku in $axis){
+			setAttr ("shield_" + $size + "_cal.rotate" + $jiku) 0;
+			setDrivenKeyframe -currentDriver addrig:global_default_getnum_child.translateY ("shield_" + $size + "_cal.rotate" + $jiku);
+		}
+	}
+	setAttr "addrig:global_default_ctrl.translateY" 100;
+
+	setAttr "rig_shields.visibility" 0;
+}
+
+
+
+global proc string UT_cutUnuseByTokenize(string $tgt , string $letter , int $unuseSt , int $unuseEd){
+	string $res;
+	string $temp[];
+	tokenize $tgt $letter $temp;
+	string $res = $temp[$unuseSt];
+	$unuseSt++;
+	int $max = size($temp) - $unuseEd;
+	for($p=$unuseSt ; $p < $max ; $p++){
+		$res = ($res + $letter + $temp[$p]);
+	}
+	return $res;
+}
+
+global proc string UT_getNumberdByTokenize(string $tgt , string $letter , int $num){
+	string $temp[];
+	tokenize $tgt $letter $temp;
+	string $res = $temp[$num];
+	return $res;
+}
+
+
+
+//--------------------------------------------------------------------------------
+//UI周り
+global proc AutoRigging_PG(){
+	string $title = "AutoRigging_PG";
+	string $RGwindow = "rigtool";
+
+	if ( `window -exists $RGwindow` )
+	{
+		deleteUI	$RGwindow;
+	}
+	string $ARTversion = getVersion();
+	window  -t ($title + "   " + $ARTversion) -w 208 -h 130 $RGwindow;
+
+	string $Numset = `formLayout`;
+		string $b0 = `button -w 200 -h 30 -l "Import Rig-file" iptRigBtn`;
+		string $b1 = `button -w 200 -h 30 -l "reference Character-file" refChrBtn`;
+		string $b2 = `button -w 200 -h 30 -l "Rig Setup!" atcRigBtn`;
+		string $b3 = `button -w 200 -h 30 -l "HandRigSystem Setup" atcHandBtn`;
+		string $b4 = `button -w 200 -h 30 -l "AddRig Setup" atcAddBtn`;
+		string $b5 = `button -w 200 -h 30 -l "sized-ShieldRig Setup" sldSetupBtn`;
+		string $c0 = `checkBox -w 200 -h 12 -v 1 -l "エラー発生時、自動調整" errorRepCb`;
+
+		button -edit -command "rigImport();" -ann "リグデータをインポートします。" iptRigBtn;
+		button -edit -command "chrImport();" -ann "キャラデータをリファレンスします。" refChrBtn;
+		button -edit -command "rigAttach();" -ann "リグとキャラクターを接続します。" atcRigBtn;
+		button -edit -command "HandTypeSysSetup();" -ann "手の切り替え機能の設定を行います。" atcHandBtn;
+		button -edit -command "aRT_GP2_connectAddrig();" -ann "全機体用追加リグの設定を行います。" atcAddBtn;
+		button -edit -command "GP2_setupShieldRig();" -ann "サイズ別盾コントローラの設定を行います。" sldSetupBtn;
+		checkBox -edit -ann "骨のロック・レイヤー状態を確認し、調整を行います" errorRepCb;
+//	setParent ..;
+	formLayout -edit
+		-attachForm	$b0	"top"	0
+		-attachForm	$b0	"left"   0
+		-attachNone	$b0	"bottom"
+		-attachForm	$b0	"right" 0
+
+		-attachControl	$b1	"top" 0 $b0
+		-attachForm	$b1	"left" 0
+		-attachNone	$b1	"bottom"
+		-attachForm	$b1	"right" 0
+
+		-attachControl	$b2	"top" 0 $b1
+		-attachForm	$b2	"left" 0
+		-attachNone	$b2	"bottom"
+		-attachForm	$b2	"right" 0
+
+		-attachControl	$c0	"top" 0 $b2
+		-attachForm	$c0	"left" 0
+		-attachNone	$c0	"bottom" 
+		-attachForm	$c0	"right" 0
+
+		-attachControl	$b3	"top" 0 $c0
+		-attachForm	$b3	"left" 0
+		-attachNone	$b3	"bottom"
+		-attachForm	$b3	"right" 0
+
+		-attachControl	$b4	"top" 0 $b3
+		-attachForm	$b4	"left" 0
+		-attachNone	$b4	"bottom"
+		-attachForm	$b4	"right" 0
+
+		-attachControl	$b5	"top" 0 $b4
+		-attachForm	$b5	"left" 0
+		-attachForm	$b5	"bottom" 0
+		-attachForm	$b5	"right" 0
+	$Numset;
+
+	showWindow $RGwindow;
+}

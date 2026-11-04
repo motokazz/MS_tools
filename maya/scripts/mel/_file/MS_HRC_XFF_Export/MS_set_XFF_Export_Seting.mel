@@ -1,0 +1,76 @@
+global proc MS_set_XFF_Export_Seting(){
+	
+	string $lsobj[]=`ls -as -sl`;
+	
+for($obj in $lsobj){
+	
+	
+		/* アトリビュートが存在しない場合、アトリビュートを設定する */
+	if( !`attributeExists "ExportModel" $obj` )
+	{
+		addAttr -ln "ExportModel" -at bool  $obj;
+	}
+	if( !`attributeExists "ExportAnim" $obj` )
+	{
+		addAttr -ln "ExportAnim" -at bool  $obj;
+	}
+	if( !`attributeExists "ExportMatanim" $obj` )
+	{
+		addAttr -ln "ExportMatanim" -at bool  $obj;
+	}
+	if( !`attributeExists "ExportMatanim" $obj` )
+	{
+		addAttr -ln "ExportMatanim" -at bool  $obj;
+	}
+	if( !`attributeExists "IgnoreBindpose" $obj` )
+	{
+		addAttr -ln "IgnoreBindpose" -at bool  $obj;
+	}
+	if( !`attributeExists "ModelName" $obj` )
+	{
+		addAttr -ln ModelName -dt "string"  $obj;
+	}
+	if( !`attributeExists "AnimationName" $obj` )
+	{
+		addAttr -ln AnimationName -dt "string"  $obj;
+	}
+	if( !`attributeExists "IgnoreReference" $obj` )
+	{
+		addAttr -ln IgnoreReference -at bool  $obj;
+	}
+	if( !`attributeExists "LightExport" $obj` )
+	{
+		addAttr -ln LightExport -at bool  $obj;
+	}
+	if( !`attributeExists "PlacementInfoExport" $obj` )
+	{
+		addAttr -ln PlacementInfoExport -at bool  $obj;
+	}
+	
+	
+	
+	int $ExportModel=`checkBox -q -v "ExportModel"`;//Data//
+	int $ExportAnim=`checkBox -q -v "ExportAnim" `;//Data//
+	int $ExportMatAnim=`checkBox -q -v "ExportMatAnim" `;//Data//
+	int $IgnoreBindpose=`checkBox -q -v "IgnoreBindpose" `;//Data//
+	string $ModelName=`textField -q -tx "ModelName"`;//Data//
+	string $AnimationName=`textField -q -tx "AnimationName"`;//Data//
+	int $IgnoreReferencenode=`checkBox -q -v "IgnoreReferencenode"`;//Data//
+	int $ExportLight=`checkBox -q -v "ExportLight"`;//Data//
+	int $PlacementInfo=`checkBox -q -v "PlacementInfo"`;//Data//
+	
+	
+	
+	setAttr ($obj+".ExportModel") $ExportModel;//Data//
+	setAttr ($obj+".ExportAnim") $ExportAnim;//Data//
+	setAttr ($obj+".ExportMatanim") $ExportMatAnim;//Data//
+	setAttr ($obj+".IgnoreBindpose") $IgnoreBindpose;//Data//
+	setAttr -type "string" ($obj+".ModelName") $ModelName;//Data//
+	setAttr -type "string" ($obj+".AnimationName") $AnimationName;//Data//
+	setAttr ($obj+".IgnoreReference") $IgnoreReferencenode;//Data//
+	setAttr ($obj+".LightExport") $ExportLight;//Data//
+	setAttr ($obj+".PlacementInfoExport") $PlacementInfo;//Data//
+
+}
+
+}

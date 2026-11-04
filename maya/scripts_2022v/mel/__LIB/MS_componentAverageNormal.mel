@@ -1,0 +1,23 @@
+global proc vector MS_componentNormalAverage(string $comp[]){
+	//いろんなコンポーネントで法線ベクトルの平均値を帰す
+	//フェースやエッジから法線平均値取るのに便利
+	//モチロンバーテックスでも使えるよ。
+	float $pret[];
+	float $ret[];
+	string $vvv[]=`polyListComponentConversion -tv $comp`;
+	float $nrm[]=`polyNormalPerVertex -q -xyz $vvv`;
+	$i=0;
+	while($i<size($nrm)){
+		$pret[0]=$pret[0]+$nrm[$i];
+		$pret[1]=$pret[1]+$nrm[$i+1];
+		$pret[2]=$pret[2]+$nrm[$i+2];
+		$i+=3;
+	}
+	
+	$ret[0]=$pret[0] ? ($pret[0]/(size($nrm)/3)):0;
+	$ret[1]=$pret[1] ? ($pret[1]/(size($nrm)/3)):0;
+	$ret[2]=$pret[2] ? ($pret[2]/(size($nrm)/3)):0;
+	
+	vector $retvec=<<$ret[0],$ret[1],$ret[2]>>;
+	return $retvec;
+}

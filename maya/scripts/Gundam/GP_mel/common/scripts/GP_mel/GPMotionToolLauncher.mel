@@ -1,0 +1,85 @@
+//labelListMake
+//mode{0:all	1:Move&Rot	2:Rot	3:Move}
+global proc string[] GPMotionToolLauncher_getLabelList(int $mode){
+
+	string $labelList[] = {"ART"		,"PDT"				,"MMT"					,"PRT"				,"PRT2"				,"MME"					};
+	string $rigNmList[] = {"AutoRigging","partsDivideTool"	,"Multi_Motion_Transfer","partsRiggingTool"	,"partsRiggingTool"	,"Multi_Motion_Exporter"};
+
+	switch ($mode) {
+		case 1:
+			return($rigNmList);
+		break;
+
+		default:
+			return($labelList);
+		break;
+	}
+}
+
+
+
+global proc GPMotionToolLauncher_createNewScene(){
+	file -f -new;
+	fileBrowserDialog -mode 0 -fileType ".mb" -actionName "open" -fileCommand "GPMotionToolLauncher_importRig(\"btnNewScene\")";
+}
+
+
+
+global proc GPMotionToolLauncher_importRig( string $btnName, string $fileName , string $fileType ){
+	print $fileName;
+	string $tokenized[],$tmp[];
+	int $j;
+	string $loadedPass = "";
+	tokenize $fileName "/" $tokenized;
+	int $max = size($tokenized);
+	$max-- ;
+	for( $j=0 ; $j<size($tokenized) ; $j++ ){
+		if($j < $max ){
+			$loadedPass = ($loadedPass + $tokenized[$j] + "/");
+		}else{
+			tokenize $tokenized[$j] "." $tmp;
+			print ($loadedPass + "\n");
+			workspace -o $loadedPass;
+			file -r -type "mayaBinary" -gl -loadReferenceDepth "all" -namespace $tmp[0] -options "v=0" $tokenized[$j];
+		}
+	}
+}
+
+
+global proc GPMotionToolLauncher(){
+	if(`window -exists GPMotionToolLauncherWindow`){
+		deleteUI GPMotionToolLauncherWindow;
+	}
+	window  -width 400 -height 550 -sizeable 0 -title "GP Motion Tool Launcher" GPMotionToolLauncherWindow;
+
+	string $pictPass = (`getenv "GP_MAYA_ROOT"` + "\\common\\scripts\\GP_mel\\bmp\\");
+	string $form = `formLayout`;
+
+	string $labelList[]= GPMotionToolLauncher_getLabelList(0);
+	string $rigNmList[]= GPMotionToolLauncher_getLabelList(1);
+
+//					0	1	2	3	4	5	6
+//					ART	PDT	MMT	PRT	PRT	MME	CNS
+	int $btTop[] = { 70, 70,190,215,340,460,200};
+	int $btLft[] = {125,255,  1,235,215,110,140};
+	int $btHei[] = { 40, 40, 40, 40, 60, 60, 40};
+	int $btWid[] = {105,115,125,155,165,165, 90};
+
+	string $toolBtn[];
+
+	for( $i=0 ; $i<size($rigNmList) ; $i++){
+		string $selectCommand = ("source \"" + $rigNmList[$i] + ".mel\";" + $rigNmList[$i] + ";" );
+		$toolBtn[$i] = `symbolButton -i ($pictPass + "MTL_" + $labelList[$i] + ".bmp") -h $btHei[$i] -w $btWid[$i] -command $selectCommand ("btn" + $labelList[$i])`;
+		formLayout -edit -attachForm $toolBtn[$i] "top" $btTop[$i]  -attachForm $toolBtn[$i] "left" $btLft[$i] $form;
+	}
+
+	string $comA = "file -f -new";
+	string $comB = "fileBrowserDialog -mode 0 -fileType \".mb\" -actionName \"open\" -fileCommand \"GPMotionToolLauncher_importRig( \\\"btnCNS\\\" )\" ";
+	string $selectCommand = ( $comA + ";" + $comB );
+	$toolBtn[$i] = `symbolButton -i ($pictPass + "MTL_CNS.bmp") -h $btHei[$i] -w $btWid[$i] -command $selectCommand btnCNS`;
+	formLayout -edit -attachForm $toolBtn[$i] "top" $btTop[$i]  -attachForm $toolBtn[$i] "left" $btLft[$i] $form;
+
+	image -width 384 -height 512 -image ($pictPass + "GPMotionToolLauncherBG.bmp");
+	showWindow;
+}
+//GPMotionToolLauncher();

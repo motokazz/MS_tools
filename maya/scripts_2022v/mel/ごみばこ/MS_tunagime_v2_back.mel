@@ -1,0 +1,103 @@
+/*
+-------------------
+MS_tunagime.mel
+-------------------
+
+◆概要
+テクスチャーのつなぎ目が見えてしまうときにつなぎ目に沿ってテープのようなポリゴンを作成してつなぎ目を隠すテクニックがある。
+それを作るツール。
+
+
+◆使用方法
+バーテックス、エッジ、ポリゴン、何でも良いのでコンポーネント選択をする。
+スクリプトを実行する。
+
+
+◆詳細
+・基本的にはフェース選択で使うのがスマート。選んだフェースのエッジにテープするので分かりやすい。
+・テープオブジェクトのエッジボーダーにはバーテックスカラーのA０、つまり完全透明が入るようになっている。（後で調整できるようにしたい）
+・テープを作成したときボーダー部分をノーマルZ方向に少し持ち上げるようにしてある（後で調整できるようにしたい）
+
+
+※注意
+はっきりいって未完成。
+
+
+*/
+
+
+global proc MS_SelectionBorderVertex(){
+	
+	polyUVSet -create -uvSet "tunagime_no_temp";
+	polyUVSet -currentUVSet -uvSet "tunagime_no_temp";
+	polyAutoProjection -pb 0 -ibd 0 -cm 0 -l 2 -sc 2 -o 0 -p 4 -ps 0.2 -ws 1;
+	polyProjection -type planar -mapDirection z;
+	
+	PolySelectConvert 4;
+	SelectUVBorder;
+	PolySelectConvert 3;
+	
+	$SelectionBorderVertex=`filterExpand -sm 31`;
+	DeleteCurrentUVSet;
+	select $SelectionBorderVertex;
+}
+
+global proc MS_move_vertex_normal(float $n_value){
+	$move_vertex=`filterExpand -sm 31`;
+	for($vertex in $move_vertex){
+		moveVertexAlongDirection -n $n_value $vertex;
+	}
+}
+
+
+global proc MS_tunagime_v2_core(){
+
+	$obj_name=`ls -o -sl`;
+	
+	//PolySelectTraverse 1;(下記のコマンドで同じ意味。この記述のほうが便利）
+	PolySelectConvert 3;
+	PolySelectConvert 1;
+	
+	
+	polyChipOff -ws 1 -ch 0;
+	
+	select $obj_name;
+	
+	string $obj_sep[]=`polySeparate -ch 0 $obj_name`;
+	
+	int $i=0;
+	for ($i=1;$i<size($obj_sep);$i++){
+		
+		polyNormalPerVertex -fn true $obj_sep[$i];
+		polySoftEdge -a 180 -ch 0 $obj_sep[$i];
+		
+		select $obj_sep[$i];
+		
+		polyColorPerVertex -a 1 -cdo;
+		
+		MS_SelectionBorderVertex;
+		
+		polyColorPerVertex -a 0 -cdo;
+		
+		InvertSelection;
+		
+		MS_move_vertex_normal 1;
+		
+		rename $obj_sep[$i] MS_tunagime_x;
+		
+	}
+	
+	rename $obj_sep[0] $obj_name;
+	
+	select $obj_name;
+	PolySelectConvert 1;
+	select -cl;
+
+
+}
+
+global proc MS_tunagime_v2(){
+	MS_tunagime_v2_core;
+}
+
+MS_tunagime_v2;

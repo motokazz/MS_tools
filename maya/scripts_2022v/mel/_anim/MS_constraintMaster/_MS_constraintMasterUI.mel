@@ -1,0 +1,292 @@
+global proc MS_constraintNearest(){
+	
+	string $obj[]=`ls -typ transform -sl`;
+	
+	string $strtgt=`textFieldGrp -q -text TFGTgt`;
+	string $target[];
+	tokenize ($strtgt,$target);
+	
+	for($each in $obj){
+		string $dist[]=`MS_constraintMaster_nearestObject $target $each`;
+		print ($dist[0]+"\n");
+		MS_constraint_exec {$dist[0]} {$each};
+	
+	}
+	
+}
+
+
+global proc MS_splitTwoPointConstraintLocator_pipe(){
+	int $split=`intSliderGrp -q -v "split"`;
+	MS_splitTwoPointConstraintLocator $split;
+	
+}
+
+global proc string MS_constraint_exec(string $target[],string $obj[]){
+	int $point     =`checkBox -q -v "point"        `;
+	string $point_option;
+	if(!`checkBox -q -v "px"`){$point_option="-sk x ";}
+	if(!`checkBox -q -v "py"`){$point_option=($point_option+"-sk y ");}
+	if(!`checkBox -q -v "pz"`){$point_option=($point_option+"-sk z ");}
+	
+	int $aim       =`checkBox -q -v "aim"          `;
+	
+	int $orient    =`checkBox -q -v "orient"       `;
+	string $orient_option;
+	if(!`checkBox -q -v "ox"`){$orient_option="-sk x ";}
+	if(!`checkBox -q -v "oy"`){$orient_option=($orient_option+"-sk y ");}
+	if(!`checkBox -q -v "oz"`){$orient_option=($orient_option+"-sk z ");}
+	
+	int $scale     =`checkBox -q -v "scale"        `;
+	int $parent    =`checkBox -q -v "parent"       `;
+	int $geometry  =`checkBox -q -v "geometry"     `;
+	int $normal    =`checkBox -q -v "normal"       `;
+	int $tangent   =`checkBox -q -v "tangent"      `;
+	int $poleVector=`checkBox -q -v "poleVector"   `;
+	
+	string $targets=stringArrayToString($target,"\",\"");
+	string $objs=stringArrayToString($obj,"\",\"");
+	
+
+	string $command=("MS_constraint ("+$point+",\""+$point_option+"\","+$aim+","+$orient+",\""+$orient_option+"\","+$scale+","+$parent+","+$geometry+","+$normal+","+$tangent+","+$poleVector+","+"{\""+$targets+"\"},{\""+$objs+"\"})");
+	
+	eval $command;
+	
+	return $command;
+}
+
+
+global proc MS_constraintMasterUI_pipe(){
+	
+	string $strtgt=`textFieldGrp -q -text TFGTgt`;
+	string $target[];
+	tokenize ($strtgt,$target);
+	
+	string $obj[]=`ls -typ transform -sl`;
+	
+	
+	MS_constraint_exec $target $obj;
+	
+}
+
+
+global proc MS_vertexpointConstraint_pipe(){
+	
+	
+	string $strtgt=`textFieldGrp -q -text TFGTgt`;
+	string $target[];
+	tokenize ($strtgt,$target);
+	
+	string $obj[]=`ls -typ transform -sl`;
+	
+	
+	for ($each in $obj){
+	MS_vertexpointConstraint $target $each;
+	}
+}
+
+//ClickTragetList-------------------------------------------
+global proc ClickTargetList(){
+	string $objz[] = `ls -typ transform -sl`;
+	
+	string $fexz[] =`filterExpand -sm 31 -sm 32 -sm 34 -sm 46 -sm 28 `;
+	
+	string $objzstr=stringArrayToString($objz," ");
+	string $fexzstr=stringArrayToString($fexz," ");
+	
+	textFieldGrp -e -tx ($objzstr+" "+$fexzstr) TFGTgt;
+	
+}
+
+
+global proc MS_constraintMasterUI(){
+	
+	if(`window -exists MS_constraintMasterUI`){
+		deleteUI MS_constraintMasterUI;
+	}
+	
+	window -title "MS_constraintMasterUI" "MS_constraintMasterUI";	
+	
+	$tabs=`tabLayout`;
+	
+	//------------------------------------------------------------------------------------
+	
+	$mainform=`formLayout`;
+	
+	button -bgc 1 1 1 -al "center"  -l "SelectTargetObjects" -w 120 -c "ClickTargetList" "CLCTgt";
+	textFieldGrp -en 0 -cw 1 160  "TFGTgt";
+
+	checkBox -v 1 -l "point"        "point"         ;
+	
+	checkBox -v 1 -l "X"        "px"         ;
+	checkBox -v 1 -l "Y"        "py"         ;
+	checkBox -v 1 -l "Z"        "pz"         ;
+	
+	checkBox -v 0 -l "aim"          "aim"           ;
+	
+	checkBox -v 0 -l "orient"       "orient"        ;
+	checkBox -v 1 -l "X"        "ox"         ;
+	checkBox -v 1 -l "Y"        "oy"         ;
+	checkBox -v 1 -l "Z"        "oz"         ;
+	
+	checkBox -v 0 -l "scale"        "scale"         ;
+	checkBox -v 0 -l "parent"       "parent"        ;
+	checkBox -v 0 -l "geometry"     "geometry"      ;
+	checkBox -v 0 -l "normal"       "normal"        ;
+	checkBox -v 0 -l "tangent"      "tangent"       ;
+	checkBox -v 0 -l "poleVector"   "poleVector"    ;
+	
+	checkBox -v 1 -l "eachPointSeparatery"   "pointSeparate"    ;
+	
+	button -w 150 -bgc 1 0.8 0.8 -l "CreateLoacatorConstraint" -c "MS_createLocatorwithConstraint" "MSCCLT";
+	
+	button -w 50 -bgc 0.8 0.8 1 -l "DEL" -c "MS_deleteConstraint" "MSCDEL";
+	
+	button -w 120 -bgc 0.8 1 0.8 -l "MS_constraintNearest" -c "MS_constraintNearest" "MSCNEA";
+	
+	button -w 200 -bgc 1 1 1 -l "MS_constraint" -c "MS_constraintMasterUI_pipe" "MSCEXE";
+	
+	button -w 150 -bgc 1 1 0.5 -l "VertexConstraintExpression" -c "MS_vertexpointConstraint_pipe" "MSVCLT";
+	
+	button -w 100 -bgc 1 0.8 0.5 -l "cleanExpression" -c "MS_deleteUnconnectExpression transform" "MDELEX";
+	
+	button 
+		-w 80 -h 50 
+		-bgc 0.8 1 0.5 
+		-ann "create Locator by Scene Name." 
+		-l "createLocator" 
+		-c "MS_spaceLocatorBySceneName" 
+		"SPCLOC";
+
+	
+	
+	formLayout -e
+	
+	-af	"CLCTgt"	"top"	0
+	-af	"CLCTgt"	"left"	0
+	-af	"TFGTgt"	"top"	0
+	-af	"TFGTgt"	"left"	120
+	
+	
+	-af	"point"     "top"	30
+	-af	"point"     "left"	0
+	
+	-af	"px"     "top"	30
+	-af	"px"     "left"	50
+	-af	"py"     "top"	30
+	-af	"py"     "left"	90
+	-af	"pz"     "top"	30
+	-af	"pz"     "left"	130
+	
+	
+	-af	"aim"       "top"	50
+	-af	"aim"       "left"	0
+	
+	-af	"orient"    "top"	70
+	-af	"orient"    "left"	0
+
+	-af	"ox"     "top"	70
+	-af	"ox"     "left"	50
+	-af	"oy"     "top"	70
+	-af	"oy"     "left"	90
+	-af	"oz"     "top"	70
+	-af	"oz"     "left"	130
+
+	-af	"scale"     "top"	90
+	-af	"scale"     "left"	0
+	-af	"parent"    "top"	110
+	-af	"parent"    "left"	0
+	-af	"geometry"  "top"	130 
+	-af	"geometry"  "left"	0 
+	-af	"normal"    "top"	150
+	-af	"normal"    "left"	0
+	-af	"tangent"   "top"	170
+	-af	"tangent"   "left"	0
+	-af	"poleVector""top"	190
+	-af	"poleVector""left"	0
+
+	-af	"pointSeparate"	"top"	120
+	-af	"pointSeparate"	"left"	100
+
+	-af	"MSCCLT"	"top"	140
+	-af	"MSCCLT"	"left"	100
+	
+	-af	"MSCEXE"	"top"	165
+	-af	"MSCEXE"	"left"	100
+	
+	-af	"MSCDEL"	"top"	190
+	-af	"MSCDEL"	"left"	250
+	
+	-af	"MSCNEA"	"top"	190
+	-af	"MSCNEA"	"left"	100
+
+	-af	"MSVCLT"	"top"	225
+	-af	"MSVCLT"	"left"	150
+
+	-af	"MDELEX"	"top"	250
+	-af	"MDELEX"	"left"	200
+
+	-af	"SPCLOC"	"top"	220
+	-af	"SPCLOC"	"left"	0
+
+	
+	$mainform;
+	setParent ..;
+	//------------------------------------------------------------------------------------
+	$misc=`columnLayout`;
+	
+	intSliderGrp -f 1 -v 1 -l "split" "split";
+	
+	button 
+		-w 80 -h 50 
+		-bgc 0.8 1 0.5 
+		-ann "splitTwoPointConstraintLocator." 
+		-l "createLocator" 
+		-c "MS_splitTwoPointConstraintLocator_pipe" 
+		"SPTPCL";
+	
+	setParent ..;
+	//------------------------------------------------------------------------------------
+	
+	$locatorToComponents=`columnLayout`;
+	
+	//Contents	
+	
+	//text
+	text -label "ThisWindowIsMS_locatorToComponents";
+	separator -w 100 -h 40 -st "single";	
+	//---------------
+	//Execute Buttons
+	//---------------
+	separator -w 100 -h 40 -st "doubleDash";
+	
+	button -bgc 1.0 0.5 0.5 -l "locatorToComponents" -command "MS_locatorToComponentsV2_core" ;
+	separator -w 100 -h 40 -st "doubleDash";
+	
+	button -bgc 0.5 1.0 0.5 -l "duplicateToLocater" -command "MS_duplicateToLocater" ;
+	separator -w 100 -h 40 -st "double";
+	
+	button -bgc 0.5 0.5 1.0 -l "pivotToCompornents" -command " MS_pivotToComponents_core" ;
+	separator -w 100 -h 40 -st "double";
+	
+	button -l "undo" -command "Undo" ;
+	
+	button -l "exit" -command "deleteUI MS_locatorToComponentsV2" ;
+	
+	setParent ..;
+	
+	tabLayout -e
+		-tl $mainform "main"
+		-tl $misc "misc"
+		-tl $locatorToComponents "locatorToComponents"
+		$tabs;
+	
+	showWindow "MS_constraintMasterUI";
+	
+	
+	
+	
+}
+
+MS_constraintMasterUI;
+

@@ -1,0 +1,48 @@
+global proc MS_spaceLocatorBySceneNameUI_core(){
+	//シーン名の付いたロケーターを作成
+	
+	int $nameOption=`checkBox -q -v "nameOption"`;
+	
+	string $obj[]=`ls -typ transform -sl`;
+	
+	$loc=`spaceLocator`;
+	$newname=`file -q -ns`;
+	
+	if(size($obj)){
+		parent $obj $loc;
+		if($nameOption){
+			rename $loc ($newname+"_"+$obj[0]);
+		}else{
+			rename $loc $newname;
+		}
+	}else{
+		rename $loc $newname;
+	}
+}
+
+
+
+
+global proc MS_spaceLocatorBySceneNameUI()
+{
+	
+	//Window Check
+	if(`window -exists MS_spaceLocatorBySceneNameUI`){
+		deleteUI MS_spaceLocatorBySceneNameUI;
+	}
+	window -title "MS_WindowSample" MS_spaceLocatorBySceneNameUI;
+	
+	columnLayout;
+	
+	checkBox -v 1 -l "[sceneName]_[SelectedTopObjectsName]" "nameOption";
+	
+	button -bgc 1.0 0.5 0.5 -l "create Locator by Scene Name" -c "MS_spaceLocatorBySceneNameUI_core";
+	
+	
+	showWindow MS_spaceLocatorBySceneNameUI;
+	
+}
+
+//MS_spaceLocatorBySceneNameUI;
+
+	

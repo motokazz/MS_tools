@@ -1,0 +1,191 @@
+
+/*
+
+This script will build Vehicle rigg for wheel rotation, suspension
+	and steering. This script is called by the GUI DVY_Vehicle Rigger.mel
+
+	This script current has no error checking if you find it useful please
+	let me know and I will rewrite it with full error checking.
+	
+	This script was written to demonstrate the use of Utility nodes to replace
+	expressions foor vehicle control etc.
+	
+	I am currently working on building a full suite ot scripts to allow rigging
+	of all the various parts of any wheeled vehicle. The intention is to build a
+	set of "modular" scripts to allow rigging oif individual parts and or a fullly
+	rigged vehicle.
+	
+	Directions:
+	
+	Source and run DVY_Vehicle Rigger.mel, use default values is you have named them 
+	as shown or selct each item in turn and load required field. Also you can type names
+	in the field as required. Script will error out if not all items are found.
+	Once all fields correct press "Rig Vehicle" button. 
+	
+	Structure of intial Vehicle is as follows :-
+	
+	Vehicle Top Node
+	 |___
+		|
+		|___BodyShell Group
+		  |
+		  |_____BodyWork_Group
+		  |	  |
+		  |	  |__Chassis(contains all geometry except Wheels.
+		  |	
+		  |__Wheels Grp_1 
+		  		|___
+					|Fr_Wheels_Grp_1
+					|	|
+					|	|__ LfFr_Wheel_Grp_1	(Wheel Group Naming must follow
+					|	|__ RtFr_Wheel_Grp_1	  this structure i.e 
+					|	|__ LfFr_Wheel_Grp_2	  LfFr_Wheel_Grp_1,  LfFr_Wheel _Grp_2
+					|	|__ RtFr_Wheel_Grp_2	  order is not important within each of
+					|							  the Group Nodes.)
+					|Rr_Wheels_Grp_1
+						|
+						|__ LfRr_Wheel_Grp_1
+						|__ RtRr_Wheel_Grp_1
+						|__ LfRr_Wheel_Grp_2
+						|__ RtRr_Wheel_Grp_2	
+						
+	
+	Basic Procedure:
+		Main procedure uses a $GroupV_A to store main groups from GUI and 
+		build a rig of joints with locators as reuired.
+		Joints are constrained to individual locators.
+		Also some locators are constrained to individual joints.
+		
+		Wheels can be individually controlled based on distnace moved or set
+		to spin based on time (see help file for more info).
+		
+		There are 4 "Rig Contollers"
+		
+		Rig_ControllerN_1 :-
+		
+			Controls movement and rotation of main vehicle.
+			Also houses attributes for setting range of suspension travel
+			using attribute Piston Range. Also there are also individual
+			range settings for each wheel(not active yet).
+		
+		Steering_ControllerN_1 
+		
+			Controls steering for Front and Rear Wheels. The front steering
+			is active by default, to activate Rear steering set "Rr Steer"
+			to On. Setting the "Fr Steer Ratio" and "Rr Steer Ratios" to a 
+			negative value will reverse direction of rotation.
+			Set "Fr Steer to Off will set vehicle to have rerar steering.
+			The ratio can be set anywhere between -1 and 1, this will
+			reduce effect of rotation to simulat the Rear wheel steer you
+			now see on some high performance cars.
+		
+		Bank_ControllerN_1
+		
+			This will Bank the Vehicle by a mavximum of 5 degrees in both 
+			X and Z +/- axis and still allow full susupension control.
+			The maximum range can be altered in the attribute editor by adjusting
+			the X and Z axis rotate limits.
+			
+		VehicleTilt_ControllerN_1
+		
+			This will tilt the Chassis group as reguired. Also each indiviual
+			Wheel can be moved up and down by moving each wheel Group Ground 
+			Locator to simulate ground variations.
+	
+		Floor Control
+
+			There is an option to set up an automatic wheel control for each
+			wheel by setting up a Geometry Constaint to a "Ground Plane".
+			This has an auto ON/OFF setup which releases the wheels once car
+			leaves the ground a distance greater than suspension travel.
+			
+		Motion Path
+		
+			To setup Vehicle to Motion Path. Select Rig_Controller and Motion
+			Path. This will set up and parent a locator under Vehicle Top Node
+			and constrain the Rig Controls to the motion path via the locator.
+			The remain controls will operate as usual and wheels will either 
+			auto rotate based on movement or based on wheel spin settings.
+			
+*/
+
+	
+global proc DVY_HelpWin()
+ {
+	if ((`window -ex DavveyHelpWindow`) == true) 
+		{
+			deleteUI DavveyHelpWindow;
+			windowPref -remove DavveyHelpWindow;
+		}
+		if (`windowPref -exists ExampleWindow`) windowPref -remove DavveyHelpWindow;
+
+	window -t "Davvey's Vehicle Rigging System Help File." -w 960 -h 800 -s 1
+		-topLeftCorner 100 150 -iconName "Help File" DavveyHelpWindow;
+	
+	//Determine where to load the html UI file from
+	
+		string $myScriptDir = `internalVar -userScriptDir`;
+		string $myAppDir = `internalVar -userAppDir`;
+		string $version = `about -v`;
+		string $myPrefDir = `internalVar -userPrefDir`;
+		string $CurrentLocation = ("file:///" + $myAppDir + $version + "/Documentation/Davvey/Help_Files/index.htm");
+
+	string $menuBarLayout = `menuBarLayout`;
+			menu -label "File"; 
+	 			menuItem -label "Close" -command "deleteUI DavveyHelpWindow";		
+			menu -label "Help"; 
+	 			menuItem -label "SetUp Help" -command "DVY_HelpWin";		
+			menu -label "About"; 
+	 			menuItem -label "About Davvey's Rig" -command " DVY_AboutWin;";		
+
+	string $Pane = `paneLayout -configuration "horizontal3" -paneSize 1 100 7 -paneSize 3 100 12`;
+
+
+	columnLayout -adjustableColumn true -columnAttach "both" 5 ; 
+	
+		text -height 5 -label " " ;	//Spacer
+		separator -height 5 -style "double" ;
+			text -bgc 0.5 0.5 1 -align "center" -fn "boldLabelFont" -label "Davvey's Vehicle Rigging System Help Files..";
+			text -bgc 0.5 0.5 1 -align "center" -fn "boldLabelFont" -label "copyright (c) 2006 Dave Lake..";
+		separator -height 5 -style "double" ;
+		text -height 5 -label " " ;	//Spacer
+		
+	setParent $Pane;
+	
+		columnLayout -adjustableColumn true -columnAttach "both" 5 ; 
+
+// WEB BROWSER TAB
+
+	webBrowser -width 950 -height 600 -url $CurrentLocation DavveysRigHelp ;
+		webBrowser -e -rl DavveysRigHelp;
+		setParent..;
+	setParent..;
+		
+//showWindow DavveyUI;
+
+	setParent $Pane;
+
+	columnLayout -adjustableColumn true -columnAttach "both" 5; 
+
+	text -bgc 1 1 0.8 -height 5 -align "left" -label " ";
+	
+	text -bgc 1 1 0.8 -height 15 -align "left"  -fn "boldLabelFont"
+	-label " Special thanks to my wife Jan for her support and patience during the time its taken to learn Maya and how to write these scripts";
+
+	text -bgc 1 1 0.8 -height 2-align "left" -label " ";
+
+	text -bgc 1 1 0.8 -height 15 -align "left"  -fn "boldLabelFont"
+	-label "  Dedicated to Jackie and Joanna (my expensive pride and joys!!). Finally these collected works are dedicated to the memory of Darryl.";
+
+	text -bgc 1 1 0.8 -height 5 -align "left" -l " ";
+	text -height 5 -align "left" -l " ";
+
+	text -bgc 0.5 0.5 1 -height 18 -align "left" -fn "boldLabelFont"
+	-label "          email:- Davvey@ntlworld.com               website:- www..............";
+	text -height 2 -align "left" -l " ";
+	
+
+	showWindow DavveyHelpWindow;
+
+
+ }

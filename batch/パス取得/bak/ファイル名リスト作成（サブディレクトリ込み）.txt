@@ -1,0 +1,14 @@
+D:\MS_tools\batch\パス取得\a.txt
+D:\MS_tools\batch\パス取得\bak
+D:\MS_tools\batch\パス取得\batファイルのフルパスリスト.txt
+D:\MS_tools\batch\パス取得\mfind.exe
+D:\MS_tools\batch\パス取得\コマンド プロンプト.lnk
+D:\MS_tools\batch\パス取得\ファイル名リスト作成（サブディレクトリ込み）.bat
+D:\MS_tools\batch\パス取得\ファイル名リスト作成（サブディレクトリ込み）.txt
+D:\MS_tools\batch\パス取得\拡張子を入力してフルパスリスト作成.bat
+D:\MS_tools\batch\パス取得\bak\EOJPSPグラフィックファイルのフルパスリスト作成.bat
+D:\MS_tools\batch\パス取得\bak\ディレクトリのフルパスリスト作成.bat
+D:\MS_tools\batch\パス取得\bak\ファイルのフルパスリスト作成.bat
+D:\MS_tools\batch\パス取得\bak\画像ファイルのフルパスリスト.txt
+D:\MS_tools\batch\パス取得\bak\画像ファイルのフルパスリスト作成.bat
+D:\MS_tools\batch\パス取得\bak\画像ファイルを抜き出してコピー.bat

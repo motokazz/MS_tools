@@ -1,0 +1,12 @@
+#ifdef GR_FILE_LINKED
+
+GR_FILE_LINKED( _basepose )
+GR_FILE_LINKED( motion_c100_gmp557_pg_stepshot_00_leftstep1 )
+GR_FILE_LINKED( motion_c100_gmp557_pg_stepshot_01_rightstep1 )
+GR_FILE_LINKED( motion_c100_gmp557_pg_stepshot_02_shot )
+GR_FILE_LINKED( motion_c100_gmp557_pg_stepshot_03_leftstep2 )
+GR_FILE_LINKED( motion_c100_gmp557_pg_stepshot_04_rightstep2 )
+GR_FILE_LINKED( motion_c100_gmp557_pg_stepshot_05_end )
+
+#undef GR_FILE_LINKED
+#endif // GR_FILE_LINKED

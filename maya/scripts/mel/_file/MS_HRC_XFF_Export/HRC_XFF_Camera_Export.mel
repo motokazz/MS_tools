@@ -1,0 +1,7 @@
+global proc HRC_XFF_Camera_Export(){
+	string $path=`textField -q -fileName "filePath"`;
+	string $ModelName=`textField -q -tx "ModelName"`;//Data//
+	$full_path=($path+$ModelName+".camera.pcxff");
+	XFFexport -f $full_path -ce;
+//cameraAnimExport $full_path "Best Guess";
+}

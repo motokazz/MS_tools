@@ -1,0 +1,154 @@
+global proc MS_PlacementInfo_CR(string $obj_a){
+		
+		string $obj_a_tx=$obj_a+".tx";
+		string $obj_a_ty=$obj_a+".ty";
+		string $obj_a_tz=$obj_a+".tz";
+		
+		string $obj_a_rpx=$obj_a+".rotatePivotX";
+		string $obj_a_rpy=$obj_a+".rotatePivotY";
+		string $obj_a_rpz=$obj_a+".rotatePivotZ";
+		
+		float $orgx=`getAttr $obj_a_tx`;
+		float $orgy=`getAttr $obj_a_ty`;
+		float $orgz=`getAttr $obj_a_tz`;
+		float $flpx=`getAttr $obj_a_rpx`;
+		float $flpy=`getAttr $obj_a_rpy`;
+		float $flpz=`getAttr $obj_a_rpz`;
+		
+		setAttr $obj_a_tx (-$flpx);
+		setAttr $obj_a_ty (-$flpy);
+		setAttr $obj_a_tz (-$flpz);
+		
+		makeIdentity -apply true -t 1 -r 1 -s 0 -n 0 $obj_a;
+		
+		setAttr $obj_a_tx ($orgx+$flpx);
+		setAttr $obj_a_ty ($orgy+$flpy);
+		setAttr $obj_a_tz ($orgz+$flpz);
+		
+}
+
+
+global proc MS_PlacementInfo_core(){
+
+	string $meshComponents[] = `filterExpand -sm 31 -sm 32 -sm 34`;
+	vector $pos;
+	$num=0;
+	for($name in $meshComponents){
+		//Set Default
+		$lvl=0.0;
+		$lvm=0.5;
+		$lvh=1.0;
+		$gmm=1.0;
+		$con=0.0;
+		$str=100.0;
+		$tmp=7000.0;
+
+		$pos=`pointPosition -w $name`;
+		$locname=`spaceLocator -p ($pos.x) ($pos.y) ($pos.z)`;
+		xform -cp $locname;
+		MS_PlacementInfo_CR $locname[0];
+		$vcol=`polyColorPerVertex -q -rgb $name`;
+		
+		$lvl=(0.0+((1-$vcol[0])*0.5));
+		$lvm=(0.5+((1-$vcol[0])*0.1));
+		$lvh=(1.0+((1-$vcol[0])*0.2));
+		//$gmm=((1-$vcol[0]*1.5)+0.5);
+		$con=(($vcol[0]-0.2)*10);
+		//$str=1.0;
+		//$tmp=7000.0;
+		
+		select $locname;
+		MS_setColorbalanceLocator $lvl $lvm $lvh $gmm $con $str $tmp;
+		rename $locname ("MS_placementInfo"+$num);
+		print $vcol;
+		$num++;
+	}
+}
+
+global proc MS_setColorbalanceLocator(float $lvl,float $lvm,float $lvh,float $gmm,float $con,float $str,float $tmp)
+{
+	string $transforms[] = `ls -sl -type transform`;
+	
+	for($i=0; $i<`size $transforms`; $i++)
+	{
+		if(!`attributeExists "level_low" $transforms[$i]`)
+		{
+			addAttr -ln level_low -at double  -min -0.5 -max 1.5 -dv $lvl $transforms[$i];
+		}
+		if(!`attributeExists "level_mid" $transforms[$i]`)
+		{
+			addAttr -ln level_mid -at double  -min -0.5 -max 1.5 -dv $lvm $transforms[$i];
+		}
+		if(!`attributeExists "level_high" $transforms[$i]`)
+		{
+			addAttr -ln level_high -at double  -min -0.5 -max 1.5 -dv $lvh $transforms[$i];
+		}
+		if(!`attributeExists "gamma" $transforms[$i]`)
+		{
+			addAttr -ln gamma -at double  -min -0.1 -max 10.0 -dv $gmm $transforms[$i];
+		}
+		if(!`attributeExists "contrast" $transforms[$i]`)
+		{
+			addAttr -ln contrast -at double  -min -10.0 -max 10.0 -dv $con $transforms[$i];
+		}
+		if(!`attributeExists "strength" $transforms[$i]`)
+		{
+			addAttr -ln strength -at double  -min 0.0 -max 1000.0 -dv $str $transforms[$i];
+		}
+		if(!`attributeExists "color_temperature" $transforms[$i]`)
+		{
+			addAttr -ln color_temperature -at double  -min 4000.0 -max 9000.0 -dv $tmp $transforms[$i];
+		}
+	}
+}
+
+
+global proc MS_PlacementInfo()
+{
+	
+	//Window Check
+	if(`window -exists MS_PlacementInfo`){
+		deleteUI MS_PlacementInfo;
+	}
+	
+	
+	//Create Window
+	
+	window -title "MS_PlacementInfo" MS_PlacementInfo;
+	
+	columnLayout ;
+	
+	//Contents	
+	
+	
+	//text
+	text -label "ThisWindowIsMS_PlacementInfo";
+	separator -w 600 -h 40 -st "single";
+	text -label "1 create vcolored objects";
+	text -label "2 select sampling vertex";
+	text -label "3 do!";
+	text -label "lvl=0.0\nlvm=0.5\nlvh=1.0\ngmm=vcolR\ncon=vcolG\nstr=1.0\ntmp=7000.0\n";
+	
+	//---------------
+	//Execute Buttons
+	//---------------
+	separator -w 600 -h 40 -st "doubleDash";
+	
+	button -bgc 1.0 0.5 0.5 -l "do" -command "MS_PlacementInfo_core" ;
+	
+	separator -w 600 -h 40 -st "double";
+	
+	button -l "undo" -command "Undo" ;
+	
+	button -l "exit" -command "deleteUI MS_PlacementInfo" ;
+	
+	
+	//Footer
+	showWindow MS_PlacementInfo;
+	
+}
+
+MS_PlacementInfo;
+
+
+

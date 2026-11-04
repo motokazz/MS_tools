@@ -1,0 +1,7 @@
+#ifdef GR_FILE_LINKED
+GR_FILE_LINKED( _basepose )
+GR_FILE_LINKED( motion_c100_gmp553_pg_transam_00_start )
+GR_FILE_LINKED( motion_c100_gmp553_pg_transam_01_loop )
+GR_FILE_LINKED( motion_c100_gmp553_pg_transam_02_end )
+#undef GR_FILE_LINKED
+#endif // GR_FILE_LINKED

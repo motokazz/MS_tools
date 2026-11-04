@@ -1,0 +1,18 @@
+global proc MS_cameraNormalize(){
+	setAttr "top.translateY" 100000;
+	setAttr "front.translateZ" 100000;
+	setAttr "side.translateX" 100000;
+	
+	setAttr "topShape.farClipPlane" 1000000;
+	setAttr "frontShape.farClipPlane" 1000000;
+	setAttr "sideShape.farClipPlane" 1000000;
+	setAttr "perspShape.farClipPlane" 1000000;
+	
+	setAttr "topShape.nearClipPlane" 10;
+	setAttr "frontShape.nearClipPlane" 10;
+	setAttr "sideShape.nearClipPlane" 10;
+	setAttr "perspShape.nearClipPlane" 10;
+}
+
+
+

@@ -1,0 +1,830 @@
+global proc int[] MS_selectTime(){
+	/*
+	タイムスライダーから時間を取得
+	
+	スライダーで範囲選択がある場合はその範囲内を
+	そうでない場合は現在のタイムスライダーの範囲を返す
+	
+	*/
+	//グローバル宣言しないとプロシージャ内でタイムスライダーを特定できない。
+	global string $gPlayBackSlider;
+	
+	string $buf[];
+	
+	string $tc=`timeControl -q -rng -gt $gPlayBackSlider`;
+	
+	tokenize $tc ":\"" $buf;
+	
+	int $st=$buf[0];
+	int $ed=$buf[1];
+	if(($ed-$st)<=1){
+		$st=`playbackOptions -q -min`;
+		$ed=`playbackOptions -q -max`;
+	}
+	return {$st,$ed};
+}
+
+
+
+
+
+global proc MS_setEmitter(string $EmitterName,int $StartFlame,int $AnimationTotal,int $BeforeFlame0,int $AfterFlame0,int $rnd1,int $noKey){
+	string $obj[]=`ls -sl`;
+	for($name in $obj){
+		
+		select -r $name;
+		setEmitterInfo;
+		
+		setAttr -type "string" ($name+".EmitterName") $EmitterName;
+		
+		if(!$noKey){
+		
+		
+		
+		$StartFlame=$StartFlame+rand ($rnd1);
+		
+		
+//スタートフレーム設定
+		if($BeforeFlame0){
+			
+			currentTime ($StartFlame-1);
+			setKeyframe -v 0 ($name+".EmitterVolume");
+		
+		}
+		currentTime $StartFlame ;
+		setKeyframe -v 1 ($name+".EmitterVolume");
+		
+		currentTime ($StartFlame+$AnimationTotal-1);
+		setKeyframe -v 1 ($name+".EmitterVolume");
+		
+//エンドフレーム設定
+		if($AfterFlame0){
+			
+			currentTime ($StartFlame+$AnimationTotal);
+			setKeyframe -v 0 ($name+".EmitterVolume");
+		
+		}
+
+		
+		keyTangent -ott step ($name+".EmitterVolume");
+		
+		currentTime ($StartFlame+$AnimationTotal-1);
+		
+		}
+	}
+}
+
+
+
+global proc MS_constraint(
+	int $point,
+	string $point_option,
+	int $aim,
+	int $orient,
+	int $scale,
+	int $parent,
+	int $geometry,
+	int $normal,
+	int $tangent,
+	int $poleVector,
+	string $target[],
+	string $obj[])
+{
+	
+	for($each in $obj){
+		
+		if($point){
+		string $option=stringArrayToString($target," ");
+		eval("pointConstraint -w 1.0 -o 0 0 0 "+$point_option+" "+$option+" "+$each+";");
+		}
+		
+		if($aim)
+		aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 1 0 -worldUpType "vector" $target $each;
+		
+		if($orient)
+		orientConstraint -offset 0 0 0 -weight 1 $target $each;
+		
+		if($scale)
+		scaleConstraint -offset 1 1 1 -weight 1 $target $each;
+		
+		if($parent)
+		parentConstraint -mo -weight 1 $target $each;
+		
+		
+		if($geometry)
+		geometryConstraint -weight 1 $target $each;
+		
+		if($normal)
+		normalConstraint -weight 1 -aimVector 1 0 0 -upVector 0 1 0 -worldUpType "vector" -worldUpVector 0 1 0 $target $each;
+		
+		if($tangent)
+		tangentConstraint -weight 1 -aimVector 1 0 0 -upVector 0 1 0 -worldUpType "vector" -worldUpVector 0 1 0 $target $each;
+		
+		if($poleVector)
+		poleVectorConstraint -weight 1 $target $each;
+		
+	}
+	
+}
+
+
+global proc string[] MS_arrayInvert(string $arr[]){
+	string $newArray[];
+	
+	for ($i=0;$i<size($arr);$i++){
+		string $temp=$arr[size($arr)-$i-1];
+		$newArray[$i]=$temp;
+	}
+	
+	return $newArray;
+}
+
+
+
+global proc string MS_createJoint(int $step,float $length){
+
+
+	string $jname=`joint -a -p 0 0 0 -sc 0 `;
+	float $span=($length/$step);
+	float $val=0;
+	while($val<$length){
+		$val=$val+$span;
+		joint -a -p 0 0 (-$val) -sc 0 ;
+	}
+	
+	return $jname;
+}
+
+
+
+global proc string createPathAnimetedLocator(string $cname,int $sframe,int $eflame){
+	
+	string $obj[]=`spaceLocator -p 0 0 0`;
+	
+	pathAnimation -fractionMode true -follow false -startTimeU $sframe -endTimeU $eflame -c $cname $obj[0];
+	
+	return $obj[0];
+	
+}
+
+
+
+global proc string[] MS_IKspline(string $jparent,string $ikcurve,int $tangentConstraint){
+	string $child[]=`listRelatives -ad $jparent`;
+	string $ikn[0]=`ikHandle -sol ikSplineSolver -ccv false -roc false -cra true -pcv false -sj $jparent -ee $child[0] -c $ikcurve`;
+	string $ret[];
+	$ret[0]=$ikn[0];
+	string $prt[]=`listRelatives -p $jparent`;
+	$ret[1]=$prt[0];
+	if($tangentConstraint){
+		tangentConstraint 
+			-weight 1 
+			-aimVector 1 0 0 
+			-upVector 0 1 0 
+			-worldUpType "vector" 
+			-worldUpVector 0 1 0
+			$ikcurve
+			$jparent
+			;
+	}
+	return $ret;
+	
+}
+
+
+
+/*
+改良
+・出来上がるトレイルオブジェクトの自動分割
+・UV自動整理
+・トレイルオブジェクトのタイプを作成
+*/
+
+global proc string MS_ointLoftcheckSkinCluster(string $obj){
+string $a[]=`ls -o $obj`;
+string $b[]=`listConnections -t skinCluster $a`;
+return $b[0];
+}
+
+
+global proc MS_jointLoftsetSkinWeight(string $joint,string $point){
+	
+	string $option;
+	
+		string $SkinCluster=`MS_ointLoftcheckSkinCluster $point`;
+		$option="skinPercent ";
+		$option=$option+("-resetToDefault -transformValue "+$joint+" 1.0 ");
+		$option=$option+$SkinCluster+" "+$point;
+		print $option;
+		eval $option;
+	
+	
+}
+
+
+global proc MS_jointLoftV2(){
+	string $new[];
+	$obj=`ls -l -sl`;
+	
+	//トレイルのポリゴン作成
+	string $com="polyCreateFacet -ch on -tx 1 -s 1 ";
+	for ($each in $obj){
+		float $loc[]=`xform -q -ws -t $each`;
+		$com=($com+"-p "+$loc[0]+" "+$loc[1]+" "+$loc[2]+" ");
+	}
+	$new=`eval $com`;
+	select -r $new[0] $obj;
+	SmoothBindSkin;
+	
+	//スキニング
+	int $i=0;
+	for ($each in $obj){
+		string $vtx=($new[0]+".vtx["+$i+"]");
+		MS_jointLoftsetSkinWeight $each $vtx;
+		$i++;
+	}
+	/*
+	//シェーダー作成＆割付
+	createEF_1;
+	
+	string $shad[]=`ls -sl`;
+	string $sg[]=`listConnections -t shadingEngine`;
+	string $cgfx[]=`listConnections -t cgfxShader`;
+	
+	select -r $new;
+	sets -e -forceElement $sg[0];
+	
+	
+	//MS_VFA
+
+	MS_VFA_Float(
+	`playbackOptions -q -min`,
+	`playbackOptions -q -max`,
+	0,
+	1,
+	$obj[0],
+	$cgfx,
+	{"baseColorAlpha"}
+	
+	);
+	*/
+}
+
+
+global proc MS_jointscaleFromAnimation(int $strtm,int $endtm,string $obj){
+	/*
+	親アニメーションの前後のフレーム差でスケルトンをスケーリングする
+	*/
+	
+	float $all[];
+	
+	currentTime ($strtm-1);
+	float $ff[]=`xform -q -ws -t $obj`;
+	
+	
+	//すべてのフレーム間で動き距離を検査
+	for($i=$strtm;$i<$endtm;$i++){
+		
+		currentTime $i;
+		
+		float $cf[] = `xform -q -ws -t $obj`;
+		
+		float $len = sqrt(($ff[0]-$cf[0])*($ff[0]-$cf[0])+($ff[1]-$cf[1])*($ff[1]-$cf[1])+($ff[2]-$cf[2])*($ff[2]-$cf[2]));
+		
+		$all[$i-$strtm]=$len;
+		
+		$ff= $cf;
+		
+	}
+	
+	
+	//一番大きい動きを検査
+	float $hikaku[]=`sort $all`;
+	float $maxrange=$hikaku[(size($hikaku)-1)];
+	
+	//キーフレーム作成
+	for($i=$strtm;$i<$endtm;$i++){
+		
+		float $rate=($all[$i-$strtm]/$maxrange);
+		
+		setKeyframe -at "scaleX" -t $i -v $rate $obj;
+		setKeyframe -at "scaleY" -t $i -v $rate $obj;
+		setKeyframe -at "scaleZ" -t $i -v $rate $obj;
+		
+	}
+	
+}
+
+
+global proc string MS_motionCurve(
+	float $strtm,
+	float $endtm,
+	int $curveDegree,
+	float $timeStep,
+	string $obj[],
+	int $createBspline,
+	int $reverseCurve)
+{
+	
+	//モーションからカーブを作成する
+	print $obj;
+	float $range=($endtm-$strtm);
+	
+	currentTime -e $strtm;
+	float $dtf[];
+	float $totalX;
+	float $totalY;
+	float $totalZ;
+	
+	for($each in  $obj){
+		$dtf=`xform -q -a -t -ws $each`;
+		$totalX=$totalX+$dtf[0];
+		$totalY=$totalY+$dtf[1];
+		$totalZ=$totalZ+$dtf[2];
+	}
+	
+	string $newCurve=`curve -ws -d $curveDegree -p ($totalX/size($obj)) ($totalY/size($obj)) ($totalZ/size($obj))`;
+	
+	float $ct=0;
+	int $i=0;
+	for($i=0;$i<($range/$timeStep);$i++){
+		$ct=$ct+$timeStep;
+		currentTime -e ($strtm+$ct);
+		//float $dtf[]=`xform -q -a -t -ws $obj`;
+		$totalX=0;
+		$totalY=0;
+		$totalZ=0;
+		for($each in  $obj){
+			$dtf=`xform -q -a -t -ws $each`;
+			$totalX=($totalX+$dtf[0]);
+			$totalY=($totalY+$dtf[1]);
+			$totalZ=($totalZ+$dtf[2]);
+		}
+		curve -ws -a -p ($totalX/size($obj)) ($totalY/size($obj)) ($totalZ/size($obj)) $newCurve;
+	}
+	
+	//カーブを反転する
+	if($reverseCurve){
+		reverseCurve -ch 0 -rpo 1 $newCurve;
+	}
+	
+	//fitBsplineを使う
+	if($createBspline){
+		
+		string $bs[]=`fitBspline -ch 1 -tol 0.01 $newCurve`;
+		$newCurve=$bs[0];
+		
+	}
+	
+	
+	return $newCurve;
+	
+}
+
+
+
+global proc string[] MS_selectFilter(){
+
+	/*
+	より分け選択
+	*/
+	
+	string $objz[]=`ls -typ transform -sl`;
+	if(!size($objz)){
+		$objz=`filterExpand -sm 12 -sm 22 -sm 31 -sm 32 -sm 34 -sm 46 `;
+	}
+	return $objz;
+	
+}
+
+
+
+global proc MS_trail(
+	int $curveDegree,
+	int $curveStep,
+	int $bspline,
+	int $revCurve,
+	int $jointPartsQuantity,
+	float $jointLength
+){
+
+	int $tm[]=`MS_selectTime`;
+	
+	string $obj[]=`MS_selectFilter`;
+	
+	string $cname=`MS_motionCurve $tm[0] $tm[1] $curveDegree $curveStep $obj $bspline $revCurve `;
+	
+	string $jname=`MS_createJoint $jointPartsQuantity $jointLength `;
+	
+	string $iknul[]=`MS_IKspline $jname $cname 1`;
+	
+	//カーブを反転しないとikSplineが逆にくっついちゃう
+	string $check[]=`ls -typ transform $obj`;
+	if(size($check)){
+		MS_constraint 1 "" 0 0 0 0 0 0 0 0 $obj {$iknul[1]};
+	}else{
+		MS_trail_vertexpointConstraint $obj $iknul[1];
+	}
+	
+	MS_jointscaleFromAnimation $tm[0] $tm[1] $jname;
+	
+}
+
+
+
+global proc MS_trailEmitter(
+	int $curvedegree,
+	int $curveStep,
+	int $bspline,
+	int $revCurve,
+	int $jointPartsQuantity,
+	float $jointLength
+){
+	int $tm[]=`MS_selectTime`;
+	
+	string $obj[]=`MS_selectFilter`;
+	
+	string $cname=`MS_motionCurve $tm[0] $tm[1] $curvedegree $curveStep $obj $bspline $revCurve `;
+	
+	string $jname=`MS_createJoint $jointPartsQuantity $jointLength `;
+	
+	string $iknul[]=`MS_IKspline $jname $cname 1`;
+	
+	string $check[]=`ls -typ transform $obj`;
+	if(size($check)){
+		MS_constraint  1 "" 0 0 0 0 0 0 0 0 $obj {$iknul[1]} ;
+	}else{
+		MS_trail_vertexpointConstraint $obj $iknul[1];
+	}
+	
+	MS_jointscaleFromAnimation $tm[0] $tm[1] $jname ;
+	
+	
+	
+	
+//==========================================================================
+	
+	string $target[];
+	
+	$target=`listRelatives -ad -f -typ joint $jname`;
+	
+	float $threshold=0.5;
+	
+	string $newLocz[];
+	int $i=0;
+	for($each in $target){
+		string $newLoc[]=`spaceLocator`;
+		MS_setEmitter "sak_traildef" 0 0 0 0 0 1 ;
+		MS_constraint  1 "" 0 1 0 0 0 0 0 0 {$each} $newLoc ;
+		$newLocz[$i]=$newLoc[0];
+		$i++;
+	}
+	
+	MS_VFA_Switch $tm[0] $tm[1] $threshold $target[0] $newLocz {"EmitterVolume"} ;
+	
+}
+
+
+global proc MS_trail_vertexpointConstraint(string $src[],string $dist){
+	string $a;
+	$a=($a+"{\n");
+	
+	string $obj=stringArrayToString($src,"\",\"");
+	
+	$a=($a+"string $objz[]={\""+$obj+"\"};\n");
+	$a=($a+"float $totalX=0;\n");
+	$a=($a+"float $totalY=0;\n");
+	$a=($a+"float $totalZ=0;\n");
+	
+	//ボリューム中心検出
+	$a=($a+"for ($each in $objz){\n");
+			
+	$a=($a+"vector $location=`xform -q -ws -t $each`;\n");
+
+	$a=($a+"$totalX=$totalX+($location.x);\n");
+	$a=($a+"$totalY=$totalY+($location.y);\n");
+	$a=($a+"$totalZ=$totalZ+($location.z);\n");
+			
+	$a=($a+"}\n");
+
+	$a=($a+"//xform -ws -t ($totalX/size($objz)) ($totalY/size($objz)) ($totalZ/size($objz)) "+$dist+";\n");
+	
+	$a=($a+$dist+".translateX=($totalX/size($objz));\n");
+	$a=($a+$dist+".translateY=($totalY/size($objz));\n");
+	$a=($a+$dist+".translateZ=($totalZ/size($objz));\n");
+	
+	$a=($a+"}\n");
+	
+	print $a;
+	expression -n "MS_vertexpointConstraint_Expression"-o $dist -s $a;
+}
+
+
+
+global proc MS_VFA_Float(
+	int $strtm,
+	int $endtm,
+	float $minvalue,
+	float $maxvalue,
+	string $target,
+	string $obj[],
+	string $attr[])
+{
+	/*
+	親アニメーションの前後のフレーム差でスケルトンをスケーリングする
+	*/
+	
+	float $all[];
+	
+	currentTime ($strtm-1);
+	float $ff[]=`xform -q -ws -t $target`;
+	
+	
+	//すべてのフレーム間で動き距離を検査
+	for($i=$strtm;$i<$endtm;$i++){
+		
+		currentTime $i;
+		
+		float $cf[] = `xform -q -ws -t $target`;
+		//2点間の移動距離を計算
+		float $len = sqrt(($ff[0]-$cf[0])*($ff[0]-$cf[0])+($ff[1]-$cf[1])*($ff[1]-$cf[1])+($ff[2]-$cf[2])*($ff[2]-$cf[2]));
+		
+		$all[$i-$strtm]=$len;
+		
+		$ff= $cf;
+		
+	}
+	
+	
+	//一番大きい動きを検査
+	float $hikaku[]=`sort $all`;
+	float $maxrange=$hikaku[(size($hikaku)-1)];
+	
+	//キーフレーム作成
+	for($each in $obj){
+		for($i=$strtm;$i<$endtm;$i++){
+			
+			float $rate=($all[$i-$strtm]/$maxrange)*$maxvalue;
+			if($rate<$minvalue){$rate=$minvalue;}
+				for($eachAttr in $attr)
+				setKeyframe -at $eachAttr -t $i -v $rate $each;
+				
+		}
+	}
+}
+
+
+global proc MS_VFA_Switch(
+	int $strtm,
+	int $endtm,
+	float $threshold,
+	string $target,
+	string $obj[],
+	string $attr[])
+{
+	/*
+	親アニメーションの前後のフレーム差でスケルトンをスケーリングする
+	*/
+	
+	
+	float $all[];
+	
+	currentTime ($strtm-1);
+	float $ff[]=`xform -q -ws -t $target`;
+	
+	
+	//すべてのフレーム間で動き距離を検査
+	for($i=$strtm;$i<$endtm;$i++){
+		
+		currentTime $i;
+		
+		float $cf[] = `xform -q -ws -t $target`;
+		//2点間の移動距離を計算
+		float $len = sqrt(($ff[0]-$cf[0])*($ff[0]-$cf[0])+($ff[1]-$cf[1])*($ff[1]-$cf[1])+($ff[2]-$cf[2])*($ff[2]-$cf[2]));
+		
+		$all[$i-$strtm]=$len;
+		
+		$ff= $cf;
+		
+	}
+	
+	int $val;
+	//一番大きい動きを検査
+	float $hikaku[]=`sort $all`;
+	float $maxrange=$hikaku[(size($hikaku)-1)];
+	
+	//キーフレーム作成
+	for($each in $obj){
+		for($i=$strtm;$i<$endtm;$i++){
+			
+			float $rate=($all[$i-$strtm]/$maxrange);
+			if($rate<$threshold){$val=0;}else{$val=1;}
+			
+			for($eachAttr in $attr){
+				setKeyframe -at $eachAttr -t $i -v $val $each;
+			}
+			
+			
+		}
+	}
+	
+}
+
+
+global proc MS_createJoint_pipe(){
+	int $jointPartsQuantity=`intSliderGrp -q -v jointPartsQuantity`;
+	
+	float $jointLength=`floatSliderGrp -q -v jointLength`;
+	
+	MS_createJoint $jointPartsQuantity $jointLength;
+}
+
+
+
+global proc MS_trailEmitter_pipe(){
+	int $curvedegree=`intSliderGrp -q -v curvedegree`;
+	
+	int $curveStep=`intSliderGrp -q -v curveStep`;
+	
+	int $bspline=`checkBox -q -v bspline`;
+	
+	int $revCurve=`checkBox -q -v revCurve`;
+	
+	int $jointPartsQuantity=`intSliderGrp -q -v jointPartsQuantity`;
+	
+	float $jointLength=`floatSliderGrp -q -v jointLength`;
+	
+	int $tm[]=`MS_selectTime`;
+	
+	string $check[]=`ls -typ transform -sl`;
+	if(!size($check)){
+		confirmDialog -l "warnning" -m "this command is create Expression." -b "continue";
+	}
+	
+	MS_trailEmitter $curvedegree $curveStep $bspline $revCurve $jointPartsQuantity $jointLength;
+}
+
+global proc MS_motionSpline_pipe(){
+	int $curvedegree=`intSliderGrp -q -v curvedegree`;
+	
+	int $curveStep=`intSliderGrp -q -v curveStep`;
+	
+	int $bspline=`checkBox -q -v bspline`;
+	
+	int $revCurve=`checkBox -q -v revCurve`;
+	
+	int $jointPartsQuantity=`intSliderGrp -q -v jointPartsQuantity`;
+	
+	
+	float $jointLength=`floatSliderGrp -q -v jointLength`;
+	int $tm[]=`MS_selectTime`;
+	string $obj[]=`MS_selectFilter`;
+	string $cname=`MS_motionCurve $tm[0] $tm[1] $curvedegree $curveStep $obj $bspline $revCurve`;
+	
+}
+
+global proc MS_trailUI_pipe(){
+	int $curvedegree=`intSliderGrp -q -v curvedegree`;
+	
+	int $curveStep=`intSliderGrp -q -v curveStep`;
+	
+	int $bspline=`checkBox -q -v bspline`;
+	
+	int $revCurve=`checkBox -q -v revCurve`;
+	
+	int $jointPartsQuantity=`intSliderGrp -q -v jointPartsQuantity`;
+	
+	float $jointLength=`floatSliderGrp -q -v jointLength`;
+	
+	string $check[]=`ls -typ transform -sl`;
+	if(!size($check)){
+		confirmDialog -l "warnning" -m "this command is create Expression." -b "continue";
+	}
+
+	MS_trail $curvedegree $curveStep $bspline $revCurve $jointPartsQuantity $jointLength;
+	
+}
+global proc MS_IKspline_pipe(){
+	string $obj[]=`ls -sl`;
+	int $tangentConstraint=`checkBox -q -v "MS_IKspline_tangentConstraint"`;
+	MS_IKspline $obj[0] $obj[1] $tangentConstraint;
+	
+}
+
+global proc MS_trailUI(){
+	//Window Check
+	if(`window -exists MS_trailUI`){
+		deleteUI MS_trailUI;
+	}
+	
+	
+	//Create Window
+	
+	window -title "MS_trailUI" MS_trailUI;
+	columnLayout;
+	
+	text -w 1000 -al "left" -fn "boldLabelFont" -l "MotionTrail CurveProfile";
+	//int $cdg=1;//curvedegree
+	intSliderGrp -l curvedegree -f 1-v 1 -min 1 -max 7 curvedegree;
+	
+	//int $step=1;//curveStep
+	intSliderGrp -l curveStep -f 1 -v 1 curveStep;
+	
+	//int $bspline=1;
+	checkBox -l bspline -v 1 bspline;
+	
+	//bool $revCurve =1;
+	checkBox -l revCurve -v 1 revCurve;
+	
+	separator -w 1000 -h 10;
+	
+	text -w 1000 -al "left" -fn "boldLabelFont" -l "JointProfile";
+	
+	//int $jquant=10;//jointPartsQuantity
+	intSliderGrp -l jointPartsQuantity -f 1 -v 10 jointPartsQuantity;
+	
+	//float $jlength=100;//jointLength
+	floatSliderGrp -l jointLength -max 1000 -f 1 -v 100 jointLength;
+	
+	
+	
+	$tabs=`tabLayout`;
+	
+	//MS_trail===============================================================================
+	$tab1=`columnLayout`;
+//---param---
+	separator -w 1000 -h 10;
+	text -w 1000 -al "left" -fn "boldLabelFont" -l "MS_trail";
+	text -l "1.Select animating something 2.Go!";
+	button -w 200 -bgc 0.8 1 0.8 -l "MS_trail" -c "MS_trailUI_pipe";
+	
+	
+	separator -w 1000 -h 10;
+	
+	text -w 1000 -al "left" -fn "boldLabelFont" -l "createMotionTrail&Emitter";
+	text -l "1.Select animating something 2.Go!";
+	button -w 200 -bgc 1 1 0.8 -l "trailEmitter" -c "MS_trailEmitter_pipe";
+	
+	setParent ..;
+	
+	//misc===============================================================================
+	
+	$tab2=`columnLayout`;
+	
+	//CreateMotionSpline
+	separator -w 1000 -h 10;
+	
+	text -w 1000 -al "left" -fn "boldLabelFont" -l "createMotionSpline";
+	text -l "1.Select animating something 2.Go!";
+	button -w 200 -bgc 0.8 1 0.8 -l "motionSpline" -c "MS_motionSpline_pipe";
+	
+	
+	//JointLoftV2
+	separator -w 200 -h 10;
+	
+	text -w 1000 -al "left" -fn "boldLabelFont" -l "create lofted Polyplane from jointpieces with each full weighted";
+	text -l "1.Select jointpieces 2.Go!";
+	button -w 200 -bgc 1 0.8 0.8 -l "jointLoftV2" -c "MS_jointLoftV2";
+	
+	
+	//MS_createJoints
+	separator -w 200 -h 10;
+	
+	text -w 1000 -al "left" -fn "boldLabelFont" -l "create  joint ";
+	text -l "1.set JointProfile 2.Go!";
+	button -w 200 -bgc 0.8 0.8 1.0 -l "MS_createJoint" -c "MS_createJoint_pipe";
+	
+
+	
+	setParent ..;
+	
+	//tool===============================================================================
+	
+	$tab3=`columnLayout`;
+	
+	separator -w 1000 -h 10;
+	
+	text -w 1000 -al "left" -fn "boldLabelFont" -l "   MS_IKspline";
+	text -l "1.Select a joint 2.Select Spline 3.Go!";
+	checkBox -l "tangentConstraint" -v 0 "MS_IKspline_tangentConstraint";
+	button -w 200 -bgc 1 0.8 0.8 -l "MS_IKspline" -c "MS_IKspline_pipe";
+	
+	
+	setParent ..;
+	
+	//===============================================================================
+	
+	tabLayout -e 
+		-tl $tab1 "MS_trail" 
+		-tl $tab2 "misc" 
+		-tl $tab3 "tool" 
+	$tabs;
+	
+	showWindow MS_trailUI;
+}
+
+
+
+
+
+MS_trailUI;

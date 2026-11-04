@@ -1,0 +1,10 @@
+global  proc string MS_substitute(string $a,string $b,string $c){
+	string $result;
+	$check=$b;
+	while(match($a,$check)!=""){
+		$check=substitute($a,$check,$c);
+	}
+	return $check;
+}
+
+

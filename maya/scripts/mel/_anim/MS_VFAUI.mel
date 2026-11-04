@@ -1,0 +1,1070 @@
+global proc int[] MS_selectTime(){
+	/*
+	タイムスライダーから時間を取得
+	
+	スライダーで範囲選択がある場合はその範囲内を
+	そうでない場合は現在のタイムスライダーの範囲を返す
+	
+	*/
+	//グローバル宣言しないとプロシージャ内でタイムスライダーを特定できない。
+	global string $gPlayBackSlider;
+	
+	string $buf[];
+	
+	string $tc=`timeControl -q -rng -gt $gPlayBackSlider`;
+	
+	tokenize $tc ":\"" $buf;
+	
+	int $st=$buf[0];
+	int $ed=$buf[1];
+	if(($ed-$st)<=1){
+		$st=`playbackOptions -q -min`;
+		$ed=`playbackOptions -q -max`;
+	}
+	return {$st,$ed};
+}
+
+
+
+
+
+global proc MS_setEmitter(string $EmitterName,int $StartFlame,int $AnimationTotal,int $BeforeFlame0,int $AfterFlame0,int $rnd1,int $noKey){
+	string $obj[]=`ls -sl`;
+	for($name in $obj){
+		
+		select -r $name;
+		setEmitterInfo;
+		
+		setAttr -type "string" ($name+".EmitterName") $EmitterName;
+		
+		if(!$noKey){
+		
+		
+		
+		$StartFlame=$StartFlame+rand ($rnd1);
+		
+		
+//スタートフレーム設定
+		if($BeforeFlame0){
+			
+			currentTime ($StartFlame-1);
+			setKeyframe -v 0 ($name+".EmitterVolume");
+		
+		}
+		currentTime $StartFlame ;
+		setKeyframe -v 1 ($name+".EmitterVolume");
+		
+		currentTime ($StartFlame+$AnimationTotal-1);
+		setKeyframe -v 1 ($name+".EmitterVolume");
+		
+//エンドフレーム設定
+		if($AfterFlame0){
+			
+			currentTime ($StartFlame+$AnimationTotal);
+			setKeyframe -v 0 ($name+".EmitterVolume");
+		
+		}
+
+		
+		keyTangent -ott step ($name+".EmitterVolume");
+		
+		currentTime ($StartFlame+$AnimationTotal-1);
+		
+		}
+	}
+}
+
+
+
+global proc MS_VFA_deleteFlatPoint(
+	int $strtm,
+	int $endtm,
+	string $obj
+	
+)
+{
+	int $i=0;
+	int $num=0;
+	int $allfr[];
+	
+	
+	for($i=$strtm;$i<$endtm;$i++){
+		int $check=0;
+		$a=`getAttr -t ($i-1) $obj`;
+		$b=`getAttr -t ($i) $obj`;
+		$c=`getAttr -t ($i+1) $obj`;
+		if($a==$b && $b==$c){
+			$check=0;
+		}else{
+			$check=1;
+		}
+		print $check;
+		if(!$check){
+			$allfr[$num]=$i;
+			$num++;
+		}
+	}
+	
+	for($each in $allfr){
+		cutKey -t ($each+":"+$each) -option keys $obj;
+	}
+	
+	print "\n";
+}
+
+
+
+global proc MS_VFA_Double3(
+	int $strtm,
+	int $endtm,
+	float $minvalue1,
+	float $maxvalue1,
+	float $minvalue2,
+	float $maxvalue2,
+	float $minvalue3,
+	float $maxvalue3,
+
+	string $target,
+	string $obj[],
+	string $attr[])
+{
+	/*
+	親アニメーションの前後のフレーム差でスケルトンをスケーリングする
+	*/
+	
+	float $all[];
+	
+	currentTime ($strtm-1);
+	float $ff[]=`xform -q -ws -t $target`;
+	
+	
+	//すべてのフレーム間で動き距離を検査
+	for($i=$strtm;$i<$endtm;$i++){
+		
+		currentTime $i;
+		
+		float $cf[] = `xform -q -ws -t $target`;
+		//2点間の移動距離を計算
+		float $len = sqrt(($ff[0]-$cf[0])*($ff[0]-$cf[0])+($ff[1]-$cf[1])*($ff[1]-$cf[1])+($ff[2]-$cf[2])*($ff[2]-$cf[2]));
+		
+		$all[$i-$strtm]=$len;
+		
+		$ff= $cf;
+		
+	}
+	
+	
+	//一番大きい動きを検査
+	float $hikaku[]=`sort $all`;
+	float $maxrange=$hikaku[(size($hikaku)-1)];
+	
+	//キーフレーム作成
+	for($each in $obj){
+		for($i=$strtm;$i<$endtm;$i++){
+			
+			float $rate1=($all[$i-$strtm]/$maxrange)*$maxvalue1;
+			if($rate1<$minvalue1){$rate1=$minvalue1;}
+			
+			float $rate2=($all[$i-$strtm]/$maxrange)*$maxvalue2;
+			if($rate2<$minvalue2){$rate2=$minvalue2;}
+			
+			float $rate3=($all[$i-$strtm]/$maxrange)*$maxvalue3;
+			if($rate3<$minvalue3){$rate3=$minvalue3;}
+
+			for($eachAttr in $attr)
+			
+			setAttr ($each+"."+$eachAttr) -type double3 $rate1 $rate2 $rate3 ;
+
+			setKeyframe -at $eachAttr -t $i $each;
+				
+		}
+	}
+}
+
+
+global proc MS_VFA_Float(
+	int $strtm,
+	int $endtm,
+	float $minvalue,
+	float $maxvalue,
+	string $target,
+	string $obj[],
+	string $attr[])
+{
+	/*
+	親アニメーションの前後のフレーム差でスケルトンをスケーリングする
+	*/
+	
+	float $all[];
+	
+	currentTime ($strtm-1);
+	float $ff[]=`xform -q -ws -t $target`;
+	
+	
+	//すべてのフレーム間で動き距離を検査
+	for($i=$strtm;$i<$endtm;$i++){
+		
+		currentTime $i;
+		
+		float $cf[] = `xform -q -ws -t $target`;
+		//2点間の移動距離を計算
+		float $len = sqrt(($ff[0]-$cf[0])*($ff[0]-$cf[0])+($ff[1]-$cf[1])*($ff[1]-$cf[1])+($ff[2]-$cf[2])*($ff[2]-$cf[2]));
+		
+		$all[$i-$strtm]=$len;
+		
+		$ff= $cf;
+		
+	}
+	
+	
+	//一番大きい動きを検査
+	float $hikaku[]=`sort $all`;
+	float $maxrange=$hikaku[(size($hikaku)-1)];
+	
+	//キーフレーム作成
+	for($each in $obj){
+		for($i=$strtm;$i<$endtm;$i++){
+			
+			float $rate=($all[$i-$strtm]/$maxrange)*$maxvalue;
+			if($rate<$minvalue){$rate=$minvalue;}
+				for($eachAttr in $attr)
+				setKeyframe -at $eachAttr -t $i -v $rate $each;
+				
+		}
+	}
+}
+
+
+
+global proc MS_VFA_Float_reverse(
+	int $strtm,
+	int $endtm,
+	float $minvalue,
+	float $maxvalue,
+	string $target,
+	string $obj[],
+	string $attr[])
+{
+	/*
+	親アニメーションの前後のフレーム差でスケルトンをスケーリングする
+	*/
+	
+	float $all[];
+	
+	currentTime ($strtm-1);
+	float $ff[]=`xform -q -ws -t $target`;
+	
+	
+	//すべてのフレーム間で動き距離を検査
+	for($i=$strtm;$i<$endtm;$i++){
+		
+		currentTime $i;
+		
+		float $cf[] = `xform -q -ws -t $target`;
+		//2点間の移動距離を計算
+		float $len = sqrt(($ff[0]-$cf[0])*($ff[0]-$cf[0])+($ff[1]-$cf[1])*($ff[1]-$cf[1])+($ff[2]-$cf[2])*($ff[2]-$cf[2]));
+		
+		$all[$i-$strtm]=$len;
+		
+		$ff= $cf;
+		
+	}
+	
+	
+	//一番大きい動きを検査
+	float $hikaku[]=`sort $all`;
+	float $maxrange=$hikaku[(size($hikaku)-1)];
+	
+	//キーフレーム作成
+	for($each in $obj){
+		for($i=$strtm;$i<$endtm;$i++){
+			
+			float $rate=(($maxrange-$all[$i-$strtm])/$maxrange)*$minvalue;
+			if($rate<$maxvalue){$rate=$maxvalue;}
+				for($eachAttr in $attr)
+				setKeyframe -at $eachAttr -t $i -v $rate $each;
+				
+		}
+	}
+}
+
+
+
+global proc MS_VFA_Int(
+	int $strtm,
+	int $endtm,
+	int $minvalue,
+	int $maxvalue,
+	float $threshold,
+	string $target,
+	string $obj[])
+{
+	/*
+	親アニメーションの前後のフレーム差でスケルトンをスケーリングする
+	*/
+	
+	string $attribute="EmitterVolume";
+	
+	float $all[];
+	
+	currentTime ($strtm-1);
+	float $ff[]=`xform -q -ws -t $target`;
+	
+	
+	//すべてのフレーム間で動き距離を検査
+	for($i=$strtm;$i<$endtm;$i++){
+		
+		currentTime $i;
+		
+		float $cf[] = `xform -q -ws -t $target`;
+		//2点間の移動距離を計算
+		float $len = sqrt(($ff[0]-$cf[0])*($ff[0]-$cf[0])+($ff[1]-$cf[1])*($ff[1]-$cf[1])+($ff[2]-$cf[2])*($ff[2]-$cf[2]));
+		
+		$all[$i-$strtm]=$len;
+		
+		$ff= $cf;
+		
+	}
+	
+	int $val;
+	//一番大きい動きを検査
+	float $hikaku[]=`sort $all`;
+	float $maxrange=$hikaku[(size($hikaku)-1)];
+	
+	//キーフレーム作成
+	for($each in $obj){
+		for($i=$strtm;$i<$endtm;$i++){
+			
+			float $rate=($all[$i-$strtm]/$maxrange);
+			if($rate<$threshold){$val=0;}else{$val=1;}
+			
+			setKeyframe -at $attribute -t $i -v $val $each;
+			
+			
+			
+		}
+	}
+	//補完変更
+	for($each in $obj){
+		selectKey -add -k ($each+"_EmitterVolume") ;
+		keyTangent -ott step;
+	}
+
+}
+
+
+
+global proc MS_VFA_Step(
+	int $strtm,
+	int $endtm,
+	float $threshold,
+	string $target,
+	string $obj[],
+	string $attr[]
+	)
+{
+	/*
+	親アニメーションの前後のフレーム差でスケルトンをスケーリングする
+	*/
+	
+	
+	float $all[];
+	
+
+	currentTime -u 1 ($strtm-1);
+	float $ff[]=`xform -q -ws -t $target`;
+	//
+	for($i=$strtm;$i<$endtm;$i++){
+		currentTime -u 1 $i;
+		
+		float $cf[] = `xform -q -ws -t $target`;
+		
+		for($each in $obj){
+			for($eachAttr in $attr){
+				if($cf[1]<$threshold && $ff[1]>$threshold){
+						setKeyframe -at $eachAttr -t ($i-1) -v 0 $each;
+						setKeyframe -at $eachAttr -t $i -v 1 $each;
+						setKeyframe -at $eachAttr -t ($i+1) -v 0 $each;
+				}
+				if($cf[1]>$threshold && $ff[1]<$threshold){
+						setKeyframe -at $eachAttr -t ($i-1) -v 0 $each;
+						setKeyframe -at $eachAttr -t $i -v 1 $each;
+						setKeyframe -at $eachAttr -t ($i+1) -v 0 $each;
+				}
+			}
+		}
+		$ff= $cf;
+	}
+	//補完変更
+	for($each in $obj){
+		selectKey -add -k ($each+"_EmitterVolume") ;
+		keyTangent -ott step;
+	}
+
+}
+
+
+
+global proc MS_VFA_Step_V2(
+	int $strtm,
+	int $endtm,
+	float $threshold,
+	float $ground,
+	string $target,
+	string $obj[],
+	string $tgtAttr[])
+{
+	
+	
+	currentTime -u 1 ($strtm-1);
+	float $ff[]=`xform -q -ws -t $target`;
+	int $val,$fval;
+	for($i=$strtm;$i<$endtm;$i++){
+		currentTime -u 1 $i;
+
+		float $cf[] = `xform -q -ws -t $target`;
+		
+		for($each in $obj){
+			for($eachAttr in $tgtAttr){
+				
+				float $len = sqrt(($ff[0]-$cf[0])*($ff[0]-$cf[0])+($ff[1]-$cf[1])*($ff[1]-$cf[1])+($ff[2]-$cf[2])*($ff[2]-$cf[2]));
+				
+				if($len>$threshold && $cf[1]<=$ground){
+					$val=1;
+				}
+				
+				if($len<$threshold || $cf[1]>$ground){
+					$val=0;
+				}
+				/*
+				if ($val!=$fval){
+					setKeyframe -at $eachAttr -t ($i-1) -v $fval $each;
+					setKeyframe -at $eachAttr -t $i -v $val $each;
+				}
+				*/
+				setKeyframe -at $eachAttr -t $i -v $val $each;
+			}
+
+		}
+
+		print $val;
+		$fval=$val;
+		$ff= $cf;
+	}
+	
+	//補完変更
+	for($each in $obj){
+		if(`objExists ($each+"_EmitterVolume")`){
+			selectKey -add -k ($each+"_EmitterVolume") ;
+			keyTangent -ott step;
+		}
+	}
+}
+
+
+
+
+global proc MS_VFA_Step_V3(
+	int $strtm,
+	int $endtm,	
+	float $threshold,
+	float $ground,
+	string $target,
+	string $obj[],
+	string $tgtAttr[]
+	)
+{
+	
+	float $all[];
+	//すべてのフレーム間で動き距離を検査
+	for($i=$strtm;$i<$endtm;$i++){
+		
+		currentTime $i;
+		
+		float $checkPos[] = `xform -q -ws -t $target`;
+		$all[$i-$strtm]=$checkPos[1];
+		
+	}
+	
+	
+	//一番大きい動きを検査
+	float $hikaku[]=`sort $all`;
+	float $bottomValue=$hikaku[0];
+	
+		
+	currentTime -u 1 ($strtm-1);
+	float $ff[]=`xform -q -ws -t $target`;
+	int $val,$fval;
+	for($i=$strtm;$i<$endtm;$i++){
+		currentTime -u 1 $i;
+
+		float $cf[] = `xform -q -ws -t $target`;
+		
+		for($each in $obj){
+			for($eachAttr in $tgtAttr){
+				
+				float $len = sqrt(($ff[0]-$cf[0])*($ff[0]-$cf[0])+($ff[1]-$cf[1])*($ff[1]-$cf[1])+($ff[2]-$cf[2])*($ff[2]-$cf[2]));
+				
+				if($len>$threshold && $cf[1]<=($ground+$bottomValue)){
+					$val=1;
+				}
+				if($len<$threshold || $cf[1]>($ground+$bottomValue)){
+					$val=0;
+				}
+				
+				if ($val!=$fval){
+					setKeyframe -at $eachAttr -t ($i-1) -v $fval $each;
+					setKeyframe -at $eachAttr -t $i -v $val $each;
+				}
+				print ($val+"||"+$len+":"+$threshold+"||"+$cf[1]+":"+($ground+$bottomValue)+"\n");
+			}
+		}
+
+		$fval=$val;
+		$ff= $cf;
+	}
+	
+	//補完変更
+	for($each in $obj){
+		selectKey -add -k ($each+"_EmitterVolume") ;
+		keyTangent -ott step;
+	}
+
+	
+	
+	
+}
+
+
+
+
+global proc MS_VFA_Step_V4(
+	int $strtm,
+	int $endtm,	
+	float $threshold,
+	float $ground,
+	string $target,
+	string $obj[],
+	string $tgtAttr[]
+	)
+{
+	float $len;
+	float $fflen;	
+	currentTime -u 1 ($strtm-1);
+	float $ff[]=`xform -q -ws -t $target`;
+	int $val,$fval;
+	
+	
+	int $flagx,$flagy,$flagz;
+	int $ffflagx,$ffflagy,$ffflagz;
+	
+	for($i=$strtm;$i<$endtm;$i++){
+		currentTime -u 1 $i;
+
+		float $cf[] = `xform -q -ws -t $target`;
+		
+		for($each in $obj){
+			
+			for($eachAttr in $tgtAttr){
+				
+				$len = sqrt(($ff[0]-$cf[0])*($ff[0]-$cf[0])+($ff[1]-$cf[1])*($ff[1]-$cf[1])+($ff[2]-$cf[2])*($ff[2]-$cf[2]));
+				
+				if ($cf[0]>($ff[0]+$threshold)){$flagx=1;}else if ($cf[0]<($ff[0]-$threshold)){$flagx=2;}else {$flagx=0;}
+				if ($cf[1]>($ff[1]+$threshold)){$flagy=1;}else if ($cf[1]<($ff[1]-$threshold)){$flagy=2;}else {$flagy=0;}
+				if ($cf[2]>($ff[2]+$threshold)){$flagz=1;}else if ($cf[2]<($ff[2]-$threshold)){$flagz=2;}else {$flagz=0;}
+				
+				
+				int $xxx=0;
+				if ($flagx!=$ffflagx){$xxx=$xxx+1;}
+				if ($flagy!=$ffflagy){$xxx=$xxx+1;}
+				if ($flagz!=$ffflagz){$xxx=$xxx+1;}
+				
+				$ffflagx=$flagx;
+				$ffflagy=$flagy;
+				$ffflagz=$flagz;
+				
+				
+				if($xxx>1 && $cf[1]<$ground){
+					$val=1;
+				}
+				else{
+					$val=0;
+				}
+				
+				if ($val!=$fval){
+					setKeyframe -at $eachAttr -t ($i-1) -v $fval $each;
+					setKeyframe -at $eachAttr -t $i -v $val $each;
+				}
+				
+				print ($i+" :: "+$xxx+" : "+($ff[1]+$cf[1])+"     ***     "+$val+"||"+$len+":"+$threshold+"||"+$cf[1]+":"+$ground+"\n");
+				
+			}
+		}
+
+		$fval=$val;
+		$ff= $cf;
+	}
+	
+	//補完変更
+	for($each in $obj){
+		selectKey -add -k ($each+"_EmitterVolume") ;
+		keyTangent -ott step;
+	}
+
+	
+	
+	
+}
+
+
+
+
+/*
+アニメーションしているターゲットの、移動値の平均から結果を算出
+しきい値を超えたら１、超えなかったら０
+$reverseに1を入れるとonn/off逆転。
+*/
+
+global proc MS_VFA_Switch(
+	int $strtm,
+	int $endtm,
+	float $threshold,
+	string $target,
+	string $obj[],
+	string $attr[])
+{
+	
+	float $all[];
+	
+	currentTime ($strtm-1);
+	float $ff[]=`xform -q -ws -t $target`;
+	
+	
+	//すべてのフレーム間で動き距離を検査
+	for($i=$strtm;$i<$endtm;$i++){
+		
+		currentTime $i;
+		
+		float $cf[] = `xform -q -ws -t $target`;
+		//2点間の移動距離を計算
+		float $len = sqrt(($ff[0]-$cf[0])*($ff[0]-$cf[0])+($ff[1]-$cf[1])*($ff[1]-$cf[1])+($ff[2]-$cf[2])*($ff[2]-$cf[2]));
+		
+		$all[$i-$strtm]=$len;
+		
+		$ff= $cf;
+		
+	}
+	
+	int $val;
+	//一番大きい動きを検査
+	float $hikaku[]=`sort $all`;
+	float $maxrange=$hikaku[(size($hikaku)-1)];
+	
+	//キーフレーム作成
+	for($each in $obj){
+		for($i=$strtm;$i<$endtm;$i++){
+			
+			float $rate=($all[$i-$strtm]/$maxrange);
+			if($rate<$threshold){$val=0;}else{$val=1;}
+			
+			for($eachAttr in $attr){
+				setKeyframe -at $eachAttr -t $i -v $val $each;
+			}
+			
+			
+		}
+	}
+	//補完変更
+	for($each in $obj){
+		selectKey -add -k ($each+"_EmitterVolume") ;
+		keyTangent -ott step;
+	}
+
+}
+
+
+
+
+/*
+アニメーションしているターゲットのローカル移動値を参照して、
+しきい値を超えたら１、超えなかったら０
+$reverseに1を入れるとonn/off逆転。
+*/
+
+global proc MS_VFA_Switch_Simple(
+	int $strtm,
+	int $endtm,
+	float $threshold,
+	int $reverse,
+	string $target,
+	string $targetAttr,
+	string $obj[],
+	string $attr[]
+	)
+{
+	
+	currentTime -u 1 ($strtm-1);
+	int $value;
+	if($reverse){$value=-1;}
+	for($i=$strtm;$i<$endtm;$i++){
+		float $check=`getAttr -t $i ($target+"."+$targetAttr)`;
+		
+		for($each in $obj){
+			for($eachAttr in $attr){
+				if($reverse){
+					if($threshold>$check){
+							setKeyframe -at $eachAttr -t $i -v 1 $each;
+					}else{
+							setKeyframe -at $eachAttr -t $i -v 0 $each;
+					}
+				}else{
+					if($threshold>$check){
+							setKeyframe -at $eachAttr -t $i -v 0 $each;
+					}else{
+							setKeyframe -at $eachAttr -t $i -v 1 $each;
+					}
+				}
+			}
+		}
+	}
+	
+	//補完変更
+	for($each in $obj){
+		for($eachAttr in $attr){
+			selectKey -add -k ($each+"_"+$eachAttr) ;
+			keyTangent -ott step;
+		}
+	}
+
+}
+
+
+
+global proc MS_VFA_Switch_Simple_pipe(){
+	
+	string $obj[]=`ls -sl`;
+	int $cTime=`currentTime -q`;
+	int $tm[]=`MS_selectTime`;
+	
+	float $threshold=`floatSliderGrp -q -v "threshold_Switch_Simple"`;
+	int $reverse=`checkBox -q -v "reverse_Switch_Simple"`;
+	
+	string $target=`textFieldGrp -q -tx "target_Switch_Simple"`;
+	string $targetAttr=`textFieldGrp -q -tx "attr_Switch_Simple"`;
+	
+	string $attr1[]=`channelBox -q -sma mainChannelBox`;
+	string $attr2[]=`channelBox -q -ssa mainChannelBox`;
+	
+	string $attr[]=`stringArrayCatenate $attr1 $attr2`;
+	
+	MS_VFA_Switch_Simple ( $tm[0],$tm[1],$threshold,$reverse,$target,$targetAttr,$obj,$attr);
+	
+	for($each in $obj){
+		for($eachAttr in $attr){
+			MS_VFA_deleteFlatPoint $tm[0] $tm[1] ($each+"."+$eachAttr);
+		}
+	}
+	
+	currentTime $cTime;
+	//select -r $target;
+}
+
+global proc MS_footstep(){
+	string $target[]=`ls -typ transform -sl`;
+	int $cTime=`currentTime -q`;
+	int $tm[]=`MS_selectTime`;
+	
+	float $threshold=`floatSliderGrp -q -v "threshold_footstep"`;
+	float $ground=`floatSliderGrp -q -v "ground_footstep"`;
+	
+	for ($each in $target){
+		
+		string $newloc[]=`spaceLocator`;
+		
+		MS_setEmitter("sak_footstep",0,0,0,0,0,1);
+		
+		pointConstraint -w 1.0 -o 0 0 0 -sk y $each $newloc[0];
+		
+		MS_VFA_Step_V2 $tm[0] $tm[1] $threshold $ground $each $newloc {"EmitterVolume"};
+		
+		MS_VFA_deleteFlatPoint $tm[0] $tm[1] ($newloc[0]+".EmitterVolume");
+		
+		rename $newloc[0] "MS_footstep";
+	}
+	
+	currentTime $cTime;
+	//select -r $target;
+}
+
+global proc MS_VFA_Step_pipe(){
+	
+	string $obj[]=`ls -sl`;
+	int $cTime=`currentTime -q`;
+	int $tm[]=`MS_selectTime`;
+	
+	float $threshold=`floatSliderGrp -q -v "threshold_step"`;
+	
+	string $target=`textFieldGrp -q -tx "target_step"`;
+	string $attr=`textFieldGrp -q -tx "attr_step"`;
+	
+	string $attrs[];
+	tokenize($attr," ",$attrs);
+	
+	MS_VFA_Step ( $tm[0],$tm[1],$threshold,$target,$obj,$attrs);
+	for($each in $obj){
+		MS_VFA_deleteFlatPoint $tm[0] $tm[1] ($each+".EmitterVolume");
+	}
+	
+	currentTime $cTime;
+	//select -r $target;
+}
+
+global proc MS_VFA_Step_V2_pipe(){
+	
+	int $tm[]=`MS_selectTime`;
+	
+	float $threshold=`floatSliderGrp -q -v "threshold_stepV2"`;
+	float $ground=`floatSliderGrp -q -v "ground_stepV2"`;
+	string $target=`textFieldGrp -q -tx "target_stepV2"`;
+	string $attr=`textFieldGrp -q -tx "attr_stepV2"`;
+	
+	string $attrs[];
+	tokenize($attr," ",$attrs);
+	
+	string $obj[]=`ls -sl`;
+	
+	MS_VFA_Step_V2 ( $tm[0],$tm[1],$threshold,$ground,$target,$obj,$attrs);
+	
+	
+}
+
+global proc MS_VFA_Switch_pipe(){
+	
+	int $tm[]=`MS_selectTime`;
+	
+	float $threshold=`floatSliderGrp -q -v "threshold_int"`;
+	string $attr=`textFieldGrp -q -tx "attr_int"`;
+	string $attrs[];
+	tokenize($attr," ",$attrs);
+	
+	string $obj[]=`ls -sl`;
+	
+	string $target;
+	
+	if(`checkBox -q -v "selfSwitch"`){
+		$target=`textFieldButtonGrp -q -tx "target_int"`;
+		for($each in $obj){
+			MS_VFA_Switch ( $tm[0],$tm[1],$threshold,$each,{$each},$attrs);
+		}
+	}else{
+		$target=`textFieldButtonGrp -q -tx "target_int"`;
+		MS_VFA_Switch ( $tm[0],$tm[1],$threshold,$target,$obj,$attrs);
+	}
+	
+	
+	
+	
+	
+	
+}
+
+global proc MS_VFA_Float_pipe(){
+	
+	int $tm[]=`MS_selectTime`;
+	
+	float $minvalue=`floatSliderGrp -q -v "minvalue_float"`;
+	float $maxvalue=`floatSliderGrp -q -v "maxvalue_float"`;
+	
+	string $target=`textFieldButtonGrp -q -tx "target_float"`;
+	string $attr=`textFieldGrp -q -tx "attr_float"`;
+	
+	string $attrs[];
+	tokenize($attr," ",$attrs);
+	
+	string $obj[]=`ls -sl`;
+	if ($minvalue<$maxvalue){
+		MS_VFA_Float( $tm[0],$tm[1],$minvalue,$maxvalue,$target,$obj,$attrs);
+	}else{
+		MS_VFA_Float_reverse( $tm[0],$tm[1],$minvalue,$maxvalue,$target,$obj,$attrs);
+	}
+}
+
+global proc MS_VFA_getTarget(){
+	
+	string $obj[]=`ls -sl`;
+	
+	textFieldButtonGrp -e -tx $obj[0] "target_float";
+	textFieldButtonGrp -e -tx $obj[0] "target_int";
+	textFieldButtonGrp -e -tx $obj[0] "target_step";
+	textFieldButtonGrp -e -tx $obj[0] "target_stepV2";
+	textFieldButtonGrp -e -tx $obj[0] "target_Switch_Simple";
+}
+
+global proc MS_VFA_getAttr(){
+	string $values[]=`channelBox -q -sma mainChannelBox`;
+	string $values2[]=`channelBox -q -ssa mainChannelBox`;
+	
+	//singleData
+	string $attr[]=`stringArrayCatenate $values $values2`;
+	textFieldButtonGrp -e -tx $attr[0] "attr_Switch_Simple";
+	
+	//arrayData
+	string $newValue=stringArrayToString ($attr," ");
+	
+	textFieldButtonGrp -e -tx $newValue "attr_float";
+	textFieldButtonGrp -e -tx $newValue "attr_int";
+	textFieldButtonGrp -e -tx $newValue "attr_step";
+	textFieldButtonGrp -e -tx $newValue "attr_stepV2";
+}
+
+global proc MS_VFA_getGround(){
+	string $obj[]=`ls -sl`;
+	float $val[]=`xform -q -ws -t $obj[0]`;
+	float $ret;
+	if($val[1]!=0){
+		$ret=(`ceil ($val[1]*100)`/100);
+	}else{
+		$ret=0;
+	}
+	
+	floatSliderButtonGrp -e -v $ret "ground_stepV2";
+	floatSliderButtonGrp -e -v $ret "ground_footstep";
+}
+
+global proc MS_VFAUI()
+{
+	
+	//Window Check
+	if(`window -exists MS_VFAUI`){
+		deleteUI MS_VFAUI;
+	}
+	
+	
+	//Create Window
+	
+	window -title "MS_VFAUI" MS_VFAUI;
+	
+	$tabs=`tabLayout`;
+	
+	//-------------------------------------------------------
+	
+	$tab1=`columnLayout`;
+	
+	floatSliderGrp -f 1 -min 0 -max 1000 -v 0.0 -l "min" "minvalue_float";
+	floatSliderGrp -f 1 -min 0 -max 1000 -v 1.0 -l "max" "maxvalue_float";
+	
+	textFieldButtonGrp -l "target" -bl "getTarget" -bc "MS_VFA_getTarget" "target_float";
+	textFieldButtonGrp -l "attr" -bl "getAttr" -bc "MS_VFA_getAttr" "attr_float";
+	
+	
+	button -l "do" -command "MS_VFA_Float_pipe" ;
+	
+	button -l "undo" -command "Undo" ;
+	button -l "exit" -command "deleteUI MS_VFAUI" ;
+	
+	setParent ..;
+	
+	//-------------------------------------------------------
+	
+	$tab2=`columnLayout`;
+	
+	floatSliderGrp -f 1 -min 0 -max 1 -v 0.5 -l "threshold" "threshold_int";
+	
+	checkBox -v 0 -l "target is each self" "selfSwitch";
+	textFieldButtonGrp -l "target" -bl "getTarget" -bc "MS_VFA_getTarget" "target_int";
+	textFieldButtonGrp -l "attr" -bl "getAttr" -bc "MS_VFA_getAttr" "attr_int";
+	
+	
+	button -l "do" -command "MS_VFA_Switch_pipe" ;
+	
+	button -l "undo" -command "Undo" ;
+	button -l "exit" -command "deleteUI MS_VFAUI" ;
+	
+	setParent ..;
+	
+	//-------------------------------------------------------
+	
+	$MS_VFA_Switch_Simple=`columnLayout`;
+	
+	floatSliderGrp -f 1 -min -1000 -max 1000 -v 0.5 -l "threshold" "threshold_Switch_Simple";
+	
+	checkBox -v 0 -l "Reverse" "reverse_Switch_Simple";
+	textFieldButtonGrp -l "target" -bl "getTarget" -bc "MS_VFA_getTarget" "target_Switch_Simple";
+	textFieldButtonGrp -l "attr" -bl "getAttr" -bc "MS_VFA_getAttr" "attr_Switch_Simple";
+	
+	
+	button -l "do" -command "MS_VFA_Switch_Simple_pipe" ;
+	
+	button -l "undo" -command "Undo" ;
+	button -l "exit" -command "deleteUI MS_VFAUI" ;
+	
+	setParent ..;
+	
+
+	//-------------------------------------------------------
+	
+	$STEP=`columnLayout`;
+	
+	floatSliderGrp -f 1 -min -1000 -max 1000 -v 1 -l "threshold" "threshold_step";
+	
+	textFieldButtonGrp -l "target" -bl "getAttr" -bc "MS_VFA_getTarget" "target_step";
+	textFieldButtonGrp -l "attr" -bl "getAttr" -bc "MS_VFA_getAttr" "attr_step";
+	
+	
+	button -l "do" -command "MS_VFA_Step_pipe" ;
+	
+	button -l "undo" -command "Undo" ;
+	button -l "exit" -command "deleteUI MS_VFAUI" ;
+
+	setParent ..;
+	
+	//-------------------------------------------------------
+	
+	$STEP_V2=`columnLayout`;
+	floatSliderButtonGrp -bl "getGround" -bc "MS_VFA_getGround" -f 1 -pre 2 -min -1000 -max 1000 -v 0.5 -l "ground" "ground_stepV2";
+	floatSliderGrp -f 1 -min -1000 -max 1000 -v 0.1 -l "threshold" "threshold_stepV2";
+	
+	textFieldButtonGrp -l "target" -bl "getAttr" -bc "MS_VFA_getTarget" "target_stepV2";
+	textFieldButtonGrp -l "attr" -bl "getAttr" -bc "MS_VFA_getAttr" "attr_stepV2";
+	
+	
+	button -l "do" -command "MS_VFA_Step_V2_pipe" ;
+	
+	button -l "undo" -command "Undo" ;
+	button -l "exit" -command "deleteUI MS_VFAUI" ;
+
+	setParent ..;
+	
+	
+	//-------------------------------------------------------
+	
+	$FULLAUTOMATICSTEP=`columnLayout`;
+	
+	
+	text -align "left" -l "1 select animated Objects .\n2 set the ground height and move value threshold. \n3 select timerange from time silder bar .\n4 go .\n";
+		separator -w 1000;
+	floatSliderButtonGrp -bl "getGround" -bc "MS_VFA_getGround" -f 1 -pre 2 -min -1000 -max 1000 -v 0.5 -l "ground" "ground_footstep";
+	floatSliderGrp -f 1 -min -1000 -max 1000 -v 0.1 -l "threshold" "threshold_footstep";
+	
+	button -l "FULL AUTOMATIC STEP" -command "MS_footstep" ;
+	setParent ..;
+	
+	
+	tabLayout -e 
+		-tl $tab1 "MS_VFA_Float" 
+		-tl $tab2 "MS_VFA_Switch" 
+		-tl $MS_VFA_Switch_Simple "MS_VFA_Switch_Simple"
+		-tl $STEP "MS_VFA_Step" 
+		-tl $STEP_V2 "MS_VFA_Step_V2" 
+		-tl $FULLAUTOMATICSTEP "FULL AUTOMATIC STEP"
+	$tabs;
+	
+	//Footer
+	showWindow MS_VFAUI;
+	
+}
+
+//MS_VFAUI;
+
+
+

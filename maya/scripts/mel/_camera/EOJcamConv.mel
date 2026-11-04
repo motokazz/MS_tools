@@ -1,0 +1,142 @@
+
+/*
+
+
+[frame1]と[frame2]で指定した2点間をアニメーションするカメラを作成するスクリプトです。
+
+
+*/
+
+/*
+
+global proc float calcViewAngle(string $cam ) {
+
+float $focal = `getAttr ($cam+".focalLength")`;
+float $aperture = `getAttr ($cam+".horizontalFilmAperture")`;
+
+float $fov = (0.5 * $aperture) / ($focal * 0.03937);
+$fov = 2.0 * atan ($fov);
+$fov = 57.29578 * $fov; 
+
+return $fov;
+
+}
+
+*/
+global proc EOJcamConv_help(){
+confirmDialog 
+	-t "EOJcamConv"
+	-m "EOJcamConv\nThis sciript create animating [frame1] to [frame2] camera\n\ncommand:\nEOJcamConv(frame1,camX1,camY1,camZ1,intX1,intY1,intZ1,frame2,camX2,camY2,camZ2,intX2,intY2,intZ2)"
+	;
+}
+
+
+global proc EOJcamConv(
+	float $frame1,
+	float $fieldOfView1,
+	float $cameraValueX1,
+	float $cameraValueY1,
+	float $cameraValueZ1,
+	float $intValueX1,
+	float $intValueY1,
+	float $intValueZ1,
+	float $frame2,
+	float $fieldOfView2,
+	float $cameraValueX2,
+	float $cameraValueY2,
+	float $cameraValueZ2,
+	float $intValueX2,
+	float $intValueY2,
+	float $intValueZ2
+
+)
+{
+
+
+
+//create camera----------------------------------------------
+camera 
+	-centerOfInterest 5 
+	-focalLength 35 
+	-lensSqueezeRatio 1 
+	-cameraScale 1 
+	-horizontalFilmAperture 1.4173 
+	-horizontalFilmOffset 0 
+	-verticalFilmAperture 0.9449 
+	-verticalFilmOffset 0 
+	-filmFit Horizontal 
+	-overscan 1 
+	-motionBlur 0 
+	-shutterAngle 144 
+	-nearClipPlane 0.01 
+	-farClipPlane 1000 
+	-orthographic 0 
+	-orthographicWidth 30
+	-n xcam01;
+
+cameraMakeNode 3 "";
+
+spaceLocator -p 0 0 0 -n xlocater01;
+
+select -add xcam01_aim ;
+
+pointConstraint -offset 0 0 0 -weight 0.5;
+
+
+
+//set keyframe 1-------------------------------------------------------------
+float $horizontalFilmAperture=`getAttr "xcam01.horizontalFilmAperture"`;
+float $gtan1=`tan(0.5*$fieldOfView1)`;
+float $gfocalLength1=($horizontalFilmAperture/($gtan1*0.07874));
+
+//$focalLength=`calcViewAngle("xcam01")`;
+
+setKeyframe -t $frame1 -v $gfocalLength1 xcam01.focalLength;
+
+setKeyframe -t $frame1 -v $cameraValueX1 xcam01_group.tx ;
+setKeyframe -t $frame1 -v $cameraValueY1 xcam01_group.ty ;
+setKeyframe -t $frame1 -v $cameraValueZ1 xcam01_group.tz ;
+
+setKeyframe -t $frame1 -v $intValueX1 xlocater01.tx ;
+setKeyframe -t $frame1 -v $intValueY1 xlocater01.ty ;
+setKeyframe -t $frame1 -v $intValueZ1 xlocater01.tz ;
+
+//set keyframe 1-------------------------------------------------------------
+
+float $gtan2=`tan(0.5*$fieldOfView2)`;
+float $gfocalLength2=($horizontalFilmAperture/($gtan2*0.07874));
+
+setKeyframe -t $frame2 -v $gfocalLength2 xcam01.focalLength;
+
+setKeyframe -t $frame2 -v $cameraValueX2 xcam01_group.tx ;
+setKeyframe -t $frame2 -v $cameraValueY2 xcam01_group.ty ;
+setKeyframe -t $frame2 -v $cameraValueZ2 xcam01_group.tz ;
+
+setKeyframe -t $frame2 -v $intValueX2 xlocater01.tx ;
+setKeyframe -t $frame2 -v $intValueY2 xlocater01.ty ;
+setKeyframe -t $frame2 -v $intValueZ2 xlocater01.tz ;
+
+
+
+
+//rename-----------------------------------------------------------------
+rename xcam01_group cam01__group;
+rename xcam01 cam01_;
+rename xcam01_aim cam01__aim;
+rename xcam01_aim_pointConstraint1 cam01__aim_pointConstraint1;
+rename xcam01_up cam01__up;
+rename xlocater01 cnull01;
+rename xcam01_group_translateX cam01_group_translateX;
+rename xcam01_group_translateY cam01_group_translateY;
+rename xcam01_group_translateZ cam01_group_translateZ;
+rename xlocater01_translateX locater01_translateX;
+rename xlocater01_translateY locater01_translateY;
+rename xlocater01_translateZ locater01_translateZ;
+rename xcam01Shape1_focalLength cam01Shape1_focalLength;
+
+
+
+}
+
+EOJcamConv_help;
+

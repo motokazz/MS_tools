@@ -1,0 +1,92 @@
+//--------------------------------------------------------------------------
+//
+// ScriptName : AriTextureReload
+// Contents   : file, mentalrayIblShape, imagePlaneノードのテクスチャをリロードします。
+// Author     : A-RI
+// Since      : 2015/02
+// LastUpdate : 
+// note       : 
+//--------------------------------------------------------------------------
+global proc AriTextureReload(){
+
+	
+	string $fileList[]=`ls -type "file"`;
+	
+	int $file_trueTotal=0;
+	int $file_lockTotal=0;
+	int $file_noLinkTotal=0;
+	
+	print("file--------------------------------------------------\n");
+	for($file in $fileList){
+		string $tex=`getAttr ($file+".fileTextureName")`;
+		if(`filetest -f $tex`){
+			if(!`getAttr -l ($file+".fileTextureName")`){
+				string $true=`setAttr -type "string" ($file+".fileTextureName") ($tex)`;
+				print ("リロード      "+$file+"      "+$tex+"\n");
+				$file_trueTotal++;
+			}
+			else{
+				print ("ロック      "+$file+"      "+$tex+"\n");
+				$file_lockTotal++;
+			}
+		}
+		else{
+			print ("リンク切れ      "+$file+"      "+$tex+"\n");
+			$file_noLinkTotal++;
+		}
+	}
+	string $imagePlaneList[]=`ls -type "imagePlane"`;
+	int $imagePlane_trueTotal=0;
+	int $imagePlane_lockTotal=0;
+	int $imagePlane_noLinkTotal=0;
+	print("imagePlane--------------------------------------------------\n");
+	for($imagePlane in $imagePlaneList){
+		string $tex=`getAttr ($imagePlane+".imageName")`;
+		if(`filetest -f $tex`){
+			if(!`getAttr -l ($imagePlane+".imageName")`){
+				string $true=`setAttr -type "string" ($imagePlane+".imageName") ($tex)`;
+				print ("リロード      "+$imagePlane+"      "+$tex+"\n");
+				$imagePlane_trueTotal++;
+			}
+			else{
+				print ("ロック      "+$imagePlane+"      "+$tex+"\n");
+				$imagePlane_lockTotal++;
+			}
+		}
+		else{
+			print ("リンク切れ      "+$imagePlane+"      "+$tex+"\n");
+			$imagePlane_noLinkTotal++;
+		}
+	}
+	string $iblList[]=`ls -type "mentalrayIblShape"`;
+	int $ibl_trueTotal=0;
+	int $ibl_lockTotal=0;
+	int $ibl_noLinkTotal=0;
+	print("ibl--------------------------------------------------\n");
+	for($ibl in $iblList){
+		string $tex=`getAttr ($ibl +".texture")`;
+		if(`filetest -f $tex`){
+			if(!`getAttr -l ($ibl +".texture")`){
+				string $true=`setAttr -type "string" ($ibl+".texture") ($tex)`;
+				print ("リロード      "+$ibl+"      "+$tex+"\n");
+				$ibl_trueTotal++;
+			}
+			else{
+				print ("ロック      "+$ibl+"      "+$tex+"\n");
+				$ibl_lockTotal++;
+			}
+		}
+		else{
+			print ("リンク切れ      "+$ibl+"      "+$tex+"\n");
+			$ibl_noLinkTotal++;
+		}
+	}
+	print "\n";
+	print("file: " + $file_trueTotal+" リロード      "+$file_noLinkTotal +" リンク切れ      "+$file_lockTotal+" ロック      \n");
+	print("imagePlane: " + $imagePlane_trueTotal+" リロード      "+$imagePlane_noLinkTotal +" リンク切れ      "+$imagePlane_lockTotal+" ロック\n");
+	print("ibl: " + $ibl_trueTotal+" リロード      "+$ibl_noLinkTotal +" リンク切れ      "+$ibl_lockTotal+" ロック\n");
+	int $all_trueTotal  = $file_trueTotal   + $imagePlane_trueTotal   + $ibl_trueTotal;
+	int $all_noLinkTotal= $file_noLinkTotal + $imagePlane_noLinkTotal + $ibl_noLinkTotal;
+	int $all_lockTotal  = $file_lockTotal   + $imagePlane_lockTotal   + $ibl_lockTotal;
+	print("\nTotal: "+$all_trueTotal+" リロード      "+$all_noLinkTotal +" リンク切れ      "+$all_lockTotal+" ロック\n");
+}

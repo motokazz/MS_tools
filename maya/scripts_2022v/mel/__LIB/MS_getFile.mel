@@ -1,0 +1,44 @@
+global proc string MS_getFile(string $filePath){
+	string $newPath=`substitute "[\\]" $filePath "/"`;
+	$fileID=`fopen $newPath "r"`;
+	string $s;
+	$s=`fread $fileID $s`;
+	fclose $fileID;
+	return( $s + "\n" );
+}
+
+global proc MS_BatchRefference_getDir_exportPath(string $exp_dir,string $dummy){
+
+	textField -e -fileName ($exp_dir+"/") "exportPath";
+
+}
+
+global proc MS_BatchRefference_fileBrowser(string $command,string $controlID){
+	global string $gDefaultFileBrowserDir;
+	string $orgpath=$gDefaultFileBrowserDir;
+	string $path=`textField -q -fileName $controlID`;
+	eval("global string $gDefaultFileBrowserDir=\""+$path+"\"");
+	fileBrowser $command "Select Directory" "" 4 ;
+	eval("global string $gDefaultFileBrowserDir=\""+$orgpath+"\"");
+}
+
+global proc MS_BatchRefference()
+{
+	if(`window -q -ex MS_BatchRefference`)deleteUI MS_BatchRefference;
+	window MS_BatchRefference;
+	columnLayout;
+	
+	//--DataPart--//
+	text -label "filePath" ;//Data//
+	textField -fileName `workspace -q -rd` -width 200 "refferencePath" ;//Data//
+	button -label "Brouse" -c "MS_BatchRefference_fileBrowser MS_BatchRefference_getDir_refferencePath refferencePath";
+	
+	text -label "filePath" ;//Data//
+	textField -fileName `workspace -q -rd` -width 200 "exportPath" ;//Data//
+	button -label "Brouse" -c "MS_BatchRefference_fileBrowser MS_BatchRefference_getDir_exportPath exportPath";
+	
+	
+	button -label "batchRefference" -c "MS_BatchRefferenceAll";
+	//--DataPart--//
+	showWindow MS_BatchRefference;
+}

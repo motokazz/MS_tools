@@ -1,0 +1,8 @@
+#ifdef GR_FILE_LINKED
+GR_FILE_LINKED( _basepose )
+GR_FILE_LINKED( motion_c100_gmp349_scissor_anchor_00_start )
+GR_FILE_LINKED( motion_c100_gmp349_scissor_anchor_01_shoot )
+GR_FILE_LINKED( motion_c100_gmp349_scissor_anchor_02_end )
+GR_FILE_LINKED( motion_c100_gmp349_scissor_anchor_03_end )
+#undef GR_FILE_LINKED
+#endif // GR_FILE_LINKED

@@ -1,0 +1,43 @@
+global proc MS_planeFromImage(){
+	string $IMAGE[]=`ls -typ file -sl`;
+	int $TEXTUREWIDTH=`intField -q -v TEXTUREWIDTH`;
+	if (size($IMAGE)){
+		for($each in $IMAGE){
+			float $OUTSIZE[];
+			$OUTSIZE=`getAttr ($each+".outSize")`;
+			string $PLANE[]=`polyPlane -ch off -o on -w $TEXTUREWIDTH -h ($TEXTUREWIDTH*$OUTSIZE[1]/$OUTSIZE[0]) -sw 1 -sh 1 -cuv 1 `;
+			string $MATNODE=`shadingNode -asShader lambert`;
+			connectAttr -f ($each+".outColor") ($MATNODE+".color");
+			sets -renderable true -noSurfaceShader true -empty -name ($MATNODE+"SG");
+			connectAttr -f ($MATNODE+".outColor") ($MATNODE+"SG"+".surfaceShader");
+			select -r $PLANE[0] ;
+			sets -e -forceElement ($MATNODE+"SG");
+		}
+	}
+}
+
+global proc MS_planeFromImageUI(){
+	if(`window -exists MS_planeFromImageUI`){
+		deleteUI MS_planeFromImageUI;
+	}
+	
+	window -title "MS_planeFromImageUI" "MS_planeFromImageUI";
+
+	columnLayout;
+	text -l "1:Select FileNode(texture).";
+	text -l "2:PushButton.";
+	setParent..;
+	rowLayout -nc 2 -cw2 90 110;
+		text -label "TextureWidth(int)";
+		intField -w 110 -v 256 TEXTUREWIDTH;
+	setParent..;
+	columnLayout;
+	button -bgc 0.8 0.8 0.7 -w 200 -l "Create Plane From Image" -c "MS_planeFromImage";
+	setParent..;
+	window -e -w 210 -h 110 "MS_planeFromImageUI";
+	showWindow "MS_planeFromImageUI";
+	
+}
+
+MS_planeFromImageUI;
+

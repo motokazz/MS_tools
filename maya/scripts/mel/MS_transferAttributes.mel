@@ -1,0 +1,430 @@
+	global proc MS_transferAttributes_core(string $SOURCE,string $DIST[]){
+		
+		//オプション作成
+		string $OPTIONS;
+		
+		$OPTIONS+=("-transferPositions " + `checkBox -q -v "transferPositions"`+" ");
+		$OPTIONS+=("-transferNormals " + `checkBox -q -v "transferNormals"`+" ");
+		
+		$OPTIONS+=("-transferUVs " +(`radioButtonGrp -q -sl "transferUVs"`-1)+" ");
+		if(`radioButtonGrp -q -sl "transferUVs"`==2){
+			$OPTIONS+=("-sourceUvSet " +`textField -q -tx "sourceUvSet"`+" ");
+			$OPTIONS+=("-targetUvSet " +`textField -q -tx "targetUvSet"`+" ");
+		}
+		
+		if(`radioButtonGrp -q -sl "transferColors"`!=1){
+			$OPTIONS+=("-colorBorders " +`intField -q -v "colorBorders"`+" ");
+			$OPTIONS+=("-transferColors " +(`radioButtonGrp -q -sl "transferColors"`-1)+" ");
+			if(`radioButtonGrp -q -sl "transferColors"`==2){
+				$OPTIONS+=("-sourceColorSet " +`textField -q -tx "sourceColorSet"`+" ");
+				$OPTIONS+=("-targetColorSet " +`textField -q -tx "targetColorSet"`+" ");
+			}
+		}
+		
+		$OPTIONS+=("-searchScaleX " +`floatField -q -v "searchScaleX"`+" ");
+		$OPTIONS+=("-searchScaleY " +`floatField -q -v "searchScaleY"`+" ");
+		$OPTIONS+=("-searchScaleZ " +`floatField -q -v "searchScaleZ"`+" ");
+		
+		$OPTIONS+=("-flipUVs " +`checkBox -q -v "flipUVs"`+" ");
+		
+		$OPTIONS+=("-sampleSpace " +(`radioButtonGrp -q -sl "sampleSpace"`-1)+" ");
+		if(`radioButtonGrp -q -sl "sampleSpace"`==3){
+			$OPTIONS+=("-sourceUvSpace " +`textField -q -tx "sourceUvSpace"`+" ");
+			$OPTIONS+=("-targetUvSpace " +`textField -q -tx "targetUvSpace"`+" ");
+		}
+		$OPTIONS+=("-searchMethod " +(`radioButtonGrp -q -sl "searchMethod"`-1)+" ");
+		
+		//実行
+		//string $NEWLOC[]=`spaceLocator`;
+		
+		for($each in $DIST){
+			string $DUP[]=`duplicate $each`;
+			string $COMMANDS="transferAttributes ";
+			$COMMANDS+=($OPTIONS+" "+$SOURCE+" "+$DUP[0]);
+			print $COMMANDS;
+			print "\n";
+			eval $COMMANDS;
+			delete -ch $DUP[0];
+		}
+		
+	}
+	
+	global proc MS_transferAttributes_polyCopyUV(){
+		string $OBJ[]=`ls -sl`;
+		
+		select -r $OBJ[0];
+		PolySelectConvert 1;
+		string $POLY_A[]=`filterExpand -sm 34`;
+		
+		select -r $OBJ[1];
+		PolySelectConvert 1;
+		string $POLY_B[]=`filterExpand -sm 34`;
+		
+		int $i;
+		for($i=0;$i<size($POLY_A);$i++){
+			polyClipboard -cp -uv $POLY_A[$i];
+			polyClipboard -ps -uv $POLY_B[$i];
+			bakePartialHistory $OBJ[1];
+		}
+		
+		
+	}
+	
+	
+	global proc string[] MS_transferAttributes_serchUV(string $OBJ[]){
+		string $AUV[]=`polyUVSet -q -auv $OBJ`;
+		string $OUV[]=`stringArrayRemoveDuplicates $AUV`;
+		return $OUV;
+	}
+	
+	global proc MS_transferAttributes_pipe(){
+		string $SOURCE[]=`sets -q "MS_transferAttributes_setsA"`;
+		string $DIST[]=`sets -q "MS_transferAttributes_setsB"`;
+		MS_transferAttributes_core($SOURCE[0],$DIST);
+	}
+	global proc MS_transferAttributes_setsA(){
+		string $obj[]=`ls -typ transform -sl`;
+		//string $obj[]=`listRelatives -typ mesh `;
+		if(`objExists "MS_transferAttributes_setsA"`){
+			delete "MS_transferAttributes_setsA";
+		}
+		sets -n "MS_transferAttributes_setsA" $obj[0];
+		MS_transferAttributes_list_setA;
+	}
+	
+	global proc MS_transferAttributes_setsB(){
+		string $obj[]=`ls -typ transform -sl`;
+		//string $obj[]=`listRelatives -typ mesh `;
+		if(`objExists "MS_transferAttributes_setsB"`){
+			delete "MS_transferAttributes_setsB";
+		}
+		sets -n "MS_transferAttributes_setsB" $obj;
+		MS_transferAttributes_list_setB;
+	}
+	
+	global proc MS_transferAttributes_list_setA(){
+		string $name_setsA="MS_transferAttributes_setsA";
+		if(`objExists $name_setsA`){
+			string $DIST[]=`sets -q "MS_transferAttributes_setsA"`;
+			string $aaa=stringArrayToString($DIST,"\n");
+			scrollField -e -w 200 -h 20 -tx $aaa "MS_transferAttributes_scrollField_setA";
+		}else{
+			scrollField -e -w 200 -h 20 -tx "<none>" "MS_transferAttributes_scrollField_setA";
+		}
+	}
+	
+	global proc MS_transferAttributes_list_setB(){
+		string $name_setsA="MS_transferAttributes_setsB";
+		if(`objExists $name_setsA`){
+			string $DIST[]=`sets -q "MS_transferAttributes_setsB"`;
+			string $aaa=stringArrayToString($DIST,"\n");
+			scrollField -e -w 200 -h 100 -tx $aaa "MS_transferAttributes_scrollField_setB";
+		}else{
+			scrollField -e -w 200 -h 20 -tx "<none>" "MS_transferAttributes_scrollField_setB";
+		}
+	}
+	
+//UI
+global proc MS_transferAttributes_get_dir(string $exp_dir,string $dummy){
+	textField -e -fileName ($exp_dir+"/") "MS_transferAttributes_filePath";
+}
+
+global proc MS_transferAttributes_fileBrowser(){
+	global string $gDefaultFileBrowserDir;
+	string $orgpath=$gDefaultFileBrowserDir;
+	string $filePath=`textField -q -fileName "MS_transferAttributes_filePath"`;
+	eval("global string $gDefaultFileBrowserDir=\""+$filePath+"\"");
+	fileBrowser "MS_transferAttributes_get_dir" "Select Directory" "" 4 ;
+	MS_transferAttributes_storeRecallUI store;
+	eval("global string $gDefaultFileBrowserDir=\""+$orgpath+"\"");
+}
+
+global proc MS_transferAttributes_storeRecallUI( string $mode ){
+	string $prefix="MS_transferAttributes__";
+	
+	string $floatFieldList[] = {
+		"MS_transferAttributes_floatField01"
+		};
+
+	string $intFieldList[] = {
+		"MS_transferAttributes_intField01"
+		};
+
+	string $floatSliderGrpList[] = {
+		};
+
+	string $intSliderGrpList[] = {
+		};
+
+	string $checkBoxList[] = {
+		"MS_transferAttributes_checkBox01"
+		};
+
+	string $radioButtonGrpList[] = {
+		"MS_transferAttributes_radioButtonGrp01"
+		};
+
+	string $frameLayoutList[] = {
+		};
+
+	string $textFieldList[] = {
+		"MS_transferAttributes_fileName"
+		};
+
+	string $textFieldList_file[] = {
+		"MS_transferAttributes_filePath"
+		};
+
+	int $cnt;
+
+	if ( $mode == "store" )
+	{
+		for ( $each in $floatFieldList)
+			optionVar -floatValue ($prefix+$each) `floatField -q -value $each`;
+
+		for ( $each in $intFieldList)
+			optionVar -intValue ($prefix+$each) `intField -q -value $each`;
+
+		for ( $each in $floatSliderGrpList)
+			optionVar -floatValue ($prefix+$each) `floatSliderGrp -q -value $each`;
+
+		for ( $each in $intSliderGrpList)
+			optionVar -intValue ($prefix+$each) `intSliderGrp -q -value $each`;
+
+		for ( $each in $checkBoxList)
+			optionVar -intValue ($prefix+$each) `checkBox -q -value $each`;
+
+		for ( $each in $radioButtonGrpList)
+			optionVar -intValue ($prefix+$each) `radioButtonGrp -q -select $each`;
+
+		for ( $each in $frameLayoutList)
+			optionVar -intValue ($prefix+$each) `frameLayout -q -collapse $each`;
+
+		for ( $each in $textFieldList)
+			optionVar -stringValue ($prefix+$each) `textField -q -tx $each`;
+
+		for ( $each in $textFieldList_file)
+			optionVar -stringValue ($prefix+$each) `textField -q -fileName $each`;
+	}
+
+	if ( $mode == "recall" )
+	{
+		for ( $each in $floatFieldList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				floatField -e -value `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $intFieldList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				intField -e -value `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $floatSliderGrpList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				floatSliderGrp -e -value `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $intSliderGrpList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				intSliderGrp -e -value `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $checkBoxList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				checkBox -e -value `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $radioButtonGrpList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				radioButtonGrp -e -select `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $frameLayoutList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				frameLayout -e -collapse `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $textFieldList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				textField -e -tx `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $textFieldList_file)
+			if ( `optionVar -exists ($prefix+$each)` )
+				textField -e -fileName `optionVar -q ($prefix+$each)` $each;
+
+	}
+
+	if ( $mode == "reset" )
+	{
+		for ( $each in $floatFieldList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $intFieldList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $floatSliderGrpList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $intSliderGrpList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $checkBoxList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $radioButtonGrpList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $frameLayoutList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $textFieldList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $textFieldList_file)
+			optionVar -remove ($prefix+$each);
+	}
+}
+
+global proc MS_transferAttributes(){
+	if (`window -q -ex MS_transferAttributes`){
+		deleteUI MS_transferAttributes;
+	}
+	window MS_transferAttributes;
+	columnLayout;
+	rowLayout -nc 2 -cw2 210 200 ;
+		frameLayout "main";
+			columnLayout ;
+				button -w 200 -l "setA" -c "MS_transferAttributes_setsA";
+				scrollField -tx "aaa" "MS_transferAttributes_scrollField_setA";
+				text -w 200 -al "center" "↓";
+				button -w 200 -l "setB" -c "MS_transferAttributes_setsB";
+				scrollField -tx "aaa" "MS_transferAttributes_scrollField_setB";
+				button -w 200 -l "exe" -c "MS_transferAttributes_pipe";
+				
+				separator -h 20 ;
+				
+				button -w 200 -l "MS_transferAttributes_polyCopyUV" -c "MS_transferAttributes_polyCopyUV";
+				
+				
+			setParent ..;
+		setParent ..;
+	
+	
+		frameLayout "commamd";
+			columnLayout;
+				checkBox -v 0 "transferPositions" ;
+				checkBox -v 0 "transferNormals";
+				
+				separator -w 200;
+			//transferUVs
+				radioButtonGrp
+					-numberOfRadioButtons 3
+					-onc "" 
+					-ofc "" 
+					-cw4 70 70 70 70
+					-ct4 "left" "both" "both" "both" 
+					-label "transferUVs"
+					-labelArray3 "none" "currentUV" "allUV"
+					-sl 2
+					"transferUVs";
+					
+				rowLayout -nc 2 -cw2 140 140;
+					columnLayout;
+					text -l "sourceUvSet";
+					textField -w 100 -tx "map1" "sourceUvSet";
+					setParent ..;
+					columnLayout;
+					text -l "targetUvSet";
+					textField -w 100 -tx "uvSet1" "targetUvSet";
+					setParent ..;
+				setParent ..;
+				separator -w 200;
+
+			//transferColors
+				radioButtonGrp
+					-numberOfRadioButtons 3
+					-onc "" 
+					-ofc "" 
+					-cw4 70 70 70 70
+					-ct4 "left" "both" "both" "both" 
+					-label "transferColors"
+					-labelArray3 "none" "current" "ALL"
+					-sl 1
+					"transferColors";
+				rowLayout -nc 2 -cw2 140 140;
+					columnLayout;
+						text -l "sourceColorSet";
+						textField -w 100 -tx "colorSet1" "sourceColorSet";
+					setParent ..;
+					columnLayout;
+						text -l "targetColorSet";
+						textField -w 100 -tx "colorSet1" "targetColorSet";
+					setParent ..;
+				setParent ..;
+				separator -w 200;
+				checkBox -v 0  "colorBorders";
+			rowLayout -nc 3 -cw3 100 100 100;
+				columnLayout;
+				text -l "searchScaleX";
+				floatField -w 100 -v 1  "searchScaleX";
+				setParent ..;
+				columnLayout;
+				text -l "searchScaleY";
+				floatField -w 100 -v 1  "searchScaleY";
+				setParent ..;
+				columnLayout;
+				text -l "searchScaleZ";
+				floatField  -w 100 -v 1  "searchScaleZ";
+				setParent ..;
+			setParent ..;
+			
+			separator -w 200;
+				checkBox -v 0  "flipUVs";
+
+				radioButtonGrp
+					-numberOfRadioButtons 4
+					-onc "" 
+					-ofc "" 
+					-cw5 70 70 70 70 70
+					-ct5 "left" "both" "both" "both" "both" 
+					-label "sampleSpace"
+					-labelArray4 "world" "local" "UV" "component"
+					-sl 1
+					"sampleSpace";
+			//UVSpace
+				rowLayout -nc 2 -cw2 140 140;
+					columnLayout;
+						text -l "sourceUvSpace";
+						textField -w 100 -tx "map1" "sourceUvSpace";
+					setParent ..;
+					columnLayout;
+						text -l "targetUvSpace";
+						textField  -w 100 -tx "map1" "targetUvSpace";
+					setParent ..;
+				setParent ..;
+				separator -w 200;
+
+				radioButtonGrp
+					-numberOfRadioButtons 4
+					-onc "" 
+					-ofc "" 
+					-cw5 70 70 70 70 70
+					-ct5 "left" "both" "both" "both" "both" 
+					-label "searchMethod"
+					-labelArray4 "Closest Normal" "" "" "ClosestPoint"
+					-sl 4
+					"searchMethod";
+
+
+
+			setParent ..;
+			setParent ..;
+		setParent ..;
+	setParent ..;
+	columnLayout;
+		separator -w 217 -h 100;
+		button -w 210 -l "環境変数クリアボタン" -bgc 1.0 0.5 0.5  -c "MS_transferAttributes_storeRecallUI reset";
+
+	MS_transferAttributes_list_setA;
+	MS_transferAttributes_list_setB;
+	
+	window -e -wh 600 400 MS_transferAttributes;
+	
+	showWindow MS_transferAttributes;
+}
+
+
+MS_transferAttributes;

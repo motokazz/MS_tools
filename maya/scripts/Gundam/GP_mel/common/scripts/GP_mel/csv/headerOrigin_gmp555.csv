@@ -1,0 +1,11 @@
+#ifdef GR_FILE_LINKED
+
+GR_FILE_LINKED( _basepose )
+GR_FILE_LINKED( motion_c100_gmp555_pg_transamburst_00_start )
+GR_FILE_LINKED( motion_c100_gmp555_pg_transamburst_01_charge )
+GR_FILE_LINKED( motion_c100_gmp555_pg_transamburst_02_burst )
+GR_FILE_LINKED( motion_c100_gmp555_pg_transamburst_03_burstloop )
+GR_FILE_LINKED( motion_c100_gmp555_pg_transamburst_04_end )
+
+#undef GR_FILE_LINKED
+#endif // GR_FILE_LINKED

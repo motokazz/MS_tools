@@ -1,0 +1,70 @@
+global proc MS_purupuru(){
+	string $OBJZ[]=`ls -sl`;
+	string $ATTR[]=`channelBox -q -sma mainChannelBox`;
+	//string $ATTR=`MS_purupuru_getAttrNameFromChannelBox`;
+	float $CURRENTTIME=`currentTime -q`;
+	
+	
+	float $PURUPURU=`floatSliderGrp -q -v "PURUPURU"`;
+	float $STEP=`intSliderGrp -q -v "STEP"`;
+	float $RANGE=`intSliderGrp -q -v "RANGE"`;
+	$i=0;
+	$j=0;
+	for ($eachOBJ in $OBJZ){
+		for($eachATTR in $ATTR){
+			$i=0;
+			$j=0;
+			float $VAR[];
+			for($i=0;$i<$RANGE;$i++){
+				$VAR[$i]=`getAttr -t ($i*$STEP+$CURRENTTIME) ($eachOBJ+"."+$eachATTR)`;
+			}
+			
+			for($eachVAR in $VAR){
+				if($j==0){
+				setKeyframe -t $CURRENTTIME -v $VAR[0] -at $eachATTR  $eachOBJ;
+				}else{
+					int $REVERSE=1;
+					if($j%2){$REVERSE=-1;}
+					setKeyframe -t ($CURRENTTIME+$j*$STEP) -v ((($PURUPURU/$RANGE)*($RANGE-$j)*$REVERSE)+$VAR[$j]) -at $eachATTR $eachOBJ;
+				}
+				$j++;
+			}
+		}
+	}
+}
+
+global proc string MS_purupuru_getAttrNameFromChannelBox(){
+	string $values[]=`channelBox -q -sma mainChannelBox`;
+	string $values2[]=`channelBox -q -ssa mainChannelBox`;
+	
+	string $newValue=stringArrayToString ($values," ")+" "+stringArrayToString ($values2," ");
+	
+	return $newValue;
+	
+}
+
+{
+	//Window Check
+	if(`window -exists MS_purupuruUI`){
+		deleteUI MS_purupuruUI;
+	}
+	
+	//Create Window
+
+	window -title "MS_purupuruUI" MS_purupuruUI;
+
+	columnLayout;
+	floatSliderGrp -cw3 100 100 100 -l "PURUPURU" -v 1 -min 0.01 -max 100 -f 1 "PURUPURU";
+	intSliderGrp -cw3 100 100 100 -l "RANGE" -v 10 -min 1 -max 100 -f 1 "RANGE";
+	intSliderGrp -cw3 100 100 100 -l "STEP" -s 1 -v 3 -min 1 -max 100 -f 1 "STEP";
+	//float $PURUPURU=1;
+	//float $STEP=2;
+	//float $RANGE=10;
+	button -l "purupuru" -c "MS_purupuru";
+	textFieldButtonGrp -l "attr" -bl "getAttr" -bc "textFieldButtonGrp -e -tx `MS_purupuru_getAttrNameFromChannelBox` attr_int;" "attr_int";
+
+	showWindow MS_purupuruUI;
+}
+
+
+

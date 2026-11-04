@@ -1,0 +1,90 @@
+//heightAdjuster
+
+//概要：
+//オブジェクトを指定した高さに一致する様にスケールします。
+
+//使用方法：
+//1)スクリプトを実行します。ダイアログが出ます。
+//2)ダイアログの[Adjust to]に、目的の高さを入力します。
+//3)ダイアログの[Current]に、現在の高さを入力します。
+//（バーテックスを選んでFrom selected vtxボタンをクリックすると、
+//そのバーテックスの高さが入力されます。）
+//4)Get scaleボタンをクリックすると、その上のダイアログに[Adjust to]と[Current]の比率が表示されます。
+//5)スケールしたいオブジェクトを選びScaleボタンをクリックすると、オブジェクトがダイアログの
+//比率通りにスケールされます。
+
+//注意点:
+//オブジェクトは位置をフリーズしておいて下さい。
+
+global proc HeightAdjuster()
+{
+//ダミー
+}
+
+
+global proc heightAdjusterGetSelectedYPos()
+{
+//現在選択しているバーテックスのY座標をダイアログに出力します。
+
+string $selList[] = `ls -sl -fl`;
+float $posList[] = `xform -q -ws -t $selList[0]`;
+floatField -e -v $posList[1] "HeightAdjusterObject|layout|currentValue";
+}
+//-------------------------------------
+global proc heightAdjusterGetScale()
+{
+//現在ダイアログに入力されている二つの数値（現在の高さと目標の高さ）の比率をダイアログに出力します。
+
+
+float $currentHeight = `floatField -q -v "HeightAdjusterObject|layout|currentValue"`;
+float $heightTo =  `floatField -q -v "HeightAdjusterObject|layout|adjustValue"`;
+	if($currentHeight!=0)
+	{
+	float $scale = $heightTo / $currentHeight;
+	floatField -e -v $scale "HeightAdjusterObject|layout|scaleValue";
+	}
+}
+//-------------------------------------
+global proc heightAdjusterScale()
+{
+//選択しているオブジェクトを、現在ダイアログに入力されている数値でスケールします。
+float $currentScale = `floatField -q -v "HeightAdjusterObject|layout|scaleValue"`;
+scale -r $currentScale $currentScale $currentScale;
+}
+//-------------------------------------
+//Make a window.
+{
+string $title = "HeightAdjuster";
+string $object = "HeightAdjusterObject";
+	if(`window -ex $object` == 1)
+	{
+	deleteUI $object;
+	}
+
+window -t $title $object;
+columnLayout -p $object "layout";
+//-----
+text -l "HeightAdjuster";
+separator -w 110;
+//-----
+text -l "[Adjust to]";
+floatField -v 0.0 adjustValue;
+separator -w 110;
+text -l "[Current]";
+floatField -v 0.0 currentValue;
+button -w 105 -c "heightAdjusterGetSelectedYPos" -l "From selected vtx";
+separator -w 110;
+text -l "[Scale]";
+floatField -v 1.0 scaleValue;
+button -w 105 -c "heightAdjusterGetScale" -l "Get scale";
+separator -w 110;
+text -l "[Adjust]";
+button -w 105 -c "heightAdjusterScale" -l "Scale";
+
+
+window -e -w 110 -h 260 $object;
+showWindow $object;
+}
+//-------------------------------------
+
+//The end of the script.

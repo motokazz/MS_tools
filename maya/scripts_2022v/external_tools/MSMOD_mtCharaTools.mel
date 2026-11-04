@@ -1,0 +1,2739 @@
+//==================================================================================================
+//==================================================================================================
+//========                                    mtCharaTools                                  ========
+//========                                    version 2.0                                   ========
+//========                                 product by matsuya                               ========
+//==================================================================================================
+//==================================================================================================
+
+//==================================================================================================
+//■スクリプトジョブ「defaultSwitch」内で実行するプロシージャの設定
+//==================================================================================================
+
+global proc defaultSwitch()
+{
+
+//■mtCharaToolsUIウインドウがなければ実行しない====================================================
+
+	if ((`window -exists mtCharaToolsUI` )== false )
+	{
+		return;
+	}
+
+//■defaultSwitchの内容=============================================================================
+
+	string $currPanel = `getPanel -withFocus`;
+	if ("" != $currPanel && ("modelPanel" == `getPanel -to $currPanel`))
+	{
+
+		//NoLightの状態を取得しスイッチに反映する
+
+			string $switchNoLight = `modelEditor -q -displayLights $currPanel`;
+			switch ($switchNoLight)
+			{
+				case "none" :
+
+					iconTextCheckBox -e -value true itcbViewNoLight;
+					break;
+
+				case "default" :
+
+					iconTextCheckBox -e -value false itcbViewNoLight;
+					break;
+
+				default: break;
+			}
+
+		//X-Rayの状態を取得しスイッチに反映する
+
+			int $switchXRay = `modelEditor -q -xray $currPanel`;
+			switch ($switchXRay)
+			{
+				case 0 :
+
+					iconTextCheckBox -e -value false itcbViewXray;
+					break;
+
+				case 1 :
+
+					iconTextCheckBox -e -value true itcbViewXray;
+					break;
+
+				default: break;
+			}
+
+		//ShowJointの状態を取得しスイッチに反映する
+
+			int $switchJoint = `modelEditor -q -joints $currPanel`;
+			switch ($switchJoint)
+			{
+				case 0 :
+
+					iconTextCheckBox -e -value false itcbShowJoint;
+					break;
+
+				case 1 :
+
+					iconTextCheckBox -e -value true itcbShowJoint;
+					break;
+
+				default: break;
+			}
+
+		//ShowIkの状態を取得しスイッチに反映する
+
+			int $switchIk = `modelEditor -q -ikHandles $currPanel`;
+			switch ($switchIk)
+			{
+				case 0 :
+
+					iconTextCheckBox -e -value false itcbShowIk;
+					break;
+
+				case 1 :
+
+					iconTextCheckBox -e -value true itcbShowIk;
+					break;
+
+				default: break;
+			}
+
+		//ShowLocatorの状態を取得しスイッチに反映する
+
+			int $switchLocator = `modelEditor -q -locators $currPanel`;
+			switch ($switchLocator)
+			{
+				case 0 :
+
+					iconTextCheckBox -e -value false itcbShowLocator;
+					break;
+
+				case 1 :
+
+					iconTextCheckBox -e -value true itcbShowLocator;
+					break;
+
+				default: break;
+			}
+
+		//ShowPolygonの状態を取得しスイッチに反映する
+
+			int $switchPolygon = `modelEditor -q -polymeshes $currPanel`;
+			switch ($switchPolygon)
+			{
+				case 0 :
+
+					iconTextCheckBox -e -value false itcbShowPolygon;
+					break;
+
+				case 1 :
+
+					iconTextCheckBox -e -value true itcbShowPolygon;
+					break;
+
+				default: break;
+			}
+
+		//ShowLightの状態を取得しスイッチに反映する
+
+			int $switchLight = `modelEditor -q -lights $currPanel`;
+			switch ($switchLight)
+			{
+				case 0 :
+
+					iconTextCheckBox -e -value false itcbShowLight;
+					break;
+
+				case 1 :
+
+					iconTextCheckBox -e -value true itcbShowLight;
+					break;
+
+				default: break;
+			}
+
+	}
+}
+
+//==================================================================================================
+//■スクリプトジョブ「manipSwitch」内で実行するプロシージャの設定
+//==================================================================================================
+
+global proc manipSwitch()
+{
+
+//■mtCharaToolsUIウインドウがなければ実行しない====================================================
+
+	if ((`window -exists mtCharaToolsUI` )== false )
+	{
+		return;
+	}
+
+//■manipSwitchの内容===============================================================================
+
+	string $getManp = `currentCtx`;
+	int $getTransMode = `manipMoveContext -q -mode Move`;
+	int $getRotMode = `manipRotateContext -q -mode Rotate`;
+
+	switch ($getManp)
+	{
+
+		case "moveSuperContext" :
+
+			iconTextCheckBox -e -value true buttonTrans;
+			iconTextCheckBox -e -value false buttonRot;
+			iconTextCheckBox -e -value false buttonScale;
+			iconTextCheckBox -e -value false buttonSelect;
+
+			iconTextCheckBox -e -value true buttonFddy_Trans;
+			iconTextCheckBox -e -value false buttonFddy_Rot;
+			iconTextCheckBox -e -value false buttonFddy_Scale;
+			iconTextCheckBox -e -value false buttonFddy_Select;
+
+			switch ($getTransMode)
+			{
+
+				case 0 :
+
+					iconTextCheckBox -e -value false buttonGlobal;
+					iconTextCheckBox -e -value true buttonLocal;
+
+					iconTextCheckBox -e -value false buttonFddy_Global;
+					iconTextCheckBox -e -value true buttonFddy_Local;
+
+					break;
+
+				case 2 :
+
+					iconTextCheckBox -e -value true buttonGlobal;
+					iconTextCheckBox -e -value false buttonLocal;
+
+					iconTextCheckBox -e -value true buttonFddy_Global;
+					iconTextCheckBox -e -value false buttonFddy_Local;
+
+					break;
+
+				default :
+
+					iconTextCheckBox -e -value false buttonGlobal;
+					iconTextCheckBox -e -value false buttonLocal;
+
+					iconTextCheckBox -e -value false buttonFddy_Global;
+					iconTextCheckBox -e -value false buttonFddy_Local;
+
+					break;
+
+			}
+
+			break;
+
+		case "RotateSuperContext" :
+
+			iconTextCheckBox -e -value false buttonTrans;
+			iconTextCheckBox -e -value true buttonRot;
+			iconTextCheckBox -e -value false buttonScale;
+			iconTextCheckBox -e -value false buttonSelect;
+
+			iconTextCheckBox -e -value false buttonFddy_Trans;
+			iconTextCheckBox -e -value true buttonFddy_Rot;
+			iconTextCheckBox -e -value false buttonFddy_Scale;
+			iconTextCheckBox -e -value false buttonFddy_Select;
+
+			switch ($getRotMode)
+			{
+
+				case 0 :
+
+					iconTextCheckBox -e -value false buttonGlobal;
+					iconTextCheckBox -e -value true buttonLocal;
+
+					iconTextCheckBox -e -value false buttonFddy_Global;
+					iconTextCheckBox -e -value true buttonFddy_Local;
+
+					break;
+
+				case 1 :
+
+					iconTextCheckBox -e -value true buttonGlobal;
+					iconTextCheckBox -e -value false buttonLocal;
+
+					iconTextCheckBox -e -value true buttonFddy_Global;
+					iconTextCheckBox -e -value false buttonFddy_Local;
+
+					break;
+
+				default :
+
+					iconTextCheckBox -e -value false buttonGlobal;
+					iconTextCheckBox -e -value false buttonLocal;
+
+					iconTextCheckBox -e -value false buttonFddy_Global;
+					iconTextCheckBox -e -value false buttonFddy_Local;
+
+					break;
+
+			}
+
+			break;
+
+		case "scaleSuperContext" :
+
+			iconTextCheckBox -e -value false buttonTrans;
+			iconTextCheckBox -e -value false buttonRot;
+			iconTextCheckBox -e -value true buttonScale;
+			iconTextCheckBox -e -value false buttonSelect;
+
+			iconTextCheckBox -e -value false buttonFddy_Trans;
+			iconTextCheckBox -e -value false buttonFddy_Rot;
+			iconTextCheckBox -e -value true buttonFddy_Scale;
+			iconTextCheckBox -e -value false buttonFddy_Select;
+
+			iconTextCheckBox -e -value false buttonGlobal;
+			iconTextCheckBox -e -value false buttonLocal;
+
+			iconTextCheckBox -e -value false buttonFddy_Global;
+			iconTextCheckBox -e -value false buttonFddy_Local;
+
+			break;
+
+		case "selectSuperContext" :
+
+			iconTextCheckBox -e -value false buttonTrans;
+			iconTextCheckBox -e -value false buttonRot;
+			iconTextCheckBox -e -value false buttonScale;
+			iconTextCheckBox -e -value true buttonSelect;
+
+			iconTextCheckBox -e -value false buttonFddy_Trans;
+			iconTextCheckBox -e -value false buttonFddy_Rot;
+			iconTextCheckBox -e -value false buttonFddy_Scale;
+			iconTextCheckBox -e -value true buttonFddy_Select;
+
+			iconTextCheckBox -e -value false buttonGlobal;
+			iconTextCheckBox -e -value false buttonLocal;
+
+			iconTextCheckBox -e -value false buttonFddy_Global;
+			iconTextCheckBox -e -value false buttonFddy_Local;
+
+			break;
+
+		default :
+
+			iconTextCheckBox -e -value false buttonTrans;
+			iconTextCheckBox -e -value false buttonRot;
+			iconTextCheckBox -e -value false buttonScale;
+			iconTextCheckBox -e -value false buttonSelect;
+
+			iconTextCheckBox -e -value false buttonFddy_Trans;
+			iconTextCheckBox -e -value false buttonFddy_Rot;
+			iconTextCheckBox -e -value false buttonFddy_Scale;
+			iconTextCheckBox -e -value false buttonFddy_Select;
+
+			iconTextCheckBox -e -value false buttonGlobal;
+			iconTextCheckBox -e -value false buttonLocal;
+
+			iconTextCheckBox -e -value false buttonFddy_Global;
+			iconTextCheckBox -e -value false buttonFddy_Local;
+
+			break;
+
+	}
+
+}
+
+//==================================================================================================
+//■GlobalモードとLocalモードの切り替え
+//==================================================================================================
+
+global proc axisGlobalMode()
+{
+
+	string $getManp = `currentCtx`;
+
+	switch ($getManp)
+	{
+
+		case "moveSuperContext" :
+
+			iconTextCheckBox -e -value false buttonLocal;
+			iconTextCheckBox -e -value false buttonFddy_Local;
+			manipMoveContext -e -mode 2 Move;
+			break;
+
+		case "RotateSuperContext" :
+
+			iconTextCheckBox -e -value false buttonLocal;
+			iconTextCheckBox -e -value false buttonFddy_Local;
+			manipRotateContext -e -mode 1 Rotate;
+			break;
+
+		default :
+
+			iconTextCheckBox -e -value false buttonGlobal;
+			iconTextCheckBox -e -value false buttonLocal;
+			iconTextCheckBox -e -value false buttonFddy_Global;
+			iconTextCheckBox -e -value false buttonFddy_Local;
+			break;
+
+	}
+
+}
+
+global proc axisLocalMode()
+{
+
+	string $getManp = `currentCtx`;
+
+	switch ($getManp)
+	{
+
+		case "moveSuperContext" :
+
+			iconTextCheckBox -e -value false buttonGlobal;
+			iconTextCheckBox -e -value false buttonFddy_Global;
+			manipMoveContext -e -mode 1 Move;
+			break;
+
+		case "RotateSuperContext" :
+
+			iconTextCheckBox -e -value false buttonGlobal;
+			iconTextCheckBox -e -value false buttonFddy_Global;
+			manipRotateContext -e -mode 0 Rotate;
+			break;
+
+		default :
+
+			iconTextCheckBox -e -value false buttonGlobal;
+			iconTextCheckBox -e -value false buttonLocal;
+			iconTextCheckBox -e -value false buttonFddy_Global;
+			iconTextCheckBox -e -value false buttonFddy_Local;
+			break;
+
+	}
+
+}
+
+//==================================================================================================
+//■Wire設定
+//==================================================================================================
+global proc viewWire()
+{
+//カレントアクティブなModeling Panelを選択する======================================================
+
+	string $currPanel = `getPanel -withFocus`;
+	if ("" != $currPanel && ("modelPanel" == `getPanel -to $currPanel`))
+	{
+		modelEditor -e -displayAppearance "wireframe" $currPanel;
+		editMenuUpdate MayaWindow|mainEditMenu;
+	}
+}
+
+//==================================================================================================
+//■Shade設定
+//==================================================================================================
+global proc viewShade()
+{
+//カレントアクティブなModeling Panelを選択する======================================================
+
+	string $currPanel = `getPanel -withFocus`;
+	if ("" != $currPanel && ("modelPanel" == `getPanel -to $currPanel`))
+	{
+
+		int $switchNoLight = `iconTextCheckBox -q -value itcbViewNoLight`;
+
+		switch ($switchNoLight) //NoLightスイッチがonかoffかで振り分ける
+		{
+			case 0: //NoLightスイッチがoffの場合はShadeビューにする
+
+				modelEditor -e -displayAppearance "smoothShaded" -displayTextures off -displayLights "default" $currPanel;
+				editMenuUpdate MayaWindow|mainEditMenu;
+				break;
+
+			case 1: //NoLightスイッチがonの場合はShade+NoLightビューにする
+
+				modelEditor -e -displayAppearance "smoothShaded" -displayTextures off -displayLights "none" $currPanel;
+				editMenuUpdate MayaWindow|mainEditMenu;
+				break;
+
+			default: break;
+		}
+	}
+}
+
+//==================================================================================================
+//■Texture設定
+//==================================================================================================
+global proc viewTexture()
+{
+//カレントアクティブなModeling Panelを選択する======================================================
+
+	string $currPanel = `getPanel -withFocus`;
+	if ("" != $currPanel && ("modelPanel" == `getPanel -to $currPanel`))
+	{
+		viewShade; //一度viewShade()を実行しないとなぜかテクスチャが更新されない
+
+		modelEditor -e -displayAppearance "smoothShaded" -displayTextures on $currPanel;
+		editMenuUpdate MayaWindow|mainEditMenu;
+	}
+
+}
+
+//==================================================================================================
+//■+Wire設定
+//==================================================================================================
+global proc toggleAddWire()
+{
+//カレントアクティブなModeling Panelを選択する======================================================
+
+	string $currPanel = `getPanel -withFocus`;
+	if ("" != $currPanel && ("modelPanel" == `getPanel -to $currPanel`))
+	{
+
+		//wireframeOnShadedの現在ステータスを取得しトグルする================================
+
+		int $AddWireOnOff = `modelEditor -q -wireframeOnShaded $currPanel`;
+
+		switch ($AddWireOnOff)
+		{
+			case 0: //wireframeOnShadedがoffのときはonにする
+
+				modelEditor -e -wireframeOnShaded 1 $currPanel;
+				editMenuUpdate MayaWindow|mainEditMenu;
+				break;
+
+			case 1: //wireframeOnShadedがonのときはoffにする
+
+				modelEditor -e -wireframeOnShaded 0 $currPanel;
+				editMenuUpdate MayaWindow|mainEditMenu;
+				break;
+
+			default: break;
+		}
+	}
+}
+
+//==================================================================================================
+//■No Light設定
+//==================================================================================================
+
+//■NoLightを無効にする=============================================================================
+global proc toggleNoLightFalse()
+{
+//カレントアクティブなModeling Panelを選択する======================================================
+
+	string $currPanel = `getPanel -withFocus`;
+	string $WireOnOff = `modelEditor -q -displayAppearance $currPanel`;
+
+	if ($WireOnOff != "wireframe") //フォーカス中のModelingPanelがwireframe以外のときに下記を実行する
+	{
+
+		if ("" != $currPanel && ("modelPanel" == `getPanel -to $currPanel`))
+		{
+			string $NoLightOnOff = `modelEditor -q -displayLights $currPanel`;
+
+			int $TextureOnOff = `modelEditor -q -displayTextures $currPanel`;
+
+			switch ($TextureOnOff)
+			{
+
+				case 0: //テクスチャ表示でない場合はShadeビューにする
+
+					modelEditor -e -displayAppearance "smoothShaded" -displayTextures off -displayLights "default" $currPanel;
+					editMenuUpdate MayaWindow|mainEditMenu;
+					break;
+
+				case 1: //テクスチャ表示のときはTextureビューにする
+
+					modelEditor -e -displayAppearance "smoothShaded" -displayTextures on -displayLights "default" $currPanel;
+					editMenuUpdate MayaWindow|mainEditMenu;
+					break;
+
+				default: break;
+			}
+
+		}
+	}
+}
+
+//■NoLightを有効にする=============================================================================
+global proc toggleNoLightTrue()
+{
+//カレントアクティブなModeling Panelを選択する======================================================
+
+	string $currPanel = `getPanel -withFocus`;
+	string $WireOnOff = `modelEditor -q -displayAppearance $currPanel`;
+
+	if ($WireOnOff != "wireframe") //フォーカス中のModelingPanelがwireframe以外のときに下記を実行する
+	{
+
+		if ("" != $currPanel && ("modelPanel" == `getPanel -to $currPanel`))
+		{
+			string $NoLightOnOff = `modelEditor -q -displayLights $currPanel`;
+
+			int $TextureOnOff = `modelEditor -q -displayTextures $currPanel`;
+
+			switch ($TextureOnOff)
+			{
+
+				case 0: //テクスチャ表示でない場合はShadeビューにする
+
+					modelEditor -e -displayAppearance "smoothShaded" -displayTextures off -displayLights "none" $currPanel;
+					editMenuUpdate MayaWindow|mainEditMenu;
+					break;
+
+				case 1: //テクスチャ表示のときはTextureビューにする
+
+					modelEditor -e -displayAppearance "smoothShaded" -displayTextures on -displayLights "none" $currPanel;
+					editMenuUpdate MayaWindow|mainEditMenu;
+					break;
+
+				default: break;
+			}
+
+		}
+	}
+}
+
+//==================================================================================================
+//■X-Ray設定
+//==================================================================================================
+global proc toggleXray()
+{
+//カレントアクティブなModeling Panelを選択する======================================================
+
+	string $currPanel = `getPanel -withFocus`;
+	if ("" != $currPanel && ("modelPanel" == `getPanel -to $currPanel`))
+	{
+		//X-Rayの現在ステータスを取得しトグルする===========================================
+
+		int $XrayOnOff = `modelEditor -q -xray $currPanel`;
+
+		switch ($XrayOnOff)
+		{
+			case 0: //Xrayがoffのときはonにする
+
+				modelEditor -e -xray true $currPanel;
+				break;
+
+			case 1: //Xrayがonのときはoffにする
+				modelEditor -e -xray false $currPanel;
+				break;
+
+			default: break;
+		}
+	}
+}
+
+//==================================================================================================
+//■ShowJoint設定
+//==================================================================================================
+global proc showJoint()
+{
+//カレントアクティブなModeling Panelを選択する======================================================
+
+	string $currPanel = `getPanel -withFocus`;
+	if ("" != $currPanel && ("modelPanel" == `getPanel -to $currPanel`))
+	{
+		//Show>Jointの現在ステータスを取得しトグルする===========================================
+
+		int $JointOnOff = `modelEditor -q -joints $currPanel`;
+
+		switch ($JointOnOff)
+		{
+			case 0: //Show>Jointがoffのときはonにする
+
+				modelEditor -e -joints true $currPanel;
+				break;
+
+			case 1: //Show>Jointがonのときはoffにする
+				modelEditor -e -joints false $currPanel;
+				break;
+
+			default: break;
+		}
+	}
+}
+
+//==================================================================================================
+//■ShowIk設定
+//==================================================================================================
+global proc showIk()
+{
+//カレントアクティブなModeling Panelを選択する======================================================
+
+	string $currPanel = `getPanel -withFocus`;
+	if ("" != $currPanel && ("modelPanel" == `getPanel -to $currPanel`))
+	{
+		//Show>Ikの現在ステータスを取得しトグルする===========================================
+
+		int $IkOnOff = `modelEditor -q -ikHandles $currPanel`;
+
+		switch ($IkOnOff)
+		{
+			case 0: //Show>Ikがoffのときはonにする
+
+				modelEditor -e -ikHandles true $currPanel;
+				break;
+
+			case 1: //Show>Ikがonのときはoffにする
+				modelEditor -e -ikHandles false $currPanel;
+				break;
+
+			default: break;
+		}
+	}
+}
+
+//==================================================================================================
+//■ShowLocator設定
+//==================================================================================================
+global proc showLocator()
+{
+//カレントアクティブなModeling Panelを選択する======================================================
+
+	string $currPanel = `getPanel -withFocus`;
+	if ("" != $currPanel && ("modelPanel" == `getPanel -to $currPanel`))
+	{
+		//Show>Ikの現在ステータスを取得しトグルする===========================================
+
+		int $LocatorOnOff = `modelEditor -q -locators $currPanel`;
+
+		switch ($LocatorOnOff)
+		{
+			case 0: //Show>Locatorがoffのときはonにする
+
+				modelEditor -e -locators true $currPanel;
+				break;
+
+			case 1: //Show>Locatorがonのときはoffにする
+				modelEditor -e -locators false $currPanel;
+				break;
+
+			default: break;
+		}
+	}
+}
+
+//==================================================================================================
+//■ShowPolygon設定
+//==================================================================================================
+global proc showPolygon()
+{
+//カレントアクティブなModeling Panelを選択する======================================================
+
+	string $currPanel = `getPanel -withFocus`;
+	if ("" != $currPanel && ("modelPanel" == `getPanel -to $currPanel`))
+	{
+		//Show>Ikの現在ステータスを取得しトグルする===========================================
+
+		int $PolygonOnOff = `modelEditor -q -polymeshes $currPanel`;
+
+		switch ($PolygonOnOff)
+		{
+			case 0: //Show>Polygonがoffのときはonにする
+
+				modelEditor -e -polymeshes true $currPanel;
+				break;
+
+			case 1: //Show>Polygonがonのときはoffにする
+				modelEditor -e -polymeshes false $currPanel;
+				break;
+
+			default: break;
+		}
+	}
+}
+
+//==================================================================================================
+//■ShowLight設定
+//==================================================================================================
+global proc showLight()
+{
+//カレントアクティブなModeling Panelを選択する======================================================
+
+	string $currPanel = `getPanel -withFocus`;
+	if ("" != $currPanel && ("modelPanel" == `getPanel -to $currPanel`))
+	{
+		//Show>Ikの現在ステータスを取得しトグルする===========================================
+
+		int $LightOnOff = `modelEditor -q -lights $currPanel`;
+
+		switch ($LightOnOff)
+		{
+			case 0: //Show>Lightがoffのときはonにする
+
+				modelEditor -e -lights true $currPanel;
+				break;
+
+			case 1: //Show>Lightがonのときはoffにする
+				modelEditor -e -lights false $currPanel;
+				break;
+
+			default: break;
+		}
+	}
+}
+
+//==================================================================================================
+//■フレームレート設定
+//==================================================================================================
+global proc frameRate24()
+{
+	currentUnit -time film;
+	text -e -label "    24 frame/s" textFrameRate;
+	editMenuUpdate MayaWindow|mainEditMenu;
+}
+
+global proc frameRate30()
+{
+	currentUnit -time ntsc;
+	text -e -label "    30 frame/s" textFrameRate;
+	editMenuUpdate MayaWindow|mainEditMenu;
+}
+
+global proc frameRate60()
+{
+	currentUnit -time ntscf;
+	text -e -label "    60 frame/s" textFrameRate;
+	editMenuUpdate MayaWindow|mainEditMenu;
+}
+
+//==================================================================================================
+//■setに含まれるノードを選択する（Rig_、Pv_、RigF_などを検索し、該当するノードを選択）
+//==================================================================================================
+global proc charaSetSelect(string $selRigType)
+{
+	string $setName = `optionMenu -q -v CharacterSetList`;
+
+	if ($setName == "--- no Selected ---")
+	{
+		warning "【操作ヘルプ】キャラクターセットを選択してください。";
+		return;
+	}
+
+	else if (`objExists $setName` == 0)
+	{
+		warning ("【注意】キャラクターセット " + $setName + " がありません。");
+		return;
+	}
+
+	select -clear;
+
+	//セットに含まれるノードのリストを取得する
+	//※取得できる文字列はフルパス（ root|joint1|joint2 )である場合がある
+	string $setMembers[] = `sets -q $setName`;
+
+	//各ノードに対して$nodeNameと同じかどうかの判定を行う
+	for ( $thisSetMember in $setMembers )
+	{
+		//$thisSetMember 文字列がフルパスである場合が考えられるので「tokenize」MELコマンドを利用して、ノード名のみを取得する
+		string $buffers[];
+  		string $setMemberNodeName;
+  		int $tokenNumber = `tokenize $thisSetMember "|" $buffers`;
+
+		//$tokenNumberの値が1を超えていない場合には、$thisSetMember 文字列はフルパスではない
+
+		//$setMemberNodeName文字列にフルパスを含まないノード名を格納する
+		if ( $tokenNumber > 1 )
+		{
+			$setMemberNodeName = $buffers[ $tokenNumber - 1] ;
+		}
+		else
+		{
+			$setMemberNodeName = $thisSetMember;
+		}
+
+		int $rigNameStrValid = 0;
+
+		//正規表現で「Rig_」「Pv_」「RigF_」を含む文字列を検索し、該当するノードを選択する
+		switch ($selRigType)
+		{
+			case "Rig_":
+
+				$rigNameStrValid = isValidString($setMemberNodeName, "([_:0-9]*)(Rig_)([a-zA-Z0-9]+)");
+				break;
+
+			case "RigPv_":
+
+				$rigNameStrValid = isValidString($setMemberNodeName, "([_:0-9]*)([Rig_|Pv_]*)([a-zA-Z0-9]+)"); //Rig_とPv_を検索
+				break;
+
+			case "RigF_":
+
+				$rigNameStrValid = isValidString($setMemberNodeName, "([_:0-9]*)(RigF_)([a-zA-Z0-9]+)");
+				break;
+
+			case "set":
+
+				select -r $setName;
+				break;
+
+			default:
+				break;
+		}
+
+		if( $rigNameStrValid == 1 )
+		{
+			select -add $thisSetMember;
+		}
+	}
+
+}
+
+//==================================================================================================
+//■顔と体ポーズリストにポーズmelを読み込んで表示する
+//==================================================================================================
+global proc importPoseList()
+{
+	//キャラ選択リストでキャラ名（フォルダ名）を取得する
+	string $bodyCharName = `optionMenu -q -v poseBodyList`;
+	string $faceCharName = `optionMenu -q -v poseFaceList`;
+
+	string $bufferMel[];		//「.mel」名用$buffer配列変数を定義
+	string $melNameSet;		//mel名の格納用
+	string $poseFileListMel;	//リスト内から抽出するデータの格納用
+	global string $iconTextButtonName;
+
+	string $usdScript = `internalVar -usd`;							//ユーザースクリプトパスの取得
+	string $usdBodyPoseList = $usdScript + "mtCharaTools/poselist/body/" + $bodyCharName + "/";	//poselist/body/フォルダの定義
+	string $usdFacePoseList = $usdScript + "mtCharaTools/poselist/face/" + $faceCharName + "/";	//poselist/face/フォルダの定義
+	string $bodyPoseFileList[] = `getFileList -folder $usdBodyPoseList -filespec "*.mel"`;		//melリストを取得
+	string $facePoseFileList[] = `getFileList -folder $usdFacePoseList -filespec "*.mel"`;		//melリストを取得
+
+	//体リストを全削除して初期化する============================================================
+
+	textScrollList -e -removeAll bodyPoseListField;
+
+	for ($poseFileListMel in $bodyPoseFileList)
+	{
+		//「.mel」より前半部分を切り出す
+		tokenize $poseFileListMel "." $bufferMel;
+		$melNameSet = $bufferMel[0];
+
+		textScrollList -e -appendPosition 100 $melNameSet bodyPoseListField;	//リストフィールドにポーズ名を追加する
+	}
+
+	//顔ポーズのUIを削除し、再び登録後にリストを加える==========================================
+	deleteUI facePoseListField;
+	shelfLayout -w 230 -cw 51 -ch 60 -p facePoseListForm facePoseListField;
+
+	for ($poseFileListMel in $facePoseFileList)
+	{
+		//「.mel」より前半部分を切り出す
+		tokenize $poseFileListMel "." $bufferMel;
+		$melNameSet = $bufferMel[0];
+
+		$iconTextButtonName = "iconFacePoseCheckBox_" + $melNameSet;
+		iconTextButton -parent facePoseListField -label $melNameSet -mh 2 -style "iconAndTextVertical" -image1 ($usdFacePoseList + $melNameSet + ".bmp") -c ("source \"" + $usdFacePoseList + $melNameSet + ".mel\"") $iconTextButtonName;
+	}
+
+}
+
+//==================================================================================================
+//■体ポーズリストで選択したポーズを削除する
+//==================================================================================================
+global proc deletePose()
+{
+
+//■リストを何も選択していない場合は何もしない======================================================
+
+	string $nonSelectedPose[] = `textScrollList -q -selectItem bodyPoseListField`;
+
+	if ($nonSelectedPose[0] == "")
+	{
+		return;
+	}
+
+//■ポーズ削除の実行================================================================================
+
+	string $bufferPose[];		//「Pose名」用$buffer配列変数を定義
+	global string $melNameSet;	//mel名の格納用
+	string $charNameSet;		//キャラ名の格納用
+	string $poseListMel;		//リスト内から抽出するポーズの格納用
+
+	//キャラ選択リストでキャラ名（フォルダ名）を取得する
+	string $charName = `optionMenu -q -v poseBodyList`;
+
+	string $usdScript = `internalVar -usd`;							//ユーザースクリプトパスの取得
+	string $usdPoseList = $usdScript + "mtCharaTools/poselist/body/" + $charName + "/";	//poselist/body/フォルダの定義
+	string $poseFileList[] = `getFileList -folder $usdPoseList -filespec "*.mel"`;		//melリストを取得
+
+	string $selectedPose[] = `textScrollList -q -selectItem bodyPoseListField`;
+
+	//melファイル名を決定
+	$melNameSet = ($usdPoseList + $selectedPose[0] + ".mel");
+
+//■deletePoseUIが存在すればdeletePose()を実行しない==============================================
+
+	if ((`window -exists deletePoseUI` )== true )
+	{
+		return;
+	}
+
+//■ウインドウ設定==================================================================================
+
+	string $windowDeletePose = `window -title "ポーズの削除" -sizeable false -menuBar true deletePoseUI`;
+
+	columnLayout;
+
+		frameLayout  -labelVisible false -borderStyle "etchedOut" -w 295 -h 40 -marginHeight 10;
+
+			rowColumnLayout -numberOfColumns 1 -columnWidth 1 295;
+
+				text -label ($selectedPose[0] + " を削除します。" ) -align "center";
+
+			setParent ..;
+
+		setParent ..;
+
+		frameLayout -labelVisible false -borderStyle "etchedOut" -w 295 -h 38 -marginWidth 35 -marginHeight 5;
+
+			rowColumnLayout -numberOfColumns 2 -columnWidth 1 100 -columnWidth 2 100 -columnSpacing 2 15;
+
+				button -label "OK" -c "sysFile -delete $melNameSet; deleteUI -window deletePoseUI; importPoseList; textScrollList -e -selectIndexedItem 1 bodyPoseListField;";
+				button -label "キャンセル" -c "deleteUI -window deletePoseUI;";
+
+			setParent ..;
+
+		setParent ..;
+
+//■ウインドウ実行==================================================================================
+
+	showWindow $windowDeletePose;
+	window -e -w 300 -h 110 deletePoseUI;
+
+}
+
+//==================================================================================================
+//■体ポーズリストで選択したポーズをリネームするUI
+//==================================================================================================
+global proc renamePoseUI()
+{
+
+//■リストを何も選択していない場合は何もしない======================================================
+
+	string $nonSelectedPose[] = `textScrollList -q -selectItem bodyPoseListField`;
+
+	if ($nonSelectedPose[0] == "")
+	{
+		return;
+	}
+
+//■ポーズmel名の取得===============================================================================
+
+	string $bufferPose[];		//「Pose名」用$buffer配列変数を定義
+	global string $melNameSet;	//名前変更前のmel名の格納用
+	global string $melRenameSet;	//名前変更後のmel名の格納用
+	string $poseListMel;		//リスト内から抽出するポーズの格納用
+
+	//キャラ選択リストでキャラ名（フォルダ名）を取得する
+	string $charName = `optionMenu -q -v poseBodyList`;
+
+	string $usdScript = `internalVar -usd`;							//ユーザースクリプトパスの取得
+	string $usdPoseList = $usdScript + "mtCharaTools/poselist/body/" + $charName + "/";	//poselist/body/フォルダの定義
+	string $poseFileList[] = `getFileList -folder $usdPoseList -filespec "*.mel"`;		//melリストを取得
+
+	//選択したポーズ名を取得する================================================================
+
+	string $selectedPose[] = `textScrollList -q -selectItem bodyPoseListField`;
+
+	//名前変更前のmelファイル名を決定
+	$melNameSet = ($usdPoseList + $selectedPose[0] + ".mel");
+
+//■mtCharaToolsUIが存在すればdeletePose()を実行しない==============================================
+
+	if ((`window -exists renamePoseUI` )== true )
+	{
+		return;
+	}
+
+//■ウインドウ設定==================================================================================
+
+	string $windowRenamePose = `window -title "ポーズの名前変更" -sizeable false -menuBar true renamePoseUI`;
+
+	columnLayout;
+
+		frameLayout  -labelVisible false -borderStyle "etchedOut" -w 341 -h 40 -marginHeight 10;
+
+			rowColumnLayout -numberOfColumns 1 -columnWidth 1 341;
+
+				text -label ($nonSelectedPose[0] + " の名前を変更してください。") -align "center";
+
+			setParent ..;
+		setParent ..;
+
+		frameLayout  -label " 変更前の名前" -labelAlign "center" -borderStyle "etchedOut" -w 341 -h 60 -marginHeight 15;
+
+			rowColumnLayout -numberOfColumns 2  -columnWidth 1 120 -columnWidth 1 120;
+
+				text -label "ポーズ名：" -align "right";
+				text -label $selectedPose[0] namePoseName;
+
+			setParent ..;
+		setParent ..;
+
+		frameLayout  -label " 変更後の名前" -labelAlign "center" -borderStyle "etchedOut" -w 341 -h 70 -marginHeight 15;
+
+			rowColumnLayout -numberOfColumns 2  -columnWidth 1 120 -columnWidth 1 120;
+
+				text -label "ポーズ名：" -align "right";
+				textField -text $selectedPose[0] renamePoseName;
+
+			setParent ..;
+		setParent ..;
+
+
+		frameLayout -labelVisible false -borderStyle "etchedOut" -w 341 -h 38 -marginWidth 50 -marginHeight 5;
+
+			rowColumnLayout -numberOfColumns 2 -columnWidth 1 100 -columnWidth 2 100 -columnSpacing 2 30;
+
+				button -label "OK" -c "renamePose(0);" renameOk1;
+				button -label "キャンセル" -c "deleteUI -window renamePoseUI;" renameCancel1;
+
+			setParent ..;
+
+		setParent ..;
+
+		frameLayout -labelVisible false -borderStyle "etchedOut" -marginWidth 30 -marginHeight 8;
+
+			rowColumnLayout -numberOfColumns 3 -columnWidth 1 100 -columnWidth 2 100 -columnWidth 3 100;
+
+				text -label "上書きしますか？";
+				button -label "OK" -c "renamePose(1);";
+				button -label "キャンセル" -c "window -e -w 346 -h 240 renamePoseUI; textField -e -en true renameCharName; textField -e -en true renamePoseName; button -e -en true renameOk1; button -e -en true renameCancel1;";
+
+			setParent ..;
+
+		setParent ..;
+
+//■ウインドウ実行==================================================================================
+
+	showWindow $windowRenamePose;
+	window -e -w 346 -h 240 renamePoseUI;
+
+}
+
+//==================================================================================================
+//■体ポーズmelをリネームする
+//==================================================================================================
+global proc renamePose(int $Compel)
+{
+
+//■mel名をリネームする=============================================================================
+	string $namePoseName = `text -q -label namePoseName`;
+	string $renamePoseName = `textField -q -text renamePoseName`;
+
+	//キャラ選択リストでキャラ名（フォルダ名）を取得する
+	string $charName = `optionMenu -q -v poseBodyList`;
+
+	string $usdScript = `internalVar -usd`;							//ユーザースクリプトパスの取得
+	string $usdPoseList = $usdScript + "mtCharaTools/poselist/body/" + $charName + "/";	//poselist/body/フォルダの定義
+	string $poseFileList[] = `getFileList -folder $usdPoseList -filespec "*.mel"`;		//melリストを取得
+
+	string $melNameSet = ($usdPoseList + $namePoseName + ".mel");
+	string $melRenameSet = ($usdPoseList + $renamePoseName + ".mel");
+
+	if ($renamePoseName == "")
+	{
+		warning "変更する名前がありません。";
+		return;
+	}
+
+	//もし既存のファイルがあった場合（上書き処理）==============================================
+
+	if ($Compel == 0)
+	{
+
+		string $melFileList[] = `getFileList -folder $usdPoseList -fs "*.mel"`;
+		string $melFile;
+		string $melName = $renamePoseName + ".mel";
+
+		for ($melFile in $melFileList)
+		{
+
+			if ($melFile == $melName)
+			{
+
+				//ボタンを入力不可にする
+				textField -e -en false renamePoseName;
+				button -e -en false renameOk1;
+				button -e -en false renameCancel1;
+
+				//ウインドウを拡張する
+				window -e -w 346 -h 282 renamePoseUI;
+				return;
+
+			}
+		}
+	}
+
+	//ポーズmelのファイル名をリネームする=======================================================
+
+	sysFile -rename $melRenameSet $melNameSet;
+
+//■リネームしたmelの2行目を変更する================================================================
+
+	string $lineMel;
+	string $poseCommand = ""; //記録するコマンド
+	int $lineNo;
+	int $lineSize = 1; //初期値を1にしないとfor文がスルーされる
+
+//melを開く=========================================================================================
+
+	int $filePoseMelr = `fopen $melRenameSet "r"`;
+
+//fgetlineで$filePoseMelr内を一行ずつ読み込み、サイズが存在すれば繰り返す===========================
+
+	for( $lineNo = 1; $lineSize > 0; $lineNo++)
+	{
+		$lineMel = `fgetline $filePoseMelr`;
+		$lineSize = `size $lineMel`;
+
+		//2行目を書き換える
+		if ($lineNo == 2)
+		{
+			$lineMel = "//ポーズ名　　=" + $renamePoseName + "\n";
+		}
+
+		$poseCommand = $poseCommand + $lineMel;
+
+	}
+
+	fclose $filePoseMelr ; //$filePoseMelrを閉じる
+
+//■2行目を変更したコマンドをmelに書き込む===================================================
+
+	//melに書き込む=============================================================================
+
+	print "書き込みました\n";
+	int $filePoseMelw = `fopen $melRenameSet "w"`;
+	fwrite $filePoseMelw $poseCommand;
+	fclose $filePoseMelw ; //$filePoseMelwを閉じる
+
+//■ポーズリストからリネームしたポーズを選択する====================================================
+
+	importPoseList;
+	string $selectPose = $renamePoseName;
+	selectPose($selectPose);
+	deleteUI -window renamePoseUI;
+
+}
+
+//==================================================================================================
+//■体ポーズリストで選択したmelのヘッダを取得し表示する
+//==================================================================================================
+global proc getPoseHeader()
+{
+
+//■選択したポーズからmelのパスとファイル名を取得する===============================================
+
+	string $melNameSet = `getPoseFile`;
+
+//■ヘッダを取得する================================================================================
+
+	//変数設定==================================================================================
+
+	global string $poseHeader[]; //ヘッダを格納する配列変数
+	int $headerNo; 		     //ヘッダのライン番号用変数
+
+	//ファイルオープンし、$filePoseMelに格納する================================================
+	int $filePoseMel = `fopen $melNameSet "r"`;
+
+	//fgetlineで$filePoseMel内を一行ずつ読み込み、サイズが存在すれば繰り返す====================
+
+	for( $headerNo = 1; $headerNo < 6; $headerNo++)
+	{
+		$poseHeader[$headerNo] = `fgetline $filePoseMel`;
+
+		//「\n」がある場合は削除する
+		string $bufferHeader1[];
+		int $numTokens2;
+		$numTokens1 = `tokenize $poseHeader[$headerNo] "\n" $bufferHeader1`;
+
+		if ($numTokens1 = 1)
+		{
+			$poseHeader[$headerNo] = $bufferHeader1[0];
+		}
+
+		//「=」から後半を取得する
+		string $bufferHeader2[];
+		int $numTokens2;
+		$numTokens2 = `tokenize $poseHeader[$headerNo] "=" $bufferHeader2`;
+
+		if ($numTokens2 = 1)
+		{
+			$poseHeader[$headerNo] = $bufferHeader2[1];
+		}
+
+	}
+
+	fclose $filePoseMel; //$filePoseMelを閉じる
+
+//■パス名の最後のオブジェクト名を取得する==========================================================
+
+	string $lastNodeName[];
+	string $pathNodeName = $poseHeader[3];
+	tokenize($pathNodeName, "|", $lastNodeName);
+	int $sizeNode = size($lastNodeName);
+	$sizeNode--;
+
+//■取得したヘッダを表示する========================================================================
+
+	text -e -label $poseHeader[1] headerChar;
+	text -e -label $poseHeader[2] headerPose;
+	text -e -label $lastNodeName[$sizeNode] headerNode;
+	text -e -label $poseHeader[4] headerHier;
+	text -e -label ($poseHeader[5] + "  " + $poseHeader[6]) headerDateTime;
+}
+
+//==================================================================================================
+//■体ポーズmelを実行する
+//==================================================================================================
+global proc setPose()
+{
+
+	string $setName = `optionMenu -q -v CharacterSetList`;
+
+	if ($setName == "--- no Selected ---")
+	{
+		warning "【操作ヘルプ】キャラクターセットを選択してください。";
+		return;
+	}
+
+	else if (`objExists $setName` == 0)
+	{
+		warning ("【注意】キャラクターセット " + $setName + " がありません。");
+		return;
+	}
+
+	//選択したポーズからmelのパスとファイル名を取得する
+	string $melNameSet = `getPoseFile`;
+
+	//テキストフィールドの「選択ノード名」を取得する
+	string $headerNodeStr = `text -q -label headerNode`;
+
+	//「headerNode名」用$buffer配列変数を定義
+	string $bufferHeaderNode[];
+
+	//"("より前半部分を切り出す（文字列「(複数選択)」を取り除くため）
+	tokenize $headerNodeStr "(" $bufferHeaderNode;
+	string $headerNodeTok = $bufferHeaderNode[0];
+
+	//キャラセット名からリファレンス名を取得する
+	string $refName = `mtGetRefName`;
+
+	//「選択ノード名」を設定する（リファレンス対応）
+	string $selectNode = $refName + $headerNodeTok;
+
+	//「選択ノード名」がシーン上にあるか調べる
+	if (`objExists $selectNode` == 0)
+	{
+
+		warning ("このシーンには [" + $selectNode + "] がありません。または階層構造が違います。");
+		return;
+
+	}
+
+	//ポーズmelを実行する
+	eval( "source \"" + $melNameSet + "\"" );
+
+}
+
+//==================================================================================================
+//■体ポーズmelのファイルを開く
+//==================================================================================================
+global proc openPose()
+{
+
+	string $melNameSet = `getPoseFile`; //選択したポーズからmelのパスとファイル名を取得する
+
+	eval("system(\"load " + $melNameSet + "\")");
+
+}
+
+
+//==================================================================================================
+//■体ポーズリストで選択したポーズからパスとmelファイルを設定する
+//==================================================================================================
+global proc string getPoseFile()
+{
+
+//■ポーズmel名の取得===============================================================================
+
+	//フォルダ選択リストでフォルダ名を取得する
+	string $charBodyName;
+	string $charFaceName;
+
+	int $selTab = `tabLayout -q -selectTabIndex mainTabs`;
+
+	//体フォルダか顔フォルダか
+	if ( $selTab == 2 )
+	{
+		$charBodyName = `optionMenu -q -v poseBodyList`;
+	}
+	else if ( $selTab == 5 )
+	{
+		$charFaceName = `optionMenu -q -v poseFaceList`;
+	}
+
+	string $bufferPose[];		//「Pose名」用$buffer配列変数を定義
+	global string $melNameSet;	//mel名の格納用
+	global string $charNameSet;	//キャラ名の格納用
+	string $poseListMel;		//リスト内から抽出するポーズの格納用
+
+	string $usdScript = `internalVar -usd`;	
+						//ユーザースクリプトパスの取得
+	string $usdBodyPoseList = $usdScript + "mtCharaTools/poselist/body/" + $charBodyName + "/";	//poselist/body/フォルダの定義
+	string $usdFacePoseList = $usdScript + "mtCharaTools/poselist/body/" + $charFaceName + "/";	//poselist/face/フォルダの定義
+
+	string $bodyPoseFileList[] = `getFileList -folder $usdBodyPoseList -filespec "*.mel"`;		//melリストを取得
+	string $facePoseFileList[] = `getFileList -folder $usdFacePoseList -filespec "*.mel"`;
+
+	//選択したポーズ名を取得する================================================================
+
+	string $selectedBodyPose[] = `textScrollList -q -selectItem bodyPoseListField`;
+
+	//名前変更前のmelファイル名を決定
+	$melNameSet = ($usdBodyPoseList + $selectedBodyPose[0] + ".mel");
+
+	//ファイル名を返り値に設定する
+	return $melNameSet;
+
+}
+
+//==================================================================================================
+//■体ポーズリストから該当するポーズを選択する
+//==================================================================================================
+global proc selectPose(string $selectPose)
+{
+
+	textScrollList -e -selectItem $selectPose bodyPoseListField;
+
+}
+
+//==================================================================================================
+//■ヘルプウインドウ設定
+//==================================================================================================
+global proc mtCThelp()
+{
+
+//■mtCharaToolsUIが存在すればmtCharaTools()を実行しない============================================
+
+	if ((`window -exists mtCThelpUI` )== true )
+	{
+		return;
+	}
+
+//■ウインドウ設定==================================================================================
+
+	string $windowMtCThelp = `window -title "ヘルプ" -sizeable false -menuBar true mtCThelpUI`;
+
+	columnLayout;
+
+		frameLayout  -labelVisible false -borderStyle "etchedOut" -w 295 -h 60 -marginHeight 10;
+
+			rowColumnLayout -numberOfColumns 1 -columnWidth 1 295;
+
+				text -label "mtCharaTools" -align "center";
+				text -label "version 2.0.0" -align "center";
+
+			setParent ..;
+
+		setParent ..;
+
+		frameLayout  -labelVisible false -borderStyle "etchedOut" -w 295 -h 150 -marginHeight 10;
+
+			rowColumnLayout -numberOfColumns 1 -columnWidth 1 295;
+
+				text -label "ヘルプ：ノーツに簡易マニュアルがあります。" -align "center";
+
+			setParent ..;
+
+		setParent ..;
+
+		frameLayout -labelVisible false -borderStyle "etchedOut" -w 295 -h 45 -marginHeight 10 -marginWidth 50;
+
+			rowColumnLayout -numberOfColumns 1 -columnWidth 1 185;
+
+				button -label "OK" -c "deleteUI -window mtCThelpUI;";
+
+			setParent ..;
+
+		setParent ..;
+
+//■ウインドウ実行==================================================================================
+
+	showWindow $windowMtCThelp;
+	window -e -w 300 -h 285 mtCThelpUI;
+
+}
+
+//==================================================================================================
+//■リファレンスのロード
+//==================================================================================================
+global proc loadPref()
+{
+
+	string $usdScript = `internalVar -usd`;
+	string $prefFilePath = $usdScript +"mtCharaTools/pref.mel";
+	int $filePrefNames = `fopen ($prefFilePath) "r"`;
+	string $prefData[];
+	int $lineNo;
+
+	//ファイルの存在
+	if (`filetest -r $prefFilePath` == 0 )
+	{
+		//optionMenu -e -select 1 CharacterSetList;
+		//tabLayout -e -selectTabIndex 1 mainTabs;
+		//optionMenu -e -select 1 poseBodyList;
+		//optionMenu -e -select 1 poseFaceList;
+	}
+
+	else
+	{
+		//1行ずつ読み込む
+		for( $lineNo = 1; $lineNo < 5; $lineNo++)
+		{
+			$prefData[$lineNo] = `fgetline $filePrefNames`;
+
+			//「\n」がある場合は削除する
+			string $bufferPref[];
+			int $numTokens;
+			$numTokens = `tokenize $prefData[$lineNo] "\n" $bufferPref`;
+
+			if ($numTokens = 1)
+			{
+				$prefData[$lineNo] = $bufferPref[0];
+			}
+
+			//メインタブの選択
+			if ($lineNo == 1)
+			{
+				if (`optionMenu -q -numberOfItems CharacterSetList` < ((int) $prefData[$lineNo]))
+				{
+					optionMenu -e -select 1 CharacterSetList;
+				}
+				else
+				{
+					optionMenu -e -select ((int) $prefData[$lineNo]) CharacterSetList;
+				}
+			}
+
+			//メインタブの選択
+			if ($lineNo == 2)
+			{
+				tabLayout -e -selectTabIndex ((int) $prefData[$lineNo]) mainTabs;
+			}
+
+			//体ポーズのフォルダ選択
+			if ($lineNo == 3)
+			{
+				if (`optionMenu -q -numberOfItems poseBodyList` < ((int) $prefData[$lineNo]))
+				{
+					optionMenu -e -select 1 poseBodyList;
+				}
+				else
+				{
+					optionMenu -e -select ((int) $prefData[$lineNo]) poseBodyList;
+				}
+			}
+
+			//顔ポーズのフォルダ選択
+			if ($lineNo == 4)
+			{
+				if (`optionMenu -q -numberOfItems poseFaceList` < ((int) $prefData[$lineNo]))
+				{
+					optionMenu -e -select 1 poseFaceList;
+				}
+				else
+				{
+					optionMenu -e -select ((int) $prefData[$lineNo]) poseFaceList;
+				}
+			}
+		}
+	}
+
+	fclose $filePrefNames;
+}
+
+//==================================================================================================
+//■リファレンスのセーブ
+//==================================================================================================
+global proc savePref()
+{
+
+	string $usdScript = `internalVar -usd`;
+	int $filePrefNames = `fopen ($usdScript +"mtCharaTools/pref.mel") "w"`;
+
+	int $getCharSetNo = `optionMenu -q -select CharacterSetList`;
+	int $getMainTabNo = `tabLayout -q -selectTabIndex mainTabs`;
+	int $getBodyPoseFolderNo = `optionMenu -q -select poseBodyList`;
+	int $getFacePoseFolderNo = `optionMenu -q -select poseFaceList`;
+
+	string $prefList = ((string) $getCharSetNo) + "\n" + ((string) $getMainTabNo) + "\n" + ((string) $getBodyPoseFolderNo) + "\n" + ((string) $getFacePoseFolderNo) + "\n";
+
+	print $prefList;
+
+	fwrite $filePrefNames $prefList;
+	fclose $filePrefNames;
+
+}
+
+//==================================================================================================
+//■ウインドウ設定
+//==================================================================================================
+global proc mtCharaTools()
+{
+
+//■mtCharaToolsUIが存在すればmtCharaTools()を実行しない============================================
+
+	if ((`window -exists mtCharaToolsUI` )== true )
+	{
+		warning "すでにCharaToolsウインドウは開かれています。\n";
+		return;
+	}
+
+//■パスの設定======================================================================================
+
+	global string $usdImage = "D:/sarux/tools/maya/scripts/_character/mtCharaTools/images/";//イメージパス(-command内で使用するためにglobalにする)
+	string $usdMel = "D:/sarux/tools/maya/scripts/_character/mtCharaTools/";		//melファイルパス
+	string $usdScript = `internalVar -usd`; 						//ユーザースクリプトパスの取得
+
+//■スクリプトジョブの削除==========================================================================
+
+	//同じScriptJobが存在すれば削除する（常にScriptJobを一つにする）============================
+
+	global int $LNDautoSaveFileFlag1 = 0;
+	global int $LNDautoSaveFileFlag2 = 0;
+
+	//スクリプトジョブ「defaultSwitch」の有無を検索し、存在すれば削除する
+	if (0 != $LNDautoSaveFileFlag1)
+	{
+		scriptJob -kill $LNDautoSaveFileFlag1;
+		$LNDautoSaveFileFlag1 = 0;
+	}
+
+	//スクリプトジョブ「manipSwitch」の有無を検索し、存在すれば削除する
+	if (0 != $LNDautoSaveFileFlag2)
+	{
+		scriptJob -kill $LNDautoSaveFileFlag2;
+		$LNDautoSaveFileFlag2 = 0;
+	}
+
+	$LNDautoSaveFileFlag1 = `scriptJob -event "ModelPanelSetFocus" "defaultSwitch"`;
+	$LNDautoSaveFileFlag2 = `scriptJob -event "ToolChanged" "manipSwitch"`;
+
+//■シーン上のSetノードを検索し配列に格納する=======================================================
+
+	string $allObjectSets[] = `ls -et objectSet`;	//シーン上の全てのSetノードをリストする
+	string $outLinerSets[];			//Outlinerに表示されているSet名格納用文字列配列
+	int $i;
+
+	int $setsCounter = 0; 
+
+	for ( $thisSet in $allObjectSets )
+	{
+
+	 // 各SetがOutlinerに表示されているかどうかを確認し、表示されている場合には、$outLinerSets文字列配列に追加する
+	 if ( `setFilterScript ($thisSet)` )
+		{
+			 $outLinerSets[$setsCounter] = $thisSet;
+			 $setsCounter++; 
+		}
+	}
+
+//■ユーザースクリプトパスにrignames.melをコピーする================================================
+
+	string $rignamesFile = $usdScript + "mtCharaTools/rignames.mel";
+	string $rignamesFddyFile = $usdScript + "mtCharaTools/rignames_Fddy.mel";
+	string $prefFile = $usdScript + "mtCharaTools/pref.mel";
+	string $rignamesSourceFile = "//fs03/Js-sd/saru/next/user/matsuya/mel/mtCharaTools/rignames.mel";
+	string $rignamesSourceFddyFile = "//fs03/Js-sd/saru/next/user/matsuya/mel/mtCharaTools/rignames_Fddy.mel";
+	string $prefSourceFile = "//fs03/Js-sd/saru/next/user/matsuya/mel/mtCharaTools/pref.mel";
+/*
+	//ソースファイルがない場合は終了=============================================================
+	if (`filetest -r $rignamesSourceFile` == 0 )
+	{
+		warning "体リグ名リストを作成できませんでした。";
+		return;
+	}
+
+	if (`filetest -r $rignamesSourceFddyFile` == 0 )
+	{
+		warning "顔リグ名リストを作成できませんでした。";
+		return;
+	}
+
+	if (`filetest -r $prefSourceFile` == 0 )
+	{
+		warning "プリファレンスファイルを作成できませんでした。";
+		return;
+	}
+
+	//ソースファイルをユーザーにコピーする======================================================
+	if (`filetest -f $rignamesFile` == 0 )
+	{
+		sysFile -copy $rignamesFile $rignamesSourceFile;
+		warning ("体リグ命名規則ファイル==[" + $rignamesFile + "]==を作成しました。");
+	}
+
+	if (`filetest -f $rignamesFddyFile` == 0 )
+	{
+		sysFile -copy $rignamesFddyFile $rignamesSourceFddyFile;
+		warning ("顔リグ命名規則ファイル==[" + $rignamesFddyFile + "]==を作成しました。");
+	} 
+
+	if (`filetest -f $prefFile` == 0 )
+	{
+		sysFile -copy $prefFile $prefSourceFile;
+		warning ("プリファレンスファイル==[" + $prefFile + "]==を作成しました。");
+	} 
+*/
+//■体リグリストrignames.melを読み込む==============================================================
+
+	//変数設定==================================================================================
+
+	global string $rigName[];	//リグ名を格納する配列変数
+	int $lineNo; 			//リグ名のライン番号用変数
+
+	//ファイルオープンし、$fileRigNamesに格納する===============================================
+	int $fileRigNames = `fopen ($usdScript +"mtCharaTools/rignames.mel") "r"`;
+
+	//fgetlineで$fileRigNames内を一行ずつ読み込み、サイズが存在すれば繰り返す===================
+
+	for( $lineNo = 1; $lineNo < 158; $lineNo++)
+	{
+		$rigName[$lineNo] = `fgetline $fileRigNames`;
+
+		//「\n」がある場合は削除する
+		string $bufferRNR[];
+		int $numTokens;
+		$numTokens = `tokenize $rigName[$lineNo] "\n" $bufferRNR`;
+
+		if ($numTokens = 1)
+		{
+			$rigName[$lineNo] = $bufferRNR[0];
+		}
+	}
+
+	fclose $fileRigNames; //$fileRignamesを閉じる
+
+//■ダディの顔リグリストrignames_Fddy.melファイル読み込み設定=======================================
+
+	//変数設定==================================================================================
+
+	global string $rigNameFddy[];	//リグ名を格納する配列変数
+	int $lineNoFddy;	  	//リグ名のライン番号用変数
+
+	//ファイルオープンし、$fileRigNamesFddyに格納する===============================================
+	int $fileRigNamesFddy = `fopen ($usdScript +"mtCharaTools/rignames_Fddy.mel") "r"`;
+
+	//fgetlineで$fileRigNames内を一行ずつ読み込み、サイズが存在すれば繰り返す===================
+
+	for( $lineNoFddy = 1; $lineNoFddy < 48; $lineNoFddy++)
+	{
+		$rigNameFddy[$lineNoFddy] = `fgetline $fileRigNamesFddy`;
+
+		//「\n」がある場合は削除する
+		string $bufferRNRFddy[];
+		int $numTokensFddy;
+		$numTokensFddy = `tokenize $rigNameFddy[$lineNoFddy] "\n" $bufferRNRFddy`;
+
+		if ($numTokensFddy = 1)
+		{
+			$rigNameFddy[$lineNoFddy] = $bufferRNRFddy[0];
+		}
+	}
+
+	fclose $fileRigNamesFddy; //$fileRignamesFddyを閉じる
+
+//■ウインドウとメニューバーの内容==================================================================
+
+string $windowmtCharaTools = `window -title "mtCharaTools ver2.0" -sizeable false -menuBar true mtCharaToolsUI`;
+
+	menu -label "ファイル" -tearOff false;
+		menuItem -label "終了" -c ( "savePref; scriptJob -kill $LNDautoSaveFileFlag1; scriptJob -kill $LNDautoSaveFileFlag2; deleteUI " + $windowmtCharaTools );
+
+	menu -label "表示" -tearOff false;
+		menuItem -label "フレームレート（ビュー）" -checkBox off -c "ToggleFrameRate;　editMenuUpdate MayaWindow|mainEditMenu;" menuFrameRateView;
+
+	menu -label "設定" -tearOff true;
+		menuItem -label "アニメーション設定" -subMenu true;
+			radioMenuItemCollection;
+			menuItem -label "24frame/s" -radioButton off -c "frameRate24;" manuFrameRate24;
+			menuItem -label "30frame/s" -radioButton on -c "frameRate30;" manuFrameRate30;
+			menuItem -label "60frame/s" -radioButton off -c "frameRate60;" manuFrameRate60;
+			menuItem -divider true;
+			radioMenuItemCollection;
+			menuItem -label "毎フレームで再生する" -radioButton off -c "playbackOptions -playbackSpeed 0;" menuPlayBackSpeed0;
+			menuItem -label "リアルタイムで再生する" -radioButton on -c "playbackOptions -playbackSpeed 1;" menuPlayBackSpeed1;
+			setParent -menu ..;
+
+		menuItem -label "Playblast設定..." -c "performPlayblast 4;";
+		menuItem -label "リグ規則設定..." -c "mtRigNameRule;";
+		menuItem -divider true;
+		menuItem -label "マニピュレータ設定を使う" -checkBox on menuManipSwitch;
+		menuItem -label "リグ選択用Hotkeyを割り当てる" -c "mtMakeHotkey;";
+
+	menu -label "ヘルプ" -tearOff false;
+		menuItem -label "ヘルプ" -c "mtCThelp;";
+
+//現在のビュー上のフレームレート表示を取得し、表示のフレームレート（ビュー）のチェックを変更する====
+
+	int $menuFrameRateViewSet = `optionVar -q frameRateVisibility`;
+
+	switch ($menuFrameRateViewSet)
+	{
+		case 0:
+			menuItem -e -checkBox off menuFrameRateView; //チェックなし
+		break;
+
+		case 1:
+			menuItem -e -checkBox on menuFrameRateView; //チェックあり
+		break;
+
+	}
+
+//現在のフレームレートを取得し、アニメーション設定のフレームレートのチェックを変更する==============
+
+	int $frameRateSet = currentTimeUnitToFPS();
+
+	switch ($frameRateSet)
+	{
+		case 24:
+			menuItem -e -radioButton on manuFrameRate24;
+		break;
+
+		case 30:
+			menuItem -e -radioButton on manuFrameRate30;
+		break;
+
+		case 60:
+			menuItem -e -radioButton on manuFrameRate60;
+		break;
+	}
+
+//現在のプレイバックスピードを取得し、アニメーション設定のプレイバックスピードのチェックを変更する==
+
+	int $playbackSpeedSet = `playbackOptions -q -playbackSpeed`;
+
+	switch ($playbackSpeedSet)
+	{
+		case 0:
+			menuItem -e -radioButton on menuPlayBackSpeed0; //毎フレームで　再生する
+		break;
+
+		case 1:
+			menuItem -e -radioButton on menuPlayBackSpeed1; //リアルタイムで再生する
+		break;
+
+	}
+
+//■エディターの内容================================================================================
+
+columnLayout; //行の宣言
+
+	//Character Set Selectフレーム内の列設定====================================================
+
+	rowColumnLayout -numberOfColumns 2 -columnWidth 1 260 -columnWidth 2 93 ;
+
+		frameLayout -label " キャラクター指定 " -labelAlign "center" -borderStyle "etchedOut" -width 260 -height 47 -marginWidth 5 -marginHeight 2;
+
+			rowColumnLayout -numberOfColumns 2 -columnWidth 1 170 -columnWidth 2 70
+
+				columnLayout;
+
+				optionMenu -w 170 CharacterSetList;
+
+					menuItem -label "--- no Selected ---";
+
+				//取得したSets名をリストに表示する
+				for($i = 0; $i < $setsCounter; $i++)
+				{
+
+					//Setの名前に$rigName[3]があるものだけをリストに表示する
+
+					string $matchSets = `match $rigName[1] $outLinerSets[$i]`;
+
+					if( $matchSets == $rigName[1] )
+					{
+						menuItem -label $outLinerSets[$i];
+					}
+				}
+
+				shelfButton -i ( $usdImage + "buttonUpdate.bmp" ) -h 26 -c ( "deleteUI " + $windowmtCharaTools +"; mtCharaTools;" );
+
+			setParent ..;
+
+		setParent ..;
+
+		frameLayout -labelVisible false -borderVisible false -width 93 -height 47 -marginWidth 4;
+
+			rowColumnLayout -numberOfRows 2 -rowOffset 1 "top" 5 -rowHeight 1 30;
+
+				shelfButton -i ( $usdImage + "buttonExport1.bmp" ) -hi ( $usdImage + "buttonExport2.bmp" ) -w 81 -c "mtPosAnmCopy($rigName[2], $rigName[3], $rigName[4], $rigName[98], $rigName[99], $rigName[100], \"loc_position\");";
+				checkBox -label "位置固定" -onc "mtPosLockTgl($rigName[2], $rigName[3], $rigName[4], $rigName[98], $rigName[99], $rigName[100], 1);" -ofc "mtPosLockTgl($rigName[2], $rigName[3], $rigName[4], $rigName[98], $rigName[99], $rigName[100], 0);" checkPosLockTgl;
+
+			setParent ..;
+
+		setParent ..;
+
+	setParent ..;
+
+	//View Managerフレーム内の列設定=============================================================
+
+	frameLayout -label " 表示設定 " -labelAlign "center" -borderStyle "etchedOut" -height 45 -marginWidth 5 -marginHeight 2;
+
+		rowColumnLayout -numberOfColumns 11 -columnWidth 1 48 -columnWidth 2 48 -columnWidth 3 48 -columnWidth 4 48
+				-columnWidth 5 21 -columnWidth 6 21 -columnWidth 7 21 -columnWidth 8 21 -columnWidth 9 21 -columnWidth 10 21 -columnWidth 11 21;
+
+			shelfButton -i ( $usdImage + "buttonWire.bmp" ) -c "viewWire;" -h 20 -ann "WireFrame表示";
+			shelfButton -i ( $usdImage + "buttonShade.bmp" ) -c "viewShade;" -h 20 -ann "Shade表示";
+			shelfButton -i ( $usdImage + "buttonTexture.bmp" ) -c "viewTexture;" -h 20 -ann "Shade+Texture表示";
+			shelfButton -i ( $usdImage + "buttonWirePlus.bmp" ) -c "toggleAddWire;" -h 20 -ann "非選択時にWireFrame表示をトグルする";
+			iconTextCheckBox -w 21 -h 21 -ann "ライトなし" -i ( $usdImage + "switchViewNoLight1.bmp" ) -si ( $usdImage + "switchViewNoLight2.bmp" ) -onc "toggleNoLightTrue;" -ofc "toggleNoLightFalse;" itcbViewNoLight;
+			iconTextCheckBox -w 21 -h 21 -ann "X-ray表示" -i ( $usdImage + "switchViewXray1.bmp" ) -si ( $usdImage + "switchViewXray2.bmp" ) -onc "toggleXray;" -ofc "toggleXray;" itcbViewXray;
+			iconTextCheckBox -w 21 -h 21 -ann "Joint表示" -i ( $usdImage + "switchViewJoint1.bmp" ) -si ( $usdImage + "switchViewJoint2.bmp" ) -onc "showJoint;" -ofc "showJoint;" itcbShowJoint;
+			iconTextCheckBox -w 21 -h 21 -ann "IkHandle表示" -i ( $usdImage + "switchViewIk1.bmp" ) -si ( $usdImage + "switchViewIk2.bmp" ) -onc "showIk;" -ofc "showIk;" itcbShowIk;
+			iconTextCheckBox -w 21 -h 21 -ann "Locator表示" -i ( $usdImage + "switchViewLocator1.bmp" ) -si ( $usdImage + "switchViewLocator2.bmp" ) -onc "showLocator;" -ofc "showLocator;" itcbShowLocator;
+			iconTextCheckBox -w 21 -h 21 -ann "Polygon表示" -i ( $usdImage + "switchViewPolygon1.bmp" ) -si ( $usdImage + "switchViewPolygon2.bmp" ) -onc "showPolygon;" -ofc "showPolygon;" itcbShowPolygon;
+			iconTextCheckBox -w 21 -h 21 -ann "Light表示" -i ( $usdImage + "switchViewLight1.bmp" ) -si ( $usdImage + "switchViewLight2.bmp" ) -onc "showLight;" -ofc "showLight;" itcbShowLight;
+
+		setParent ..;
+
+	setParent ..;
+
+	//Select Filterとタブの列設定===============================================================
+
+	rowColumnLayout -numberOfColumns 2 -columnWidth 1 100 -columnWidth 2 250; //Select Filter(左側)が幅100、タブ(右側)が幅250に設定
+
+		rowColumnLayout -numberOfRows 5 -rowHeight 1 135 -rowHeight 2 55 -rowHeight 3 70 -rowHeight 4 41 -rowHeight 5 41 ; //各フレームの高さ設定
+
+			//ウインドウフレーム------------------------------------------------------------
+			frameLayout -label " ウインドウ " -labelAlign "center" -borderStyle "etchedOut"  -marginWidth 5 -marginHeight 2;
+
+				rowColumnLayout -numberOfColumns 1 -columnWidth 1 81;
+					shelfButton -h 22 -i ( $usdImage + "buttonAnmGraph.bmp" ) -c "GraphEditor;";
+					shelfButton -h 22 -i ( $usdImage + "buttonDopesheet.bmp" ) -c "DopeSheetEditor;";
+					shelfButton -h 22 -i ( $usdImage + "buttonTraxEditor.bmp" ) -c "CharacterAnimationEditor;";
+					shelfButton -h 22 -i ( $usdImage + "buttonOutliner.bmp" ) -c "OutlinerWindow;";
+					shelfButton -h 22 -i ( $usdImage + "buttonHyperGraph.bmp" ) -c "HypergraphHierarchyWindow;";
+				setParent ..;
+
+			setParent ..;
+
+			//選択モードフレーム------------------------------------------------------------
+			frameLayout -label " 選択モード " -labelAlign "center" -borderStyle "etchedOut" -marginWidth 5 -marginHeight 3;
+
+				columnLayout;
+					radioCollection radioSelectMode;
+					radioButton -label "Single" -select;
+					radioButton -label "Multi";
+				setParent ..;
+
+			setParent ..;
+
+			//フォーカスフレーム--------------------------------------------------------
+			frameLayout -label " フォーカス " -labelAlign "center" -borderStyle "etchedOut"  -marginWidth 5 -marginHeight 3;
+
+				columnLayout;
+					radioCollection radioCamForcus;
+					radioButton -label "No Forcus" -select;
+					radioButton -label "Aim Forcus";
+					radioButton -label "Cam Forcus";
+				setParent ..;
+
+			setParent ..;
+
+			//フレームレートフレーム--------------------------------------------------------
+			frameLayout -label " フレームレート " -labelAlign "center" -borderStyle "etchedOut"  -marginWidth 5 -marginHeight 3;
+
+				columnLayout;
+					string $frameRate = currentTimeUnitToFPS();
+					text -label ("    " + $frameRate  + " frame/s") textFrameRate;
+				setParent ..;
+
+			setParent ..;
+
+			//Playblastボタン--------------------------------------------------------
+			frameLayout -labelVisible 0  -borderStyle "etchedOut"  -marginWidth 5 -marginHeight 8;
+				rowColumnLayout -numberOfColumns 1 -columnWidth 1 80;
+					shelfButton -i ( $usdImage + "buttonPlayblast.bmp" ) -height 20 -c "playblast;";
+				setParent ..;
+
+			setParent ..;
+
+		setParent ..;
+
+		//タブ設定--------------------------------------------------------------------------
+
+		string $form = `formLayout`;
+		string $tabs = `tabLayout -innerMarginWidth 5 -innerMarginHeight 5 mainTabs`;
+
+			//タブの大きさの設定--------------------------------------------------------
+			formLayout -edit
+				-attachForm $tabs "top"		5
+				-attachForm $tabs "left"	0
+				-attachForm  $tabs "bottom"	0
+				-attachForm $tabs "right"	0
+			$form;
+
+			//タブ1の設定---------------------------------------------------------------
+			string $tab1 = `formLayout`;
+
+				string $buttonTrans = `iconTextCheckBox -w 33 -h 15 -ann "移動モード" -i ( $usdImage + "buttonTrans1.bmp" ) -si ( $usdImage + "buttonTrans2.bmp" ) -onc "buildTranslateMM; MarkingMenuPopDown;" -ofc "buildSelectMaskMM; MarkingMenuPopDown;" buttonTrans`;
+				string $buttonRot = `iconTextCheckBox -w 33 -h 15 -ann "回転モード" -i ( $usdImage + "buttonRot1.bmp" ) -si ( $usdImage + "buttonRot2.bmp" ) -onc "buildRotateMM; MarkingMenuPopDown;" -ofc "buildSelectMaskMM; MarkingMenuPopDown;" buttonRot`;
+				string $buttonScale = `iconTextCheckBox -w 33 -h 16 -ann "スケールモード" -i ( $usdImage + "buttonScale1.bmp" ) -si ( $usdImage + "buttonScale2.bmp" ) -onc "buildXYZScaleMM; MarkingMenuPopDown;" -ofc "buildSelectMaskMM; MarkingMenuPopDown;" buttonScale`;
+				string $buttonGlobal = `iconTextCheckBox -w 33 -h 15 -ann "グローバルモード" -i ( $usdImage + "buttonGlobal1.bmp" ) -si ( $usdImage + "buttonGlobal2.bmp" ) -onc "axisGlobalMode;" buttonGlobal`;
+				string $buttonLocal = `iconTextCheckBox -w 33 -h 15 -ann "ローカルモード" -i ( $usdImage + "buttonLocal1.bmp" ) -si ( $usdImage + "buttonLocal2.bmp" ) -onc "axisLocalMode;" buttonLocal`;
+				string $buttonSelect = `iconTextCheckBox -w 33 -h 16 -ann "選択モード" -i ( $usdImage + "buttonSelect1.bmp" ) -si ( $usdImage + "buttonSelect2.bmp" ) -onc "buildSelectMaskMM; MarkingMenuPopDown;" buttonSelect`;
+
+				string $buttonSelCharAll = `shelfButton -w 52 -h 16 -ann "リグの全てを選択する" -i ( $usdImage + "buttonSelCharAll1.bmp" ) -hi ( $usdImage + "buttonSelCharAll2.bmp" ) -c "charaSetSelect(\"set\");"`;
+				string $buttonSelBodyAll = `shelfButton -w 52 -h 16 -ann "リグの全てを選択する" -i ( $usdImage + "buttonSelBodyAll1.bmp" ) -hi ( $usdImage + "buttonSelBodyAll2.bmp" ) -c "charaSetSelect(\"RigPv_\");"`;
+				string $buttonSelClear = `shelfButton -w 52 -h 16 -ann "選択を解除する" -i ( $usdImage + "buttonSelClear1.bmp" ) -hi ( $usdImage + "buttonSelClear2.bmp" ) -c "select -cl;"`;
+
+				string $buttonPosROT = `shelfButton -w 33 -h 15 -ann "全体を回転する" -i ( $usdImage + "buttonPosROT1.bmp" ) -hi ( $usdImage + "buttonPosROT2.bmp" ) -c "mtGetRigSelect($rigName[2], $rigName[3], $rigName[4], $rigName[98], $rigName[99], $rigName[100], \"Rotate\", $rigName[102]);"`;
+				string $buttonPosTRS = `shelfButton -w 33 -h 15 -ann "全体を移動する" -i ( $usdImage + "buttonPosTRS1.bmp" ) -hi ( $usdImage + "buttonPosTRS2.bmp" ) -c "mtGetRigSelect($rigName[2], $rigName[3], $rigName[4], $rigName[98], $rigName[99], $rigName[100], \"Trans\", $rigName[102]);"`;
+				string $buttonHead = `shelfButton -w 33 -h 15 -ann "頭部" -i ( $usdImage + "buttonHead1.bmp" ) -hi ( $usdImage + "buttonHead2.bmp" ) -c "mtGetRigSelect($rigName[2], $rigName[3], $rigName[4], $rigName[8], $rigName[9], $rigName[10], $rigName[11], $rigName[12]);"`;
+				string $buttonNeck = `shelfButton -w 33 -h 15 -ann "首" -i ( $usdImage + "buttonNeck1.bmp" ) -hi ( $usdImage + "buttonNeck2.bmp" ) -c "mtGetRigSelect($rigName[2], $rigName[3], $rigName[4], $rigName[13], $rigName[14], $rigName[15], $rigName[16], $rigName[17]);"`;
+				string $buttonChest = `shelfButton -w 33 -h 15 -ann "胸" -i ( $usdImage + "buttonChest1.bmp" ) -hi ( $usdImage + "buttonChest2.bmp" ) -c "mtGetRigSelect($rigName[2], $rigName[3], $rigName[4], $rigName[18], $rigName[19], $rigName[20], $rigName[21], $rigName[22]);"`;
+				string $buttonSpine = `shelfButton -w 33 -h 15 -ann "腹" -i ( $usdImage + "buttonSpine1.bmp" ) -hi ( $usdImage + "buttonSpine2.bmp" ) -c "mtGetRigSelect($rigName[2], $rigName[3], $rigName[4], $rigName[23], $rigName[24], $rigName[25], $rigName[26], $rigName[27]);"`;
+				string $buttonWaist = `shelfButton -w 52 -h 15 -ann "腰" -i ( $usdImage + "buttonWaist1.bmp" ) -hi ( $usdImage + "buttonWaist2.bmp" ) -c "mtGetRigSelect($rigName[2], $rigName[3], $rigName[4], $rigName[28], $rigName[29], $rigName[30], $rigName[31], $rigName[32]);"`;
+				string $buttonHip = `shelfButton -w 33 -h 15 -ann "尻" -i ( $usdImage + "buttonHip1.bmp" ) -hi ( $usdImage + "buttonHip2.bmp" ) -c "mtGetRigSelect($rigName[2], $rigName[3], $rigName[4], $rigName[33], $rigName[34], $rigName[35], $rigName[36], $rigName[37]);"`;
+				string $buttonShouldR = `shelfButton -w 33 -h 15 -ann "右肩" -i ( $usdImage + "buttonShouldR1.bmp" ) -hi ( $usdImage + "buttonShouldR2.bmp" ) -c "mtGetRigSelect($rigName[2], $rigName[3], $rigName[4], $rigName[38], $rigName[39], $rigName[40], $rigName[41], $rigName[42]);"`;
+				string $buttonShouldL = `shelfButton -w 33 -h 15 -ann "左肩" -i ( $usdImage + "buttonShouldL1.bmp" ) -hi ( $usdImage + "buttonShouldL2.bmp" ) -c "mtGetRigSelect($rigName[2], $rigName[3], $rigName[4], $rigName[43], $rigName[44], $rigName[45], $rigName[46], $rigName[47]);"`;
+				string $buttonArmR = `shelfButton -w 33 -h 15 -ann "右腕" -i ( $usdImage + "buttonArmR1.bmp" ) -hi ( $usdImage + "buttonArmR2.bmp" ) -c "mtGetRigSelect($rigName[2], $rigName[3], $rigName[4], $rigName[48], $rigName[49], $rigName[50], $rigName[51], $rigName[52]);"`;
+				string $buttonArmL = `shelfButton -w 33 -h 15 -ann "左腕" -i ( $usdImage + "buttonArmL1.bmp" ) -hi ( $usdImage + "buttonArmL2.bmp" ) -c "mtGetRigSelect($rigName[2], $rigName[3], $rigName[4], $rigName[53], $rigName[54], $rigName[55], $rigName[56], $rigName[57]);"`;
+				string $buttonHandR = `shelfButton -w 33 -h 15 -ann "右手" -i ( $usdImage + "buttonHandR1.bmp" ) -hi ( $usdImage + "buttonHandR2.bmp" ) -c "mtGetRigSelect($rigName[2], $rigName[3], $rigName[4], $rigName[58], $rigName[59], $rigName[60], $rigName[61], $rigName[62]);"`;
+				string $buttonHandL = `shelfButton -w 33 -h 15 -ann "左手" -i ( $usdImage + "buttonHandL1.bmp" ) -hi ( $usdImage + "buttonHandL2.bmp" ) -c "mtGetRigSelect($rigName[2], $rigName[3], $rigName[4], $rigName[63], $rigName[64], $rigName[65], $rigName[66], $rigName[67]);"`;
+				string $buttonLegR = `shelfButton -w 33 -h 15 -ann "右脚" -i ( $usdImage + "buttonLegR1.bmp" ) -hi ( $usdImage + "buttonLegR2.bmp" ) -c "mtGetRigSelect($rigName[2], $rigName[3], $rigName[4], $rigName[68], $rigName[69], $rigName[70], $rigName[71], $rigName[72]);"`;
+				string $buttonLegL = `shelfButton -w 33 -h 15 -ann "左脚" -i ( $usdImage + "buttonLegL1.bmp" ) -hi ( $usdImage + "buttonLegL2.bmp" ) -c "mtGetRigSelect($rigName[2], $rigName[3], $rigName[4], $rigName[73], $rigName[74], $rigName[75], $rigName[76], $rigName[77]);"`;
+				string $buttonFootR = `shelfButton -w 33 -h 15 -ann "右足" -i ( $usdImage + "buttonFootR1.bmp" ) -hi ( $usdImage + "buttonFootR2.bmp" ) -c "mtGetRigSelect($rigName[2], $rigName[3], $rigName[4], $rigName[78], $rigName[79], $rigName[80], $rigName[81], $rigName[82]);"`;
+				string $buttonFootL = `shelfButton -w 33 -h 15 -ann "左足" -i ( $usdImage + "buttonFootL1.bmp" ) -hi ( $usdImage + "buttonFootL2.bmp" ) -c "mtGetRigSelect($rigName[2], $rigName[3], $rigName[4], $rigName[83], $rigName[84], $rigName[85], $rigName[86], $rigName[87]);"`;
+				string $buttonToeR = `shelfButton -w 33 -h 15 -ann "右つま先" -i ( $usdImage + "buttonToeR1.bmp" ) -hi ( $usdImage + "buttonToeR2.bmp" ) -c "mtGetRigSelect($rigName[2], $rigName[3], $rigName[4], $rigName[88], $rigName[89], $rigName[90], $rigName[91], $rigName[92]);"`;
+				string $buttonToeL = `shelfButton -w 33 -h 15 -ann "左つま先" -i ( $usdImage + "buttonToeL1.bmp" ) -hi ( $usdImage + "buttonToeL2.bmp" ) -c "mtGetRigSelect($rigName[2], $rigName[3], $rigName[4], $rigName[93], $rigName[94], $rigName[95], $rigName[96], $rigName[97]);"`;
+
+				string $buttonPvHead = `shelfButton -w 17 -h 17 -ann "頭部の向き" -i ( $usdImage + "buttonPv1.bmp" ) -hi ( $usdImage + "buttonPv2.bmp" ) -c "mtGetRigSelect($rigName[5], $rigName[6], $rigName[7], $rigName[103], $rigName[104], $rigName[105], $rigName[106], $rigName[107]);"`;
+				string $buttonPvSpine = `shelfButton -w 17 -h 17 -ann "胸の向き" -i ( $usdImage + "buttonPv1.bmp" ) -hi ( $usdImage + "buttonPv2.bmp" ) -c "mtGetRigSelect($rigName[5], $rigName[6], $rigName[7], $rigName[108], $rigName[109], $rigName[110], $rigName[111], $rigName[112]);"`;
+				string $buttonPvHip = `shelfButton -w 17 -h 17 -ann "尻の向き" -i ( $usdImage + "buttonPv1.bmp" ) -hi ( $usdImage + "buttonPv2.bmp" ) -c "mtGetRigSelect($rigName[5], $rigName[6], $rigName[7], $rigName[113], $rigName[114], $rigName[115], $rigName[116], $rigName[117]);"`;
+				string $buttonPvArmR = `shelfButton -w 17 -h 17 -ann "右腕の向き" -i ( $usdImage + "buttonPv1.bmp" ) -hi ( $usdImage + "buttonPv2.bmp" ) -c "mtGetRigSelect($rigName[5], $rigName[6], $rigName[7], $rigName[118], $rigName[119], $rigName[120], $rigName[121], $rigName[122]);"`;
+				string $buttonPvArmL = `shelfButton -w 17 -h 17 -ann "左腕の向き" -i ( $usdImage + "buttonPv1.bmp" ) -hi ( $usdImage + "buttonPv2.bmp" ) -c "mtGetRigSelect($rigName[5], $rigName[6], $rigName[7], $rigName[123], $rigName[124], $rigName[125], $rigName[126], $rigName[127]);"`;
+				string $buttonPvHandR = `shelfButton -w 17 -h 17 -ann "右手の向き" -i ( $usdImage + "buttonPv1.bmp" ) -hi ( $usdImage + "buttonPv2.bmp" ) -c "mtGetRigSelect($rigName[5], $rigName[6], $rigName[7], $rigName[128], $rigName[129], $rigName[130], $rigName[131], $rigName[132]);"`;
+				string $buttonPvHandL = `shelfButton -w 17 -h 17 -ann "左手の向き" -i ( $usdImage + "buttonPv1.bmp" ) -hi ( $usdImage + "buttonPv2.bmp" ) -c "mtGetRigSelect($rigName[5], $rigName[6], $rigName[7], $rigName[133], $rigName[134], $rigName[135], $rigName[136], $rigName[137]);"`;
+				string $buttonPvLegR = `shelfButton -w 17 -h 17 -ann "右脚の向き" -i ( $usdImage + "buttonPv1.bmp" ) -hi ( $usdImage + "buttonPv2.bmp" ) -c "mtGetRigSelect($rigName[5], $rigName[6], $rigName[7], $rigName[138], $rigName[139], $rigName[140], $rigName[141], $rigName[142]);"`;
+				string $buttonPvLegL = `shelfButton -w 17 -h 17 -ann "左脚の向き" -i ( $usdImage + "buttonPv1.bmp" ) -hi ( $usdImage + "buttonPv2.bmp" ) -c "mtGetRigSelect($rigName[5], $rigName[6], $rigName[7], $rigName[143], $rigName[144], $rigName[145], $rigName[146], $rigName[147]);"`;
+				string $buttonPvFootR = `shelfButton -w 17 -h 17 -ann "右足の向き" -i ( $usdImage + "buttonPv1.bmp" ) -hi ( $usdImage + "buttonPv2.bmp" ) -c "mtGetRigSelect($rigName[5], $rigName[6], $rigName[7], $rigName[148], $rigName[149], $rigName[150], $rigName[151], $rigName[152]);"`;
+				string $buttonPvFootL = `shelfButton -w 17 -h 17 -ann "左足の向き" -i ( $usdImage + "buttonPv1.bmp" ) -hi ( $usdImage + "buttonPv2.bmp" ) -c "mtGetRigSelect($rigName[5], $rigName[6], $rigName[7], $rigName[153], $rigName[154], $rigName[155], $rigName[156], $rigName[157]);"`;
+
+
+				image -w 246 -h 300 -i ( $usdImage + "selectmap.bmp" );
+
+				formLayout -edit
+
+					-attachForm $buttonTrans "top" 5
+					-attachForm $buttonTrans "left" 160
+					-attachForm $buttonRot "top" 20
+					-attachForm $buttonRot "left" 160
+					-attachForm $buttonScale "top" 35
+					-attachForm $buttonScale "left" 160
+					-attachForm $buttonGlobal "top" 5
+					-attachForm $buttonGlobal "left" 192
+					-attachForm $buttonLocal "top" 20
+					-attachForm $buttonLocal "left" 192
+					-attachForm $buttonSelect "top" 35
+					-attachForm $buttonSelect "left" 192
+
+					-attachForm $buttonSelCharAll "top" 5
+					-attachForm $buttonSelCharAll "left" 5
+					-attachForm $buttonSelBodyAll "top" 20
+					-attachForm $buttonSelBodyAll "left" 5
+					-attachForm $buttonSelClear "top" 35
+					-attachForm $buttonSelClear "left" 5
+
+					-attachForm $buttonPosROT "top" 273
+					-attachForm $buttonPosROT "left" 84
+					-attachForm $buttonPosTRS "top" 273
+					-attachForm $buttonPosTRS "left" 115
+					-attachForm $buttonHead "top" 15
+					-attachForm $buttonHead "left" 100
+					-attachForm $buttonNeck "top" 50
+					-attachForm $buttonNeck "left" 100
+					-attachForm $buttonChest "top" 70
+					-attachForm $buttonChest "left" 100
+					-attachForm $buttonSpine "top" 100
+					-attachForm $buttonSpine "left" 100
+					-attachForm $buttonWaist "top" 128
+					-attachForm $buttonWaist "left" 91
+					-attachForm $buttonHip "top" 155
+					-attachForm $buttonHip "left" 100
+					-attachForm $buttonShouldL "top" 65
+					-attachForm $buttonShouldL "left" 140
+					-attachForm $buttonShouldR "top" 65
+					-attachForm $buttonShouldR "left" 60
+					-attachForm $buttonArmL "top" 120
+					-attachForm $buttonArmL "left" 160
+					-attachForm $buttonArmR "top" 120
+					-attachForm $buttonArmR "left" 40
+					-attachForm $buttonHandL "top" 140
+					-attachForm $buttonHandL "left" 165
+					-attachForm $buttonHandR "top" 140
+					-attachForm $buttonHandR "left" 35
+					-attachForm $buttonLegL "top" 230
+					-attachForm $buttonLegL "left" 130
+					-attachForm $buttonLegR "top" 230
+					-attachForm $buttonLegR "left" 70
+					-attachForm $buttonFootL "top" 245
+					-attachForm $buttonFootL "left" 140
+					-attachForm $buttonFootR "top" 245
+					-attachForm $buttonFootR "left" 60
+					-attachForm $buttonToeL "top" 260
+					-attachForm $buttonToeL "left" 160
+					-attachForm $buttonToeR "top" 260
+					-attachForm $buttonToeR "left" 40
+
+					-attachForm $buttonPvHead "top" 30
+					-attachForm $buttonPvHead "left" 70
+					-attachForm $buttonPvSpine "top" 100
+					-attachForm $buttonPvSpine "left" 70
+					-attachForm $buttonPvHip "top" 162
+					-attachForm $buttonPvHip "left" 55
+					-attachForm $buttonPvArmL "top" 72
+					-attachForm $buttonPvArmL "left" 180
+					-attachForm $buttonPvArmR "top" 72
+					-attachForm $buttonPvArmR "left" 35
+					-attachForm $buttonPvHandL "top" 128
+					-attachForm $buttonPvHandL "left" 200
+					-attachForm $buttonPvHandR "top" 128
+					-attachForm $buttonPvHandR "left" 15
+					-attachForm $buttonPvLegL "top" 202
+					-attachForm $buttonPvLegL "left" 170
+					-attachForm $buttonPvLegR "top" 202
+					-attachForm $buttonPvLegR "left" 45
+					-attachForm $buttonPvFootL "top" 235
+					-attachForm $buttonPvFootL "left" 190
+					-attachForm $buttonPvFootR "top" 235
+					-attachForm $buttonPvFootR "left" 25
+
+				$tab1;
+
+			setParent ..;
+
+			//タブ2の設定---------------------------------------------------------------
+			string $tab2 = `columnLayout`;
+
+				columnLayout;
+
+					rowColumnLayout -numberOfColumns 2 -columnWidth 1 140 -columnWidth 2 93;
+
+						frameLayout -label " ポーズリスト " -labelAlign "center" -borderStyle "etchedOut" -h 201;
+
+							columnLayout -rowSpacing 3 -columnOffset "both" 3;
+
+								rowColumnLayout -numberOfColumns 1 -columnWidth 1 125;
+
+									textScrollList -w 130 -h 177 -sc "getPoseHeader;" -dcc "setPose;" bodyPoseListField;
+
+								setParent ..;
+
+							setParent ..;
+
+						setParent ..;
+
+						frameLayout -labelVisible 0 -borderVisible false -h 180 -marginWidth 2;
+
+							rowColumnLayout -numberOfRows 2 -rowHeight 1 80 -rowHeight 2 120;
+
+									frameLayout -label "フォルダ選択" -labelAlign "center" -borderStyle "etchedOut" -w 90 -marginWidth 2;
+
+										rowColumnLayout -numberOfRows 2 -rowHeight 1 20 -rowHeight 2 20 -rowSpacing 1 5 -rowSpacing 2 10 frameBodyFolder;
+
+											optionMenu -w 80 -cc "importPoseList;" poseBodyList;
+
+												string $bodyFolderList[] = `getFileList -fld ($usdScript + "mtCharaTools/poselist/body/")`;
+
+												for ( $i = 0; $i < size($bodyFolderList); $i++ )
+												{
+													menuItem -label $bodyFolderList[$i];
+												}
+
+											button -label "フォルダ設定" -w 81 -c "mtSetFolder(0);" buttonPoseBodyList;
+
+										setParent ..;
+
+									setParent ..;
+
+									rowColumnLayout -numberOfRows 5 -rowHeight 1 20 -rowHeight 2 20 -rowHeight 3 20 -rowHeight 4 20 -rowHeight 5 20
+											-rowSpacing 1 5 -rowSpacing 2 2 -rowSpacing 3 2 -rowSpacing 4 2 -rowSpacing 5 2;
+
+										button -label "登　録" -w 90 -bgc 1 0.7 0.2 -c "mtPoseStore;";
+										button -label "適　用" -w 90 -bgc 1 0.7 0.2 -c "setPose;";
+										button -label "名前変更" -w 90 -bgc 1 1 1 -c "renamePoseUI;";
+										button -label "削　除" -w 90 -bgc 1 1 1 -c "deletePose;";
+										button -label "ファイルを開く" -w 90 -c "openPose;";
+
+									setParent ..;
+
+							setParent ..;
+
+						setParent ..;
+
+					setParent ..;
+
+					frameLayout -label " 記録内容 " -labelAlign "center" -borderStyle "etchedOut" -h 97 -w 233;
+
+						rowColumnLayout -numberOfColumns 2 -columnWidth 1 80 -columnWidth 2 149;
+
+							frameLayout -labelVisible false -borderVisible false -h 81 ;
+
+								rowColumnLayout -numberOfRows 5 -rowHeight 1 16 -rowHeight 2 16 -rowHeight 3 16 -rowHeight 4 16 -rowHeight 5 16;
+
+									text -label " キャラ名： " -align "right" -bgc 0.8 0.8 0.8;
+									text -label " ポーズ名： " -align "right" -bgc 0.8 0.8 0.8;
+									text -label " 選択ノード名： " -align "right" -bgc 0.8 0.8 0.8;
+									text -label " 階層/単一名： " -align "right" -bgc 0.8 0.8 0.8;
+									text -label " 記録日時： " -align "right" -bgc 0.8 0.8 0.8;
+									
+								setParent ..;
+
+							setParent ..;
+
+							frameLayout -labelVisible false -borderVisible false -h 81 ;
+
+								rowColumnLayout -numberOfRows 5 -rowHeight 1 16 -rowHeight 2 16 -rowHeight 3 16 -rowHeight 4 16 -rowHeight 5 16;
+
+									text -label "" headerChar;
+									text -label "" headerPose;
+									text -label "" headerNode;
+									text -label "" headerHier;
+									text -label "" headerDateTime;
+
+								setParent ..;
+
+							setParent ..;
+
+						setParent ..;
+
+					setParent ..;
+
+				setParent ..;
+
+			setParent ..;
+
+			//タブ3の設定---------------------------------------------------------------
+			string $tab3 = `columnLayout`;
+
+				columnLayout;
+
+					frameLayout -label " プレイヤー/サルのポーズ反転 " -labelAlign "center" -borderStyle "etchedOut" -h 80 -w 233 -marginWidth 10 -marginHeight 5;
+
+						rowColumnLayout -numberOfRows 2 -rowHeight 1 30 -rowHeight 2 16 -rowSpacing 1 2 -rowSpacing 2 4;
+
+							button -label "ポーズ反転" -bgc 0.8 0.8 1 -w 205 -c "mtPoseMirror;";
+							checkBox -label "指のドリブンも反転する" -value true poseMirFinger;
+
+						setParent ..;
+
+					setParent ..;
+
+					frameLayout -label " 2モデルの相互反転 " -labelAlign "center" -borderStyle "etchedOut" -h 90 -w 233 -marginWidth 10 -marginHeight 5;
+
+						rowColumnLayout -numberOfRows 2 -rowHeight 1 30 -rowHeight 2 30 -rowSpacing 1 2 -rowSpacing 2 2;
+
+							button -label "ポーズ・ドリブン反転" -bgc 0.8 0.8 1 -w 205 -c "mt2PoseMirror(1,1);";
+
+							rowColumnLayout -numberOfColumns 2 -columnWidth 1 102 -columnWidth 2 103;
+
+								button -label "ポーズ反転" -bgc 0.8 0.8 1 -c "mt2PoseMirror(2,1);";
+								button -label "ドリブン反転" -bgc 0.8 0.8 1 -c "mt2PoseMirror(3,1);";
+
+							setParent ..;
+
+						setParent ..;
+
+					setParent ..;
+
+					frameLayout -label " 2モデルの反転コピー " -labelAlign "center" -borderStyle "etchedOut" -h 128 -w 233 -marginWidth 10 -marginHeight 5;
+
+						rowColumnLayout -numberOfRows 4 -rowHeight 1 15 -rowHeight 2 15 -rowHeight 3 30 -rowHeight 4 30 -rowSpacing 1 2 -rowSpacing 2 2 -rowSpacing 3 5 -rowSpacing 4 2;
+
+								radioCollection radioPoseCopy;
+								radioButton -label "[選択]→[次選択]へコピーする" -select radioPoseCopy1;
+								radioButton -label "[次選択]→[選択]へコピーする" radioPoseCopy2;
+
+							button -label "ポーズ・ドリブンコピー" -bgc 0.8 0.8 1 -w 205 -c "mt2PoseMirror(1,2);";
+
+							rowColumnLayout -numberOfColumns 2 -columnWidth 1 102 -columnWidth 2 103;
+
+								button -label "ポーズコピー" -bgc 0.8 0.8 1 -c "mt2PoseMirror(2,2);";
+								button -label "ドリブンコピー" -bgc 0.8 0.8 1 -c "mt2PoseMirror(3,2);";
+
+							setParent ..;
+
+						setParent ..;
+
+					setParent ..;
+
+				setParent ..;
+
+			setParent ..;
+
+			//タブ4の設定---------------------------------------------------------------
+			string $tab4 = `tabLayout -innerMarginWidth 0 -innerMarginHeight 3`;
+
+				string $tabFace1 = `formLayout`;
+
+					string $buttonFddy_Trans = `iconTextCheckBox -w 33 -h 15 -ann "移動モード" -i ( $usdImage + "buttonTrans1.bmp" ) -si ( $usdImage + "buttonTrans2.bmp" ) -onc "buildTranslateMM; MarkingMenuPopDown;" -ofc "buildSelectMaskMM; MarkingMenuPopDown;" buttonFddy_Trans`;
+					string $buttonFddy_Rot = `iconTextCheckBox -w 33 -h 15 -ann "回転モード" -i ( $usdImage + "buttonRot1.bmp" ) -si ( $usdImage + "buttonRot2.bmp" ) -onc "buildRotateMM; MarkingMenuPopDown;" -ofc "buildSelectMaskMM; MarkingMenuPopDown;" buttonFddy_Rot`;
+					string $buttonFddy_Scale = `iconTextCheckBox -w 33 -h 16 -ann "スケールモード" -i ( $usdImage + "buttonScale1.bmp" ) -si ( $usdImage + "buttonScale2.bmp" ) -onc "buildXYZScaleMM; MarkingMenuPopDown;" -ofc "buildSelectMaskMM; MarkingMenuPopDown;" buttonFddy_Scale`;
+					string $buttonFddy_Global = `iconTextCheckBox -w 33 -h 15 -ann "グローバルモード" -i ( $usdImage + "buttonGlobal1.bmp" ) -si ( $usdImage + "buttonGlobal2.bmp" ) -onc "axisGlobalMode;" buttonFddy_Global`;
+					string $buttonFddy_Local = `iconTextCheckBox -w 33 -h 15 -ann "ローカルモード" -i ( $usdImage + "buttonLocal1.bmp" ) -si ( $usdImage + "buttonLocal2.bmp" ) -onc "axisLocalMode;" buttonFddy_Local`;
+					string $buttonFddy_Select = `iconTextCheckBox -w 33 -h 16 -ann "選択モード" -i ( $usdImage + "buttonSelect1.bmp" ) -si ( $usdImage + "buttonSelect2.bmp" ) -onc "buildSelectMaskMM; MarkingMenuPopDown;" buttonFddy_Select`;
+
+					string $buttonFddy_SelFaceAll = `shelfButton -w 52 -h 16 -ann "顔のリグの全てを選択する" -i ( $usdImage + "buttonSelFaceAll1.bmp" ) -hi ( $usdImage + "buttonSelFaceAll2.bmp" ) -c "charaSetSelect(\"RigF_\");"`;
+					string $buttonFddy_SelClear = `shelfButton -w 52 -h 16 -ann "選択を解除する" -i ( $usdImage + "buttonSelClear1.bmp" ) -hi ( $usdImage + "buttonSelClear2.bmp" ) -c "select -cl;"`;
+
+					string $buttonFddy_eyebrowR1 = `shelfButton -w 14 -h 14 -ann "右眉毛1" -i ( $usdImage + "buttonFeyebrowR1.bmp" ) -hi ( $usdImage + "buttonFeyebrowOn.bmp" ) -c "mtGetFaceRigSelect($rigNameFddy[2]);"`;
+					string $buttonFddy_eyebrowR2 = `shelfButton -w 14 -h 14 -ann "右眉毛2" -i ( $usdImage + "buttonFeyebrowR2.bmp" ) -hi ( $usdImage + "buttonFeyebrowOn.bmp" ) -c "mtGetFaceRigSelect($rigNameFddy[3]);"`;
+					string $buttonFddy_eyebrowR3 = `shelfButton -w 14 -h 14 -ann "右眉毛3" -i ( $usdImage + "buttonFeyebrowR3.bmp" ) -hi ( $usdImage + "buttonFeyebrowOn.bmp" ) -c "mtGetFaceRigSelect($rigNameFddy[4]);"`;
+					string $buttonFddy_eyebrowR4 = `shelfButton -w 14 -h 14 -ann "右眉毛4" -i ( $usdImage + "buttonFeyebrowR4.bmp" ) -hi ( $usdImage + "buttonFeyebrowOn.bmp" ) -c "mtGetFaceRigSelect($rigNameFddy[5]);"`;
+					string $buttonFddy_eyebrowL1 = `shelfButton -w 14 -h 14 -ann "左眉毛1" -i ( $usdImage + "buttonFeyebrowL1.bmp" ) -hi ( $usdImage + "buttonFeyebrowOn.bmp" ) -c "mtGetFaceRigSelect($rigNameFddy[6]);"`;
+					string $buttonFddy_eyebrowL2 = `shelfButton -w 14 -h 14 -ann "左眉毛2" -i ( $usdImage + "buttonFeyebrowL2.bmp" ) -hi ( $usdImage + "buttonFeyebrowOn.bmp" ) -c "mtGetFaceRigSelect($rigNameFddy[7]);"`;
+					string $buttonFddy_eyebrowL3 = `shelfButton -w 14 -h 14 -ann "左眉毛3" -i ( $usdImage + "buttonFeyebrowL3.bmp" ) -hi ( $usdImage + "buttonFeyebrowOn.bmp" ) -c "mtGetFaceRigSelect($rigNameFddy[8]);"`;
+					string $buttonFddy_eyebrowL4 = `shelfButton -w 14 -h 14 -ann "左眉毛4" -i ( $usdImage + "buttonFeyebrowL4.bmp" ) -hi ( $usdImage + "buttonFeyebrowOn.bmp" ) -c "mtGetFaceRigSelect($rigNameFddy[9]);"`;
+
+					string $buttonFddy_foreheadR = `shelfButton -w 12 -h 12 -ann "右眉間" -i ( $usdImage + "buttonFforeheadR.bmp" ) -hi ( $usdImage + "buttonFforeheadOn.bmp" ) -c "mtGetFaceRigSelect($rigNameFddy[10]);"`;
+					string $buttonFddy_foreheadL = `shelfButton -w 12 -h 12 -ann "左眉間" -i ( $usdImage + "buttonFforeheadL.bmp" ) -hi ( $usdImage + "buttonFforeheadOn.bmp" ) -c "mtGetFaceRigSelect($rigNameFddy[11]);"`;
+
+					string $buttonFddy_eyelidUR = `shelfButton -w 14 -h 14 -ann "右上瞼" -i ( $usdImage + "buttonFeyelidUR.bmp" ) -hi ( $usdImage + "buttonFeyelidOn.bmp" ) -c "mtGetFaceRigSelect($rigNameFddy[12]);"`;
+					string $buttonFddy_eyelidDR = `shelfButton -w 14 -h 14 -ann "右下瞼" -i ( $usdImage + "buttonFeyelidDR.bmp" ) -hi ( $usdImage + "buttonFeyelidOn.bmp" ) -c "mtGetFaceRigSelect($rigNameFddy[13]);"`;
+					string $buttonFddy_eyeNR = `shelfButton -w 14 -h 14 -ann "右目中央" -i ( $usdImage + "buttonFeyeNR.bmp" ) -hi ( $usdImage + "buttonFeyelidOn.bmp" ) -c "mtGetFaceRigSelect($rigNameFddy[14]);"`;
+					string $buttonFddy_eyeFR = `shelfButton -w 14 -h 14 -ann "右目尻" -i ( $usdImage + "buttonFeyeFR.bmp" ) -hi ( $usdImage + "buttonFeyelidOn.bmp" ) -c "mtGetFaceRigSelect($rigNameFddy[15]);"`;
+					string $buttonFddy_eyelidUL = `shelfButton -w 14 -h 14 -ann "左上瞼" -i ( $usdImage + "buttonFeyelidUL.bmp" ) -hi ( $usdImage + "buttonFeyelidOn.bmp" ) -c "mtGetFaceRigSelect($rigNameFddy[16]);"`;
+					string $buttonFddy_eyelidDL = `shelfButton -w 14 -h 14 -ann "左下瞼" -i ( $usdImage + "buttonFeyelidDL.bmp" ) -hi ( $usdImage + "buttonFeyelidOn.bmp" ) -c "mtGetFaceRigSelect($rigNameFddy[17]);"`;
+					string $buttonFddy_eyeNL = `shelfButton -w 14 -h 14 -ann "左目中央" -i ( $usdImage + "buttonFeyeNL.bmp" ) -hi ( $usdImage + "buttonFeyelidOn.bmp" ) -c "mtGetFaceRigSelect($rigNameFddy[18]);"`;
+					string $buttonFddy_eyeFL = `shelfButton -w 14 -h 14 -ann "左目尻" -i ( $usdImage + "buttonFeyeFL.bmp" ) -hi ( $usdImage + "buttonFeyelidOn.bmp" ) -c "mtGetFaceRigSelect($rigNameFddy[19]);"`;
+
+					string $buttonFddy_nose = `shelfButton -w 14 -h 14 -ann "鼻" -i ( $usdImage + "buttonFnose.bmp" ) -hi ( $usdImage + "buttonFnoseOn.bmp" ) -c "mtGetFaceRigSelect($rigNameFddy[20]);"`;
+
+					string $buttonFddy_cheekUR = `shelfButton -w 14 -h 14 -ann "右頬" -i ( $usdImage + "buttonFcheekUR.bmp" ) -hi ( $usdImage + "buttonFcheekUOn.bmp" ) -c "mtGetFaceRigSelect($rigNameFddy[21]);"`;
+					string $buttonFddy_cheekUL = `shelfButton -w 14 -h 14 -ann "左頬" -i ( $usdImage + "buttonFcheekUL.bmp" ) -hi ( $usdImage + "buttonFcheekUOn.bmp" ) -c "mtGetFaceRigSelect($rigNameFddy[22]);"`;
+
+					string $buttonFddy_lipUC = `shelfButton -w 14 -h 14 -ann "中央上唇" -i ( $usdImage + "buttonFlipUC.bmp" ) -hi ( $usdImage + "buttonFlipUOn.bmp" ) -c "mtGetFaceRigSelect($rigNameFddy[23]);"`;
+					string $buttonFddy_lipUR1 = `shelfButton -w 14 -h 14 -ann "右上唇1" -i ( $usdImage + "buttonFlipUR1.bmp" ) -hi ( $usdImage + "buttonFlipUOn.bmp" ) -c "mtGetFaceRigSelect($rigNameFddy[24]);"`;
+					string $buttonFddy_lipUR2 = `shelfButton -w 14 -h 14 -ann "右上唇2" -i ( $usdImage + "buttonFlipUR2.bmp" ) -hi ( $usdImage + "buttonFlipUOn.bmp" ) -c "mtGetFaceRigSelect($rigNameFddy[25]);"`;
+					string $buttonFddy_lipUR3 = `shelfButton -w 14 -h 14 -ann "右上唇3" -i ( $usdImage + "buttonFlipUR3.bmp" ) -hi ( $usdImage + "buttonFlipUOn.bmp" ) -c "mtGetFaceRigSelect($rigNameFddy[26]);"`;
+					string $buttonFddy_lipUL1 = `shelfButton -w 14 -h 14 -ann "左上唇1" -i ( $usdImage + "buttonFlipUL1.bmp" ) -hi ( $usdImage + "buttonFlipUOn.bmp" ) -c "mtGetFaceRigSelect($rigNameFddy[27]);"`;
+					string $buttonFddy_lipUL2 = `shelfButton -w 14 -h 14 -ann "左上唇2" -i ( $usdImage + "buttonFlipUL2.bmp" ) -hi ( $usdImage + "buttonFlipUOn.bmp" ) -c "mtGetFaceRigSelect($rigNameFddy[28]);"`;
+					string $buttonFddy_lipUL3 = `shelfButton -w 14 -h 14 -ann "左上唇3" -i ( $usdImage + "buttonFlipUL3.bmp" ) -hi ( $usdImage + "buttonFlipUOn.bmp" ) -c "mtGetFaceRigSelect($rigNameFddy[29]);"`;
+
+					string $buttonFddy_lipDC = `shelfButton -w 14 -h 14 -ann "中央下唇" -i ( $usdImage + "buttonFlipDC.bmp" ) -hi ( $usdImage + "buttonFlipDOn.bmp" ) -c "mtGetFaceRigSelect($rigNameFddy[30]);"`;
+					string $buttonFddy_lipDR1 = `shelfButton -w 14 -h 14 -ann "右下唇1" -i ( $usdImage + "buttonFlipDR1.bmp" ) -hi ( $usdImage + "buttonFlipDOn.bmp" ) -c "mtGetFaceRigSelect($rigNameFddy[31]);"`;
+					string $buttonFddy_lipDR2 = `shelfButton -w 14 -h 14 -ann "右下唇2" -i ( $usdImage + "buttonFlipDR2.bmp" ) -hi ( $usdImage + "buttonFlipDOn.bmp" ) -c "mtGetFaceRigSelect($rigNameFddy[32]);"`;
+					string $buttonFddy_lipDR3 = `shelfButton -w 14 -h 14 -ann "右下唇3" -i ( $usdImage + "buttonFlipDR3.bmp" ) -hi ( $usdImage + "buttonFlipDOn.bmp" ) -c "mtGetFaceRigSelect($rigNameFddy[33]);"`;
+					string $buttonFddy_lipDL1 = `shelfButton -w 14 -h 14 -ann "左下唇1" -i ( $usdImage + "buttonFlipDL1.bmp" ) -hi ( $usdImage + "buttonFlipDOn.bmp" ) -c "mtGetFaceRigSelect($rigNameFddy[34]);"`;
+					string $buttonFddy_lipDL2 = `shelfButton -w 14 -h 14 -ann "左下唇2" -i ( $usdImage + "buttonFlipDL2.bmp" ) -hi ( $usdImage + "buttonFlipDOn.bmp" ) -c "mtGetFaceRigSelect($rigNameFddy[35]);"`;
+					string $buttonFddy_lipDL3 = `shelfButton -w 14 -h 14 -ann "左下唇3" -i ( $usdImage + "buttonFlipDL3.bmp" ) -hi ( $usdImage + "buttonFlipDOn.bmp" ) -c "mtGetFaceRigSelect($rigNameFddy[36]);"`;
+
+					string $buttonFddy_cheekDR = `shelfButton -w 14 -h 14 -ann "右唇" -i ( $usdImage + "buttonFcheekDR.bmp" ) -hi ( $usdImage + "buttonFcheekDOn.bmp" ) -c "mtGetFaceRigSelect($rigNameFddy[37]);"`;
+					string $buttonFddy_cheekDL = `shelfButton -w 14 -h 14 -ann "左唇" -i ( $usdImage + "buttonFcheekDL.bmp" ) -hi ( $usdImage + "buttonFcheekDOn.bmp" ) -c "mtGetFaceRigSelect($rigNameFddy[38]);"`;
+
+					string $buttonFddy_eyeR1 = `shelfButton -w 33 -h 16 -ann "右目1" -i ( $usdImage + "buttonFeyeR11.bmp" ) -hi ( $usdImage + "buttonFeyeR12.bmp" ) -c "mtGetFaceRigSelect($rigNameFddy[39]);"`;
+					string $buttonFddy_eyeR2 = `shelfButton -w 33 -h 16 -ann "右目2" -i ( $usdImage + "buttonFeyeR21.bmp" ) -hi ( $usdImage + "buttonFeyeR22.bmp" ) -c "mtGetFaceRigSelect($rigNameFddy[40]);"`;
+					string $buttonFddy_eyeL1 = `shelfButton -w 33 -h 16 -ann "左目1" -i ( $usdImage + "buttonFeyeL11.bmp" ) -hi ( $usdImage + "buttonFeyeL12.bmp" ) -c "mtGetFaceRigSelect($rigNameFddy[41]);"`;
+					string $buttonFddy_eyeL2 = `shelfButton -w 33 -h 16 -ann "左目2" -i ( $usdImage + "buttonFeyeL21.bmp" ) -hi ( $usdImage + "buttonFeyeL22.bmp" ) -c "mtGetFaceRigSelect($rigNameFddy[42]);"`;
+
+					string $buttonFddy_jaw = `shelfButton -w 33 -h 16 -ann "顎" -i ( $usdImage + "buttonFjaw1.bmp" ) -hi ( $usdImage + "buttonFjaw2.bmp" ) -c "mtGetFaceRigSelect($rigNameFddy[43]);"`;
+
+					string $buttonFddy_toothU = `shelfButton -w 39 -h 16 -ann "上歯" -i ( $usdImage + "buttonFtoothU1.bmp" ) -hi ( $usdImage + "buttonFtoothU2.bmp" ) -c "mtGetFaceRigSelect($rigNameFddy[44]);"`;
+					string $buttonFddy_toothD = `shelfButton -w 39 -h 16 -ann "下歯" -i ( $usdImage + "buttonFtoothD1.bmp" ) -hi ( $usdImage + "buttonFtoothD2.bmp" ) -c "mtGetFaceRigSelect($rigNameFddy[45]);"`;
+
+					string $buttonFddy_tongueRT = `shelfButton -w 44 -h 16 -ann "舌の根元" -i ( $usdImage + "buttonFtongueRT1.bmp" ) -hi ( $usdImage + "buttonFtongueRT2.bmp" ) -c "mtGetFaceRigSelect($rigNameFddy[46]);"`;
+					string $buttonFddy_tongue = `shelfButton -w 36 -h 16 -ann "舌" -i ( $usdImage + "buttonFtongue1.bmp" ) -hi ( $usdImage + "buttonFtongue2.bmp" ) -c "mtGetFaceRigSelect($rigNameFddy[47]);"`;
+
+					image -w 221 -h 268 -i ( $usdImage + "selectmapFaceDdy.bmp" );
+
+				formLayout -edit
+
+					-attachForm $buttonFddy_Trans "top" 5
+					-attachForm $buttonFddy_Trans "left" 151
+					-attachForm $buttonFddy_Rot "top" 20
+					-attachForm $buttonFddy_Rot "left" 151
+					-attachForm $buttonFddy_Scale "top" 35
+					-attachForm $buttonFddy_Scale "left" 151
+					-attachForm $buttonFddy_Global "top" 5
+					-attachForm $buttonFddy_Global "left" 183
+					-attachForm $buttonFddy_Local "top" 20
+					-attachForm $buttonFddy_Local "left" 183
+					-attachForm $buttonFddy_Select "top" 35
+					-attachForm $buttonFddy_Select "left" 183
+
+					-attachForm $buttonFddy_SelFaceAll "top" 5
+					-attachForm $buttonFddy_SelFaceAll "left" 4
+					-attachForm $buttonFddy_SelClear "top" 20
+					-attachForm $buttonFddy_SelClear "left" 4
+
+					-attachForm $buttonFddy_eyebrowR1 "top" 74
+					-attachForm $buttonFddy_eyebrowR1 "left" 91
+					-attachForm $buttonFddy_eyebrowR2 "top" 67
+					-attachForm $buttonFddy_eyebrowR2 "left" 76
+					-attachForm $buttonFddy_eyebrowR3 "top" 64
+					-attachForm $buttonFddy_eyebrowR3 "left" 61
+					-attachForm $buttonFddy_eyebrowR4 "top" 63
+					-attachForm $buttonFddy_eyebrowR4 "left" 46
+					-attachForm $buttonFddy_eyebrowL1 "top" 74
+					-attachForm $buttonFddy_eyebrowL1 "left" 118
+					-attachForm $buttonFddy_eyebrowL2 "top" 67
+					-attachForm $buttonFddy_eyebrowL2 "left" 133
+					-attachForm $buttonFddy_eyebrowL3 "top" 64
+					-attachForm $buttonFddy_eyebrowL3 "left" 148
+					-attachForm $buttonFddy_eyebrowL4 "top" 63
+					-attachForm $buttonFddy_eyebrowL4 "left" 163
+
+					-attachForm $buttonFddy_foreheadR "top" 92
+					-attachForm $buttonFddy_foreheadR "left" 99
+					-attachForm $buttonFddy_foreheadL "top" 92
+					-attachForm $buttonFddy_foreheadL "left" 112
+
+					-attachForm $buttonFddy_eyelidUR "top" 82
+					-attachForm $buttonFddy_eyelidUR "left" 66
+					-attachForm $buttonFddy_eyelidDR "top" 112
+					-attachForm $buttonFddy_eyelidDR "left" 66
+					-attachForm $buttonFddy_eyeNR "top" 96
+					-attachForm $buttonFddy_eyeNR "left" 84
+					-attachForm $buttonFddy_eyeFR "top" 96
+					-attachForm $buttonFddy_eyeFR "left" 48
+					-attachForm $buttonFddy_eyelidUL "top" 82
+					-attachForm $buttonFddy_eyelidUL "left" 143
+					-attachForm $buttonFddy_eyelidDL "top" 112
+					-attachForm $buttonFddy_eyelidDL "left" 143
+					-attachForm $buttonFddy_eyeNL "top" 96
+					-attachForm $buttonFddy_eyeNL "left" 125
+					-attachForm $buttonFddy_eyeFL "top" 96
+					-attachForm $buttonFddy_eyeFL "left" 161
+
+					-attachForm $buttonFddy_nose "top" 131
+					-attachForm $buttonFddy_nose "left" 104
+
+					-attachForm $buttonFddy_cheekUR "top" 133
+					-attachForm $buttonFddy_cheekUR "left" 46
+					-attachForm $buttonFddy_cheekUL "top" 133
+					-attachForm $buttonFddy_cheekUL "left" 163
+
+					-attachForm $buttonFddy_lipUC "top" 157
+					-attachForm $buttonFddy_lipUC "left" 104
+					-attachForm $buttonFddy_lipUR1 "top" 158
+					-attachForm $buttonFddy_lipUR1 "left" 86
+					-attachForm $buttonFddy_lipUR2 "top" 160
+					-attachForm $buttonFddy_lipUR2 "left" 70
+					-attachForm $buttonFddy_lipUR3 "top" 163
+					-attachForm $buttonFddy_lipUR3 "left" 54
+					-attachForm $buttonFddy_lipUL1 "top" 158
+					-attachForm $buttonFddy_lipUL1 "left" 122
+					-attachForm $buttonFddy_lipUL2 "top" 160
+					-attachForm $buttonFddy_lipUL2 "left" 138
+					-attachForm $buttonFddy_lipUL3 "top" 163
+					-attachForm $buttonFddy_lipUL3 "left" 154
+
+					-attachForm $buttonFddy_lipDC "top" 198
+					-attachForm $buttonFddy_lipDC "left" 104
+					-attachForm $buttonFddy_lipDR1 "top" 198
+					-attachForm $buttonFddy_lipDR1 "left" 86
+					-attachForm $buttonFddy_lipDR2 "top" 197
+					-attachForm $buttonFddy_lipDR2 "left" 70
+					-attachForm $buttonFddy_lipDR3 "top" 195
+					-attachForm $buttonFddy_lipDR3 "left" 54
+					-attachForm $buttonFddy_lipDL1 "top" 198
+					-attachForm $buttonFddy_lipDL1 "left" 122
+					-attachForm $buttonFddy_lipDL2 "top" 197
+					-attachForm $buttonFddy_lipDL2 "left" 138
+					-attachForm $buttonFddy_lipDL3 "top" 195
+					-attachForm $buttonFddy_lipDL3 "left" 154
+
+					-attachForm $buttonFddy_cheekDR "top" 179
+					-attachForm $buttonFddy_cheekDR "left" 42
+					-attachForm $buttonFddy_cheekDL "top" 179
+					-attachForm $buttonFddy_cheekDL "left" 166
+
+					-attachForm $buttonFddy_eyeR1 "top" 110
+					-attachForm $buttonFddy_eyeR1 "left" 14
+					-attachForm $buttonFddy_eyeR2 "top" 127
+					-attachForm $buttonFddy_eyeR2 "left" 5
+					-attachForm $buttonFddy_eyeL1 "top" 110
+					-attachForm $buttonFddy_eyeL1 "left" 176
+					-attachForm $buttonFddy_eyeL2 "top" 127
+					-attachForm $buttonFddy_eyeL2 "left" 185
+
+					-attachForm $buttonFddy_jaw "top" 216
+					-attachForm $buttonFddy_jaw "left" 94
+
+					-attachForm $buttonFddy_toothU "top" 213
+					-attachForm $buttonFddy_toothU "left" 9
+					-attachForm $buttonFddy_toothD "top" 230
+					-attachForm $buttonFddy_toothD "left" 9
+
+					-attachForm $buttonFddy_tongueRT "top" 213
+					-attachForm $buttonFddy_tongueRT "left" 171
+					-attachForm $buttonFddy_tongue "top" 230
+					-attachForm $buttonFddy_tongue "left" 179
+
+				$tabFace1;
+
+				setParent ..;
+
+				string $tabFace2 = `columnLayout`;
+				setParent ..;
+
+			setParent ..;
+
+			//タブ4の設定---------------------------------------------------------------
+			string $tab5 = `columnLayout`;
+
+				columnLayout;
+
+					rowColumnLayout -numberOfRows 3 -rowHeight 1 75 -rowHeight 2 15 -rowHeight 3 210;
+
+						rowColumnLayout -numberOfColumns 2 -columnWidth 1 143 -columnWidth 2 90;
+
+							frameLayout -labelVisible false -borderVisible false -marginHeight 8;
+
+								rowColumnLayout -numberOfColumns 1 -columnWidth 1 140;
+
+									button -label "登　録" -h 38 -bgc 1 0.7 0.2 -c "mtFacePoseStore;";
+									button -label "名前変更 / 削　除" -bgc 1 1 1 -c "mtSetFaceFile;";
+
+								setParent ..;
+
+							setParent ..;
+
+							frameLayout -label "フォルダ選択" -labelAlign "center" -borderStyle "etchedOut" -w 87 -marginWidth 2;
+
+								rowColumnLayout -numberOfRows 2 -rowHeight 1 20 -rowHeight 2 20 -rowSpacing 1 5 -rowSpacing 2 8 frameFaceFolder;
+
+									optionMenu -w 80 -cc "importPoseList;" poseFaceList;
+
+										string $faceFolderList[] = `getFileList -fld ($usdScript + "mtCharaTools/poselist/face/")`;
+
+										for ( $i = 0; $i < size($faceFolderList); $i++ )
+										{
+											menuItem -label $faceFolderList[$i];
+										}
+
+									button -label "フォルダ設定" -w 81 -c "mtSetFolder(1);" buttonPoseFaceList;
+
+								setParent ..;
+
+							setParent ..;
+
+						setParent ..;
+
+						columnLayout;
+
+							text -label " ポーズリスト" -font "boldLabelFont";
+
+						setParent ..;
+
+						rowColumnLayout -numberOfRows 1 -rowHeight 1 210 facePoseListForm;
+
+							shelfLayout -w 230 -cw 51 -ch 64 facePoseListField;
+
+							setParent ..;
+
+						setParent ..;
+
+					setParent ..;
+
+				setParent ..;
+
+			setParent ..;
+
+			//タブ名の設定--------------------------------------------------------------
+			tabLayout -edit -tabLabel $tab1 "体選択"
+					-tabLabel $tab2 "体ポーズ"
+					-tabLabel $tab3 "ミラー"
+					-tabLabel $tab4 "顔選択"
+					-tabLabel $tab5 "顔ポーズ"
+					-selectTab $tab1 $tabs;
+
+			tabLayout -edit -tabLabel $tabFace1 "ダディ"
+					-tabLabel $tabFace2 "博士" $tab4;
+			
+
+		setParent ..;
+
+	setParent ..;
+
+setParent ..;
+
+	//Set Keyフレーム内の列設定=============================================================
+
+	frameLayout -labelVisible 0 -borderStyle "etchedOut" -height 48 -marginWidth 5 -marginHeight 2;
+
+		rowColumnLayout -numberOfColumns 4 -columnWidth 1 70 -columnWidth 2 60 -columnWidth 3 150 -columnWidth 4 60;
+
+			checkBox -label "AutoKey" 
+				 -onc "autoKeyframe -state true; shelfButton -e -i ( $usdImage + \"buttonSetkey2.bmp\" ) buttonSetKey;"
+				 -ofc "autoKeyframe -state false; shelfButton -e -i ( $usdImage + \"buttonSetkey1.bmp\" ) buttonSetKey;";
+				 //↑2回buttonの高さをeditしないとカラーのリフレッシュがされない
+
+			shelfButton -h 40 -i ( $usdImage + "buttonAllSetkey1.bmp" ) -c "charaSetSelect; setKeyframe -breakdown 0; select -cl;";
+			shelfButton -h 40 -i ( $usdImage + "buttonSetkey1.bmp" ) -c "SetKey;" buttonSetKey;
+			shelfButton -h 40 -i ( $usdImage + "buttonDeletekey1.bmp" ) -c "int $currTime = `currentTime -q`; cutKey -clear -t $currTime;";
+
+		setParent ..;
+
+	setParent ..;
+
+	//Playbackフレーム内の列設定=============================================================
+
+	frameLayout -labelVisible 0 -borderStyle "etchedOut" -height 46 -marginWidth 5 -marginHeight 2;
+
+		rowColumnLayout -numberOfColumns 7 -columnWidth 1 45 -columnWidth 2 45 -columnWidth 3 45 -columnWidth 4 70 -columnWidth 5 45 -columnWidth 6 45 -columnWidth 7 45;
+
+			shelfButton -w 45 -h 36 -i ( $usdImage + "buttonStartFrame.bmp" ) -c "playButtonStart;";
+			shelfButton -w 45 -h 36 -i ( $usdImage + "buttonPreFrame.bmp" ) -c "playButtonStepBackward;";
+			shelfButton -w 45 -h 36 -i ( $usdImage + "buttonPreKey.bmp" ) -c "currentTime -edit `findKeyframe -timeSlider -which previous`;";
+			iconTextCheckBox -w 70 -h 36 -i ( $usdImage + "buttonPlayback1.bmp" ) -si ( $usdImage + "buttonPlayback2.bmp" ) -onc "play -forward true;" -ofc "play -state off;";
+			shelfButton -w 45 -h 36 -i ( $usdImage + "buttonNextKey.bmp" ) -c "currentTime -edit `findKeyframe -timeSlider -which next`;";
+			shelfButton -w 45 -h 36 -i ( $usdImage + "buttonNextFrame.bmp" ) -c "playButtonStepForward;";
+			shelfButton -w 45 -h 36 -i ( $usdImage + "buttonEndFrame.bmp" ) -c "playButtonEnd;";
+
+		setParent ..;
+
+	setParent ..;
+
+
+setParent ..;
+
+
+//==================================================================================================
+//■ウインドウ実行
+//==================================================================================================
+
+	showWindow $windowmtCharaTools;
+	window -e -w 358 -h 576 mtCharaToolsUI;
+
+//==================================================================================================
+//■ユーザースクリプトパスにスクリプトフォルダーを作る
+//==================================================================================================
+
+	string $usdCharaTools = $usdScript + "mtCharaTools/"; //mtCharaToolsフォルダの定義
+	string $usdPoseList = $usdScript + "mtCharaTools/poselist/"; //poselistフォルダの定義
+	string $usdPoseBodyList = $usdScript + "mtCharaTools/poselist/body/"; //bodyフォルダの定義
+	string $usdPoseFaceList = $usdScript + "mtCharaTools/poselist/face/"; //faceフォルダの定義
+	string $usdPoseBodyDdyList = $usdScript + "mtCharaTools/poselist/body/ddy/"; //body/ddyフォルダの定義
+	string $usdPoseBodyApeList = $usdScript + "mtCharaTools/poselist/body/ape/"; //body/apeフォルダの定義
+	string $usdPoseBodyOthList = $usdScript + "mtCharaTools/poselist/body/other/"; //body/otherフォルダの定義
+	string $usdPoseFaceDdyList = $usdScript + "mtCharaTools/poselist/face/ddy/"; //face/ddyフォルダの定義
+
+
+	//mtCharaToolsフォルダがない場合は作成する==================================================
+	if (`filetest -d $usdCharaTools` == 0 )
+	{
+		sysFile -md $usdCharaTools;
+		warning ("新規フォルダ==[" + $usdCharaTools + "]==を作成しました。");
+	}
+
+	//poselistフォルダがない場合は作成する======================================================
+	if (`filetest -d $usdPoseList` == 0 )
+	{
+		sysFile -md $usdPoseList;
+		warning ("新規フォルダ==[" + $usdPoseList + "]==を作成しました。");
+	}
+
+	//bodyフォルダがない場合は作成する==========================================================
+	if (`filetest -d $usdPoseBodyList` == 0 )
+	{
+		sysFile -md $usdPoseBodyList;
+		warning ("新規フォルダ==[" + $usdPoseBodyList + "]==を作成しました。");
+	}
+
+	//faceフォルダがない場合は作成する==========================================================
+	if (`filetest -d $usdPoseFaceList` == 0 )
+	{
+		sysFile -md $usdPoseFaceList;
+		warning ("新規フォルダ==[" + $usdPoseFaceList + "]==を作成しました。");
+	}
+
+	//body/ddyフォルダがない場合は作成する======================================================
+	if (`filetest -d $usdPoseBodyDdyList` == 0 )
+	{
+		sysFile -md $usdPoseBodyDdyList;
+		warning ("新規フォルダ==[" + $usdPoseBodyDdyList + "]==を作成しました。");
+	}
+
+	//body/apeフォルダがない場合は作成する======================================================
+	if (`filetest -d $usdPoseBodyApeList` == 0 )
+	{
+		sysFile -md $usdPoseBodyApeList;
+		warning ("新規フォルダ==[" + $usdPoseBodyApeList + "]==を作成しました。");
+	}
+
+	//body/otherフォルダがない場合は作成する======================================================
+	if (`filetest -d $usdPoseBodyOthList` == 0 )
+	{
+		sysFile -md $usdPoseBodyOthList;
+		warning ("新規フォルダ==[" + $usdPoseBodyOthList + "]==を作成しました。");
+	}
+
+	//face/ddyフォルダがない場合は作成する======================================================
+	if (`filetest -d $usdPoseFaceDdyList` == 0 )
+	{
+		sysFile -md $usdPoseFaceDdyList;
+		warning ("新規フォルダ==[" + $usdPoseFaceDdyList + "]==を作成しました。");
+	}
+
+//==================================================================================================
+//■ロード関係
+//==================================================================================================
+
+	loadPref;		//リファレンスのロード
+	importPoseList;		//体ポーズリストを読み込む
+
+//==================================================================================================
+//■実行用melのパスを指定する
+//==================================================================================================
+
+	string $proceduresPath = "D:/sarux/tools/maya/scripts/_character/mtCharaTools/";
+
+	string $sourceProcedures=("source \""+$proceduresPath+"mtGetRigSelect.mel\"");
+	eval ($sourceProcedures);
+
+	string $sourceProcedures=("source \""+$proceduresPath+"mtGetFaceRigSelect.mel\"");
+	eval ($sourceProcedures);
+
+	string $sourceProcedures=("source \""+$proceduresPath+"mtPoseStore.mel\"");
+	eval ($sourceProcedures);
+
+	string $sourceProcedures=("source \""+$proceduresPath+"mtFacePoseStore.mel\"");
+	eval ($sourceProcedures);
+
+	string $sourceProcedures=("source \""+$proceduresPath+"mtRigNameRule.mel\"");
+	eval ($sourceProcedures);
+
+	string $sourceProcedures=("source \""+$proceduresPath+"mtPosAnmCopy.mel\"");
+	eval ($sourceProcedures);
+
+	string $sourceProcedures=("source \""+$proceduresPath+"mtPosLockTgl.mel\"");
+	eval ($sourceProcedures);
+
+	string $sourceProcedures=("source \""+$proceduresPath+"mtMakeHotkey.mel\"");
+	eval ($sourceProcedures);
+
+	string $sourceProcedures=("source \""+$proceduresPath+"mtHotkeySelect.mel\"");
+	eval ($sourceProcedures);
+
+	string $sourceProcedures=("source \""+$proceduresPath+"mtPoseMirror.mel\"");
+	eval ($sourceProcedures);
+
+	string $sourceProcedures=("source \""+$proceduresPath+"mt2PoseMirror.mel\"");
+	eval ($sourceProcedures);
+
+	string $sourceProcedures=("source \""+$proceduresPath+"mtGetRefName.mel\"");
+	eval ($sourceProcedures);
+
+	string $sourceProcedures=("source \""+$proceduresPath+"mtSetFaceFile.mel\"");
+	eval ($sourceProcedures);
+
+	string $sourceProcedures=("source \""+$proceduresPath+"mtSetFolder.mel\"");
+	eval ($sourceProcedures);
+
+}

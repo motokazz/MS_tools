@@ -1,0 +1,85 @@
+global proc MS_cubemap_core(){
+
+camera -ar 1 -fcp 100000 -ncp 1 -p 0 200 0 -fl 12 -n cubemapcam0001;
+
+setKeyframe -t 1 -v 0 "cubemapcam0001.rx";
+setKeyframe -t 1 -v -90 "cubemapcam0001.ry";
+setKeyframe -t 1 -v 0 "cubemapcam0001.rz";
+
+setKeyframe -t 2 -v 0 "cubemapcam0001.rx";
+setKeyframe -t 2 -v 90 "cubemapcam0001.ry";
+setKeyframe -t 2 -v 0 "cubemapcam0001.rz";
+
+setKeyframe -t 3 -v 90 "cubemapcam0001.rx";
+setKeyframe -t 3 -v 0 "cubemapcam0001.ry";
+setKeyframe -t 3 -v 0 "cubemapcam0001.rz";
+
+setKeyframe -t 4 -v -90 "cubemapcam0001.rx";
+setKeyframe -t 4 -v 0 "cubemapcam0001.ry";
+setKeyframe -t 4 -v 0 "cubemapcam0001.rz";
+
+setKeyframe -t 5 -v 0 "cubemapcam0001.rx";
+setKeyframe -t 5 -v 180 "cubemapcam0001.ry";
+setKeyframe -t 5 -v 0 "cubemapcam0001.rz";
+
+setKeyframe -t 6 -v 0 "cubemapcam0001.rx";
+setKeyframe -t 6 -v 0 "cubemapcam0001.ry";
+setKeyframe -t 6 -v 0 "cubemapcam0001.rz";
+
+
+lookThroughModelPanel cubemapcam0001 modelPanel4;
+
+
+playblast  
+-st 1 -et 6
+-format image 
+
+-clearCache 1 
+-viewer 0
+
+-showOrnaments 0
+-percent 100 
+-widthHeight 256 256
+
+-filename cubemap
+//-compression none
+
+;
+
+delete cubemapcam0001;
+
+}
+
+global proc MS_cubemap(){
+	
+	
+	//Window Check
+	if(`window -exists MS_cubemap`){
+		deleteUI MS_cubemap;
+	}
+	
+	window -title "MS_cubemap" MS_cubemap;
+	columnLayout;
+	
+	text -label "ThisWindowIsWindowFormatSample";
+	text -label "Please Set Full Screen .";
+	
+	separator -w 600 -h 40 -st "double";
+	
+	button -bgc 1.0 0.5 0.5 -l "do" -command "MS_cubemap_core" ;
+	
+	
+	button -l "undo" -command "Undo" ;
+	
+	button -l "exit" -command "deleteUI MS_cubemap" ;
+	
+	
+	//Footer
+	showWindow MS_cubemap;
+	
+	
+	
+}
+
+//MS_cubemap;
+

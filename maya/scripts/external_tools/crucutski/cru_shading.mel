@@ -1,0 +1,163 @@
+/* This file downloaded from Highend3d.com
+''  
+''  Highend3d.com File Information:
+''  
+''    Script Name: Crucutski
+''    Author: greyskull 
+''    Last Updated: Feb 04, 2009
+''    Update/Change this file at:
+''    http://Highend3d.com/maya/downloads/mel_scripts/modeling/poly_tools/2742.html
+''  
+''  Please do not alter any information above this line
+''  it is generated dynamically by Highend3d.com and will
+''  be changed automatically on any updates.
+*/
+// 0: anisotropic
+// 1: blinn
+// 2: hairTubeShader
+// 3: lambert
+// 4: layeredShader
+// 5: oceanShader
+// 6: phong
+// 7: phongE
+// 8: rampShader
+// 9: shadingMap
+// 10: surfaceShader
+// 11: useBackground
+// 12: all shaders
+global proc string[] cruGetShaders(int $type, string $wildcard) {
+	string $output[];
+	string $toss[];
+	string $shaders[] = { "anisotropic", "blinn", "hairTubeShader", "lambert", "layeredShader", "oceanShader", "phong", "phongE", "rampShader", "shadingMap", "surfaceShader", "useBackground"	};
+	
+	int $count = 0;
+	int $i;
+	int $j;
+	
+	if ($type < 12) {
+		$output = `ls -et $shaders[$type]`;
+	} else {
+		for ($i = 0; $i < size($shaders); $i++) {
+			string $find[] = `ls -et $shaders[$i]`;
+			
+			for ($j = 0; $j < size($find); $j++) {
+				$output[$count] = $find[$j];
+				
+				$count++;
+			}
+			
+			clear $find;
+		}
+	}
+	
+	$output = sort($output);
+	
+	$count = 0;
+	
+	if (size($wildcard) > 0) {
+		for ($i = 0; $i < size($output); $i++) {
+			if (`gmatch $output[$i] ("*" + $wildcard + "*")`) {
+				$toss[$count] = $output[$i];
+				
+				$count++;
+			}
+		}
+		
+		clear $output;
+		
+		$output = sort($toss);
+	}
+	
+	return $output;
+	
+	clear $output;
+	clear $shaders;
+	clear $toss;
+}
+
+global proc string cruGetSG(string $shader) {
+	string $cons[] = `listConnections $shader`;
+	string $output;
+
+	int $i;
+	for ($i = 0; $i < size($cons); $i++) {
+		if (`nodeType $cons[$i]` == "shadingEngine") {
+			if (`isConnected ($shader + ".outColor") ($cons[$i] + ".surfaceShader")`) {
+				$output = $cons[$i];
+			}
+		}
+	}
+	
+	return $output;
+}
+
+global proc string cruGetGlow() {
+	string $output;
+	
+	string $shad[] = `ls -et "shaderGlow"`;
+	
+	return $output = $shad[0];
+	
+	clear $output;
+}
+
+global proc cruClearOptionMenu(string $menuName) {
+	string $items[] = `optionMenu -q -ils $menuName`;
+	
+	int $i;
+	for ($i = 0; $i < size($items); $i++) {
+		deleteUI -menuItem $items[$i];
+	}
+	
+	clear $items;
+}
+
+global proc cruLoadOptionMenu(string $items[], string $menuName) {
+	if (size($items) > 0) {
+		int $i;
+		for ($i = 0; $i < size($items); $i++) {
+			if (`objExists $items[$i]`) {
+				menuItem -p $menuName -l $items[$i] ("cru" + $menuName + "_" + $items[$i] + "_mi");
+			}
+		}
+	}
+}
+
+global proc cruShadTypesFind() {
+	int $type = `optionMenu -q -sl cru_shadTypesList` - 1;
+	string $seeker[] = `cruGetShaders $type ""`;
+	
+	cruClearOptionMenu "cru_shadShadersFound";
+	
+	if (size($seeker) > 0) {
+		cruLoadOptionMenu $seeker cru_shadShadersFound;
+	}
+	
+	clear $seeker;
+	
+	cruShadCheck;
+}
+
+global proc cruShadSeekAndReplace() {
+	string $wildcard = `textField -q -tx cru_shadWildcard`;
+	string $seeker[] = `cruGetShaders 12 $wildcard`;
+	
+	cruClearOptionMenu "cru_shadShadersFound";
+	
+	if (size($seeker) > 0) {
+		cruLoadOptionMenu $seeker cru_shadShadersFound;
+	}
+	
+	clear $seeker;
+	
+	cruShadCheck;
+}
+
+global proc cruShaderAE(string $shader) {
+	if (`objExists $shader`) {
+		select -r $shader;
+		AttributeEditor;
+	} else {
+		warning ("CRU -> " + $shader + " does not exist.");
+	}
+}

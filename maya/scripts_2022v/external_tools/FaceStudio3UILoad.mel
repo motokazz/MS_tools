@@ -1,0 +1,53 @@
+// PLEASE DON'T DELETE THIS FILE //
+global proc FaceStudio3UILoad ()
+{
+createNode groupId -n "FaceStudio3Attributes1";
+	addAttr  -sn "connection" -ln "connection" -dt "string";
+	addAttr  -sn "shape" -ln "shape" -dt "string";
+	addAttr  -sn "parent" -ln "parent" -dt "string";
+	addAttr  -sn "CurrentBlend" -ln "CurrentBlend" -dt "string";
+	addAttr  -sn "sound" -ln "sound" -dt "string";
+	addAttr  -sn "soundOffset" -ln "soundOffset" -dt "string";
+	addAttr  -sn "video" -ln "video" -dt "string";
+	addAttr  -sn "videoExt" -ln "videoExt" -dt "string";
+	addAttr  -sn "videoOffset" -ln "videoOffset" -dt "string";
+	addAttr  -sn "EyeControl1" -ln "EyeControl1" -dt "string";
+	addAttr  -sn "EyeControl2" -ln "EyeControl2" -dt "string";
+	addAttr  -sn "ViewObj" -ln "ViewObj" -dt "string";
+	addAttr  -sn "CustomParent" -ln "CustomParent" -dt "string";
+	addAttr  -sn "ShapeIcon1" -ln "ShapeIcon1" -dt "string";
+	addAttr  -sn "ShapeIcon2" -ln "ShapeIcon2" -dt "string";
+	addAttr  -sn "ShapeIcon3" -ln "ShapeIcon3" -dt "string";
+	addAttr  -sn "currentLayout" -ln "currentLayout" -dt "string";
+	addAttr  -sn "groupsList" -ln "groupsList" -dt "string";
+	addAttr  -sn "custom1" -ln "custom1" -dt "string";
+	addAttr  -sn "custom2" -ln "custom2" -dt "string";
+	addAttr  -sn "custom3" -ln "custom3" -dt "string";
+	addAttr  -sn "custom4" -ln "custom4" -dt "string";
+	addAttr  -sn "custom5" -ln "custom5" -dt "string";
+	setAttr ".shape" -type "string" "blendShape1";
+	setAttr ".parent" -type "string" "head";
+	setAttr ".CurrentBlend" -type "string" "3";
+	setAttr ".sound" -type "string" "";
+	setAttr ".soundOffset" -type "string" "0";
+	setAttr ".video" -type "string" "C:/Documents and Settings/s002000/My Documents/maya/2009/prefs/icons/FaceStudio3/fs3_video.bmp";
+	setAttr ".videoExt" -type "string" "0";
+	setAttr ".videoOffset" -type "string" "0";
+	setAttr ".EyeControl1" -type "string" "";
+	setAttr ".EyeControl2" -type "string" "";
+	setAttr ".ViewObj" -type "string" "";
+	setAttr ".CustomParent" -type "string" "";
+	setAttr ".ShapeIcon1" -type "string" "";
+	setAttr ".ShapeIcon2" -type "string" "";
+	setAttr ".ShapeIcon3" -type "string" "";
+	setAttr ".currentLayout" -type "string" "ShapeLayout1";
+	setAttr ".groupsList" -type "string" "";
+	setAttr ".custom1" -type "string" "print \"//custom1 : empty.\"";
+	setAttr ".custom2" -type "string" "print \"//custom2 : empty.\"";
+	setAttr ".custom3" -type "string" "print \"//custom3 : empty.\"";
+	setAttr ".custom4" -type "string" "print \"//custom4 : empty.\"";
+	setAttr ".custom5" -type "string" "print \"//custom5 : empty.\"";
+select -r -ne FaceStudio3Attributes1;
+rename "FaceStudio3Import1";
+}
+// End of FaceStudio3 UI File

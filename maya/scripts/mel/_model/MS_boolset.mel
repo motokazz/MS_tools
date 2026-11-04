@@ -1,0 +1,171 @@
+//#############################################################################
+//MS_megabool
+//Created by Motokazz
+//2005/8/17
+//たくさんのオブジェクトを一気にブーリアンする。
+//#############################################################################
+
+
+global proc MS_megabool_core(int $bl_flag){
+	
+	string $obj[]=`ls -sl`;
+	string $bool_source;
+	string $bool_destination;
+	string $temp[];
+	//polyBoolOp -n "MS_Bool_dist" -op $bl_flag -ch 0 $obj[0] $obj[1];
+	
+
+	for($each in $obj){
+		if ($each == $obj[0]){
+			if(`checkBox -q -v "keepSource"`){
+				$temp=`duplicate $each`;
+				$bool_source=$temp[0];
+			}else{
+				$bool_source=$each;
+			}
+			continue;
+		}
+		
+		if(`checkBox -q -v "keepDestination"`){
+			$temp=`duplicate $each`;
+			$bool_destination=$temp[0];
+		}else{
+			$bool_destination=$each;
+		}
+		
+		$resultname=`polyBoolOp -op $bl_flag -ch 0 $bool_source $bool_destination`;
+		$bool_source=$resultname[0];
+	}
+	
+	rename $bool_source "MS_megabooled";
+}
+
+
+global proc MS_bools_core(){
+	
+	string $objz[]=`ls -type transform -sl`;
+	
+	duplicate -n "bla" $objz[0];
+	duplicate -n "blb" $objz[1];
+	polyBoolOp -n "pc_a" -op 2 -ch 0 bla blb;
+	
+	duplicate -n "bla" $objz[0];
+	duplicate -n "blb" $objz[1];
+	polyBoolOp -n "pc_b" -op 3 -ch 0 bla blb;
+
+	delete $objz[0];
+	
+}
+
+/*
+global proc MS_boolset()
+{
+	if(`window -exists MS_boolset`){
+		deleteUI MS_boolset;
+	}
+	
+	window -title "MS_boolset" MS_boolset;	
+	
+	$form = `formLayout`;
+
+	setParent $form;
+	$sep1=`separator`;
+	$sep2=`separator`;
+
+
+
+	$com_uni=`button -bgc 1.0 0.8 0.8 -l "union" -command "MS_megabool_core(1)" `;
+	$com_dif=`button -bgc 1.0 1.0 0.8 -l "difference" -command "MS_megabool_core(2)" `;
+	$com_int=`button -bgc 0.8 1.0 0.8 -l "intersect" -command "MS_megabool_core(3)" `;
+	$com_msb=`button -bgc 1.0 0.8 1.0 -l "MS_bools" -command "MS_bools_core" `;
+	$com_und=`button -l "undo" -command "Undo" `;
+	$com_ext=`button -l "exit" -command "deleteUI MS_boolset" `;
+
+
+	formLayout -e
+
+	-af $com_uni "top" 10
+        -af $com_uni "left" 5
+        -ap $com_uni "right" 0 33
+        -an $com_uni "bottom"
+
+        -af $com_dif "top" 10
+        -ap $com_dif "left" 0 33
+        -ap $com_dif "right" 0 66
+        -an $com_dif "bottom"
+
+        -af $com_int "top" 10
+        -ap $com_int "left" 0 66
+        -ap $com_int "right" 0 98
+        -an $com_int "bottom"
+
+		-af $sep1 "top" 35
+        -ap $sep1 "left" 0 0
+        -ap $sep1 "right" 0 100
+        -an $sep1 "bottom"
+
+        -af $com_msb "top" 40
+        -ap $com_msb "left" 0 50
+        -ap $com_msb "right" 0 98
+        -an $com_msb "bottom"
+        
+		-af $sep2 "top" 65
+        -ap $sep2 "left" 0 0
+        -ap $sep2 "right" 0 100
+        -an $sep2 "bottom"
+
+        -af $com_und "top" 70
+        -ap $com_und "left" 0 40
+        -ap $com_und "right" 0 70
+        -an $com_und "bottom"
+
+        -af $com_ext "top" 70
+        -ap $com_ext "left" 0 70
+        -ap $com_ext "right" 0 99
+        -an $com_ext "bottom"
+
+	$form;
+	
+	showWindow MS_boolset;
+	
+
+}
+*/
+
+
+
+global proc MS_boolset()
+{
+if(`window -q -ex MyTools_MS_boolset`)deleteUI MyTools_MS_boolset;
+window MyTools_MS_boolset;
+formLayout myUIFormLayout;
+//--DataPart--//
+button -width 44 -label "exit" -recomputeSize 0 "exit" ;//Data//
+button -recomputeSize 0 -label "undo" -width 44 -command "undo" "undo" ;//Data//
+checkBox -label "keep destination" -width 120 "keepDestination" ;//Data//
+checkBox -label "keep source" -width 120 "keepSource" ;//Data//
+button -label "intercect" -width 60 -command "MS_megabool_core(3)" "intersect" ;//Data//
+button -recomputeSize 0 -label "difference" -width 60 -command "MS_megabool_core(2)" "difference" ;//Data//
+button -command "MS_megabool_core(1)" -label "union" -recomputeSize 0 -width 60 "union" ;//Data//
+formLayout -e
+	-af "exit" "left" 192//Data//
+	-af "exit" "top" 128//Data//
+	-af "undo" "left" 128//Data//
+	-af "undo" "top" 128//Data//
+	-af "keepDestination" "left" 16//Data//
+	-af "keepDestination" "top" 32//Data//
+	-af "keepSource" "left" 16//Data//
+	-af "keepSource" "top" 16//Data//
+	-af "intersect" "left" 176//Data//
+	-af "intersect" "top" 80//Data//
+	-af "difference" "left" 96//Data//
+	-af "difference" "top" 80//Data//
+	-af "union" "left" 16//Data//
+	-af "union" "top" 80//Data//
+//--DataPart--//
+myUIFormLayout;
+showWindow MyTools_MS_boolset;
+}
+
+//MS_boolset;
+

@@ -1,0 +1,29 @@
+/*!
+		@file		GPGetShelfTabList.mel
+		@brief		シェルフタブリストの取得
+					%GP_MAYA_ROOT%\common\scripts\melList_*.mel から取得
+		
+		@update		2010.00.00	k-ohashi	...
+*/
+
+////////////////////////////////////////////////////////////////////////////////
+/**
+ * シェルフタブリストの取得.
+ */
+global proc string[] GPGetShelfTabList()
+{
+	string $dir =  fromNativePath( getenv("GP_MAYA_ROOT")) + "/common/scripts/";
+	string $melLists[] = `getFileList -folder $dir -filespec "melList_*.mel"`;
+	
+	string $result[]; clear $result;
+	for( $melList in $melLists )
+	{
+		$melList = `substitute "melList_" $melList ""`;
+		$melList = `substitute "\.mel" $melList ""`;
+		if( "" == $melList )
+			continue;
+		$result[`size $result`] = $melList;
+	}
+	
+	return $result;
+}

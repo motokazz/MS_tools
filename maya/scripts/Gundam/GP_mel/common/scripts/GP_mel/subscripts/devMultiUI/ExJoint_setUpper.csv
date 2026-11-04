@@ -1,0 +1,6 @@
+title,ExJoint_setUpper
+use_BGImage,BG/bg_ExJoint_setupper.png:640:640,end
+addAction
+iconTextButton_ExJoint_setUpper_csv_exportSetupInfoBtn0@iconTextButton@368@180@32@32@0.6991989014,0.6991989014,0.3983978027@-null-@M:/Tools/GP_mel/common/scripts/GP_mel/subscripts/devMultiUI/icon/pickerIcon_034.bmp@source \"saveRigSetting_extra\";\nsaveRigSetting_extra();@end
+iconTextButton_ExJoint_setUpper_csv_ExjointSetupper_defPose0@iconTextButton@382@115@32@32@0.6991989014,0.6991989014,0.3983978027@ex用コントローラのアトリビュートを、デフォルトポーズとして設定します。@M:/Tools/GP_mel/common/scripts/GP_mel/subscripts/devMultiUI/icon/pickerIcon_034.bmp@source \"saveRigSetting_extra.mel\";\nsaveRigSetting_extra_defPose;@end
+end of addAction

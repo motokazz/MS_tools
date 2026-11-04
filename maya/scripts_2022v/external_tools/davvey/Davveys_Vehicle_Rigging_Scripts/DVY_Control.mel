@@ -1,0 +1,182 @@
+/* This file downloaded from Highend3d.com
+''  
+''  Highend3d.com File Information:
+''  
+''    Script Name: Davveys Vehicle Rigging Scripts
+''    Author:  
+''    Last Updated: Jul 21, 2007
+''    Update/Change this file at:
+''    http://Highend3d.com/maya/downloads/mel_scripts/animation/4109.html
+''  
+''  Please do not alter any information above this line
+''  it is generated dynamically by Highend3d.com and will
+''  be changed automatically on any updates.
+*/
+
+//////////////////////////////////////////////////////////////////////////////////
+//					DVY_Control Procedure
+//////////////////////////////////////////////////////////////////////////////////
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+
+//================================================================================
+//	GLOBAL VARIABLES
+//================================================================================
+	global int $DVYDebug;
+
+// Integer Flag that allows print statements to be output to
+// message field for tracking purposes.
+
+//================================================================================
+	
+global proc string[] DVY_Control(int $N, string $Name, float $CPos[])
+{
+	 
+// *******************************************************************************//	
+//	Global Variables
+
+	global string $GroupV_A[], $RigControlsA[], $DrControlsA[], $DVYHinge[],
+					$DVYHandle[], $DLocs[], $DJntsA[], $LocGroups[];
+	global string $hier[], $LChier[], $JThier[];
+	global string $DVY_VehName;
+
+	global int $On = 1;
+	
+	global float $DVYdata[];	
+
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//	
+//	Local Variables
+
+	string $Name,$GroupA[], $Temp[], $Tmp[];
+	string $Side[] = {"LfFr_", "RtFr_", "LfRr_", "RtRr_"};
+	float $BData[], $TData[], $WhSz[];
+	
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//	
+	
+	if (`objExists $RigControlsA[0]`)
+		{
+			$BData = `objectCenter $GroupV_A[1]`;
+			$TData = `xform -q -bb $GroupV_A[1]`;
+			for ($s = 3; $s < 9; $s++ )
+				{ $BData[$s] = $TData[($s-3)];}
+		}
+
+	if (`objExists $GroupV_A[6]`)
+		{
+			$WhSz[0] = `getAttr ($GroupV_A[6] + ".boundingBoxSizeX")`;
+			$WhSz[1] = `getAttr ($GroupV_A[6] + ".boundingBoxSizeY")`;
+			$WhSz[2] = `getAttr ($GroupV_A[6] + ".boundingBoxSizeZ")`;
+		}
+		else{ $WhSz[0] = 10; $WhSz[1] = 10; $WhSz[2] = 10; }
+		
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//	
+	
+ 	$Temp[0] = `curve -n  ($DVY_VehName + $Name + "_Control_1") -d 1
+			-p 0.5 0.5 -0.5 -p 0.5 0.5 0.5 -p 0.5 -0.5 0.5 -p 0.5 -0.5 -0.5 
+			-p 0.5 0.5 -0.5 -p -0.5 0.5 -0.5 -p -0.5 -0.5 -0.5 -p -0.5 -0.5 0.5
+			-p -0.5 0.5 0.5	-p 0.5 0.5 0.5 -p 0.5 -0.5 0.5 -p -0.5 -0.5 0.5
+			-p -0.5 -0.5 -0.5 -p 0.5 -0.5 -0.5 -p 0.5 0.5 -0.5 -p -0.5 0.5 -0.5
+			-p -0.5 0.5 0.5 -p 0.5 0.5 0.5 -p 0.5 0.5 -0.5
+			-k 0 -k 0.1 -k 0.2 -k 0.3 -k 0.4 -k 0.5 -k 0.6 -k 0.7 -k 0.8 -k 0.9
+			-k 1 -k 1.1 -k 1.2 -k 1.3 -k 1.4 -k 1.5 -k 1.6 -k 1.7 -k 1.8` ;
+		setAttr ($Temp[0] + ".overrideEnabled") 1;
+		setAttr ($Temp[0] + ".overrideDisplayType") 2;
+	
+			scale (ceil ($WhSz[1] * 0.1)) 180 (ceil ($WhSz[1] * 0.1)) $Temp[0];
+		makeIdentity -apply true -t 1 -r 1 -s 1 -n 0;
+		
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//	
+		
+ 	$Temp[1] = `curve -n  ($DVY_VehName + $Name + "_ControllerN_1") -d 1
+			-p 0.5 0.5 -0.5 -p 0.5 0.5 0.5 -p 0.5 -0.5 0.5 -p 0.5 -0.5 -0.5 
+			-p 0.5 0.5 -0.5 -p -0.5 0.5 -0.5 -p -0.5 -0.5 -0.5 -p -0.5 -0.5 0.5
+			-p -0.5 0.5 0.5	-p 0.5 0.5 0.5 -p 0.5 -0.5 0.5 -p -0.5 -0.5 0.5
+			-p -0.5 -0.5 -0.5 -p 0.5 -0.5 -0.5 -p 0.5 0.5 -0.5 -p -0.5 0.5 -0.5
+			-p -0.5 0.5 0.5 -p 0.5 0.5 0.5 -p 0.5 0.5 -0.5
+			-k 0 -k 0.1 -k 0.2 -k 0.3 -k 0.4 -k 0.5 -k 0.6 -k 0.7 -k 0.8 -k 0.9
+			-k 1 -k 1.1 -k 1.2 -k 1.3 -k 1.4 -k 1.5 -k 1.6 -k 1.7 -k 1.8` ;
+
+			scale (ceil ($WhSz[1] * 0.15)) (ceil ($WhSz[1] * 0.3)) (ceil ($WhSz[1] * 0.15)) $Temp[1];
+			move -r 0 85 0 $Temp[1];
+			makeIdentity -apply true -t 1 -r 1 -s 1 -n 0;
+			parent $Temp[1] $Temp[0];
+			setAttr ($Temp[1] + ".overrideEnabled") 1;
+			setAttr ($Temp[1] + ".overrideDisplayType") 0;
+			setAttr ($Temp[1] + ".displayHandle") 1;
+			transformLimits -ty -110 0 -ety 1 1 $Temp[1];
+			scale 1 0.35 1 $Temp[0];
+		rotate $CPos[13] 0 0 $Temp[0];
+		
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//	
+		
+ 	$Temp[2] = `curve -n  ($DVY_VehName + $Side[$N] + "Window_Control_1") -d 1
+			-p 0.5 0.5 -0.5 -p 0.5 0.5 0.5 -p 0.5 -0.5 0.5 -p 0.5 -0.5 -0.5 
+			-p 0.5 0.5 -0.5 -p -0.5 0.5 -0.5 -p -0.5 -0.5 -0.5 -p -0.5 -0.5 0.5
+			-p -0.5 0.5 0.5	-p 0.5 0.5 0.5 -p 0.5 -0.5 0.5 -p -0.5 -0.5 0.5
+			-p -0.5 -0.5 -0.5 -p 0.5 -0.5 -0.5 -p 0.5 0.5 -0.5 -p -0.5 0.5 -0.5
+			-p -0.5 0.5 0.5 -p 0.5 0.5 0.5 -p 0.5 0.5 -0.5
+			-k 0 -k 0.1 -k 0.2 -k 0.3 -k 0.4 -k 0.5 -k 0.6 -k 0.7 -k 0.8 -k 0.9
+			-k 1 -k 1.1 -k 1.2 -k 1.3 -k 1.4 -k 1.5 -k 1.6 -k 1.7 -k 1.8` ;
+		setAttr ($Temp[2] + ".overrideEnabled") 1;
+		setAttr ($Temp[2] + ".overrideDisplayType") 2;
+	
+			scale (ceil ($WhSz[1] * 0.1)) 120 (ceil ($WhSz[1] * 0.1)) $Temp[2];
+			makeIdentity -apply true -t 1 -r 1 -s 1 -n 0;
+			
+	 	$Tmp = `cone -p 0 0 0 -ax 0 1 0 -ssw 0 -esw 360 -r 1
+				-hr 2 -d 1 -ut 0 -tol 0.01 -s 8 -nsp 2 -ch 0`;
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//	
+		
+		$Temp[3] = `rename $Tmp[0] ($DVY_VehName + $Side[$N] + "Window_ControllerN_1")`;
+			scale (ceil ($WhSz[1] * 0.1)) (ceil ($WhSz[1] * 0.15)) (ceil ($WhSz[1] * 0.1)) $Temp[3];
+			move -r 0 55 0 $Temp[3];
+			makeIdentity -apply true -t 1 -r 1 -s 1 -n 0;
+			parent $Temp[3] $Temp[2];
+			setAttr ($Temp[3] + ".displayHandle") 1;
+			setAttr ($Temp[3] + ".overrideEnabled") 1;
+			setAttr ($Temp[3] + ".overrideDisplayType") 0;
+			setAttr ($Temp[3] + ".overrideShading") 0;
+			transformLimits -ty -100 -10 -ety 1 1 $Temp[3];
+			scale 1 0.55 1 $Temp[2];
+			
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//	
+
+	move -r ($CPos[8] + ($WhSz[1] *0.075)) ($CPos[12] * 1) $CPos[7] $Temp[0];
+	move -r ($CPos[8] + ($WhSz[1] * -0.075))  ($CPos[12] * 1) $CPos[7] $Temp[2];
+		parent $Temp[2] $Temp[0];
+		setAttr ($Temp[3] + ".ty") -10;
+		
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//	
+			
+	$AttrA =  {".tx", ".ty", ".tz", ".rx", ".ry", ".rz", ".sx", ".sy", ".sz"};	
+	for ($each in $Temp) 
+		{for ($Att in $AttrA){setAttr -l true -k false ($each + $Att);}}
+							
+	setAttr -l false -k true ($Temp[1] + ".ty");
+	setAttr -l false -k true ($Temp[3] + ".ty");
+			
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//	
+				
+	return $Temp;
+					
+}

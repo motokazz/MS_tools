@@ -1,0 +1,28 @@
+//
+//template dayo!
+//
+
+
+
+global proc MS_randomrotate(){
+	
+	//checker
+	string $nameOfObjs[] = `ls -sl`;
+	
+	if ( size($nameOfObjs[0]) == 0 )
+	{
+		confirmDialog -t "Nothing Selected" -m "Please select an object." -b Continue;
+		return;
+	}
+	
+	
+	$rndx=`rand 360`;
+	$rndy=`rand 360`;
+	$rndz=`rand 360`;
+	
+	rotate $rndx $rndy $rndz $nameOfObjs[0];
+	
+	
+}
+
+MS_randomrotate;

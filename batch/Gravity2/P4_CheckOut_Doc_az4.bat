@@ -1,0 +1,1 @@
+call "D:\MS_tools\batch\perforce\P4_CheckOut.bat" "D:\Projects\Gravite2\graphic\outsource\01_bg\polygon_order\bgorder_az4_a.xlsx" "D:\Projects\Gravite2\graphic\outsource\01_bg\document\gproject2_bg_artworkguide_az4.docx"

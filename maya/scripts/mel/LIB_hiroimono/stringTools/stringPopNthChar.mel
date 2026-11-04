@@ -1,0 +1,34 @@
+//stringPopNthChar, by Julian Love, julian@lightmail.com. Part of the StringTools set.
+//
+//description:	chops off the character from the source string at the specified position 
+//
+//usage:		stringPopNthChar string[source string] int[position];
+//
+//examples:		stringPopNthChar "hello world." 5;
+//				// Result: hell world.//
+//
+//				stringPopNthChar "left_wrist_controller" 11;
+//				// Result: left_wristcontroller //
+
+
+global proc string stringPopNthChar (string $item, int $position){
+	string	$firstSegment;
+	string	$secondSegment;
+	
+	if ($position != 0){
+		if ($position < size($item)){
+			if ($position != 1){
+				$firstSegment = `substring $item 1 ($position -1)`;
+				$secondSegment = `substring $item ($position +1) (size($item))`;
+				
+				return ($firstSegment + $secondSegment);
+			}
+			else
+				{return `substring $item 2 (size($item))`;}
+		}
+		else
+			{return `substring $item 1 (size($item) -1)`;}
+	}
+	else
+		{return $item;}
+}

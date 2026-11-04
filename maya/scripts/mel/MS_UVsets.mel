@@ -1,0 +1,459 @@
+global proc MS_createUVset()
+{
+
+	string $MS_createUVset=`textFieldButtonGrp -q -text MS_createUVset`;
+	
+	string $obj_name[] = `ls -sl`;
+	
+	int $i=0;
+	
+	for($i=0;$i<size($obj_name);$i++){
+		select -r $obj_name[$i];
+		int $j=0;
+		int $check=0;
+		
+		int $indices[] = `polyUVSet -q -allUVSetsIndices $obj_name[$i]`;
+		
+		for( $j in $indices )
+		{
+			
+			string $uvname = `getAttr ($obj_name[$i]+".uvSet["+$j+"].uvSetName")`;
+			
+			print( "Found uv set called " + $uvname + "\n" );
+			
+			if($uvname==$MS_createUVset)
+			{
+				$check++;
+			}
+		
+		}
+		
+		if($check != 0){
+		
+			polyUVSet -create -uvSet $MS_createUVset $obj_name[$i];
+			
+		}
+		polyUVSet -currentUVSet -uvSet $MS_createUVset;
+	}
+	select -cl  ;
+	changeSelectMode -object;
+	select -r $obj_name;
+
+}
+
+
+global proc MS_deleteUVset()
+{
+
+	string $MS_deleteUVset=`textFieldButtonGrp -q -text MS_deleteUVset`;
+	
+	string $obj_name[] = `ls -sl`;
+	
+	int $i=0;
+	
+	for($i=0;$i<size($obj_name);$i++){
+		select -r $obj_name[$i];
+		int $j=0;
+		int $check=0;
+		
+		int $indices[] = `polyUVSet -q -allUVSetsIndices $obj_name[$i]`;
+		
+		for( $j in $indices )
+		{
+			
+			string $uvname = `getAttr ($obj_name[$i]+".uvSet["+$j+"].uvSetName")`;
+			
+			print( "Found uv set called " + $uvname + "\n" );
+			
+			if($uvname==$MS_deleteUVset)
+			{
+				$check++;
+			}
+		}
+		
+		if($check != 0){
+		
+			polyUVSet -delete -uvSet $MS_deleteUVset $obj_name[$i];
+			
+		}
+		else
+		{
+			 MS_error;
+		}
+	}
+	select -cl  ;
+	changeSelectMode -object;
+	select -r $obj_name;
+
+}
+
+
+
+global proc MS_createUVset()
+{
+
+	string $MS_createUVset=`textFieldButtonGrp -q -text MS_createUVset`;
+	
+	string $obj_name[] = `ls -sl`;
+	
+	int $i=0;
+	
+	for($i=0;$i<size($obj_name);$i++){
+		select -r $obj_name[$i];
+		int $j=0;
+		int $check=0;
+		
+		int $indices[] = `polyUVSet -q -allUVSetsIndices $obj_name[$i]`;
+		
+		for( $j in $indices )
+		{
+			
+			string $uvname = `getAttr ($obj_name[$i]+".uvSet["+$j+"].uvSetName")`;
+			
+			print( "Found uv set called " + $uvname + "\n" );
+			
+			if($uvname==$MS_createUVset)
+			{
+				$check++;
+			}
+		
+		}
+		
+		if($check == 0){
+		
+			polyUVSet -create -uvSet $MS_createUVset $obj_name[$i];
+			
+		}
+		
+		polyUVSet -currentUVSet -uvSet $MS_createUVset;
+	}
+
+select -cl  ;
+changeSelectMode -object;
+select -r $obj_name;
+
+}
+
+
+
+
+global proc MS_createShadowUVset()
+{
+
+	string $MS_createShadowUVset=`textFieldButtonGrp -q -text MS_createShadowUVset`;
+	
+	string $obj_name[] = `ls -sl`;
+	
+	int $i=0;
+
+	for($i=0;$i<size($obj_name);$i++){
+		select -r $obj_name[$i];
+		int $j=0;
+		int $check=0;
+		
+		int $indices[] = `polyUVSet -q -allUVSetsIndices $obj_name[$i]`;
+		
+		for( $j in $indices )
+		{
+			
+			string $uvname = `getAttr ($obj_name[$i]+".uvSet["+$j+"].uvSetName")`;
+			
+			print( "Found uv set called " + $uvname + "\n" );
+			
+			if($uvname==$MS_createShadowUVset)
+			{
+				$check++;
+			}
+		
+		}
+		
+		if($check == 0){
+		
+			polyUVSet -create -uvSet $MS_createShadowUVset $obj_name[$i];
+			
+		}
+		
+		polyUVSet -currentUVSet -uvSet $MS_createShadowUVset;
+		polyAutoProjection -pb 0 -ibd 1 -cm 0 -l 2 -sc 2 -o 1 -p 6 -ps 0.01 -ws 1 $obj_name[$i];
+		
+		selectMode -co;
+		//setSelectMode components Components;
+		selectType -smp 0 -sme 0 -smf 1 -smu 0 -pv 0 -pe 0 -pf 1 -puv 0;
+		//select -cl;
+		polySelectConstraint -pp 0;
+		polySelectConstraint -va 100 ;
+		polySelectConstraint -v true ;
+		polySelectConstraint -m 3 ;
+
+		invertSelection;
+		DeleteUVs;
+
+		resetPolySelectConstraint; 
+
+		select -r $obj_name[$i];
+		polyLayoutUV -l 2 -sc 2 -se 0 -rbf 1 -fr 1 -ps 0.001 -ch 0;
+	}
+
+select -cl  ;
+changeSelectMode -object;
+select -r $obj_name;
+
+}
+
+
+
+global proc MS_deleteLastUVset()
+{
+	polyUVSet -luv;
+	polyUVSet -d;
+}
+
+
+global proc MS_UVsets_mapchange()
+{
+
+	string $MS_UVsets_mapchange=`textFieldButtonGrp -q -text MS_UVsets_mapchange`;
+	
+	string $obj_name[] = `ls -sl`;
+	
+	int $i=0;
+	
+	for($i=0;$i<size($obj_name);$i++){
+		select -r $obj_name[$i];
+		int $j=0;
+		int $check=0;
+		
+		int $indices[] = `polyUVSet -q -allUVSetsIndices $obj_name[$i]`;
+		
+		for( $j in $indices )
+		{
+			
+			string $uvname = `getAttr ($obj_name[$i]+".uvSet["+$j+"].uvSetName")`;
+			
+			print( "Found uv set called " + $uvname + "\n" );
+			
+			if($uvname==$MS_UVsets_mapchange)
+			{
+				$check++;
+			}
+		
+		}
+		
+		if($check != 0){
+		
+			polyUVSet -currentUVSet -uvSet $MS_UVsets_mapchange;
+			
+		}
+		else
+		{
+			MS_error;
+		}
+	}
+
+select -cl  ;
+changeSelectMode -object;
+select -r $obj_name;
+
+}
+
+
+
+global proc MS_UVsets_copyuvs()
+{
+	string $MS_UVsets_copyuvs_source=`textFieldGrp -q -text MS_UVsets_copyuvs_source`;
+	string $MS_UVsets_copyuvs_dist=`textFieldButtonGrp -q -text MS_UVsets_copyuvs_dist`;
+	
+	string $obj_name[] = `ls -sl`;
+	
+	int $i=0;
+	
+	for($i=0;$i<size($obj_name);$i++){
+		select -r $obj_name[$i];
+		int $j=0;
+		int $check=0;
+		
+		int $indices[] = `polyUVSet -q -allUVSetsIndices $obj_name[$i]`;
+		
+		for( $j in $indices )
+		{
+			
+			string $uvname = `getAttr ($obj_name[$i]+".uvSet["+$j+"].uvSetName")`;
+			
+			print( "Found uv set called " + $uvname + "\n" );
+			
+			if($uvname==$MS_UVsets_copyuvs_dist)
+			{
+				$check++;
+			}
+			if($uvname==$MS_UVsets_copyuvs_source)
+			{
+				$check++;
+			}
+		
+		}
+		
+		if($check == 2){
+		
+			polyCopyUV -uvSetNameInput $MS_UVsets_copyuvs_source -uvs $MS_UVsets_copyuvs_dist;
+			
+		}
+		else
+		{
+			MS_error;
+		}
+	}
+
+select -cl  ;
+changeSelectMode -object;
+select -r $obj_name;
+
+
+}
+
+
+
+
+global proc MS_UVsets()
+{
+	
+	//Window Check
+	if(`window -exists MS_UVsets`){
+		deleteUI MS_UVsets;
+	}
+	
+	
+	//Create Window
+	
+	window -title "MS_UVsets" MS_UVsets;
+	
+	columnLayout ;
+	
+	//Contents	
+	
+	
+	//text
+	text -label "ThisWindowIsWindowFormatSample";
+	
+	
+	
+separator -w 600 -h 40 -st "single";
+	
+	
+	
+	
+	
+	textFieldButtonGrp 
+		-l "createUV"
+		-tx "map1"
+		-buttonLabel "create" 
+		-bc "MS_createUVset"
+		MS_createUVset
+	;
+	
+	textFieldButtonGrp 
+		-l "deleteUV"
+		-tx "map2"
+		-buttonLabel "delete" 
+		-bc "MS_deleteUVset"
+		MS_deleteUVset
+	;
+	
+separator -w 600 -h 40 -st "single";
+	
+	textFieldButtonGrp 
+		-l "mapchange"
+		-tx "map1"
+		-buttonLabel "cange" 
+		-bc "MS_UVsets_mapchange"
+		MS_UVsets_mapchange
+	;
+	
+	textFieldGrp 
+		-l "source"
+		-tx "map1"
+		MS_UVsets_copyuvs_source
+	;
+	
+	textFieldButtonGrp 
+		-l "dist"
+		-tx "map2"
+		-buttonLabel "copy" 
+		-bc "MS_UVsets_copyuvs"
+		MS_UVsets_copyuvs_dist
+	;
+
+
+separator -w 600 -h 40 -st "single";
+	
+	textFieldButtonGrp 
+		-l "createShadowUVset"
+		-tx "map2"
+		-buttonLabel "createShadowUVset" 
+		-bc "MS_createShadowUVset"
+		MS_createShadowUVset
+		;
+	
+	button -l "MS_deleteLastUVset" -command "MS_deleteLastUVset";
+	
+	//---------------
+	//Execute Buttons
+	//---------------
+separator -w 600 -h 40 -st "doubleDash";
+	
+	
+	separator -w 600 -h 40 -st "double";
+	
+	button -l "undo" -command "Undo" ;
+	
+	button -l "exit" -command "deleteUI MS_UVsets" ;
+	
+	
+	//Footer
+	showWindow MS_UVsets;
+	
+}
+
+
+
+
+
+global proc MS_error()
+{
+/*	
+	//Window Check
+	if(`window -exists MS_error`){
+		deleteUI MS_error;
+	}
+	
+	//Create Window
+
+	window 
+		
+		-i 0
+		-rtf 1
+		-sizeable 0
+		-minimizeButton 0
+		-maximizeButton 0
+		-widthHeight 256 128
+		-backgroundColor 1.0 0.8 0.7
+		-title "MS_error" MS_error
+	;
+	
+	columnLayout ;
+	
+	text -label "E R R O R !";
+	
+	separator -w 600 -h 40 -st "single";
+	
+	button -l "close" -command "deleteUI MS_error" ;
+	
+	showWindow MS_error;
+*/
+		confirmDialog 
+		-message "E R R O R !" 
+		-button "close" ;
+
+}
+
+
+	

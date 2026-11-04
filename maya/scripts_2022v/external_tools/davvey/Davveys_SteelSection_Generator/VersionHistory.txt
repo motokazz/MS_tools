@@ -1,0 +1,7 @@
+
+Version 1.0.1
+Minor correction to script to prevent script conflict with
+another script I have built
+
+Version 1.0.0
+First Release

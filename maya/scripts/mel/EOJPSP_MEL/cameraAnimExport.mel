@@ -1,0 +1,25 @@
+/* カメラエクスポート用の簡易GUI */
+global proc int cameraAnimExportProc( string $filename, string $fileType )
+{
+	string $extname = `fileExtension $filename`;
+	
+	if( "" == $extname )
+	{
+		$filename += ".camera.pcxff";
+	}
+	XFFexport -f $filename -ce;
+	return 1;
+}
+
+global proc cameraAnimExport()
+{
+	fileBrowserDialog
+		 -mode 1
+		 -fileCommand "cameraAnimExportProc"
+		 -an "Camera Animation Export"
+		 -ds 2
+		 -tm "export filename"
+		 -operationMode "SaveAs";
+}
+
+

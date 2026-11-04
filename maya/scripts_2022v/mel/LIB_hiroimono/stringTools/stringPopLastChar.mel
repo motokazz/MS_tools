@@ -1,0 +1,20 @@
+//stringPopLastChar, by Julian Love, julian@lightmail.com. Part of the StringTools set.
+//
+//description:	chops off the last character from the supplied string 
+//
+//usage:		stringPopLastChar string[source string];
+//
+//examples:		stringPopLastChar "hello world.";
+//				// Result: hello world//
+//
+//				stringPopLastChar "left_wrist_controller_";
+//				// Result: left_wrist_controller //
+
+
+global proc string stringPopLastChar (string $item){
+	string	$returnString;
+	
+	$returnString = `substring $item 1 (size($item) -1)`;
+	
+	return $returnString;
+}

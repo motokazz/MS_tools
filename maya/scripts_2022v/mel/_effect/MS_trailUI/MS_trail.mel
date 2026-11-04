@@ -1,0 +1,33 @@
+global proc MS_trail(
+	int $curveDegree,
+	int $curveStep,
+	int $bspline,
+	int $revCurve,
+	int $jointPartsQuantity,
+	float $jointLength
+){
+
+	int $tm[]=`MS_selectTime`;
+	
+	string $obj[]=`MS_selectFilter`;
+	
+	string $cname=`MS_motionCurve $tm[0] $tm[1] $curveDegree $curveStep $obj $bspline $revCurve `;
+	
+	string $jname=`MS_createJoint $jointPartsQuantity $jointLength `;
+	
+	string $iknul[]=`MS_IKspline $jname $cname 1`;
+	
+	//ƒJ[ƒu‚ğ”½“]‚µ‚È‚¢‚ÆikSpline‚ª‹t‚É‚­‚Á‚Â‚¢‚¿‚á‚¤
+	string $check[]=`ls -typ transform $obj`;
+	if(size($check)){
+		MS_constraint 1 "" 0 0 0 0 0 0 0 0 $obj {$iknul[1]};
+	}else{
+		MS_trail_vertexpointConstraint $obj $iknul[1];
+	}
+	
+	MS_jointscaleFromAnimation $tm[0] $tm[1] $jname;
+	
+}
+
+
+

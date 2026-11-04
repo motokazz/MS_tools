@@ -1,0 +1,138 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="ja">
+
+<head>
+<meta http-equiv="content-type" content="text/html;charset=x-sjis">
+<title>ダイアログデザイナー マニュアル</title>
+<LINK rel="stylesheet" href="./manual.css">
+</head>
+
+<body>
+<h2>ダイアログデザイナー マニュアル</h2>
+
+<div class=i>
+<a class=list href="#able">出来ること</a><br>
+<a class=list href="#advantage">メリット</a><br>
+<a class=list href="#howto">使い方</a><br>
+<a class=list href="#design">ダイアログデザインを作成する</a><br>
+<a class=list href="#relation">デザイン時の注意点・親子関係</a><br>
+<a class=list href="#partsname">デザイン時の注意点・パーツ名</a><br>
+<a class=list href="#textlength">デザイン時の注意点・テキストの長さ</a><br>
+<a class=list href="#property">その他</a><br>
+</div>
+
+<h4><a name="able">■出来ること</a></h4>
+<div class=i>
+<p>スクリプトで使用するダイアログのパーツ配置をPhotoshop上で行います。</p>
+<img src="image/dd_sa.png" alt="サンプル" width="640" height="480" border="0"><br><br>
+↓<br><br>
+<img src="image/dd_rs.png" alt="出力したダイアログ" width="406" height="138" border="0">
+
+<p><em>※このスクリプトはPhotoshopCS以降専用です。</em></p>
+</div>
+
+<h4><a name="advantage">■メリット</a></h4>
+<div class=i>
+見た目を確認しながら配置出来るため、数値をいじりながら何回も試行錯誤する必要がなく、簡単にダイアログを作成できます。要素の多い複雑なダイアログの配置の手間が軽減されます。
+</div>
+
+<h4><a name="howto">■使い方</a></h4>
+<div class=i>
+<ol>
+<li>書庫に含まれるファイルをディスク上に展開してください。置き場所はどこでもかまいませんが、Photoshopの<font class=d>プリセット\スクリプト</font>内に置くとメニューに表示されるようになり、ショートカットキーを割り当てることが出来ますので便利です。</li>
+
+<li>Photoshopを起動し、サンプルファイルを開いてください。</li><br>
+
+<li>スクリプトメニューから「<strong>ダイアログデザイナー</strong>」を実行します。しばらく時間が掛かります。</li>
+
+<li>処理が終了すると保存ダイアログが表示されます。お好みの名前で保存してください。</li>
+
+<li>スクリプトメニューの参照から、保存したスクリプトを実行します。ダイアログが表示されます。<br><br>
+<em>サンプルのパーツはWindows2000の標準に近い見た目になっていますが、作成されたスクリプトを実行するとそれぞれの環境に合わせたデザインで表示されます。しかし位置関係は画像上で作成したもの通りになっているはずです。</em></li>
+
+<li>このスクリプトでは何の動作も設定していないため、ボタンを押しても反応しません。<strong>Escキーで終了してください。</strong></li>
+
+<li>基本的な使い方は以上です。出力したスクリプトを実際の動作を行うスクリプトに組み込んで使用してください。</li>
+</ol>
+</div>
+
+<h4><a name="design">■ダイアログデザインを作成する</a></h4>
+<div class=i>
+
+<p>同梱のパーツセットを開いてください。</p>
+<img src="image/dd_pt.png" alt="パーツセット" width="410" height="200" border="0">
+<p>使用できるパーツの基本形が揃っていますので、ここから各パーツをレイヤーセットごとコピー＆ペーストし、シェイプを操作して大きさをあわせる事でデザインを作成できます。</p>
+
+<p>各パーツのレイヤーセット内にはそれぞれの見た目や属性を実現するためいくつかのレイヤーが含まれます。サイズを変更するときはベースとなるシェイプからはみ出さないように配置を変更してください。</p>
+</div>
+
+<h4><a name="relation">■デザイン時の注意点・親子関係</a></h4>
+<div class=i>
+
+<p>レイヤーセットの親子関係がそのままダイアログパーツの親子関係になります。そのため、レイヤーセットの親子関係は正しく設定する必要があります。</p>
+<img src="image/dd_ly.png" alt="レイヤー構造" width="555" height="335" border="0">
+
+<p>簡単に説明すると、ダイアログクラスが親で、他のパーツは全てその中に入ります。またパネルは中に子を持つことが出来ますので、パネルの中に表示するパーツはすべてそのパネルの子になります。</p>
+
+<p>親子関係が正しくない場合、見た目は同じでも押すことの出来ないパーツになったり、見えなくなったり、最悪の場合はスクリプトが正しく動作しません。</p>
+</div>
+
+
+<h4><a name="partsname">■デザイン時の注意点・パーツ名</a></h4>
+<div class=i>
+<p>各パーツのレイヤーセットはこのスクリプトで扱うため、特別なルールの名前になっています。</p>
+
+<p><strong>クラス名.実体名</strong></p>
+
+<p>「<em>Dog.Pochi</em>」ということです。クラス名はスクリプトを出力するときに種類を判断するのに使用し、出力されたスクリプト内では実体名でこの種類のパーツを作成します。これは後で出力されたスクリプトを使用するときに使う名前になるので覚えておいてください。</p>
+
+<p>下はサンプルで出力したスクリプトです。名前や親子関係をレイヤー構造と見比べてみてください。
+</p>
+<pre>
+createDialog_DLG().show(); // テスト用
+
+// ===========================================================================
+function createDialog_DLG(){
+	var dialogResource = "dialog { text:'出力ファイル指定', bounds:[0, 0, 400, 106], "
+	dialogResource += " pnl: Panel { text:'出力先のファイルを指定してください。', bounds:[15, 8, 385, 51], "
+	dialogResource += " ebox: EditText { bounds:[10, 16, 320, 34],  }, "
+	dialogResource += " browse: Button { text:'参照', bounds:[320, 16, 360, 34],  }, "
+	dialogResource += " }," 
+	dialogResource += " build: Button { text:'実行', bounds:[300, 66, 384, 90],  }, "
+	dialogResource += " cancel: Button { text:'キャンセル', bounds:[200, 66, 284, 90],  }, "
+	dialogResource += " }";
+
+	var dlg = new Window( dialogResource );
+	dlg.center();
+	return dlg;
+}
+
+// ===========================================================================
+</pre>
+
+<p>実体名は好きな名前が使用できます。クラス名は変更しないでください。</p>
+
+<p>また、中に含まれるレイヤー名は変更しないでください。</p>
+
+</div>
+
+<h4><a name="textlength">■デザイン時の注意点・テキストの長さ</a></h4>
+<div class=i>
+<p>各パーツ内のテキストは書き換えられますが、パーツの外枠からはみ出さないように注意してください。パーツの大きさはレイヤーセット全体の外枠から取得しているため、はみ出したパーツがある場合は大きさが正しく取得できません。</p>
+
+<p>また、チェックボックス、ラジオボタンなどはテキストによってそのサイズが変化します。スクリプト内で動的に変更する場合は、予想される最長のテキストを入力して作成してください。
+</p></div>
+
+<h4><a name="property">■その他</a></h4>
+<div class=i>
+<p>このスクリプトでは追加プロパティには対応していません。出力したスクリプトにあとで追加してください。</p>
+
+<p>こんな感じのダイアログを作るのも比較的楽になります。</p>
+
+<img src="image/bc3_d3.png" alt="要素の多いダイアログ" width="530" height="510" border="0">
+</div>
+
+<hr>
+</body>
+</html>

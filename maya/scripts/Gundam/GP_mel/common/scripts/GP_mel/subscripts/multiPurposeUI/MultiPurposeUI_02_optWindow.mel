@@ -1,0 +1,336 @@
+//---------------------------------------------------------------------------------------------------------
+//UI追加・整列用
+//---------------------------------------------------------------------------------------------------------
+
+
+//サブウィンドウ整理
+
+global proc dMPU_cleanSubwindow(){
+	string $swName[] = {"addCtrlSelector_Window","editCtrlSort_Window","stockActionToButton_Window"};
+	for($windowName in $swName){
+		if(`window -q -exists $windowName`){
+			deleteUI -window $windowName;
+		}
+	}
+}
+
+//メニューUIスイッチ
+global proc dMPU_switchMenuUI(){
+	string $swName[] = {"addCtrlSelector_Window","editCtrlSort_Window","EditableUIWindow"};
+
+	if(`window -q -exists $swName[0]`){
+		iconTextRadioButton -e -sl dMPU_addUIBtn;
+	}else if(`window -q -exists $swName[1]`){
+		iconTextRadioButton -e -sl dMPU_editUIBtn;
+	}else if(`window -q -exists $swName[2]`){
+		iconTextRadioButton -e -sl dMPU_actUIBtn;
+	}
+
+
+}
+
+//サブウィンドウ・機能実装用
+
+global proc GP2_dMPU_execStock(){
+
+	string $newData[];
+	$newData[0] = `textField -q -tx dMPU_tgtNameFld`;
+	$newData[1] = `textField -q -tx dMPU_toolHelpFld`;
+	$newData[2] = `cmdScrollFieldExecuter -q -t dMPU_toolScriptFld`;
+
+	string $temp = `iconTextRadioCollection -q -sl dMPU_iTRC`;
+	$newData[3] = `iconTextRadioButton -q -i1 $temp`;
+
+	float $col[] = {0.3984 , 0.6953 , 0.4013};	//G
+	if(gmatch($newData[3],"*01?.bmp")){
+		$col = {0.6992 , 0.3984 , 0.3984};	//R
+	}else if(gmatch($newData[3],"*02?.bmp")){
+		$col = {0.3984 , 0.5 , 0.6992};	//B
+	}else if(gmatch($newData[3],"*03?.bmp")){
+		$col = {0.6992 , 0.6992 , 0.3984};	//Y
+	}
+
+
+	$newData[2] = `substituteAllString $newData[2] ("\\") "\\\\"`;
+	$newData[2] = `substituteAllString $newData[2] ("\n") "\\n"`;
+	$newData[2] = `substituteAllString $newData[2] ("\"") "\\\""`;
+//要修正・iconTextButton以外の物を使う場合があり
+
+	string $type = dMPU_getUIObjectType($newData[0]);
+	string $optList[] = {"-c" , "-i" , "-bgc" , "-ann"};
+	string $optData[] = {("\"" + $newData[2] + "\"") , fromNativePath("\"" + $newData[3] + "\"") , ($col[0] + " " + $col[1] + " " + $col[2]) , ("\"" + $newData[1] + "\"")};
+	string $addOpt;
+
+	for($i=0;$i<size($optList);$i++){
+		if(dMPU_checkOptUseable($type , $optList[$i])){
+			$addOpt = ($addOpt + " " + $optList[$i] + " " + $optData[$i]);
+		}
+	}
+
+	string $UIcom = ($type + " -e " + $addOpt + " " + $newData[0] + ";");
+	if(`checkBox -q -v dMPU_debugFlag`) print ($UIcom + "\r\n");
+	eval $UIcom;
+
+//	iconTextButton -e -i1 $newData[3] -bgc $col[0] $col[1] $col[2] -ann $newData[1] -c $newData[2] $newData[0];
+
+	string $windowName = "stockActionToButton_Window";
+	if(`window -q -exists $windowName`){
+		deleteUI -window $windowName;
+	}
+}
+
+
+global proc GP2_dMPU_stockActionToButton(string $tgtName){
+	string $filePath = GP2_dMPU_queFilePath();
+	string $windowName = "stockActionToButton_Window";
+	if(`window -q -exists $windowName`){
+		deleteUI -window $windowName;
+	}
+	window -h 200 -w 150 -tlb 1  $windowName;
+
+	string $selList[] = `ls -sl`;
+
+	string $form = `formLayout`;
+		string $lay = `columnLayout -adj 1 `;
+			string $tf1 = `textField -visible 0 -tx $tgtName -w 100 dMPU_tgtNameFld`;
+			string $t2 = `text -label "ActionHelp\r\n※一行程度の簡単な説明" -align left`;
+			string $tf2 = `textField -tx "" -w 100 -ann "追加するツールの解説を入力して下さい。マウスオーバー時に表示されます" dMPU_toolHelpFld`;
+
+			string $s1 = `separator -height 10 -style "double"`;
+			string $t3 = `text -label "ActionIcon" -align left`;
+
+			string $iTRC = `iconTextRadioCollection dMPU_iTRC`;
+
+			int $i,$j;
+			string $iconID[];
+			string $iconFileList[] = `getFileList -folder ($filePath + "\\icon\\") -filespec "pickerIcon*.bmp"`;
+
+			string $btnListLay = `flowLayout -h 26`;
+			for($i=0; $i<size($iconFileList); $i++){
+				$iconID[$i] = `iconTextRadioButton -st "iconOnly" -i ($filePath + "\\icon\\" + $iconFileList[$i]) ("dMPU_iTRB" + $i)`;
+				if($i%4 == 0 ){
+					iconTextRadioButton -e -onc "cmdScrollFieldExecuter -e -appendText \"\\r\\nMoveTool;\" dMPU_toolScriptFld" ("dMPU_iTRB" + $i);
+				}else if( $i%4 == 1){
+					iconTextRadioButton -e -onc "cmdScrollFieldExecuter -e -appendText \"\\r\\nRotateTool;\" dMPU_toolScriptFld" ("dMPU_iTRB" + $i);
+				}
+				$j++;
+				if($j>3){
+					setParent ..;
+					$btnListLay = `flowLayout -h 26`;
+					$j=0;
+				}
+			}
+			setParent ..;
+		iconTextRadioButton -e -select dMPU_iTRB4;
+
+			string $s1 = `separator -height 10 -style "double"`;
+			string $t4 = `text -label "ActionScript" -align left`;
+			setParent ..;
+
+		string $tmpCommand;
+		if(size($selList) > 0){
+			$tmpCommand = "";
+			for($item in $selList){
+				$tmpCommand = ($tmpCommand + $item + " ");
+			}
+			textField -e -tx $tmpCommand dMPU_toolHelpFld;
+			$tmpCommand = ("dMPU_defaultSelection($nameSpace + \"" + $tmpCommand + "\");");
+		}else{
+			$tmpCommand = "Melスクリプト\r\n※任意のオブジェクトを選択してこのウィンドウを開くと、\r\n自動で選択用コマンドを生成します。";
+		}
+		string $s2 = `cmdScrollFieldExecuter -t $tmpCommand -w 100 -h 100 -ann "追加するツールのスクリプトを入力して下さい。" dMPU_toolScriptFld`;
+
+
+
+		string $b1 = `button -h 40 -l "上記設定のコマンドを追加する" -c "GP2_dMPU_execStock()" dMPU_toolExecBtn`;
+
+		formLayout -e
+			-attachForm $lay top 0
+			-attachForm $lay left 0
+			-attachForm $lay right 0
+
+			-attachControl $s2 top 0 $lay
+			-attachForm $s2 left 0
+			-attachForm $s2 right 0
+			-attachControl $s2 bottom 0 $b1
+
+			-attachForm $b1 bottom 0
+			-attachForm $b1 left 0
+			-attachForm $b1 right 0
+			$form;
+		
+	showWindow $windowName;
+}
+
+
+//デフォルトコマンド
+//選択機能をパッケ化
+global proc dMPU_defaultSelection(string $obj){
+    int $mod = getModifiers();
+    switch( $mod ){
+        case 1:    select -tgl $obj;    break;
+        case 4:    select -d $obj;      break;
+        case 5:    select -add $obj;   break;
+        default:    select -r $obj;      break;
+    }
+}
+
+
+//サブウィンドウ・UI追加用
+
+global proc addCtrlSelectWindow(){
+	dMPU_cleanSubwindow();
+
+	iconTextRadioButton -e -sl dMPU_addUIBtn;
+
+	string $filePath = GP2_dMPU_queFilePath();
+
+	string $windowName = "addCtrlSelector_Window";
+	if(`window -q -exists $windowName`){
+		deleteUI -window $windowName;
+	}
+	window -h 200 -w 150 -tlb 1  $windowName;
+
+	string $aCS_Lay = `formLayout`;
+
+	string $aCS_infoLay = `columnLayout aMPU_infoLay`;
+		string $nameLay = `columnLayout dMPU_addNameLay`;
+			string $text = `text -l "■addObject Name"`;
+			string $nameTf = `textField -tx "addUI" dMPU_addNameTf`;
+			setParent ..;
+
+		string $sizeLay = `columnLayout dMPU_addSizeLay`;
+			string $sizeTrig = `checkBox -v 1 -l "lock addUI size" dMPU_addSizeLk`;
+			string $sizeFldX = `floatField -min 1 -v 32 -en 1 -ann "Xsize" dMPU_addSizeX`;
+			string $sizeFldY = `floatField -min 1 -v 32 -en 1 -ann "Ysize" dMPU_addSizeY`;
+			checkBox -e
+				-ofc "floatField -e -en 0 dMPU_addSizeX;floatField -e -en 0 dMPU_addSizeY" 
+				-onc "floatField -e -en 1 dMPU_addSizeX;floatField -e -en 1 dMPU_addSizeY" 
+					dMPU_addSizeLk;
+			setParent ..;
+		setParent ..;
+
+	string $ctrlList[] = GP2_dMPU_loadArrayData(($filePath + "\\sys\\ctrlCommands.csv") , "controllCommand");
+	string $aCS_tSL = `textScrollList addCtrlSelList`;
+	string $temp;
+	for($item in $ctrlList){
+		$temp = startString($item,size($item)-1);
+		textScrollList -e -a $temp addCtrlSelList;
+	}
+		textScrollList -e -si "iconTextButton" addCtrlSelList;
+
+		formLayout -e
+			-attachForm $aCS_infoLay top 0
+			-attachForm $aCS_infoLay left 0
+			-attachForm $aCS_infoLay right 0
+			-attachNone $aCS_infoLay bottom
+
+			-attachControl $aCS_tSL top 0 $aCS_infoLay
+			-attachForm $aCS_tSL left 0
+			-attachForm $aCS_tSL right 0
+			-attachForm $aCS_tSL bottom 0
+			$aCS_Lay;
+
+	scriptJob -uiDeleted $windowName "dMPU_switchMenuUI();";
+	showWindow $windowName;
+}
+
+
+
+//サブウィンドウ・UI整列用
+
+
+global proc string[] dMPU_getCtrlList(){
+	string $res[];
+	string $activeTab = `tabLayout -q -st dMPU_globalTab`;
+	string $ctrls[] = `layout -q -ca $activeTab`;
+	$res[0] = $ctrls[0];
+	$res[1] = $ctrls[1];
+	int $i,$j;
+	$j=2;
+	for($i=2 ;$i<size($ctrls) ;$i++ ){
+		if(`checkBox -q -v ($ctrls[$i] + "_deleted")` == 0){
+			$res[$j] = $ctrls[$i];
+			$j++;
+		}
+	}
+
+	return($res);
+}
+
+global proc dMPU_setupECS_tSL(string $tgtTSL){
+	textScrollList -e -ra $tgtTSL;
+	string $ctrlList[] = dMPU_getCtrlList();
+	for($item in $ctrlList){
+		textScrollList -e -a $item $tgtTSL;
+	}
+}
+
+
+//
+//----------------------------------------------------------------------------------------------
+//
+global proc dMPU_ECSselectCansel(){
+	string $selected[] = `textScrollList -q -si editCtrlSrtList`;
+	for($item in $selected){
+		textScrollList -e -di $item editCtrlSrtList;
+		dMPU_reColor($item , 1 , "0,0,0");
+		checkBox -e -v 0 ($item + "_selected");
+	}
+}
+//
+//----------------------------------------------------------------------------------------------
+//
+
+global proc dMPU_reMakeECSWindow(){
+	string $windowName = "editCtrlSort_Window";
+	if(`window -q -exists $windowName`){
+		dMPU_ECSselectCansel();
+		dMPU_setupECS_tSL("editCtrlSrtList");
+	}
+}
+
+
+global proc dMPU_editCtrlSortWindow(){
+	dMPU_cleanSubwindow();
+		iconTextRadioButton -e -sl dMPU_editUIBtn;
+
+	string $filePath = GP2_dMPU_queFilePath();
+
+	string $windowName = "editCtrlSort_Window";
+	if(`window -q -exists $windowName`){
+		deleteUI -window $windowName;
+	}
+	window -h 200 -w 150 -tlb 1 $windowName;
+
+	string $image = ($filePath + "\\icon\\sortIcon_");
+	string $btn[],$eCS_row_Lay[];
+	string $eCS_Lay = `formLayout`;
+		string $eCS_col_Lay = `columnLayout`;
+		int $i,$j;
+			for($i=0;$i<2;$i++){
+				$eCS_row_Lay[$i] = `rowLayout -numberOfColumns 6 -columnWidth6 24 24 24 24 24 24`;
+					for($j=0 ; $j<6 ; $j++){
+						$btn[($i*6)+$j] = `iconTextButton -i1 ($image + (($i*6)+$j) + ".bmp") -c ("dMPU_editCtrlSortExec(" + (($i*6)+$j) + ")") -w 24 -h 24`;
+				   	}
+					setParent ..;
+			}
+			setParent ..;
+
+		string $eCS_tSL = `textScrollList -ams 1 editCtrlSrtList`;
+		formLayout -e
+			-attachForm $eCS_col_Lay top 0
+			-attachForm $eCS_col_Lay left 0
+			-attachForm $eCS_col_Lay right 0
+			-attachNone $eCS_col_Lay bottom
+
+			-attachControl $eCS_tSL top 0 $eCS_col_Lay
+			-attachForm $eCS_tSL left 0
+			-attachForm $eCS_tSL right 0
+			-attachForm $eCS_tSL bottom 0
+
+			$eCS_Lay;
+		dMPU_setupECS_tSL("editCtrlSrtList");
+	scriptJob -uiDeleted $windowName "dMPU_switchMenuUI();";
+	showWindow $windowName;
+}

@@ -1,0 +1,306 @@
+
+global proc MS_efxConfig_storeRecallUI ( string $mode ){
+
+	string $prefix="MS_efxConfig_";
+	
+	string $floatFieldList[] = {
+		};
+
+	string $intFieldList[] = {
+		};
+
+	string $floatSliderGrpList[] = {
+		};
+
+	string $intSliderGrpList[] = {
+		};
+
+	string $checkBoxList[] = {
+		};
+
+	string $radioButtonGrpList[] = {
+		};
+
+	string $frameLayoutList[] = {
+		};
+
+	string $textFieldList[] = {
+		"MS_efxConfig_renameEmitter"
+		};
+
+	string $textFieldList_file[] = {
+		"MS_efxConfig_exportPath",
+		"MS_efxConfig_filePath",
+		"MS_efxConfig_EFXsPath",
+		"MS_efxConfig_texturePath"
+		};
+
+	int $cnt;
+
+	if ( $mode == "store" )
+	{
+		for ( $each in $floatFieldList)
+			optionVar -floatValue ($prefix+$each) `floatField -q -value $each`;
+
+		for ( $each in $intFieldList)
+			optionVar -intValue ($prefix+$each) `intField -q -value $each`;
+
+		for ( $each in $floatSliderGrpList)
+			optionVar -floatValue ($prefix+$each) `floatSliderGrp -q -value $each`;
+
+		for ( $each in $intSliderGrpList)
+			optionVar -intValue ($prefix+$each) `intSliderGrp -q -value $each`;
+
+		for ( $each in $checkBoxList)
+			optionVar -intValue ($prefix+$each) `checkBox -q -value $each`;
+
+		for ( $each in $radioButtonGrpList)
+			optionVar -intValue ($prefix+$each) `radioButtonGrp -q -select $each`;
+
+		for ( $each in $frameLayoutList)
+			optionVar -intValue ($prefix+$each) `frameLayout -q -collapse $each`;
+
+		for ( $each in $textFieldList)
+			optionVar -stringValue ($prefix+$each) `textField -q -tx $each`;
+
+		for ( $each in $textFieldList_file)
+			optionVar -stringValue ($prefix+$each) `textField -q -fileName $each`;
+	}
+
+	if ( $mode == "recall" )
+	{
+		for ( $each in $floatFieldList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				floatField -e -value `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $intFieldList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				intField -e -value `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $floatSliderGrpList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				floatSliderGrp -e -value `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $intSliderGrpList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				intSliderGrp -e -value `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $checkBoxList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				checkBox -e -value `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $radioButtonGrpList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				radioButtonGrp -e -select `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $frameLayoutList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				frameLayout -e -collapse `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $textFieldList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				textField -e -tx `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $textFieldList_file)
+			if ( `optionVar -exists ($prefix+$each)` )
+				textField -e -fileName `optionVar -q ($prefix+$each)` $each;
+
+	}
+
+	if ( $mode == "reset" )
+	{
+		for ( $each in $floatFieldList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $intFieldList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $floatSliderGrpList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $intSliderGrpList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $checkBoxList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $radioButtonGrpList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $frameLayoutList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $textFieldList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $textFieldList_file)
+			optionVar -remove ($prefix+$each);
+	}
+}
+
+
+global proc MS_efxRename(){
+	string $filePath=`textField -q -fi "MS_efxConfig_filePath"`;
+	string $renameEmitter=`textField -q -tx "MS_efxConfig_renameEmitter"`;
+	string $exportPath=`textField -q -fi "MS_efxConfig_exportPath"`;
+	string $emitterName=`basenameEx $filePath`;
+	
+	string $efxORG=`MS_efxConfig_getFile $filePath`;
+	
+	string $efxNew=`substitute $emitterName $efxORG $renameEmitter`;
+	
+	string $exportFile=$exportPath+$renameEmitter+".efx";
+	
+	int $fileID=`fopen $exportFile "w"`;
+	fprint $fileID $efxNew;
+	fclose $fileID;
+}
+
+global proc MS_efxTextureCopy(){
+	/*テクスチャーコピー*/
+	//efxリスト取得
+	string $EFXsPath=`textField -q -fi "MS_efxConfig_EFXsPath"`;
+	string $filePathes[]=`getFileList -fld $EFXsPath -fs "*.efx"`;
+	
+	//検索タグ
+	string $serchStringA="<TexName>";
+	string $serchStringB="</TexName>";
+	
+	string $texturePath=`textField -q -fi "MS_efxConfig_texturePath"`;//テクスチャーパス取得
+	string $exportPath=`textField -q -fi "MS_efxConfig_exportPath"`;//出力パス取得
+	
+	for($eachFile in $filePathes){
+		//fileOpen
+		string $efxORG=`MS_efxConfig_getFile ($EFXsPath+$eachFile)`;
+		//テクスチャー記述抜き出し
+		string $match[]=`MS_efxMatchBetween $efxORG $serchStringA $serchStringB`;
+		//テクスチャーコピー
+		for($each in $match){
+			string $textureFile=$texturePath+$each+".dds";
+			string $textureExport=$exportPath+$each+".dds";
+			sysFile -copy $textureExport $textureFile;
+		}
+	}
+}
+
+global proc string[] MS_efxMatchBetween(string $baseString,string $serchStringA,string $serchStringB){
+	string $ret[];
+	string $preRet[];
+	int $i=0;
+	
+	while(size(`match ($serchStringA+"[0-9A-z]*"+$serchStringB) $baseString`)){
+		string $ddd=`match ($serchStringA+"[0-9A-z]*"+$serchStringB) $baseString`;
+		string $tempA=`substitute $serchStringA $ddd ""`;
+		string $tempB=`substitute $serchStringB $tempA ""`;
+		
+		string $temp=`substitute $ddd $baseString "<MS_match_dummy>"`; 
+		$baseString=$temp;
+		$preRet[$i]=$tempB;
+		$i++;
+	}
+	$ret=`stringArrayRemoveDuplicates $preRet`;
+	return $ret;
+}
+
+
+global proc string MS_efxConfig_getFile(string $filePath){
+	$fileID=`fopen $filePath "r"`;
+	string $fileString;
+	string $nextLine = `fgetline $fileID`;
+ 	while ( size( $nextLine ) > 0 ) {
+		$fileString=$fileString+($nextLine);
+ 		$nextLine = `fgetline $fileID`;
+ 	}
+	fclose $fileID;
+	return $fileString;
+}
+
+global proc MS_get_filePath(){
+	string $get_file_path=`textField -q -fi "filePath"`;
+	string $file_path=`fileDialog -dm ($get_file_path+"\\*.efx")`;
+	textField -e -fi $file_path "filePath";
+	  string $emn=`basenameEx $file_path`;
+	textField -e -tx $emn "renameEmitter";
+	MS_efxConfig_storeRecallUI store;
+}
+
+
+global proc MS_efxConfigUI_getDir_exportPath(string $exp_dir,string $dummy){
+	textField -e -fileName ($exp_dir+"/") "MS_efxConfig_exportPath";
+	MS_efxConfig_storeRecallUI store;
+}
+
+global proc MS_efxConfigUI_getDir_EFXsPath(string $exp_dir,string $dummy){
+	textField -e -fileName ($exp_dir+"/") "MS_efxConfig_EFXsPath";
+	MS_efxConfig_storeRecallUI store;
+}
+
+global proc MS_efxConfigUI_getDir_texturePath(string $exp_dir,string $dummy){
+	textField -e -fileName ($exp_dir+"/") "MS_efxConfig_texturePath";
+	MS_efxConfig_storeRecallUI store;
+
+}
+
+global proc MS_efxConfigUI_fileBrowser(string $command,string $controlID){
+	global string $gDefaultFileBrowserDir;
+	string $orgpath=$gDefaultFileBrowserDir;
+	string $path=`textField -q -fileName $controlID`;
+	eval("global string $gDefaultFileBrowserDir=\""+$path+"\"");
+	fileBrowser $command "Select Directory" "" 4 ;
+	eval("global string $gDefaultFileBrowserDir=\""+$orgpath+"\"");
+}
+
+
+global proc MS_efxConfigUI(){
+	
+	//Window Check
+	if(`window -exists MS_efxConfigUI`){
+		deleteUI MS_efxConfigUI;
+	}
+	//Create Window
+	window -title "MS_efxConfigUI" MS_efxConfigUI;
+	
+	columnLayout;
+	//getFile
+	//ファイルパスをtextFieldButtonGrpに取得
+	
+	text -l "exportPath";
+	textField -w 500 -fi "D:/effects/" "MS_efxConfig_exportPath";
+	button -l "Browse..." -c "MS_efxConfigUI_fileBrowser MS_efxConfigUI_getDir_exportPath exportPath" ;
+	
+	frameLayout -l "rename";
+	columnLayout;
+	text -l "sourceEFXfile";
+	textField -w 500 -fi "D:/effects/" "MS_efxConfig_filePath";
+	button -l "Browse..." -c "MS_get_filePath";
+	
+	text -l "renameString";
+	textField -w 500 "MS_efxConfig_renameEmitter";
+	
+	button -w 100 -bgc 1.0 0.8 0.8 -l "rename" -command "MS_efxRename" ;
+	setParent ..;
+	setParent ..;
+	frameLayout -l "textureCopy";
+	columnLayout;
+	text -l "EFXsPath";
+	textField -w 500 -fi "D:/effects/" "MS_efxConfig_EFXsPath";
+	button -l "Browse..." -c "MS_efxConfigUI_fileBrowser MS_efxConfigUI_getDir_EFXsPath EFXsPath" ;
+	
+	text -l "texturePath";
+	textField -w 500 -fi "D:/effects/" "MS_efxConfig_texturePath";
+	button -l "Browse..." -c "MS_efxConfigUI_fileBrowser MS_efxConfigUI_getDir_texturePath texturePath" ;
+	
+	button -w 100 -bgc 0.8 1.0 0.8 -l "textureOptimize" -command "MS_efxTextureCopy" ;
+	
+	separator -w 500;
+	
+	setParent ..;
+	setParent ..;
+	
+	//Footer
+	showWindow MS_efxConfigUI;
+	MS_efxConfig_storeRecallUI recall;
+}
+
+//MS_efxConfigUI;
+

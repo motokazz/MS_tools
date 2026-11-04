@@ -1,0 +1,213 @@
+//--------------------------------------------------------------------------
+//
+// ScriptName : AriRoundOffPosition
+// Contents   : 頂点、UV、オブジェクトの座標値を四捨五入します。
+//            : 
+// Author     : A-RI
+// Since      : 2015/07
+// LastUpdate : 2015/07/27 許容桁の値を保存するように修正
+//
+//--------------------------------------------------------------------------
+
+global proc AriRoundOffUpDown(int $mode){
+global string $AriVRO_floatField[3];
+for($i=0;$i<1;$i++){
+float $val = `floatField -q -v $AriVRO_floatField[$i]`;
+if ($mode==0)$val=$val*0.1;
+else $val=$val*10;
+floatField -e -v $val $AriVRO_floatField[$i];
+}
+}
+global proc AriRoundOffGO(int $getMode){
+global string $AriRoundOff_radioB[5];
+global string $AriVRO_floatField[3];
+global string $AriRoundOff_floatSlider[3];
+global string $AriRoundOff_checkBox[3];
+int $objMode=0;
+if(`radioButton -q -sl $AriRoundOff_radioB[0]`)$objMode=0;
+if(`radioButton -q -sl $AriRoundOff_radioB[1]`)$objMode=1;
+if(`radioButton -q -sl $AriRoundOff_radioB[2]`)$objMode=2;
+float $roundValue[];
+$roundValue[0] = `floatField -q -v $AriVRO_floatField[0]`;
+$roundValue[1] = $roundValue[0];
+$roundValue[2] = $roundValue[0];
+int $XYZtrue[3];
+$XYZtrue[0]=`checkBox -q -v $AriRoundOff_checkBox[0]`;
+$XYZtrue[1]=`checkBox -q -v $AriRoundOff_checkBox[1]`;
+$XYZtrue[2]=`checkBox -q -v $AriRoundOff_checkBox[2]`;
+int $ketaVal=`intField -q -v $AriRoundOff_floatSlider[0]`;
+float $disPar=`floatSliderGrp -q -v $AriRoundOff_floatSlider[1]`;
+int $moveSelectTrue=`checkBox -q -v  $AriRoundOff_checkBox[3]`;
+if(`optionVar -exists "AriRoundOffTarget"`){
+if($objMode != `optionVar -q "AriRoundOffTarget"`) optionVar -intValue "AriRoundOffTarget" $objMode;
+}
+else optionVar -intValue "AriRoundOffTarget" $objMode;
+if(`optionVar -exists "AriRoundOffMultiple"`){
+if($roundValue[0] != `optionVar -q "AriRoundOffMultiple"`) optionVar -floatValue "AriRoundOffMultiple" $roundValue[0];
+}
+else optionVar -intValue "AriRoundOffMultiple" $roundValue[0];
+if(`optionVar -exists "AriRoundOffPlace"`){
+if($ketaVal != `optionVar -q "AriRoundOffPlace"`) optionVar -intValue "AriRoundOffPlace" $ketaVal;
+}
+else optionVar -intValue "AriRoundOffPlace" $ketaVal;
+if(`optionVar -exists "AriRoundOffMovePer"`){
+if($disPar != `optionVar -q "AriRoundOffMovePer"`) optionVar -floatValue "AriRoundOffMovePer" $disPar;
+}
+else optionVar -intValue "AriRoundOffMovePer" $disPar;
+float $distance=$disPar*$roundValue[0]*0.005;
+float $gosa=pow(0.1,$ketaVal);
+string $objList[] =`ls -sl -tr`;
+string $unRoundList[];
+string $unMoveList[];
+string $selectVer[] =`ls -sl`;
+string $verList[]=`polyListComponentConversion -tv $selectVer`;
+$verList = `filterExpand -selectionMask 31 $verList`;	
+string $uvList[] = `polyListComponentConversion -tuv $selectVer`;
+$uvList =`filterExpand -selectionMask 35 $uvList`;	
+string $loopList[];
+if($objMode==0)$loopList=$verList;
+if($objMode==1)$loopList=$objList;
+if($objMode==2)$loopList=$uvList;
+int $j=0;
+if($getMode==0){
+for($loop in $loopList){
+float $pos[];
+if($objMode==0)	$pos=`pointPosition $loop`;
+if($objMode==1)	$pos=`getAttr ($loop+".translate")`;
+if($objMode==2)	$pos=`polyEditUV -q $loop`;;
+int $hasuuTrue=0;
+for($i=0;$i<3;$i++){
+if(!$XYZtrue[$i])continue;
+float $a=$pos[$i];
+float $b=AriRoundOffValue($pos[$i],$roundValue[$i]);
+if($a >= $b+$gosa || $a <= $b-$gosa){
+$hasuuTrue=1;
+}
+}			if($hasuuTrue){
+$unRoundList[$j]=$loop;
+$j++;
+}
+}
+}
+if($getMode==1){
+int $jikuTotal= $XYZtrue[0]+$XYZtrue[1]+$XYZtrue[2];
+for($loop in $loopList){
+float $pos[];
+if($objMode==0)	$pos=`pointPosition $loop`;
+if($objMode==1)	$pos=`getAttr ($loop+".translate")`;
+if($objMode==2)	$pos=`polyEditUV -q $loop`;;
+float $newPos[]=$pos;
+int $moveFalse=0;
+for($i=0;$i<3;$i++){
+if(!$XYZtrue[$i])continue;
+$newPos[$i] = AriRoundOffValue($pos[$i],$roundValue[$i]);
+if($disPar!=100){
+if($newPos[$i]<=$pos[$i]+$distance &&  $newPos[$i]>=$pos[$i]-$distance){
+}
+else{
+$newPos[$i]=$pos[$i];
+$moveFalse++;
+}
+}
+}
+if($objMode==0){
+move $newPos[0] $newPos[1] $newPos[2] $loop;
+}
+if($objMode==1){
+setAttr ($loop+".translateX") $newPos[0];
+setAttr ($loop+".translateY") $newPos[1];
+setAttr ($loop+".translateZ") $newPos[2];
+}
+if($objMode==2){
+polyEditUV -r 0 -u $newPos[0] -v $newPos[1]  $loop;
+}
+if($moveFalse){
+$unMoveList[$j]=$loop;
+$j++;
+}
+}
+}
+if($getMode==0){
+select $unRoundList;
+}
+if($moveSelectTrue){
+if($getMode==1){
+select $unMoveList;
+}
+}
+}
+global proc AriRoundOff_UIChange(int $mode){
+global string $AriRoundOff_checkBox[3];
+print $mode;
+if($mode==0){
+checkBox -e -l "X" $AriRoundOff_checkBox[0];
+checkBox -e -l "Y" $AriRoundOff_checkBox[1];
+checkBox -e -l "Z" -en true $AriRoundOff_checkBox[2];
+}
+else{
+checkBox -e -l "U" $AriRoundOff_checkBox[0];
+checkBox -e -l "V" $AriRoundOff_checkBox[1];
+checkBox -e -l "" -en false $AriRoundOff_checkBox[2];
+}
+}
+global proc float AriRoundOffValue(float $val ,float $roundValue){
+float $newVal;
+if($roundValue==0)return $val;
+$newVal= $val *(1/$roundValue);
+if($newVal>0)$newVal = trunc($newVal+0.5)*$roundValue;
+else $newVal = trunc($newVal-0.5)*$roundValue;
+return $newVal;
+}
+global proc AriRoundOffPosition(){
+global string $AriVRO_floatField[4];
+global string $AriRoundOff_checkBox[10];
+global string $AriRoundOff_radioB[5];
+global string $AriRoundOff_floatSlider[3];
+int $target=0;
+float $multiple=0.1;
+int $place=5;
+float $movePer=100;
+int $selTrue=1;
+if(`optionVar -exists "AriRoundOffTarget"`)		$target=`optionVar -q  "AriRoundOffTarget"`;	
+if(`optionVar -exists "AriRoundOffMultiple"`)	$multiple=`optionVar -q  "AriRoundOffMultiple"`;
+if(`optionVar -exists "AriRoundOffPlace"`)		$place=`optionVar -q  "AriRoundOffPlace"`;		
+if(`optionVar -exists "AriRoundOffMovePer"`)	$movePer=`optionVar -q  "AriRoundOffMovePer"`;	
+if(`optionVar -exists "AriRoundOffSelect"`)		$selTrue=`optionVar -q  "AriRoundOffSelect"`;	
+if((`window -ex AriRoundOffPosition`)==true)deleteUI AriRoundOffPosition;
+window -title "AriRoundOffPosition"  -w 200 -h 200 AriRoundOffPosition;
+columnLayout;
+rowLayout -nc 3;
+radioCollection;
+$AriRoundOff_radioB[0]=`radioButton -label "Vertex"   -onc "AriRoundOff_UIChange(0)" -sl`;
+$AriRoundOff_radioB[2]=`radioButton -label "UV"       -onc "AriRoundOff_UIChange(1)"`;
+$AriRoundOff_radioB[1]=`radioButton -label "Object"   -onc "AriRoundOff_UIChange(0)"`;	
+setParent..;
+radioButton -e -sl $AriRoundOff_radioB[$target];
+rowLayout -nc 5 -cw5 120 20 20 20 20;
+$AriVRO_floatField[0]=`floatField  -v $multiple -w 120 -pre $place`;
+button -w 20 -l "<" -c "AriRoundOffUpDown(0)";
+button -w 20 -l ">" -c "AriRoundOffUpDown(1)";
+setParent..;
+rowLayout -nc 3 -cw3 50 50 50 ;
+$AriRoundOff_checkBox[0]=`checkBox -l "X" -v 1`;
+$AriRoundOff_checkBox[1]=`checkBox -l "Y" -v 1`;
+$AriRoundOff_checkBox[2]=`checkBox -l "Z" -v 1`;
+setParent..;
+rowLayout -nc 4 -cw4 80 40 26 30;
+text -l "許容桁:";
+text -l "小数第";
+$AriRoundOff_floatSlider[0]=`intField -w 24 -value $place -min -5 -max 12`;
+text -l "位";
+setParent..;
+separator -w 160;
+text -l "移動範囲:(%)";
+$AriRoundOff_floatSlider[1]=`floatSliderGrp -field true -cw 1 40 -cw 2 120 -min 0.0 -max 100 -fmx 100 -value $movePer -step 0.1`;
+$AriRoundOff_checkBox[3]=`checkBox -l "移動頂点選択解除" -v $selTrue`;
+rowLayout -nc 2;
+button -w 80 -h 30 -l "Get" -c "AriRoundOffGO(0)";
+button -w 80 -h 30 -l "RoundOff" -c "AriRoundOffGO(1)";
+setParent..;
+button -w 164 -l "コンポーネントエディタ" -c ComponentEditor;
+showWindow;
+if(`radioButton -q -sl $AriRoundOff_radioB[2]`)	AriRoundOff_UIChange(2);
+}

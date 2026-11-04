@@ -1,0 +1,14 @@
+-----Chara Make Help-----
+set piv	s000192_EoJ_reset_piv	s000192_EoJ_WorkHelper.mel	選択形状（複数可）をfreeze transformation　し　pivotを０原点に設定
+view one node	s000192_EoJ_View_One	s000192_EoJ_WorkHelper.mel	重なった形状の中から一個のみ表示（キャラ表示用）
+cameraSetup	EOJ_PSP_camset_UI	EOJ_PSP_camset_UI.mel	EOJPSPで使用するカメラをMAYA上でセットアップ。
+toroExporter	toroExporterUI	toroExporterUI.mel	.toroファイル向けのエキスポート補助ツール
+cut geometry	ym_Cut_Geometry	ym_Cut_Geometry.mel	XYZ平面から形状を均等にカット
+local_world mode	s000192_EoJ_set_local_world_manip	s000192_EoJ_WorkHelper.mel	移動、回転モードのローカル、ワールドモードの反転切り替え。
+set URmovie cam	s000192_EoJ_set_movie_camera_setting	s000192_EoJ_WorkHelper.mel	ウルトラレアムービー用カメラ設定。
+-----Material Help-----
+check uv,texture anim	s000192_EoJ_Tex_anim_check	s000192_EoJ_WorkHelper.mel	シーン内のUV、カラー、アルファゲインのアニメをチェックし表示。Wクリックで選択。
+texturePatternAnim	MS_texturePatternAnimUI	MS_texturePatternAnimUI.mel	テクスチャーのパターンアニメーションをつくるツールです。
+matterSetup	EOJ_PSP_matterSetupUI	EOJ_PSP_matterSetup.mel	マテリアルとシェイプにPEdit出力用のアトリビュートを追加。
+reload texture's	s000192_EoJ_reload_tex	s000192_EoJ_WorkHelper.mel	シーン内のファイルテクスチャを全てリロード。
+edit priority	s000192_EoJ_Priority_check	s000192_EoJ_WorkHelper.mel	シーン内のマテリアル、形状に設定されているプライオリティ順の編集。

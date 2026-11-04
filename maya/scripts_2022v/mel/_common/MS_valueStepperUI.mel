@@ -1,0 +1,141 @@
+global proc MS_valueStepperUI(){
+		
+	//Window Check
+	if(`window -exists MS_valueStepperUI`){
+		deleteUI MS_valueStepperUI;
+	}
+	
+	
+	//Create Window
+	
+	window -title "MS_valueStepperUI" MS_valueStepperUI;
+	
+	columnLayout;
+	
+	floatField -w 80 -v 0 step;
+	radioButtonGrp
+        -numberOfRadioButtons 3
+        	-label "radio"
+        	-labelArray3 "step" "multiply" "divide"
+		-sl 1 smp_radio;
+	
+	button -l "goStep" -c "MS_valueStepper" ;
+	button -l "goRand" -c "MS_valueStepper_Random" ;	
+	
+	button -l "GroupStep" -c "MS_valueStepper_Group";
+	setParent ..;
+	
+	showWindow MS_valueStepperUI;
+	
+	
+	
+}
+global proc MS_valueStepper_Group(){
+	string $obj[]=`ls -sl`;
+	float $b=`floatField -q -v step`;
+	int $smp_radio=`radioButtonGrp -q -sl smp_radio`;
+	//get main channel box
+	
+	int $i=1;
+	
+	for($eachobj in $obj){
+		//get main channel box
+		string $attrMainChannel[]=`channelBox -q -sma mainChannelBox`;
+		for($eachattr in $attrMainChannel){
+			float $a=`getAttr ($eachobj+"."+$eachattr)`;
+			if($smp_radio=1)
+				$c=($a+($b*$i));
+			if($smp_radio=2)
+				$c=($a*($b*$i));
+			if($smp_radio=3)
+				$c=($a/($b*$i));
+			setAttr ($eachobj+"."+$eachattr) $c;
+		}
+		//get shape channel box
+		string $attrShapeChannel[]=`channelBox -q -ssa mainChannelBox`;
+		for($eachattr in $attrShapeChannel){
+			float $a=`getAttr ($eachobj+"."+$eachattr)`;
+			if($smp_radio==1)
+				$c=($a+($b*$i));
+			if($smp_radio==2)
+				$c=($a*($b*$i));
+			if($smp_radio==3)
+				$c=($a/($b*$i));
+			setAttr ($eachobj+"."+$eachattr) $c;
+		}
+		$i++;
+	}
+}
+
+global proc MS_valueStepper_Random(){
+	string $obj[]=`ls -sl`;
+	float $b=`floatField -q -v step`;
+	int $smp_radio=`radioButtonGrp -q -sl smp_radio`;
+	for($eachobj in $obj){
+		float $rnd=rand(-$b,$b);
+		
+		//get main channel box
+		string $attrMainChannel[]=`channelBox -q -sma mainChannelBox`;
+		for($eachattr in $attrMainChannel){
+			float $a=`getAttr ($eachobj+"."+$eachattr)`;
+			if($smp_radio=1)
+				$c=$a+$rnd;
+			if($smp_radio=2)
+				$c=$a*$rnd;
+			if($smp_radio=3)
+				$c=$a/$rnd;
+			
+			setAttr ($eachobj+"."+$eachattr) $c;
+		}
+		//get shape channel box
+		string $attrShapeChannel[]=`channelBox -q -ssa mainChannelBox`;
+		for($eachattr in $attrShapeChannel){
+			float $a=`getAttr ($eachobj+"."+$eachattr)`;
+			if($smp_radio==1)
+				$c=$a+$rnd;
+			if($smp_radio==2)
+				$c=$a*$rnd;
+			if($smp_radio==3)
+				$c=$a/$rnd;
+			
+			setAttr ($eachobj+"."+$eachattr) $c;
+		}
+	}
+}
+
+global proc MS_valueStepper(){
+	string $obj[]=`ls -sl`;
+	float $b=`floatField -q -v step`;
+	int $smp_radio=`radioButtonGrp -q -sl smp_radio`;
+	
+	for($eachobj in $obj){
+		//get main channel box
+		string $attrMainChannel[]=`channelBox -q -sma mainChannelBox`;
+		for($eachattr in $attrMainChannel){
+			float $a=`getAttr ($eachobj+"."+$eachattr)`;
+			
+			if($smp_radio==1)
+				$c=$a+$b;
+			if($smp_radio==2)
+				$c=$a*$b;	
+			if($smp_radio==3)
+				$c=$a/$b;
+			
+			setAttr ($eachobj+"."+$eachattr) $c;
+		}
+		//get shape channel box
+		string $attrShapeChannel[]=`channelBox -q -ssa mainChannelBox`;
+		for($eachattr in $attrShapeChannel){
+			float $a=`getAttr ($eachobj+"."+$eachattr)`;
+			if($smp_radio==1)
+				$c=$a+$b;
+			if($smp_radio==2)
+				$c=$a*$b;	
+			if($smp_radio==3)
+				$c=$a/$b;
+			setAttr ($eachobj+"."+$eachattr) $c;
+		}
+	}
+}
+
+//MS_valueStepperUI;

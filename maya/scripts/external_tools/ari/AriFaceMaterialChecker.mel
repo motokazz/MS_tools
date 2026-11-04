@@ -1,0 +1,303 @@
+//--------------------------------------------------------------------------
+//
+// ScriptName : AriFaceMaterialChecker
+// Contents   : マテリアルがフェースアサインになっているものの選択と修正。
+// Author     : Ari
+// URL        : http://cgjishu.net/
+// Since      : 2016/09/25
+// Update     : 
+// Note       : 
+//
+//--------------------------------------------------------------------------
+
+
+proc string[] AriFaceMaterialChecker_ObjectsToMaterials(string $objectList[]){
+	string $materialList[];
+	string $beforeSelectList[]=`ls -sl`;
+	select $objectList;
+	hyperShade -smn "";
+	$materialList = `ls -sl -mat`;
+	select $beforeSelectList;
+	return $materialList;
+}
+
+proc string[] AriFaceMaterialChecker_MaterialsToObjects(string $materialList[]){
+	string $objectList[];
+	string $beforeSelectList[]=`ls -sl`;
+	for($mat in $materialList){
+		select $mat;
+		hyperShade -objects "";
+		string $workObj[] = `ls -sl`;
+		$objectList=stringArrayCatenate($objectList,$workObj);
+	}
+	select $beforeSelectList;
+	return $objectList;
+}
+proc int AriFaceMaterialChecker_ListNum (string $obj){
+	int $num;
+	string $parent[]=`listRelatives -p -pa $obj`;
+	string $children[];
+	if($parent[0]=="")	$children=`ls -as`;
+	else $children=		`listRelatives -c -pa $parent[0]`;
+	int $i=0;
+	for($child in $children){
+		if($child == $obj){
+			$num=$i;
+			break;
+		}
+		$i++;
+	}
+	return $num;
+}
+proc AriFaceMaterialChecker_Extract(string $selectFace[]){
+	$selectFace = `filterExpand -selectionMask 34 $selectFace`;
+	string $sourceObjList[]=`polyListComponentConversion $selectFace`;
+	$sourceObjList=`listRelatives -pa -p $sourceObjList`;
+	select -cl;
+	string $all_dupObj[];
+	int $j=0;
+	for($sourceObj in $sourceObjList){
+		string $allFace[]=`polyListComponentConversion -toFace $sourceObj`; 
+		$allFace = `filterExpand -selectionMask 34 $allFace`;
+		string $unSelFace[]=stringArrayRemove($selectFace, $allFace);
+		string $SelFace_thisObj[]=stringArrayRemove($unSelFace, $allFace);
+		string $dupObj[]=`duplicate -rr $sourceObj`;
+		delete $SelFace_thisObj;
+		string $deleteFace[];
+		clear $deleteFace;
+		int $i=0;
+		for($face in $unSelFace){
+			string $sepa[];
+			tokenize $face "." $sepa;
+			$deleteFace[$i] = ($dupObj[0]+"."+$sepa[1]);
+			$i++;
+		}
+		delete $deleteFace;
+		int $lastObjNum = AriFaceMaterialChecker_ListNum($sourceObj);
+		reorder -relative ($lastObjNum+2) $dupObj[0];
+		string $matList[];
+		string $sourceObjs[];
+		clear $matList;
+		$sourceObjs[0]=$sourceObj;
+		$matList = AriFaceMaterialChecker_ObjectsToMaterials($sourceObjs);
+		if(size($matList)==1){
+			select $sourceObjs;
+			hyperShade -assign $matList[0];
+		}
+		$sourceObjs[0]=$dupObj[0];
+		$matList = AriFaceMaterialChecker_ObjectsToMaterials($sourceObjs);
+		if(size($matList)==1){
+			select $sourceObjs;
+			hyperShade -assign $matList[0];
+		}
+		$all_dupObj[$j]=$dupObj[0];
+		$j++;
+	}
+}
+proc string[] AriFaceMaterialChecker_fasetList(string $objectList[]){
+	string $fasetList[];
+	$materialList = AriFaceMaterialChecker_ObjectsToMaterials($objectList);
+	string $matToObjList[]=(AriFaceMaterialChecker_MaterialsToObjects($materialList));
+	string $matToTransform_unFasetList[];
+	int $i=0;
+	for($obj in $matToObjList){
+		string $tr[]= `listRelatives -p -pa -type "transform" $obj`;
+		if(size($tr)>0){
+			$matToTransform_unFasetList[$i] = $tr[0];
+			$i++;
+		}
+	}
+	$i=0;
+	for($obj in $objectList){
+		if(!stringArrayContains($obj,$matToTransform_unFasetList)){
+			$fasetList[$i]=$obj;
+			$i++;
+		}
+	}
+	return $fasetList;
+}
+proc string[] AriFaceMaterialChecker_oneMatfasetList(string $objectList[],int $mode){
+	string $fasetList[];
+	$materialList = AriFaceMaterialChecker_ObjectsToMaterials($objectList);
+	string $matToObjList[]=(AriFaceMaterialChecker_MaterialsToObjects($materialList));
+	string $matToTransform_allMeshFasetList[];
+	int $i=0;
+	for($obj in $matToObjList){
+		string $mesh_flat[] = `filterExpand -selectionMask 34 $obj`;
+		int $meshSize = (size($mesh_flat));
+		string $shapes[]=`polyListComponentConversion $obj`;
+		string $shapesToMesh[]=`polyListComponentConversion -tf $shapes`;
+		string $shapesToMesh_flat[] = `filterExpand -selectionMask 34 $shapesToMesh`;
+		int $shapeToMeshSize = (size($shapesToMesh_flat));
+		int $fasetTrue=0;
+		if($meshSize == $shapeToMeshSize)$fasetTrue=1;
+		if($fasetTrue){
+			string $tr[]= `listRelatives -p -pa -type "transform" $shapes`;
+			$matToTransform_allMeshFasetList[$i] = $tr[0];
+			$i++;
+		}
+	}
+	$i=0;
+	if($mode==0){
+		for($obj in $objectList){
+			if(stringArrayContains($obj,$matToTransform_allMeshFasetList)){
+				$fasetList[$i]=$obj;
+				$i++;
+			}
+		}
+	}
+	if($mode==1){
+		string $fasetObfList[] = AriFaceMaterialChecker_fasetList($objectList);
+		for($obj in $fasetObfList){
+			if(!stringArrayContains($obj,$matToTransform_allMeshFasetList)){
+				$fasetList[$i]=$obj;
+				$i++;
+			}
+		}
+	}
+	return $fasetList;
+}
+proc string[] AriFaceMaterialChecker_ObjWithMat(string $objectList[],string $materialList[]){
+	string $selectObjects[];
+	if(!size($materialList))return $selectObjects;
+	string $matToMeshList[];
+	int $i=0;
+	for($mat in $materialList){
+		hyperShade -objects $mat;
+		string $selects[]=`ls -sl`;
+		$matToMeshList = stringArrayCatenate($matToMeshList, $selects);
+	}
+	if(size($objectList)){
+		$i=0;
+		string $shapeAndMeshList[];
+		for($obj in $objectList){
+			$shapeAndMeshList[$i]=$obj+".";
+			$i++;
+		}
+		string $meshList[]=`listRelatives -pa -c -s $objectList`;
+		$shapeAndMeshList=stringArrayCatenate($shapeAndMeshList, $meshList);
+		$i=0;
+		string $selectList[];
+		for($matToMesh in $matToMeshList){
+			for($shapeAndMesh in $shapeAndMeshList){
+				if(startsWith($matToMesh,$shapeAndMesh)){
+					$selectList[$i]=$matToMesh;
+					$i++;
+					break;
+				}
+			}
+		}
+		return $selectList;
+	}
+	else{	
+		return $matToMeshList;
+	}
+}
+global proc AriFaceMaterialChecker_Sepalate(){
+	delete -ch;
+	string $objectList[]=`ls -sl -tr`;
+	string $fasetList[];
+	$fasetList=AriFaceMaterialChecker_oneMatfasetList($objectList,1);
+	select $fasetList;
+	for($faset in $fasetList){
+		select $faset;
+		hyperShade -smn "";
+		string $materialList[] = `ls -sl -mat`;
+		for($mat in $materialList){
+			string $fasets[];
+			string $mats[];
+			$fasets[0]=$faset;
+			$mats[0]=$mat;
+			string $faceList[]=AriFaceMaterialChecker_ObjWithMat($fasets,$mats);
+			AriFaceMaterialChecker_Extract($faceList);
+		}
+	}
+	select $fasetList;
+}
+global proc AriFaceMaterialChecker_fasetSelect(int $mode){
+	string $objectList[]=`ls -sl -tr`;
+	string $fasetList[];
+	if($mode==0){
+		$fasetList=AriFaceMaterialChecker_fasetList($objectList);
+	}
+	if($mode==1){
+		$fasetList=AriFaceMaterialChecker_oneMatfasetList($objectList,0);
+	}
+	if($mode==2){
+		$fasetList=AriFaceMaterialChecker_oneMatfasetList($objectList,1);
+	}
+	select $fasetList;
+}
+global proc AriFaceMaterialChecker_Assign(){
+	string $objectList[]=`ls -sl -tr`;
+	string $fasetList[];
+	$fasetList = AriFaceMaterialChecker_oneMatfasetList($objectList,0);
+	string $objectList[];
+	string $fasetMaterialList[];
+	int $i=0;
+	for($faset in $fasetList){
+		string $fasetShape[]=`polyListComponentConversion -tf $faset`;
+		select $fasetShape;
+		hyperShade -smn "";
+		$materialList = `ls -sl -mat`;
+		string $material = $materialList[0];
+		$fasetMaterialList[$i] = $material;
+		select $faset;
+		hyperShade -assign $material;
+		$i++;
+	}
+	select $fasetList;
+}
+global proc AriFaceMaterialChecker(){
+	int $englishTrue = true;
+	if(`about -uil`=="ja_JP")$englishTrue=false;
+	else $englishTrue=true;
+	string $butLabel[];
+	if($englishTrue) $butLabel[0] ="FaceAssignSelect";
+	else             $butLabel[0] ="フェースアサイン選択";
+	if($englishTrue) $butLabel[1] ="OneMaterial";
+	else             $butLabel[1] ="ワンマテリアル";
+	if($englishTrue) $butLabel[2] ="MultiMaterial";
+	else             $butLabel[2] ="複数マテリアル";
+	if($englishTrue) $butLabel[3] ="ObjectAssign";
+	else             $butLabel[3] ="オブジェクトアサイン";
+	if($englishTrue) $butLabel[4] ="Separate";
+	else             $butLabel[4] ="分離";
+	if ( (`window -ex AriFaceMaterialChecker`) == true ) deleteUI AriFaceMaterialChecker;
+	window -w 300 -h 100 -title "AriFaceMaterialChecker"  AriFaceMaterialChecker;
+	string $button[];
+	string $label[];
+	string $form =`formLayout`;
+	$button[0] = `button -w 100 -l $butLabel[0] -c "AriFaceMaterialChecker_fasetSelect(0)"`;
+	$button[1] = `button -w 120 -l $butLabel[1] -c "AriFaceMaterialChecker_fasetSelect(1)"`;
+	$button[2] = `button -w 120 -l $butLabel[2] -c "AriFaceMaterialChecker_fasetSelect(2)"`;
+	$button[3] = `button -h 40 -w 120 -l $butLabel[3] -c "AriFaceMaterialChecker_Assign()"`;
+	$button[4] = `button -h 40 -w 120 -l $butLabel[4] -c "AriFaceMaterialChecker_Sepalate"`;
+	$label[2] = `iconTextButton -i "arrowDown.png" `;
+	$label[3] = `iconTextButton -i "arrowDown.png" `;
+	setParent..;
+	formLayout -e 
+	-af $button[0] "top"   0
+	-af $button[0] "left"  0
+	-af $button[0] "right" 0
+	-af $button[1] "left"   0
+	-ac $button[1] "top"    0 $button[0]
+	-ap $button[1] "right" 0 50
+	-ac $button[2] "left"    0 $button[1]
+	-ac $button[2] "top"   0 $button[0]
+	-af $button[2] "right" 0
+	-ac  $label[2] "top"    0 $button[1]
+	-aoc $label[2] "left"   0 $button[1]
+	-aoc $label[2] "right"  0 $button[1]
+	-ac  $label[3] "top"   0 $button[2]
+	-aoc $label[3] "left"    0 $button[2]
+	-aoc $label[3] "right"  0 $button[2]
+	-ac  $button[3] "top"    0 $label[2]
+	-aoc $button[3] "right"  0 $button[1]
+	-aoc $button[3] "left"   0 $button[1]
+	-ac  $button[4] "top"    0 $label[2]
+	-aoc $button[4] "left"     0 $button[2]
+	-aoc $button[4] "right"  0 $button[2]
+	$form;
+	showWindow;
+}

@@ -1,0 +1,113 @@
+
+global proc MS_publishEffectDB(){
+	string $filePath=`textField -q -fileName "filePath"`;
+	string $motionPath=`textField -q -fileName "motionPath"`;
+	string $baseModelPath=`textField -q -fileName "baseModelPath"`;
+	string $texturePath=`textField -q -fileName "texturePath"`;
+	
+	string $effectsName[];
+	//string $scenefiles[] = `getFileList -folder $filePath -filespec "*.pcxff"`;
+	string $scenefiles[] = `getFileList -folder $motionPath -filespec "*.pcxff"`;
+	string $temp[];
+	
+	//ベースモデルの名前を特定
+	tokenize ($scenefiles[0],".",$temp);
+	string $baseModelName=`substring $temp[0] 1 4`+"base*.pcxff";
+	
+	//エフェクトの名前をリスト化
+	$i=0;
+	for($each in $scenefiles){
+
+		tokenize ($each,".",$temp);
+		//$name=`substring $temp[0] 1 (size($temp[0])-4)`;
+		$name=$temp[0];
+		$effectsName[$i]=$name;
+		$i++;
+		
+	}
+	string $result[]=`stringArrayRemoveDuplicates($effectsName)` ;
+	
+	//コマンド作成
+	$j=0;
+	string $command;
+	for($each in $result){
+		$command=$command+"mkdir "+"\""+($filePath+$each)+"\""+"\n";
+		$command=$command+"copy "+"\""+($filePath+$each+"*.*")+"\" \""+$filePath+$each+"/\"\n";
+		$command=$command+"copy "+"\""+($filePath+"*.efx")+"\" \""+$filePath+$each+"/\"\n";
+		$command=$command+"copy "+"\""+($motionPath+$each+"*.*")+"\" \""+$filePath+$each+"/\"\n";
+		$command=$command+"copy "+"\""+($baseModelPath+$baseModelName)+"\" \""+$filePath+$each+"/\"\n";
+		$command=$command+"copy "+"\""+($texturePath+"*.dds")+"\" \""+$filePath+$each+"/\"\n";
+		
+		$j++;
+	}
+	$finalCommand=substituteAllString ($command,"/","\\");
+	print $finalCommand;
+	
+	
+	$fileId=`fopen ($filePath+"MS_publishEffectDB.bat") "w"`;
+	print $fileId;
+ 	fprint $fileId $finalCommand;
+ 	fclose $fileId;
+	
+	
+}
+
+global proc HRC_XFF_ExportUI_get_dir(string $controlName,string $exp_dir,string $dummy){
+	if($controlName=="filePath"){
+		textField -e -fileName ($exp_dir+"/") $controlName;
+		textField -e -fileName ($exp_dir+"/"+"motion"+"/") "motionPath";
+		textField -e -fileName ($exp_dir+"/"+"motion"+"/") "baseModelPath";
+		textField -e -fileName ($exp_dir+"/"+"texture"+"/") "texturePath";
+	}else{
+	textField -e -fileName ($exp_dir+"/") $controlName;
+	}
+}
+
+global proc HRC_XFF_ExportUI_fileBrowser(string $controlName){
+	global string $gDefaultFileBrowserDir;
+	string $orgpath=$gDefaultFileBrowserDir;
+	string $path=`textField -q -fileName $controlName`;
+	eval("global string $gDefaultFileBrowserDir=\""+$path+"\"");
+	fileBrowser ("HRC_XFF_ExportUI_get_dir "+$controlName) "Select Directoryy" "" 4 ;
+	eval("global string $gDefaultFileBrowserDir=\""+$orgpath+"\"");
+}
+
+global proc MS_publishEffectDBUI()
+{
+if(`window -q -ex MS_publishEffectDBUI`)deleteUI MS_publishEffectDBUI;
+window MS_publishEffectDBUI;
+columnLayout;
+
+//defaultPath
+text -label "filePath" ;//Data//
+textField -fileName "D:\\effects\\particle\\" -width 200 "filePath" ;//Data//
+button -label "Brouse" -c "HRC_XFF_ExportUI_fileBrowser filePath";
+
+//motionPath
+text -label "motionPath" ;//Data//
+textField -fileName "D:\\effects\\particle\\" -width 200 "motionPath" ;//Data//
+button -label "Brouse" -c "HRC_XFF_ExportUI_fileBrowser motionPath" ;
+
+//baseModelPath
+text -label "baseModelPath" ;//Data//
+textField -fileName "D:\\effects\\particle\\" -width 200 "baseModelPath" ;//Data//
+button -label "Brouse" -c "HRC_XFF_ExportUI_fileBrowser baseModelPath" ;
+
+
+//texturePath
+text -label "texturePath" ;//Data//
+textField -fileName "D:\\effects\\particle\\" -width 200 "texturePath" ;//Data//
+button -label "Brouse" -c "HRC_XFF_ExportUI_fileBrowser texturePath" ;
+
+
+separator -width 300 -height 2 "separator8" ;//Data//
+
+
+button -label "go" -c "MS_publishEffectDB" ;
+
+showWindow MS_publishEffectDBUI;
+}
+
+
+//MS_publishEffectDBUI;
+

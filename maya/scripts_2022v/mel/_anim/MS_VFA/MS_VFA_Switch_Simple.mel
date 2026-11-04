@@ -1,0 +1,55 @@
+/*
+アニメーションしているターゲットのローカル移動値を参照して、
+しきい値を超えたら１、超えなかったら０
+$reverseに1を入れるとonn/off逆転。
+*/
+
+global proc MS_VFA_Switch_Simple(
+	int $strtm,
+	int $endtm,
+	float $threshold,
+	int $reverse,
+	string $target,
+	string $targetAttr,
+	string $obj[],
+	string $attr[]
+	)
+{
+	
+	currentTime -u 1 ($strtm-1);
+	int $value;
+	if($reverse){$value=-1;}
+	for($i=$strtm;$i<$endtm;$i++){
+		float $check=`getAttr -t $i ($target+"."+$targetAttr)`;
+		
+		for($each in $obj){
+			for($eachAttr in $attr){
+				if($reverse){
+					if($threshold>$check){
+							setKeyframe -at $eachAttr -t $i -v 1 $each;
+					}else{
+							setKeyframe -at $eachAttr -t $i -v 0 $each;
+					}
+				}else{
+					if($threshold>$check){
+							setKeyframe -at $eachAttr -t $i -v 0 $each;
+					}else{
+							setKeyframe -at $eachAttr -t $i -v 1 $each;
+					}
+				}
+			}
+		}
+	}
+	
+	//補完変更
+	for($each in $obj){
+		for($eachAttr in $attr){
+			selectKey -add -k ($each+"_"+$eachAttr) ;
+			keyTangent -ott step;
+		}
+	}
+
+}
+
+
+

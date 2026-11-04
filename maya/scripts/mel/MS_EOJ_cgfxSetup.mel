@@ -1,0 +1,54 @@
+
+global proc MS_EOJ_cgfxSetup(){
+	
+	string $command[]={
+		"createCHR_1",
+		"createCHR_1T",
+		"createCHR_2",
+		"createCHR_3",
+		"createCHR_4",
+		"createCHR_5",
+		"createCHR_6",
+		"createCHR_7T",
+		"createCHR_8",
+		"createCHR_9",
+		"createBG_1",
+		"createBG_2",
+		"createBG_3",
+		"createBG_4",
+		"createBG_5",
+		"createBG_6",
+		"createBG_7",
+		"createBG_8",
+		"createBG_9"
+		
+	};
+	
+	string $source[]={
+		"setMaterialUserdata",
+		"findTextureNode",
+		"setSamplerUserData",
+		"findPlace2dTexture"
+	};
+	for($eachSource in $source){
+		eval ("source \"D:/cubic_maya/modules/scripts/"+$eachSource+".mel\"");
+	}
+	
+	if(`window -q -ex MS_EOJ_cgfxSetup`)deleteUI MS_EOJ_cgfxSetup;
+	window MS_EOJ_cgfxSetup;
+	columnLayout ;
+	for($each in $command){
+		button -l $each -c ("MS_EOJ_cgfxSetup_exe "+$each);
+	}
+	showWindow MS_EOJ_cgfxSetup;
+}
+
+
+global proc MS_EOJ_cgfxSetup_exe(string $shader){
+eval ("source \"D:/cubic_maya/modules/scripts/"+$shader+".mel\"");
+	eval $shader;
+}
+
+MS_EOJ_cgfxSetup;
+
+

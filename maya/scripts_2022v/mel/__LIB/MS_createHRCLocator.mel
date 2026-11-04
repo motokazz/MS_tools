@@ -1,0 +1,31 @@
+/*
+ロケーター階層を一気に作成
+
+ex)
+MS_createHRCLocator　"a|b|c|d|e|f";
+
+*/
+global proc MS_createHRCLocator(string $objname){
+	string $buf[];
+	string $tokenizedString = substituteAllString($objname, ":", "XX");
+	tokenize($tokenizedString,"|",$buf);
+	
+	
+	string $checkobj;
+	string $checkparent;
+	for($each in $buf){
+		$checkobj=($checkobj+"|"+$each);
+		if(!`objExists $checkobj`){
+			string $loc[]=`spaceLocator`;
+			rename $loc[0] $each;
+			print $checkobj;
+			print "\n";
+			if($checkparent!=""){
+				parent $each $checkparent;
+			}
+		}
+		$checkparent=($checkparent+"|"+$each);
+		
+	}
+}
+

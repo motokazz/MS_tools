@@ -1,0 +1,375 @@
+
+
+
+//--------------------------------------------------------------------------------
+global proc string getVersion(){
+	string $SUTversion = "ver1.32_20140228";
+	return ($SUTversion);
+}
+//--------------------------------------------------------
+proc string pickComponentType(string$componentName)
+{
+//This returns $componentName's component type.
+
+string $listA[];
+$wordNum = `tokenize $componentName "." $listA`;
+string $typeWithNum = $listA[$wordNum - 1];
+
+string $listB[];
+$wordNum = `tokenize $typeWithNum "[" $listB`;
+string $type = $listB[0];
+
+return $type;
+}
+//--------------------------------------------------------
+proc uvMoveAsValue(float$value,int$type)
+{
+//This moves selected UV vertex or faces in UV Texture Editor as $value.
+//If $type=0, the UV vertices are moved along U axis.
+//If $type=1, the UV vertices are moved along V axis.
+
+	if($type==0)
+	{
+	polyEditUV -u $value;
+	}
+	if($type==1)
+	{
+	polyEditUV -v $value;
+	}
+}
+//--------------------------------------------------------
+//--------------------------------------------------------
+proc uvScaleAsValue(float$value,int$type,int$direction)
+{
+//This scales selected UV vertex or faces in UV Texture Editor as $value.
+//If $type=other than 1, the UV vertices are scaled centering around 0,0 of UV Texture Editor.
+//If $type=1, the UV vertices are scaled centering around the center of selection region.
+//If $direction = 0, this scales UVs along U.
+//If $direction = 1, this scales UVs along V.
+
+string $sel[] = `ls -sl`;
+string $componentType = `pickComponentType $sel[0]`;
+	if($componentType=="map")
+	{
+	float $ctrU = 0.0;
+	float $ctrV = 0.0;
+		if($type == 1)
+		{
+		float $bbList[] = `polyEvaluate -bc2`;
+		$ctrU = (($bbList[0] + $bbList[1]) / 2);
+		$ctrV = (($bbList[2] + $bbList[3]) / 2);	
+		}
+		if($direction==0)
+		{
+		polyEditUV -pu $ctrU -pv $ctrV -su $value;
+		}
+		else if($direction==1)
+		{
+		polyEditUV -pu $ctrU -pv $ctrV -sv $value;
+		}
+	}
+}
+
+/*
+proc float[] getParts_UVArea(int $ID){
+	float $st[] = { 0.0 , 0.2 , 0.4 , 0.4 , 0.6 , 0.8 };
+	float $en[] = { 0.2 , 0.4 , 0.6 , 0.6 , 0.8 , 1.0 };
+	float $res[] = {$st[$ID] , $en[$ID]};
+	return($res);
+}
+*/
+
+//--------------------------------------------------------
+proc GPConvertSelectionToUV(string $objList[]){
+//$objListからUVを取得し選択する
+	select -cl;
+	int $objListSize = `size $objList`;
+	int $i;
+	for($i=0;$i<$objListSize;$i++){
+	string $obj = $objList[$i];
+		int $uvNumList[] = `polyEvaluate -uv $obj`;
+		int $uvNum = $uvNumList[0] - 1;
+		$uvNumString = (string)$uvNum;
+		string $uvList = $obj + ".map[0:" + $uvNumString + "]";
+		select -add $uvList;
+	}
+}
+/*
+//--------------------------------------------------------
+proc int GPConvertSelectionToUV_cautionMark(string $objList[] , int $partsID){
+//$objListからUVを取得し選択する
+
+	int $errorFlag = 0;
+	float $tempUVpos[];
+	float $uvArea[] = getParts_UVArea($partsID);
+
+	select -cl;
+	int $objListSize = `size $objList`;
+	int $i;
+	for($i=0;$i<$objListSize;$i++){
+	string $obj = $objList[$i];
+		int $uvNumList[] = `polyEvaluate -uv $obj`;
+		int $uvNum = $uvNumList[0] - 1;
+		$uvNumString = (string)$uvNum;
+		string $uvList = $obj + ".map[0:" + $uvNumString + "]";
+		select -add $uvList;
+	}
+	
+	string $allUvList[] = `ls -sl -fl`;
+	string $deselList[];
+	for($item in $allUvList){
+		$tempUVpos = `polyEditUV -q $item`;
+
+		if($tempUVpos[0] < 0 || $tempUVpos[0] > 1 || $tempUVpos[1] < 0 || $tempUVpos[1] > 1 ){	//コーション範囲外は帰って、どうぞ
+			$deselList[size($deselList)] = $item;
+			continue;
+		}
+		if($tempUVpos[0] < $uvArea[1] && $uvArea[0] < $tempUVpos[0] ){	//短冊内、正常配置
+			
+		}else{	//旧配置
+			$errorFlag = 1;
+			break;
+		}
+	}
+	if(size($deselList) != 0){
+		select -d $deselList;
+	}
+
+	return $errorFlag;
+}
+*/
+
+
+//--------------------------------------------------------
+proc int GPReturnUVAreaByObj_harf(string$objList[])
+{
+//GPプロジェクト用フォーマットにおいて、$objListのUVがどのエリアに入っているかを返します。
+//下左が1、下中が2、下右が3、上左が4、上中が5、上右が6になります。
+//はみ出しがあった場合は0が返ります。
+//注・実行後はUVが選択された状態になります。
+
+//$objListからUVを取得し選択する
+	GPConvertSelectionToUV($objList);
+
+//選択からバウンディングボックスを取得する
+//$uvArea[0]がU座標左端、[1]が右端、2が下端、3が上端。
+	float $uvArea[] = `polyEvaluate -bc2`;
+
+//範囲を確認し結果を返す
+int $result = 0;
+
+	if(($uvArea[2] >= 0.0) && ($uvArea[3] <= 0.5))		//下段に入ったUV
+	{
+		if(($uvArea[0] >= 0.0) && ($uvArea[1] <= 0.5)){
+			$result = 1;	//U座標0～0.5なので下半身(1)
+
+		}else if(($uvArea[0] >= 0.5) && ($uvArea[1] <= 0.75)){
+			$result = 2;	//U座標0.5～0.75なのでどちらかの腕(2)
+
+		}else if(($uvArea[0] >= 0.625) && ($uvArea[1] <= 0.75)){
+			$result = 3;	//U座標0.625～0.75なのでどちらかの腕(3)、2の判定に取られるので実質無効
+		}
+
+	}else if(($uvArea[2] >= 0.5) && ($uvArea[3] <= 1.0)){		//上段に入ったUV
+
+		if(($uvArea[0] >= 0.0) && ($uvArea[1] <= 0.25)){
+			$result = 4;	//U座標0～0.25なので頭(4)
+
+		}else if(($uvArea[0] >= 0.25) && ($uvArea[1] <= 0.5)){
+			$result = 5;	//U座標0.25～0.5なので上半身(5)
+
+		}else if(($uvArea[0] >= 0.5) && ($uvArea[1] <= 0.75)){
+			$result = 6;	//U座標0.5～0.75なので下半身(6)
+		}
+	}
+	if($result == 0){
+		confirmDialog -title "parts Divide tool" -message ("UVマップ1にて、UVのはみ出しが検出されました。\n")
+		-button "OK" -defaultButton "OK";
+	}
+return $result;
+}
+
+
+//---------------------------------------------------
+proc int GPAdjustMSPartUV_harf(string $objList[] , string $mode , int $order){
+//GPプロジェクト用フォーマットにおいて、$objListのUVがどのエリアに入っているかを判定し、
+//UVサイズの調整を行います。
+//調整が実行されなかった場合は0を返します。
+
+//リストから範囲を取得
+
+	int $uvAreaID;
+	if($mode == "Auto"){
+		$uvAreaID = `GPReturnUVAreaByObj_harf $objList`;
+	}else{
+		$uvAreaID = $order;
+		//$objListからUVを取得し選択する
+		GPConvertSelectionToUV($objList);
+	}
+
+	if($uvAreaID == 1){			//足→全域
+		uvScaleAsValue 2.0 0 0;
+		uvScaleAsValue 2.0 0 1;
+	}else if($uvAreaID == 2){	//腕→全域
+		uvMoveAsValue -0.5 0;
+		uvScaleAsValue 4.0 0 0;
+		uvScaleAsValue 2.0 0 1;
+	}else if($uvAreaID == 3){	//unuse
+		uvMoveAsValue -0.5 0;
+		uvScaleAsValue 4.0 0 0;
+		uvScaleAsValue 2.0 0 1;
+	}else if($uvAreaID == 4){	//頭→全域
+		uvMoveAsValue -0.5 1;
+		uvScaleAsValue 4.0 0 0;
+		uvScaleAsValue 2.0 0 1;
+	}else if($uvAreaID == 5){	//胴→全域
+		uvMoveAsValue -0.25 0;
+		uvMoveAsValue -0.5 1;
+		uvScaleAsValue 4.0 0 0;
+		uvScaleAsValue 2.0 0 1;
+	}else if($uvAreaID == 6){	//背→全域
+		uvMoveAsValue -0.5 0;
+		uvMoveAsValue -0.5 1;
+		uvScaleAsValue 4.0 0 0;
+		uvScaleAsValue 2.0 0 1;
+	}else if($uvAreaID == 7){	//全域→足
+		uvScaleAsValue 0.5 0 0;
+		uvScaleAsValue 0.5 0 1;
+	}else if($uvAreaID == 8){	//全域→腕
+		uvScaleAsValue 0.25 0 0;
+		uvScaleAsValue 0.5 0 1;
+		uvMoveAsValue  0.5 0;
+	}else if($uvAreaID == 9){	//unuse
+		uvMoveAsValue -0.5 0;
+		uvScaleAsValue 4.0 0 0;
+		uvScaleAsValue 2.0 0 1;
+	}else if($uvAreaID == 10){	//全域→頭
+		uvScaleAsValue 0.25 0 0;
+		uvScaleAsValue 0.5 0 1;
+		uvMoveAsValue  0.5 1;
+	}else if($uvAreaID == 11){	//全域→胴
+		uvScaleAsValue 0.25 0 0;
+		uvScaleAsValue 0.5 0 1;
+		uvMoveAsValue  0.25 0;
+		uvMoveAsValue  0.5 1;
+	}else if($uvAreaID == 12){	//全域→背
+		uvScaleAsValue 0.25 0 0;
+		uvScaleAsValue 0.5 0 1;
+		uvMoveAsValue  0.5 0;
+		uvMoveAsValue  0.5 1;
+	}
+
+	select -cl;
+	return $uvAreaID;
+}
+
+
+
+//---------------------------------------------------
+global proc GPAdjustMSPartUVexe(string $mode , int $order){
+//実行用プロシージャ
+
+	string $objList[] = `ls -sl`;
+	int $area = `GPAdjustMSPartUV_harf $objList $mode $order`;
+
+	if($area == 0){
+		print ("Warning:" + "Could not adjust UVs." + "Some UVs are not in the area,");
+	}
+	select -r $objList;
+}
+
+//--------------------------------------------------------------------
+//引用ここまで
+//--------------------------------------------------------------------
+
+//--------------------------------------------------------------------------------
+global proc GP2_UST_setupBC(){
+	string $mode = `radioCollection -q -select GP2_UST_modeRC`;
+	string $imgIcon,$command;
+	if($mode == "GP2_UST_smallRB"){
+		$imgIcon = (`getenv "GP_MAYA_ROOT"` + "\\common\\scripts\\GP_mel\\bmp\\scaleDown.png");
+		$command = ("GPAdjustMSPartUVexe(\"small\" , " + 10 + ");");
+		iconTextButton -e -image1 $imgIcon -c $command GP2UST_btn1;
+		$command = ("GPAdjustMSPartUVexe(\"small\" , " + 11 + ");");
+		iconTextButton -e -image1 $imgIcon -c $command GP2UST_btn2;
+		$command = ("GPAdjustMSPartUVexe(\"small\" , " + 12 + ");");
+		iconTextButton -e -image1 $imgIcon -c $command GP2UST_btn3;
+		$command = ("GPAdjustMSPartUVexe(\"small\" , " + 7 + ");");
+		iconTextButton -e -image1 $imgIcon -c $command GP2UST_btn4;
+		$command = ("GPAdjustMSPartUVexe(\"small\" , " + 8 + ");");
+		iconTextButton -e -image1 $imgIcon -c $command GP2UST_btn5;
+		$command = ("GPAdjustMSPartUVexe(\"small\" , " + 9 + ");");
+		iconTextButton -e -en 0 -image1 $imgIcon -c $command GP2UST_btn6;
+	}else{
+		$imgIcon = (`getenv "GP_MAYA_ROOT"` + "\\common\\scripts\\GP_mel\\bmp\\scaleUp.png");
+		$command = ("GPAdjustMSPartUVexe(\"big\" , " + 4 + ");");
+		iconTextButton -e -image1 $imgIcon -c $command GP2UST_btn1;
+		$command = ("GPAdjustMSPartUVexe(\"big\" , " + 5 + ");");
+		iconTextButton -e -image1 $imgIcon -c $command GP2UST_btn2;
+		$command = ("GPAdjustMSPartUVexe(\"big\" , " + 6 + ");");
+		iconTextButton -e -image1 $imgIcon -c $command GP2UST_btn3;
+		$command = ("GPAdjustMSPartUVexe(\"big\" , " + 1 + ");");
+		iconTextButton -e -image1 $imgIcon -c $command GP2UST_btn4;
+		$command = ("GPAdjustMSPartUVexe(\"big\" , " + 2 + ");");
+		iconTextButton -e -image1 $imgIcon -c $command GP2UST_btn5;
+		$command = ("GPAdjustMSPartUVexe(\"big\" , " + 3 + ");");
+		iconTextButton -e -en 1 -image1 $imgIcon -c $command GP2UST_btn6;
+	}
+
+}
+//UI周り
+global proc GPUVScaleTool(){
+	string $title = "GP2_uv_scaleTool";
+	string $USwindow = "uvScaleTool";
+
+	if ( `window -exists $USwindow` )
+	{
+		deleteUI	$USwindow;
+	}
+	string $USTversion = getVersion();
+	window  -t ($title + "   " + $USTversion) -w 208 -h 130 $USwindow;
+	string $imgIcon = (`getenv "GP_MAYA_ROOT"` + "\\common\\scripts\\GP_mel\\bmp\\scaleUp.png");
+	string $baseLayout = `columnLayout`;
+		string $modeSwitch = `rowLayout -numberOfColumns 2 -columnWidth2 96 96
+	    -adjustableColumn 1
+	    -columnAlign  1 "left"
+	    -columnAlign  2 "left"
+	    -columnAttach 1 "both" 0
+	    -columnAttach 2 "both" 0`;
+			string $collection1 = `radioCollection GP2_UST_modeRC`;
+			string $rb1, $rb2;
+			$rb1 = `radioButton -label "縮小" -cc "GP2_UST_setupBC()" GP2_UST_smallRB`;
+			$rb2 = `radioButton -select -label "拡大" -cc "GP2_UST_setupBC()" GP2_UST_bigRB`;
+		setParent ..;
+
+		string $btnGroupUp = `rowLayout -numberOfColumns 3 -columnWidth3 64 64 64
+		-adjustableColumn 1
+		-columnAlign  1 "left"
+		-columnAlign  2 "left"
+		-columnAlign  3 "left"
+		-columnAttach 1 "both" 0
+		-columnAttach 2 "both" 0
+		-columnAttach 3 "both" 0`;
+			string $btn1, $btn2,$btn3;
+			$btn1 = `iconTextButton -w 64 -h 64 -bgc 0 0 1 -style "iconAndTextVertical" -image1 $imgIcon -label "Head" GP2UST_btn1`;
+			$btn2 = `iconTextButton -w 64 -h 64 -bgc 0 1 1 -style "iconAndTextVertical" -image1 $imgIcon -label "Body" GP2UST_btn2`;
+			$btn3 = `iconTextButton -w 64 -h 64 -bgc 0 0.48 0.2578 -style "iconAndTextVertical" -image1 $imgIcon -label "Backpack" GP2UST_btn3`;
+		setParent ..;
+
+		string $btnGroupDown = `rowLayout -numberOfColumns 2 -columnWidth2 128 64
+		-adjustableColumn 1
+		-columnAlign  1 "left"
+		-columnAlign  2 "left"
+		-columnAttach 1 "both" 0
+		-columnAttach 2 "both" 0`;
+			string $btn4, $btn5;
+			$btn4 = `iconTextButton -w 130 -h 64 -bgc 1 0 0 -style "iconAndTextVertical" -image1 $imgIcon -label "Foot" GP2UST_btn4`;
+			$btn5 = `iconTextButton -w 64 -h 64 -bgc 1 1 0 -style "iconAndTextVertical" -image1 $imgIcon -label "Arm" GP2UST_btn5`;
+		setParent ..;
+	string $btn6;
+	$btn6 = `iconTextButton -vis 0 -w 196 -h 64 -style "iconAndTextVertical" -image1 $imgIcon -label "Auto" GP2UST_btn6`;
+	GP2_UST_setupBC();
+	showWindow $USwindow;
+}
+
+

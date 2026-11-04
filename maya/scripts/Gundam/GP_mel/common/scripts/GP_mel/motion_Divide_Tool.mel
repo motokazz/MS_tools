@@ -1,0 +1,1941 @@
+//motion-Divide-System
+//
+//2012-12-21	18リグ用の出力機能を追加、MultiMotExp-ver.87以降との運用をする事
+//2012-11-01	motionDivideSystemとして分化。RTDは別ツールへ
+//2012-09-18	第一版
+//2012-08-31	着手
+//
+
+
+//--------------------------------------------------------------------------------
+global proc string getMDTVersion(){
+	string $MDTversion = "ver0.22_20121221";
+	return ($MDTversion);
+}
+
+//--------------------------------------------------------------------------------
+global proc motion_Divide_Tool(){
+	string $MDT_csvSaveFileName = (`getenv "GP_MAYA_ROOT"` + "\\common\\scripts\\GP_mel\\csv\\GPtool_savedata.csv");
+	motion_Divide_ToolWindow($MDT_csvSaveFileName);
+}
+
+
+
+//=======================================================================================
+//	2節・汎用処理
+//=======================================================================================
+
+
+
+//IDリスト取得--------------------------------------------------------------------
+//csvからデータを読み込み、配列として返す。
+//$fileName		csvファイル名
+//$tgtData		取得するデータを行数で指定
+
+global proc string[] getCsvData(string $fileName , int $tgtData){
+
+	print ("「" + $fileName + "」から" + $tgtData + "番目のデータを取得します");
+
+	int $fileId = `fopen $fileName "r"`;
+	string $line = `fgetline $fileId`;		//最上段は不要（目次）
+	$line = `fgetline $fileId`;
+	int $i=0;
+	string $IDlist[];
+
+	while ( size( $line ) > 0 ){
+		string $buffer[];
+		tokenize $line "," $buffer;
+		$IDlist[$i] = $buffer[$tgtData];
+		$line = `fgetline $fileId`;
+		$i++;
+	}
+	fclose $fileId;
+	print ("->完了しました。\r\n");
+	return( $IDlist );
+}
+
+
+//テキストフィールドのボタンから、データを指定された時の動作--------------------------------------------------------------------
+global proc rtd_setTextfData(string $textf , string $fileName, string $fileType){
+	$fileName = `toNativePath( $fileName )`;
+	switch($textf){
+		case "MDT_RtdNameTF":
+			$fileName = ($fileName + "\\");
+			textField -e -text ($fileName + "dae\\") MHME_resRtdTF;
+			MDT_reCollectRtdMember($fileName);
+			break;
+		case "MHME_tgtCharaTF":
+			$fileName = ($fileName + "\\");
+			MHME_reCollectRtdMember($fileName);
+			break;
+	}
+	textFieldButtonGrp -e -text $fileName $textf;
+
+}
+
+
+//------------------------------------------------------------------------------------------
+//
+//■処理ターゲット取得
+//
+//対処rtdの指定フォルダ内走査とチェックボックスの状態から取得する
+//返り値はchr0100_cast0001のような文字列配列
+//
+//	string $tgtRTD		:	[MDT_RtdNameTF]内、対象RTD名
+//	string $castData[]	:	複数チェックボックス内ラベル、各キャストのメンバー
+//	int $castVal[]		:	複数チェックボックス内on-off、各キャストの出力設定
+//
+//------------------------------------------------------------------------------------------
+global proc string[] getTgtCharaList(string $tgtRTD , string $castName[] , string $castVal[]){
+	//タゲ取得
+	string $charaPathTemp[] = `getFileList -folder ($tgtRTD + "\\dae\\") -filespec ("chr*0_cast*")`;
+	string $castList[] , $charaPathList[] , $divTemp[];
+	string $temp;
+	int $i , $j;
+	$j=0;
+	clear $castList;
+	clear $charaPathList;
+	for($i=0 ;$i<10; $i++){
+		if( $castName[$i] != "-------" && int($castVal[$i]) == 1){	//			if(`checkBox -q -label ("castFlag" + $i)` != "-------" && `checkBox -q -v ("castFlag" + $i)` == 1){
+			$castList[$j] = $castName[$i];						//			$castList[$j] = `checkBox -q -label ("castFlag" + $i)`;
+			$j++;
+		}
+	}
+	$castList = `sort($castList)`;
+	$j=0;
+	for($charaPathItem in $charaPathTemp){
+		tokenize $charaPathItem "_" $divTemp;
+		if( stringArrayContains($divTemp[1] , $castList ) ){
+			$charaPathList[$j] = $charaPathItem;
+			$j++;
+		}
+	}
+	$charaPathList = `sort($charaPathList)`;
+	return($charaPathList);
+}
+
+
+
+
+
+global proc MHME_main(string $tgtRTD , string $srcRig , string $ExpChr , string $ExpCst , string $IptPath , string $IptChr , string $ExpRtd ){
+	float $times[];
+	$times = MHME_Export( $tgtRTD , $srcRig , $ExpChr , $ExpCst );
+	MHME_Import($times , $tgtRTD , $IptPath , $IptChr , $ExpRtd , $ExpChr , $ExpCst );
+
+}
+
+
+//=======================================================================================
+//	3節・モーションAnim出力処理
+//
+//
+//	string $tgtRTD		:	作業rtdシーン			:	MDT_RtdNameTF
+//	string $srcRig		:	コピー元リグ選択		:	MHME_srcRigTF
+//	string $ExpChr		:	■collada保存先設定2	:	MHME_resChrTF
+//	string $ExpCst		:	■collada保存先設定3	:	MHME_resCastTF
+//
+//=======================================================================================
+global proc float[] MHME_Export(string $tgtRTD , string $srcRig , string $ExpChr , string $ExpCst ){
+
+	string $baseName = $srcRig;				//	string $baseName = `textFieldButtonGrp -q -text MHME_srcRigTF`;
+	string $rtdCastName = ( $tgtRTD + "Anim\\" + $ExpChr + $ExpCst + "\\" + $ExpChr + $ExpCst + ".anim");		//	string $rtdCastName = (`textFieldButtonGrp -q -text MDT_RtdNameTF` + "Anim\\" + `textField -q -text MHME_resChrTF` + `textField -q -text MHME_resCastTF` + "\\" + `textField -q -text MHME_resChrTF` + `textField -q -text MHME_resCastTF` + ".anim");
+
+	string $temp[];
+	tokenize $baseName ":" $temp;
+	int $i;
+
+	$baseName = "";
+	if(size($temp)>1){
+		for( $i=0 ; $i<size($temp)-1 ; $i++){
+			$baseName = ($baseName + $temp[$i] + ":");
+		}
+	}
+
+/*
+//中断用オプション
+	int $percent = 0;
+	float $calCount = 0;
+	progressWindow -title "Anim出力中"
+		-progress $percent
+		-status "出力作業: 0%"
+		-isInterruptable true;
+*/
+	float $startF,$endF;
+	$startF = `playbackOptions -q -minTime`;
+	$endF = `playbackOptions -q -maxTime`;
+	bakeResults -t ($startF + ":" + $endF) -simulation true -sampleBy 1 -disableImplicitControl true -preserveOutsideKeys true -sparseAnimCurveBake false -removeBakedAttributeFromLayer false -bakeOnOverrideLayer false -at "tx" -at "ty" -at "tz"  -at "rx" -at "ry" -at "rz" -at "sx" -at "sy" -at "sz" -at "Parent" {$baseName + "selection_set"};
+
+
+	if(`animLayer -q -exists "BaseAnimation"`){
+		if(`animLayer -q -exists "AnimLayer1"`){delete "AnimLayer*";}
+		animLayer -e -selected true "BaseAnimation";
+	}
+
+	string $objs[] = `listConnections -type animCurveTU -d 0 ($baseName + "rig_pelvis")`;
+	for($objItem in $objs){
+		delete $objItem;
+	}
+
+//rigトップノードを選択し、anim出力
+	select -r ($baseName + "rig");
+	sysFile -md (`dirname $rtdCastName`);
+	file -force -op "precision=8 ; intValue=17 ; nodeNames=1;verboseUnits=0;whichRange=1;range=24:25;options=keys;hierarchy=below;controlPoints=0;shapes=1;helpPictures=0;useChannelBox=0;copyKeyCmd=-animation objects -option keys -hierarchy below -controlPoints 0 -shape 1 " -typ "animExport" -es ($rtdCastName);
+	float $time[] = {$startF , $endF};
+	return($time);
+}
+
+//=======================================================================================
+//	4節・モーションAnim入力・collada出力処理
+//
+//
+//	string $tgtRTD		:	作業rtdシーン			:	MDT_RtdNameTF
+//	string $IptPath		:	コピー先機体フォルダ	:	MHME_tgtCharaTF
+//	string $IptChr		:	■対象キャラ			:	MHME_charaList
+//	string $ExpRtd		:	■collada保存先設定1	:	MHME_resRtdTF
+//	string $ExpChr		:	■collada保存先設定2	:	MHME_resChrTF
+//	string $ExpCst		:	■collada保存先設定3	:	MHME_resCastTF
+//
+//
+//=======================================================================================
+
+global proc MHME_Import(float $times[] , string $tgtRTD , string $IptPath , string $IptChr , string $ExpRtd , string $ExpChr , string $ExpCst){
+	string $rtdUniqName = $tgtRTD ;			//	`textFieldButtonGrp -q -text MDT_RtdNameTF`;
+	string $mayaPath = $IptPath ;			//	`textFieldButtonGrp -q -text MHME_tgtCharaTF`;
+	string $temp = $IptChr ;				//	`scrollField -q -text MHME_charaList`;
+	string $rtdDaeExptPath = $ExpRtd ;		//	`textField -q -text MHME_resRtdTF`;
+	string $rtdAnimChrName = $ExpChr ;		//	`textField -q -text MHME_resChrTF`;
+	string $rtdCastName = $ExpCst ;			//	`textField -q -text MHME_resCastTF`;
+
+	string $rtdAnimInput , $rtdMbOutPut , $rtdDaeOutPut;
+	$temp = `substituteAllString $temp "\r" ""`;
+	$temp = `substituteAllString $temp "\n" ""`;
+
+
+	string $charaList[];
+	tokenize $temp ", " $charaList;
+	$charaList = stringArrayRemoveDuplicates($charaList);
+	$charaList = stringArrayRemove({""}, $charaList);
+	
+	string $tgtFullPath;
+	sysFile -md ($rtdUniqName + "maya\\");
+	for($charaItem in $charaList){
+		print ("CharaName is [" + $charaItem + "].\r\n");
+		$tgtFullPath = ($mayaPath + $charaItem + "\\scenes\\" + $charaItem + "_rigbase.mb");
+		print ("$tgtFullPath is [" + $tgtFullPath + "].\r\n");
+		$rtdAnimInput = ($rtdUniqName + "Anim\\" + $rtdAnimChrName + $rtdCastName + "\\" + $rtdAnimChrName + $rtdCastName + ".anim");
+		$rtdMbOutPut = ($rtdUniqName + "maya\\" + $charaItem + $rtdCastName + "\\scenes\\" + $charaItem + $rtdCastName + ".mb");
+		print ("$rtdMbOutPut is [" + $rtdMbOutPut + "].\r\n");
+		$rtdDaeOutPut = ($rtdDaeExptPath + $charaItem + $rtdCastName + "\\" + $charaItem + $rtdCastName + "_cut000.mot.dae");
+
+		file -f -new;
+		playbackOptions -e -minTime $times[0];
+		playbackOptions -e -maxTime $times[1];
+		MHME_AnimImport($tgtFullPath , $rtdAnimInput , $charaItem);
+
+		sysFile -md (`dirname $rtdMbOutPut`);
+		file -rename $rtdMbOutPut;
+		file -f -s -options "v=0" -type "mayaBinary";
+
+		MHME_DaeExport($rtdMbOutPut,$rtdDaeOutPut);
+	}
+}
+
+
+
+global proc MHME_AnimImport(string $tgtFullPath , string $rtdAnimInput , string $charaID){
+	//catch(`file -f -options "v=0"  -ignoreVersion -r $tgtFullPath`);
+	MHME_importRig($tgtFullPath,$charaID);
+	select "*:rig";
+	catch(`file -import -type "animImport" -options ";targetTime=4;copies=1;option=replace;pictures=1;connect=0;"  -pr -loadReferenceDepth "all"  $rtdAnimInput`);
+}
+
+
+//--------------------------------------------------------------------------------
+//リグのリファレンス
+//ws設定を行い、相対パスで作業する。
+//--------------------------------------------------------------------------------
+global proc MHME_importRig( string $rigFullPassName , string $chrName ){
+	print $rigFullPassName;
+	string $tokenized[];
+	int $j;
+	string $loadedPass = "";
+	tokenize $rigFullPassName "\\" $tokenized;
+	for( $j=0 ; $j<size($tokenized) ; $j++ ){
+		int $max = size($tokenized);
+		$max-- ;
+		if($j < $max ){
+			$loadedPass = ($loadedPass + $tokenized[$j] + "/");
+		}else{
+			print $loadedPass;
+			workspace -o $loadedPass;
+			file -r -type "mayaBinary" -ignoreVersion -gl -loadReferenceDepth "all" -namespace ( $chrName + "_rigbase") -options "v=0" $tokenized[$j];
+		}
+	}
+}
+
+global proc MHME_DaeExport(string $rtdMbOutPut , string $rtdDaeOutPut){
+	
+	source "mrGxMotionWorkUI.mel";mrGxMotionWorkUI;
+	// オプションの作成
+	string $sOption = "Dumy=0;";
+	string $sForm = "htGxMotionListExportUIForm";
+	$sOption = $sOption + `htGxMotionExportUI_CreateCheckOption $sForm`;
+
+	string $err = `htGxMotionExportUI_Export $rtdDaeOutPut $sOption {""}`;
+}
+
+
+
+//=======================================================================================
+//	5節・モーション分割処理
+//=======================================================================================
+
+
+//骨階層情報の取得--------------------------------------------------------------------
+//global proc string[] mDT_getJointsArrayData(string $fileName , string $partsPass ,int $UVEditFlag ,int $expjFlag ,int $keepWtFlag ,int $mode){
+global proc string[] mDT_getJointsArrayData(string $tgtFile){
+
+	catch( `file -force -ignoreVersion -open $tgtFile` );
+	string $res[] , $partsJList[];
+	string $fileName = (`getenv "GP_MAYA_ROOT"` + "\\common\\scripts\\GP_mel\\csv\\GxChrSkinCluster.csv");
+	rename "root" "rootOrig";
+	rename "parts" "partsOrig";
+
+	string $partsNum;		//何番目のパーツか？を２～７で指定。
+	string $partsID;		//パーツのIDを指定。本体のIDを元にNumと組み合わせ
+
+//キャラID取得
+	string $charaID;
+	string $sceneName[] = `file -q -l -shn`;
+	string $temp[];
+	tokenize $sceneName[0] "." $temp;
+	$charaID = $temp[0];
+
+	string $IDList[] = getCsvData( $fileName , 0 );		//パーツが所属するグループ、2～7
+	string $jointList[] = getCsvData( $fileName , 1 );	//骨名
+	string $flagList[] = getCsvData( $fileName , 2 );	//オブジェクトフラグ
+	string $nodeTop[] = getCsvData($fileName , 5);		//グループトップか否か
+	int $topNum;
+
+//処理パート
+	int $i,$j;
+	for($i=2 ; $i<8 ; $i++){
+		$partsNum = string($i);
+		$partsID = (startString( $charaID,(`size($charaID)` -1 ) ) + $partsNum);
+		select -cl;
+		print($partsID + "の作業を開始します。\r\n");
+		
+		//骨作業
+		print("CSVのリストを元に、ジョイントのコピーを行います。(エラー表示を出しますが、骨が無くても先に進みます。)\r\n");
+		for($j=0 ; $j < size($IDList) ; $j++){
+			if( endsWith($IDList[$j] , $partsNum) ){
+				print ("joint名 :" + $jointList[$j] + " 対応フラグ :" + $flagList[$j] + " " + $nodeTop[$j] + "\r\n");
+				catch(`select -add $jointList[$j]`);
+				if ( startsWith($nodeTop[$j] , "top")){
+					$topNum = $j;
+				}
+			}
+		}
+		rename $jointList[$topNum] "partsTop";
+		select -add "partsTop";
+		duplicate -po;
+		if($i!=7) parent -world partsTop1 ;
+		rename partsTop $jointList[$topNum];
+
+		duplicate -un -po rootOrig rootOrig|jointroot_000;
+		rename rootOrig1 "root";
+
+		print("ジョイントのコピーが完了しました。\r\n");
+
+		{
+			if( $i == 5  ){
+				print("下半身パーツ用の調整を行います・・・");
+				//腰作業アタッチ用にrot/orientを初期化
+				//新しい骨を作り、jointrootの座標に置いて、子供の骨たちをのせ変え、最後にrootの子へ。
+				select -cl;
+				joint -p 0 0 0 -n "newjointroot_000";
+				select -r root|jointroot_000 newjointroot_000;
+				pointConstraint -offset 0 0 0 -weight 1;pointConstraint -remove;
+				string $selects[] = {"partsTop1|J_hip_295" };
+				//string $selects[] = {"partsTop1|J_Rmomo_300" , "partsTop1|J_Lmomo_400" , "partsTop1|J_RskirtF1_500" , "partsTop1|J_RskirtB1_501" , "partsTop1|J_RskirtS1_502" , "partsTop1|J_LskirtF1_503" , "partsTop1|J_LskirtB1_504" , "partsTop1|J_LskirtS1_505" };
+				for($j = 0 ; $j < size($selects) ; $j++){
+					parent $selects[$j] newjointroot_000 ;
+				}
+				delete root|jointroot_000 partsTop1;
+				rename newjointroot_000 partsTop1;
+				parent  partsTop1 root;
+				print("→完了しました。\r\n");
+
+			}else if( $i==7 ){
+				print("下半身パーツ用の調整を行います・・・(エラーが起きたら、ジョイントロックの影響かも知れません)");
+				//アタッチ用にrot/orientを初期化
+				//やることは下半身と同じだが、子供の骨も矯正している
+				select -cl;
+				joint -p 0 0 0 -n "newmune_001";
+				select -r rootOrig|partsTop1|J_mune_001 newmune_001;
+				pointConstraint -offset 0 0 0 -weight 1;pointConstraint -remove;
+				string $selects[] = { "J_kao_002" , "J_Rkata_100" , "J_Lkata_200" , "J_backpackConnect_250" };
+				int $k = 0;
+				for( $k=0 ; $k<10 ; $k++){
+					select -cl;
+					catch(`select -r ("rootOrig|partsTop1|J_mune_001|J_bodyExtra_97" + $k)`);
+					string $testSel[] = `ls -sl`;
+					if(size($testSel)){
+						print ($testSel[0] + " found.\r\n");
+						$selects[size($selects)] = ("J_bodyExtra_97" + $k);
+					}else{
+						print ($testSel[0] + " not found.\r\n");
+					}
+					select -cl;
+				}
+				for($j = 0 ; $j < size($selects) ; $j++){
+					parent ("rootOrig|partsTop1|J_mune_001|" + $selects[$j]) newmune_001 ;
+					setAttr ("newmune_001|" + $selects[$j] + ".jointOrientX") 0;
+					setAttr ("newmune_001|" + $selects[$j] + ".jointOrientY") 0;
+					setAttr ("newmune_001|" + $selects[$j] + ".jointOrientZ") 0;
+					setAttr ("newmune_001|" + $selects[$j] + ".rx") 0;
+					setAttr ("newmune_001|" + $selects[$j] + ".ry") 0;
+					setAttr ("newmune_001|" + $selects[$j] + ".rz") 0;
+				}
+				delete root|jointroot_000 partsTop1|J_mune_001;
+				rename newmune_001 J_mune_001;
+				parent |J_mune_001 partsTop1;
+				parent partsTop1 root;
+				print("→完了しました。\r\n");
+
+			}else{
+				parent  partsTop1 root|jointroot_000;
+			}
+		}
+
+		rename "partsTop1" $jointList[$topNum];
+		spaceLocator -name "rot_y";
+		parent |rot_y root;
+		select -cl;
+		print("ジョイント座標、階層の調整を完了しました。\r\n");
+
+		//下半身以外は原点へ
+		print("rootの位置調整を行います。\r\n");
+		if ($i == 7){
+			setAttr "|root|jointroot_000.tx" 0;
+			setAttr "|root|jointroot_000.ty" 0.01;
+			setAttr "|root|jointroot_000.tz" 0;
+		}else if ($i != 5){
+			setAttr "|root|jointroot_000.tx" 0;
+			setAttr "|root|jointroot_000.ty" 0.01;
+			setAttr "|root|jointroot_000.tz" 0;
+			setAttr ("|root|jointroot_000|" + $jointList[$topNum] + ".tx") 0;
+			setAttr ("|root|jointroot_000|" + $jointList[$topNum] + ".ty") 0.01;
+			setAttr ("|root|jointroot_000|" + $jointList[$topNum] + ".tz") 0;
+		}
+		
+		
+		select -r -hi root;
+		$partsJList = `ls -long -sl -type joint`;
+		for($pjItem in $partsJList){
+			$res[size($res)] = $i + "-" + $pjItem;
+		}
+		doDelete;
+	}
+	return($res);
+}
+
+
+//==============================================================================
+// 全体処理
+//	$sExportPath		出力先
+//	$sOption			出力オプション
+//	$asExportCommand[]	タイトル側設定のプロシージャ
+//					[0]	出力先の取得
+//					[1]	出力オプション作成
+//					[2]	(エクスポート)シーン保存後処理
+//					[3]	(エクスポート)最適化後処理
+//					[4]	コンバート先の取得
+//					[5]	コンバータの場所の所得
+//	ret					エラーメッセージ
+//==============================================================================
+global proc motion_Divide_Exec(string $tgtRTD , string $castName[] , string $castVal[] , string $mayaModelPath , string $bpPath ){	
+		print("command start.\r\n");
+
+//タゲ取得
+	string $charaPathList[] = getTgtCharaList($tgtRTD, $castName , $castVal);	//UIで選択されたキャストのキャラクター配列
+
+	string $daeList[],$charaDaeList[];
+	int $i;
+	for($charaPath in $charaPathList){
+		$charaDaeList = `getFileList -folder ($tgtRTD + "dae\\" + $charaPath + "\\") -filespec ($charaPath + "*.mot.dae.gz")`;
+		for($i=0 ; $i < size($charaDaeList) ; $i++){	
+			$charaDaeList[$i] = ( $tgtRTD + "dae\\" + $charaPath + "\\" + $charaDaeList[$i]);
+		}
+		$daeList = stringArrayCatenate($daeList , $charaDaeList);
+		clear $charaDaeList;
+
+	}
+	$daeList = stringArrayRemoveDuplicates($daeList);
+
+	//$daeListの内容はフルパスとなる。"C:\GP\trunk\resource\original\GP\rtd\rtd00000\dae\chr0100_rtd0000\chr0100_rtd0000_cut000.mot.dae.gz"
+
+
+//ループ
+	for($sExportPath in $daeList){
+	//展開
+		trace "dae展開・・・";
+		string	$grZipPath = "\"" + `getenv "GP_MAYA_ROOT"` + "/common/tool/GrZip.exe\"";
+				$grZipPath = `toNativePath $grZipPath`;
+		string	$command = ($grZipPath + " -x \"" + `toNativePath $sExportPath` + "\"");
+		$command = ("\"" + $command + "\"");
+		system	$command;
+		trace $command;
+		$sExportPath = startString( $sExportPath , size($sExportPath)-3);
+	//開く
+		catch (`file -f -o $sExportPath`);
+	//どうやっても.motファイルから直接出力は無理。次善の策として、それらをリグとして使用する
+		motionDivideTool_rebuildRig($sExportPath , $mayaModelPath);
+		playbackOptions -min (`playbackOptions -q -ast` + 1) -max (`playbackOptions -q -aet`);
+		bakeResults -simulation true -t (`playbackOptions -q -ast` + ":" + (`playbackOptions -q -aet` - 1)) -hierarchy below -sampleBy 1 -disableImplicitControl true -preserveOutsideKeys true -sparseAnimCurveBake false -removeBakedAttributeFromLayer false -bakeOnOverrideLayer false -at "tx" -at "ty" -at "tz" -at "rx" -at "ry" -at "rz" -at "sx" -at "sy" -at "sz" root;
+	//処理へ
+		
+
+		//--------------------------------------------------------------------------------------------------------------------
+		//
+		//
+		//		!!!!!!!!!!!!!!!!!要調整箇所!!!!!!!!!!!!!!!!!
+		//
+		//
+		//--------------------------------------------------------------------------------------------------------------------
+		mDT_partsMotionExporter( $sExportPath ,{""});
+
+
+
+		file -f -new;
+	}
+
+//必要ファイルの収集(ヘッダ、ベースポーズ、IK設定)
+	mDT_colladaDirectorySetup_exec($daeList, $bpPath );
+//コンバート
+	motionDivideTool_gmpClassConvert($daeList);
+}
+
+
+//==============================================================================
+// リギング
+//
+//	string $daeFullPath		=	$sExportPath		出力先
+//	string $mayaModelPath	:	ホール機体(.mb)フォルダ	:	MDT_modelTF
+//
+//==============================================================================
+global proc motionDivideTool_rebuildRig(string $daeFullPath , string $mayaModelPath){
+//	string $mayaModelPath = `textFieldButtonGrp -q -text MDT_modelTF`;
+	$daeFullPath = `toNativePath $daeFullPath`;
+	string $charaName = `dirname($daeFullPath)`;
+	string $temp[];
+	tokenize $charaName "/" $temp;
+	$charaName = $temp[`size($temp)`-1];
+	tokenize $charaName "_" $temp;
+	$charaName = $temp[0];
+
+	select -r root ;
+	print("rootOrig以下、ジョイント名の「J_」を「MotionData_J_」へリネームします\r\n");
+	searchReplaceNames "J_" "MotionData_J_" "hierarchy";
+	rename root|jointroot_000 MotionData_jointroot_000;
+	rename root|rot_y MotionData_rot_y;
+	rename root MotionData_root;
+
+	print ($mayaModelPath + $charaName + "\\scenes\\" + $charaName + ".mb");
+
+	catch(`file -f -options "v=0"  -ignoreVersion  -typ "mayaBinary" -i ($mayaModelPath + $charaName + "\\scenes\\" + $charaName + ".mb")`);
+	
+	select -r parts root ;
+	doDetachSkin "2" { "1","1" };
+	select -r -hi root ;
+	string $jointsList[] = `ls -sl -type joint`;
+	for($jointItem in $jointsList){
+		select -r ("MotionData_" + $jointItem) $jointItem;
+		parentConstraint -weight 1;
+	}
+}
+
+
+//==============================================================================
+// エクスポート処理
+//	$sExportPath		出力先
+//==============================================================================
+global proc string mDT_partsMotionExporter( string $sExportPath ,string $jArray[] )
+{
+	//元の「root」という骨を一時的に「rootOrig」という名前にリネームし、
+	//全ての骨をコピー → 処理しているパーツに必要な骨のみで、階層を再構築 → rootやjointrootのモーションをリセットする。
+	//コピーの方をrootとリネームし、保存を行った後削除。
+
+//	select -r joint ;
+//	delete;
+
+	string $sExportChara = `match "chr..." $sExportPath`;
+	string $sExportMaster = $sExportPath;
+
+	//						0	  1		2	  3		4	  5
+	string $partsIDs[] = { "2" , "3" , "4" , "6" , "7" , "5"};
+	string $csvFileName = (`getenv "GP_MAYA_ROOT"` + "\\common\\scripts\\GP_mel\\csv\\GxChrSkinCluster.csv");
+
+	rename "root" "rootOrig";
+
+	string $IDList[] = getCsvData( $csvFileName , 0 );		//パーツが所属するグループ、2～7
+	string $jointList[] = getCsvData( $csvFileName , 1 );	//骨名
+	string $nodeTop[] = getCsvData($csvFileName , 5);		//グループトップか否か
+	int $topNum,$jointCount;
+
+
+	int $loopNum;
+	for($loopNum = 0 ; $loopNum < 6 ; $loopNum++){
+		//出力用セットアップ(頭～バックパック)
+		for($jointCount=0 ; $jointCount < size($IDList) ; $jointCount++){
+			if( endsWith($IDList[$jointCount] , $partsIDs[$loopNum]) ){
+//				catch(`select -add $jointList[$jointCount]`);
+				if ( startsWith($nodeTop[$jointCount] , "top")){
+					$topNum = $jointCount;
+					print ("top No." + $topNum + " " + $jointList[$jointCount]+ "\r\n");
+				}
+			}
+		}
+/*
+		if($loopNum != 5 ){
+			select -add J_mune_001 ;
+			select -add rootOrig|jointroot_000 ;
+			select -add rootOrig ;
+		}else{
+			select -add rootOrig ;
+		}
+*/
+		//安定して同階層の骨を出力できるよう、選定をキャンセル。
+		select -r -hi rootOrig;
+//		duplicate -po -rr -un;
+//		duplicate -po -ic;
+		duplicate -po -rr -un;
+		
+		
+		if($loopNum <5){
+			//下半身以外の処理
+			duplicate -un -po rootOrig rootOrig|jointroot_000;
+			rename rootOrig2 "root";
+			select -hi rootOrig1;
+			string $tmpjointName[] = `ls -sl`;
+			string $newTopName;
+
+			for($tmpjointItem in $tmpjointName){
+				print ("Node " + $tmpjointItem + " check.\r\n");
+				if(endsWith($tmpjointItem , $jointList[$topNum])){
+					$newTopName = $tmpjointItem;
+				}
+				
+			}
+
+			print ("top Node " + $jointList[$topNum] + " found.\r\n");
+			rename $newTopName "partsTop";
+			if($loopNum == 4){		//階層構築・モーションリセット（上半身用）
+				delete root|jointroot_000 ;
+
+
+//--------------------------------------------------------------------
+				int $jlCheck = 0;
+				if( catch (`select -r "*:waist_twist_aiming"`) && catch (`select -r "*:*:waist_twist_aiming"`)){
+					print "対腰ジンバルロック設定無";
+					$jlCheck = 0;
+				}else{
+					print "対腰ジンバルロック設定有";
+					$jlCheck = 1;
+				}
+//--------------------------------------------------------------------
+
+
+				parent -r partsTop root;
+				if($jlCheck == 0){
+					selectKey -attribute translateX -attribute translateY -attribute translateZ -attribute rotateX -attribute rotateY -attribute rotateZ root root|partsTop;
+				}else{
+					selectKey -attribute translateX -attribute translateY -attribute translateZ -attribute rotateX -attribute rotateY -attribute rotateZ root;
+				}
+				keyframe -animation keys -absolute -valueChange 0 ;
+				selectKey -attribute translateY root root|partsTop;
+				keyframe -animation keys -absolute -valueChange 0.01 ;
+				selectKey -attribute scaleX -attribute scaleY -attribute scaleZ root root|partsTop;
+				keyframe -animation keys -absolute -valueChange 1 ;
+
+				selectKey -attribute rotateX Aimming_Yrot ;
+				bufferCurve -animation "keys" -overwrite false; copyKey ;
+				bufferCurve -animation "keys" -overwrite false; pasteKey -option replace -copies 1 -connect 0 -timeOffset 0 -floatOffset 0 -valueOffset 0 {"root|partsTop.rotateX"};
+
+				selectKey -attribute rotateY Aimming_Yrot ;
+				bufferCurve -animation "keys" -overwrite false; copyKey ;
+				bufferCurve -animation "keys" -overwrite false; pasteKey -option replace -copies 1 -connect 0 -timeOffset 0 -floatOffset 0 -valueOffset 0 {"root|partsTop.rotateY"};
+
+				selectKey -attribute rotateZ Aimming_Yrot ;
+				bufferCurve -animation "keys" -overwrite false; copyKey ;
+				bufferCurve -animation "keys" -overwrite false; pasteKey -option replace -copies 1 -connect 0 -timeOffset 0 -floatOffset 0 -valueOffset 0 {"root|partsTop.rotateZ"};
+
+				selectKey -attribute rotateX mune_finalRotation ;
+				bufferCurve -animation "keys" -overwrite false; copyKey ;
+				bufferCurve -animation "keys" -overwrite false; pasteKey -option replace -copies 1 -connect 0 -timeOffset 0 -floatOffset 0 -valueOffset 0 {"root|partsTop|J_mune_001.rotateX"};
+
+				selectKey -attribute rotateY mune_finalRotation ;
+				bufferCurve -animation "keys" -overwrite false; copyKey ;
+				bufferCurve -animation "keys" -overwrite false; pasteKey -option replace -copies 1 -connect 0 -timeOffset 0 -floatOffset 0 -valueOffset 0 {"root|partsTop|J_mune_001.rotateY"};
+				
+				selectKey -attribute rotateZ mune_finalRotation ;
+				bufferCurve -animation "keys" -overwrite false; copyKey ;
+				bufferCurve -animation "keys" -overwrite false; pasteKey -option replace -copies 1 -connect 0 -timeOffset 0 -floatOffset 0 -valueOffset 0 {"root|partsTop|J_mune_001.rotateZ"};
+
+
+			}else{					//階層構築・モーションリセット（その他用）
+				parent -r partsTop root|jointroot_000 ;
+				string $atr[] = { "translateX" , "translateY" , "translateZ" , "rotateX" , "rotateY" , "rotateZ" , "scaleX" , "scaleY" , "scaleZ" };
+				string $obj[] = { "root" , "root|jointroot_000" , "root|jointroot_000|partsTop" };
+				float $atVal;
+
+				for($objItem in $obj){
+					for($atrItem in $atr){
+						$atVal = 0;
+						if($atrItem == "translateY" && $objItem != "root" ) $atVal = 0.01;
+						if($atrItem == "scaleX" || $atrItem == "scaleY" || $atrItem == "scaleZ" ) $atVal = 1;
+
+						if(size(`findKeyframe -curve -at $atrItem $objItem`)){
+							selectKey -attribute $atrItem $objItem;
+							keyframe -animation keys -absolute -valueChange $atVal ;
+						}else{
+							setAttr ($objItem + "." + $atrItem) $atVal;
+						}
+					}
+				}
+			}
+
+			select -cl;
+			if($loopNum == 4){
+				rename root|partsTop $jointList[$topNum];
+			}else{
+				rename root|jointroot_000|partsTop $jointList[$topNum];
+			}
+			delete rootOrig1;
+			parent rot_y root;
+			$jointList[$topNum] = ("root|jointroot_000|" + $jointList[$topNum]);
+
+		}else{
+			//出力用セットアップ(下半身用)
+			rename rootOrig1 "root";
+		}
+
+		
+		//根こそぎコピーし、不要なノードを削除する方式に変更。
+		select -r -hi root;
+		string $selection[] = `ls -sl -type joint`;
+		for($jointCount=0 ; $jointCount < size($IDList) ; $jointCount++){
+			if( endsWith($IDList[$jointCount] , $partsIDs[$loopNum]) ){
+				for($selItem in $selection){
+					if(endsWith($selItem , $jointList[$jointCount]))
+						catch(`select -d $selItem`);
+				}
+			}
+		}
+		select -d root root|jointroot_000 root|rot_y;
+		doDelete;
+
+
+		mDT_restoreJointTree($jArray , $partsIDs[$loopNum]);
+//		if($loopNum == 5) stopper();
+
+		$sExportPath = $sExportMaster ;
+		while(`gmatch $sExportPath ("*" + $sExportChara + "0*")` == 1){
+			$sExportPath = `substitute ($sExportChara + "0") $sExportPath ($sExportChara + $partsIDs[$loopNum])` ;
+		}
+			
+		// 拡張子の入力が無い場合は ".mot.dae" をつける
+		string $sMatch = `match "\\..*$" $sExportPath`;
+		if( 0 == `strcmp "" $sMatch` )
+			$sExportPath = $sExportPath + ".mot.dae";
+
+		GPoriginRename(0);
+		// dae出力
+		{
+			trace "DAE出力・・・";
+			sysFile -makeDir (`dirname $sExportPath`);
+			select -r root;
+			string	$op = "bakeTransforms=0;relativePaths=1;bakeLighting=0;exportCameraAsLookat=0;exportTriangles=0;isSampling=0;curveConstrainSampling=0;removeStaticCurves=0;samplingFunction=;exportPolygonMeshes=0;exportLights=0;exportCameras=0;exportJointsAndSkin=1;exportAnimations=1;exportInvisibleNodes=0;exportDefaultCameras=0;exportNormals=0;exportTexCoords=0;exportVertexColors=0;exportVertexColorAnimations=0;exportTexTangents=0;exportTangents=0;exportMaterialsOnly=0;exportConstraints=0;exportPhysics=0;exclusionSetMode=0;exclusionSets=;exportXRefs=1;dereferenceXRefs=0;cameraXFov=0;cameraYFov=1;";
+			file -f -op $op -typ "COLLADA exporter" -pr -es $sExportPath;
+			trace "OK!!";
+		}
+		flushUndo;
+		GPoriginRename(1);
+		//.daeを.gz圧縮
+		{
+			trace "dae圧縮・・・";
+			string	$grZipPath = "\"" + `getenv "GP_MAYA_ROOT"` + "/common/tool/GrZip.exe\"";
+					$grZipPath = `toNativePath $grZipPath`;
+			string	$command = ($grZipPath + " -c \"" + `toNativePath $sExportPath` + "\"");
+			$command = ("\"" + $command + "\"");
+			system	$command;
+			trace $command;
+			sysFile -delete $sExportPath;
+			trace "OK!!";
+		}
+		if($loopNum != 5){
+			parent rot_y rootOrig;
+		}
+		delete root;
+	}
+	return "";
+}
+
+
+
+
+
+global proc mDT_restoreJointTree(string $jArray[] , int $partsNum){
+	//ジョイント階層を取得、マスターデータと比較し強制を行う
+	string $items[];
+	string $temp[];
+	for($jAItem in  $jArray){
+		print ($partsNum + "  ---:---  " + $jAItem);
+		clear $temp;
+		if(startsWith($jAItem , $partsNum)){
+			tokenize $jAItem "-" $temp;
+			$items[size($items)] = $temp[1];
+		}
+	}
+
+	int $depth[];
+	int $i = 0;
+	int $depthMax = 0;
+	for($item in $items){
+		$depth[$i] = `tokenize $item "\|" $temp`;
+		print ("Depth" + $depth[$i] + ":" + $item + "\r\n");
+		if($depthMax < $depth[$i]) {$depthMax = $depth[$i];}
+		$i++;
+	}
+
+	//一度スクラップ
+	select -hi "root";
+	select -d "root";
+	string $scitems[];
+	clear $scitems;
+	$scitems = `ls -long -sl `;
+	string $scitem = stringArrayToString( $scitems , " ");
+	$scitem = ("parent -w -r " + $scitem);
+	print ($scitem + "\r\n");
+	eval $scitem;
+
+
+	int $j;
+	string $command;
+	for($j = $depthMax ; $j>1 ; $j--){
+		for($i = 0 ; $i<size($items) ; $i++){
+			if($j == $depth[$i]){
+				tokenize $items[$i] "\|" $temp;
+				$command = ("parent -r |" + $temp[$j-1] + " |" + $temp[$j-2]);
+				print ($command + "\r\n");
+				eval($command);
+			}
+		}
+	}
+	parent "|rot_y" "|root";
+}
+
+
+//--------------------------------------------------------------------
+global proc GPoriginRename(int $mode){
+	select -r rootOrig ;
+	if ($mode == 0){
+		print("rootOrig以下、ジョイント名の「J_」を「orig_j_」へリネームします\r\n");
+		searchReplaceNames "J_" "orig_J_" "hierarchy";
+		rename rootOrig|jointroot_000 orig_jointroot_000;
+	}else{
+		print("rootOrig以下、ジョイント名の「orig_j_」を「J_」へリネームします\r\n");
+		searchReplaceNames "orig_J_" "J_" "hierarchy";
+		rename orig_jointroot_000 jointroot_000;
+	}
+}
+
+
+
+
+
+//==============================================================================
+//	6節・コンバート用各種ファイル確保
+//全パートフルパス変数を受け取り、単独chr_castに作業を行う。
+//==============================================================================
+
+//コンバート用各種ファイル補完--------------------------------------------------------------------
+//
+//■全体処理
+//
+//--------------------------------------------------------------------
+
+
+global proc mDT_colladaDirectorySetup_exec(string $daeList[] , string $bpPath ){
+	string $IDs[] = { "0" , "2" , "3" , "4" , "5" , "6" , "7" };
+	string $fullDaeList[];
+	int $i,$j;
+	for($daeItem in $daeList){
+		string $charaID = `match "chr[0-9]+" $daeItem`;
+		string $charaIDm = startString($charaID,6);
+		for( $i=0 ; $i<7 ; $i++){
+			$fullDaeList[$j] = `substitute $charaID $daeItem ($charaIDm + $IDs[$i])`;
+			$fullDaeList[$j] = `substitute $charaID $fullDaeList[$j] ($charaIDm + $IDs[$i])`;
+			$j++;
+		}
+	}
+
+	for($charaIDItem in $fullDaeList){
+		print ($charaIDItem + "\r\n");
+		motionDivideTool_cleanGmp($charaIDItem);
+		motionDivideTool_headerFileSort($charaIDItem);
+		motionDivideTool_settingsFileSort($charaIDItem);
+		motionDivideTool_baseposeFileSort($charaIDItem , $bpPath );
+	}
+}
+
+//処理０、gmpフォルダ掃除
+global proc motionDivideTool_cleanGmp(string $charaID){
+
+	string $tgtPass = (`dirname( $charaID )` );
+
+	string $folList[] = `getFileList -folder ( $tgtPass + "\\" ) -filespec ( $charaID + "*Endian")`;
+	string $colList[];
+	for($folItem in $folList){
+		$colList = `getFileList -folder ($tgtPass + "\\" + $folItem + "\\")`;
+		for($colItem in $colList){
+			sysFile -delete ($tgtPass + "\\" + $folItem + "\\" + $colItem);
+		}
+	}
+}
+
+
+//処理１、IK・圧縮率設定ファイル
+global proc motionDivideTool_settingsFileSort(string $charaID){
+
+	string $tgtPass = (`dirname( $charaID )` );
+	string $newFileName = ( $tgtPass + "\\_setting.xml");
+
+	$charaID = (`match "chr[0-9]+" $charaID`);
+	string $fileName;
+	string $charaIDm = startString($charaID,6);
+	switch($charaIDm){
+		case "chr464":
+			$fileName = (`getenv "GP_MAYA_ROOT"` + "\\common\\scripts\\GP_mel\\csv\\_settingOrigin_chr4640.csv");
+			break;
+		case "chr466":
+			$fileName = (`getenv "GP_MAYA_ROOT"` + "\\common\\scripts\\GP_mel\\csv\\_settingOrigin_chr4660.csv");
+			break;
+		case "chr468":
+			$fileName = (`getenv "GP_MAYA_ROOT"` + "\\common\\scripts\\GP_mel\\csv\\_settingOrigin_chr4680.csv");
+			break;
+		case "chr470":
+			$fileName = (`getenv "GP_MAYA_ROOT"` + "\\common\\scripts\\GP_mel\\csv\\_settingOrigin_chr4700.csv");
+			break;
+		default:
+			$fileName = (`getenv "GP_MAYA_ROOT"` + "\\common\\scripts\\GP_mel\\csv\\_settingOrigin.csv");
+			break;
+	}
+
+	string $IDlist[] = mDT_loadSetting( $fileName );
+
+
+	$fileId=`fopen $newFileName "w"`;
+
+	print ($charaID + "\r\n");
+	for($cItem in $IDlist){
+		$cItem = startString($cItem,size($cItem)-1);
+		if((`gmatch $cItem "*IK*"`) != 1 || endsWith($charaID,"0")){fprint $fileId ($cItem + "\r\n");}
+
+		switch($charaIDm){
+			case "chr464":
+				if((`gmatch $cItem "*J_Rhiji*"`) == 1 && endsWith($charaID,"2")){fprint $fileId ($cItem + "\r\n");}
+				if((`gmatch $cItem "*J_Lhiji*"`) == 1 && endsWith($charaID,"2")){fprint $fileId ($cItem + "\r\n");}
+				break;
+			case "chr466":
+				break;
+			case "chr468":
+				if((`gmatch $cItem "*J_Rhiji*"`) == 1 && endsWith($charaID,"2")){fprint $fileId ($cItem + "\r\n");}
+				if((`gmatch $cItem "*J_Lhiji*"`) == 1 && endsWith($charaID,"2")){fprint $fileId ($cItem + "\r\n");}
+				if((`gmatch $cItem "*J_Lfmomo*"`) == 1 && endsWith($charaID,"3")){fprint $fileId ($cItem + "\r\n");}
+				if((`gmatch $cItem "*J_Rfmomo*"`) == 1 && endsWith($charaID,"3")){fprint $fileId ($cItem + "\r\n");}
+				if((`gmatch $cItem "*J_Lrmomo*"`) == 1 && endsWith($charaID,"3")){fprint $fileId ($cItem + "\r\n");}
+				if((`gmatch $cItem "*J_Rrmomo*"`) == 1 && endsWith($charaID,"3")){fprint $fileId ($cItem + "\r\n");}
+				break;
+			case "chr470":
+				break;
+			default:
+				if((`gmatch $cItem "*J_Rhiji*"`) == 1 && endsWith($charaID,"3")){fprint $fileId ($cItem + "\r\n");}
+				if((`gmatch $cItem "*J_Lhiji*"`) == 1 && endsWith($charaID,"4")){fprint $fileId ($cItem + "\r\n");}
+				if((`gmatch $cItem "*J_Lmomo*"`) == 1 && endsWith($charaID,"5")){fprint $fileId ($cItem + "\r\n");}
+				if((`gmatch $cItem "*J_Rmomo*"`) == 1 && endsWith($charaID,"5")){fprint $fileId ($cItem + "\r\n");}
+				break;
+		}
+
+	}
+	fclose $fileId;
+}
+
+
+//処理１補助、設定ファイル読み込み
+global proc string[] mDT_loadSetting(string $fileName){
+	int $fileId = `fopen $fileName "r"`;
+	int $i=0;
+	$line = `fgetline $fileId`;	//「#ifdef GR_FILE_LINKED」
+	string $IDlist[];
+	while ( size( $line ) > 0 ){
+		string $buffer[];
+		tokenize $line "," $buffer;
+		$IDlist[$i] = $buffer[0];
+		$line = `fgetline $fileId`;
+		$i++;
+	}
+	fclose $fileId;
+	return($IDlist);
+}
+
+
+//処理２、ヘッダファイル
+global proc motionDivideTool_headerFileSort(string $charaID){
+
+	string $tgtPass = (`dirname( $charaID )` );
+	string $castname = basename($tgtPass,"");
+	string $newFileName = ($tgtPass + "\\" + $castname + ".h");
+	string $fileName = (`getenv "GP_MAYA_ROOT"` + "\\common\\scripts\\GP_mel\\csv\\headerOrigin_RTD.csv");
+	string $IDlist[];
+	int $i=0;
+
+	int $fileId = `fopen $fileName "r"`;
+	$line = `fgetline $fileId`;	//「#ifdef GR_FILE_LINKED」
+	while ( size( $line ) > 0 ){
+		$IDlist[$i] = $line;
+		$line = `fgetline $fileId`;
+		$i++;
+	}
+	fclose $fileId;
+
+	$fileId=`fopen $newFileName "w"`;
+	for($cItem in $IDlist){
+		$cItem = `substitute "<<RENAME_TO_CHR-CAST>>" $cItem $castname`;
+		$cItem = startString($cItem,size($cItem)-1);
+		fprint $fileId ($cItem + "\r\n");
+	}
+	fclose $fileId;
+	clear $IDlist;
+}
+
+
+//処理３、ベースポーズ
+//
+//	string $bpPath	:	ベースポーズ(.mb)フォルダ	:	MDT_basePathTF
+//
+global proc motionDivideTool_baseposeFileSort( string $charaID , string $bpPath ){
+	string $origin = $bpPath;		//	`textFieldButtonGrp -q -text MDT_basePathTF`;
+	string $tgtPass = (`dirname( $charaID )` );
+	string $castname = basename($tgtPass,"");
+	string $temp[];
+	tokenize $castname "_" $temp;
+	string $basePExistsCheck[] = `getFileList -folder ( $origin + $temp[0] + "\\" ) -filespec ( "_basepose.mot.dae.gz" )`;
+	if(size($basePExistsCheck) != 0){
+		sysFile -copy ($tgtPass + "\\_" + $castname + "_basepose.mot.dae.gz"  ) ( $origin + $temp[0] + "\\_basepose.mot.dae.gz" );
+	}
+}
+
+
+
+
+//=======================================================================================
+//	7節・コンバート機能
+//=======================================================================================
+
+
+//出力2+、コンバート(dae.gz→.h、.gmp)--------------------------------------------------------------------
+//リストを元に、丸投げを繰り返す。(モーションセット単位。chr0100を指定されたらchr0100内部を走査、gmp系フォルダを探してそれぞれをコンバートする)
+//
+//	$daePass	コンバート元フォルダをUIから取得
+//	$cvtPass	コンバート先フォルダをUIから取得
+//
+//	返り値
+//		0:キャンセルされた
+//		1:無事終了
+//		2:エラー発生・強行
+//--------------------------------------------------------------------
+
+global proc motionDivideTool_gmpClassConvert(string $daeSingleList[]){
+
+	string $IDs[] = { "0" , "2" , "3" , "4" , "5" , "6" , "7" };
+	string $daeList[];
+	int $i,$j;
+	for($daeItem in $daeSingleList){
+		string $charaID = `match "chr[0-9]+" $daeItem`;
+		string $charaIDm = startString($charaID,6);
+		for( $i=0 ; $i<7 ; $i++){
+			$daeList[$j] = `substitute $charaID $daeItem ($charaIDm + $IDs[$i])`;
+			$daeList[$j] = `substitute $charaID $daeList[$j] ($charaIDm + $IDs[$i])`;
+			$j++;
+		}
+	}
+
+	string $sExportPath,$sConvertPath,$sConverterPath;	//出力に要する基本三変数
+
+	int $cvtCharaCount;		//複数キャラ処理に使用する、カウント用変数
+
+	string $bpExistCheck[];
+	string $folderList[];
+	string $fullFolderList[];
+	int $fullFolCount;
+	string $gmpColladaPath , $gmpConvertPath;
+	string $catchRes,$catchResStk;
+	int $j = size($daeList);
+	int $Lastworkcount;
+
+	for( $cvtCharaCount=0 ; $cvtCharaCount < size($daeList) ; $cvtCharaCount++){
+
+		$sExportPath = (`dirname($daeList[$cvtCharaCount])`);	$sExportPath = `fromNativePath $sExportPath`;
+		$sConvertPath =  (`substitute $sExportPath "\\dae\\" "\\motionPackage\\"`) ;	$sConvertPath = `fromNativePath $sConvertPath`;
+		$sConverterPath = (`getenv "GP_MAYA_ROOT"` + "/common/tool/MotionConverter/bin/GrMotionConverter_ExportRootData_30FPS.exe");
+
+		$fullFolderList[$fullFolCount] = $sExportPath;
+		$fullFolCount++;
+		if( $cvtCharaCount == (size($daeList) - 1) && $j==1 ){
+//			$Lastworkcount = 1;		1なら出力完了後、キー入力を要求。2なら不要
+			$Lastworkcount = 2;
+			motionDivideToolUI_Convert($sExportPath , $sConvertPath , $sConverterPath, 0 , $Lastworkcount , $fullFolderList);
+		}else{
+			if($fullFolCount > 10 ){
+				$Lastworkcount = 2;
+				motionDivideToolUI_Convert($sExportPath , $sConvertPath , $sConverterPath, 0 , $Lastworkcount , $fullFolderList);
+				$fullFolCount = 0;
+				clear $fullFolderList;
+			}else{
+				$Lastworkcount = 0;
+				motionDivideToolUI_Convert($sExportPath , $sConvertPath , $sConverterPath, 0 , $Lastworkcount , $fullFolderList);
+			}
+		}
+		$j--;
+	}
+
+	for( $cvtCharaCount=0 ; $cvtCharaCount < size($daeList) ; $cvtCharaCount++){
+		$sExportPath = (`dirname($daeList[$cvtCharaCount])`);
+		$sConvertPath =  (`substitute "/dae/" $sExportPath "/motionPackage/"`);
+
+		motionDivideToolUI_DataCopy_gmpEndian($sExportPath , $sConvertPath , $sConverterPath , 0 );
+	}
+}
+
+
+//==============================================================================
+// コンバート処理
+//	$sExportPath		dae
+//	$sConvertPath		コンバート先
+//	$sConverterPath		コンバータの場所
+//						プロジェクトによっては、特定のバージョンのコンバータを扱う場合があるので、変更出来るように
+//	$sCsautionflag		警告を出すか否かのフラグ（エラーメッセージは強制的に出す）
+//	ret					エラーメッセージ
+//==============================================================================
+
+global proc string motionDivideToolUI_Convert( string $sExportPath, string $sConvertPath, string $sConverterPath, int $sCsautionflag ,int $qLastwork , string $fullFolderList[]){
+	// 文字チェック
+	if( $sExportPath == "" )	{
+		return "GZファイルの出力先が設定されていません";
+	}
+
+	if( $sConvertPath == "" )	{
+		return "コンバート出力場所が設定されていません";
+	}
+
+	if( $sConverterPath == "" )	{
+		return "GxConverterの場所が設定されていません";
+	}
+	
+	trace ("converter:" + $sConverterPath);
+	string $a = `filetest -x $sConverterPath`;
+	trace $a;
+
+	if( `filetest -x $sConverterPath` == false )	{
+		return "指定された場所にGxConverterが存在しません";
+	}
+
+	string $res;
+	// コンバート
+	{
+		// ベースポーズファイルが存在するか
+		{
+			string $saGZfiles[] = `getFileList -folder ( $sExportPath + "/" ) -filespec "*.gz"`;
+			int $nFlag = 0;
+			for( $sTemp in $saGZfiles )
+			{
+				if( "" != `match "_basepose" $sTemp` )
+				{
+					$nFlag = 1; break;
+				}
+			}
+			if( 0 == $nFlag )
+			{
+				print ( "// ベースポーズのdaeが存在しません。"+ $sExportPath + "\n" );
+				print $saGZfiles;
+				return ( "ベースポーズのdaeが存在しません。" );
+			}
+		}
+
+		// IK設定ファイルが存在するか
+		if ( 0 != $sCsautionflag )
+		{
+			string $saXMLfiles[] = `getFileList -folder ( $sExportPath + "/" ) -filespec "*.xml"`;
+			int $nFlag = 0;
+			for( $sTemp in $saXMLfiles )
+			{
+				if( "" != `match "_setting\\.xml" $sTemp` )
+				{
+					$nFlag = 1;	break;
+				}
+			}
+			if( 0 == $nFlag )
+			{
+				if ( 0 == `ohYesNoDialog "コンバート継続の確認" { "IK設定用のxmlが存在しませんが継続して宜しいですか？" }` )
+				{
+					return "コンバートを中止しました。";
+				}
+			}
+		}
+
+
+
+		// 古データ削除
+		{
+			string $saAllfiles[] = `getFileList -folder ( $sExportPath + "/BigEndian/" ) -filespec "*.*"`;
+			print ( $sExportPath + "/BigEndian/ を掃除中・・・\r\n" );
+			for( $sTemp in $saAllfiles ){
+				sysFile -del ($sExportPath + "/BigEndian/" + $sTemp);
+			}
+			clear $saAllfiles;
+			$saAllfiles = `getFileList -folder ( $sExportPath + "/LittleEndian/" ) -filespec "*.*"`;
+			print ( $sExportPath + "/LittleEndian/ を掃除中・・・\r\n" );
+			for( $sTemp in $saAllfiles ){
+				sysFile -del ($sExportPath + "/LittleEndian/" + $sTemp);
+			}
+
+		}
+
+
+		// 実行
+		{
+			string $sCmd = $sConverterPath + " " + $sExportPath;
+			if($qLastwork == 0){
+				$sCmd = "start " + $sCmd ;
+				string $err = system( $sCmd );
+				pause -sec 1;
+			}else if($qLastwork == 2){
+				$sCmd = "start " + $sCmd ;
+				string $err = system( $sCmd );
+				$res = clearingExportWindows($fullFolderList);
+			}else{
+				string $err = system( $sCmd );
+				$res = clearingExportWindows($fullFolderList);
+			}
+		}
+	}
+
+	return $res;
+}
+
+
+//==============================================================================
+// ウィンドウ掃除
+// あんなに開ける事無いじゃないですかー！
+//
+//
+global proc string clearingExportWindows(string $fullFolderList[]){
+	string $checkList[];
+	string $resultText;
+	int $checkAllGmpExists , $loopCount;
+	while($checkAllGmpExists == 0){
+		print (".gmpが揃ったかチェック中(" + $loopCount + "回目)・・・\r\n");
+		$checkAllGmpExists = 1;
+		for($folderItem in $fullFolderList){
+			print ($folderItem + "をチェック。\r\n");
+			clear $checkList;
+			$checkList = `getFileList -folder ($folderItem + "/LittleEndian/") -filespec "*.gmp"`;
+			if(size($checkList)==0){
+				print (" ⇒" + $folderItem + "/LittleEndian/ にgmpなし。\r\n");
+				$checkAllGmpExists = 0;
+				if($loopCount == 29){
+					$resultText = ($resultText + $folderItem + "(LittleEndian) ,\r\n");
+				}
+			}
+			clear $checkList;
+			$checkList = `getFileList -folder ($folderItem + "/BigEndian/") -filespec "*.gmp"`;
+			if(size($checkList)==0){
+				print (" ⇒" + $folderItem + "/BigEndian/ にgmpなし。\r\n");
+				$checkAllGmpExists = 0; 
+				if($loopCount == 29){
+					$resultText = ($resultText + $folderItem + "(BigEndian) ,\r\n");
+				}
+			}
+			print (" " + $folderItem + "のチェック結果⇒" + $checkAllGmpExists + "。\r\n");
+		}
+		pause -sec 2;
+		$loopCount++;
+		if($loopCount >= 30 || $checkAllGmpExists == 1){
+			break;
+		}
+	}
+
+	$sCmd = "taskkill /im GrMotionConverter_ExportRootData_30FPS.exe";
+	system( $sCmd );
+	if($checkAllGmpExists == 0){
+//		confirmDialog -title "check GMP System" -message ("150秒待ちましたが、全.gmpの出力が確認できませんでした。\r\n多量処理のしすぎか、出力に失敗したモーションがあるかも知れません。\r\n(確認出来なかった物に関しては、スクリプトエディタ参照)") -button "OK";
+	}
+	return $resultText;
+}
+
+//==============================================================================
+//
+//	※motファイルに殺されるので改造
+//
+// コンバート処理後半・コンバート済みデータを指定パスへコピー
+//	$sExportPath		dae
+//	$sConvertPath		コンバート先
+//	$sConverterPath		コンバータの場所
+//						プロジェクトによっては、特定のバージョンのコンバータを扱う場合があるので、変更出来るように
+//	$sCsautionflag		警告を出すか否かのフラグ（エラーメッセージは強制的に出す）
+//	ret					エラーメッセージ
+//==============================================================================
+global proc string motionDivideToolUI_DataCopy_gmpEndian( string $sExportPath, string $sConvertPath, string $sConverterPath, int $sCsautionflag )
+	// コンバートフォルダへコピー
+	{
+		sysFile -makeDir $sConvertPath;
+		sysFile -makeDir ($sConvertPath + "/BigEndian");
+		sysFile -makeDir ($sConvertPath + "/LittleEndian");
+		string $sExportFol = `basenameEx $sExportPath`;
+		string $sHeader = $sExportPath + "/" + $sExportFol + ".h";
+		string $sCsv = $sExportPath + "/" + $sExportFol + ".csv";
+		string $sBig = $sExportPath + "/BigEndian/" + $sExportFol + ".gmp";
+		string $sLtl = $sExportPath + "/LittleEndian/" + $sExportFol + ".gmp";
+
+		// .h, .csv コピー
+		{
+			string $saSrc[] = { $sHeader, $sCsv };
+			for( $sSrc in $saSrc )
+			{
+				string $sPath = ( $sConvertPath + "/" + `basename $sSrc ""` );
+				sysFile -copy $sPath $sSrc;
+				print( $sSrc + " を, " + $sPath + " へコピーしました。\n" );
+			}
+		}
+
+		// .gmp コピー
+		{
+			{
+				string $sPath = ( $sConvertPath + "/BigEndian/" + `basename $sBig ""`);
+				sysFile -copy $sPath $sBig;
+				print( $sBig + " を, " + $sPath + " へコピーしました。\n" );
+				string $sPath = ( $sConvertPath + "/LittleEndian/" + `basename $sLtl ""`);
+				sysFile -copy $sPath $sLtl;
+				print( $sLtl + " を, " + $sPath + " へコピーしました。\n" );
+			}
+		}
+
+	return "";
+}
+
+
+
+//=======================================================================================
+//	8節・UI補助機能
+//=======================================================================================
+
+global proc MHME_reCollectRtdMember(string $tgtPath){
+	string $charaPathList[] = `getFileList -folder ($tgtPath) -filespec ("chr*0")`;
+	$charaPathList = (`sort $charaPathList`);
+
+	int $i,$j;
+	string $charaIDList;
+	for($charaPathItem in $charaPathList){
+		if(`gmatch $charaPathItem "chr[!5-8][0-9][0-9]0"`){
+			$charaIDList = ($charaIDList + $charaPathItem + ", ");
+			$i++;
+			if($i==10){
+				$charaIDList = ($charaIDList + "\r\n");
+				$i=0;
+			}
+		}
+	}
+//	text -e -label $charaIDList MHME_charaList;
+	scrollField -e -text $charaIDList MHME_charaList;
+}
+
+
+global proc MDT_reCollectRtdMember(string $tgtRTD){
+	string $charaPathList[] = `getFileList -folder ($tgtRTD + "dae\\") -filespec ("chr*0_cast*")`;
+	$charaPathList = (`sort $charaPathList`);
+	string $castList[] , $castMemberList[] , $temp[];
+
+	int $i,$j;
+	for($charaPathItem in $charaPathList){
+		tokenize $charaPathItem "_" $temp;
+		$castList[$i] = $temp[1];
+		$i++;
+	}
+	$castList = stringArrayRemoveDuplicates($castList);
+	$castList = (`sort $castList`);
+
+	for($j = 0 ; $j < size($castList) ; $j++){
+		for($charaPathItem in $charaPathList){
+			tokenize $charaPathItem "_" $temp;
+			if($temp[1] == $castList[$j]){
+				$castMemberList[$j] = ($castMemberList[$j] + $temp[0] + ",");
+			}
+		}
+	}
+
+	for($i=0 ; $i < size($castList) ; $i++){
+		checkBox -e -en 1 -v 1 -label $castList[$i] ("castFlag" + $i);
+		text -e -en 1 -label ($castMemberList[$i]) ("castText" + $i);
+	}
+	for($j=0 ; $i < 10 ; $i++){
+		checkBox -e -en 0 -v 0 -label "-------" ("castFlag" + $i);
+		text -e -en 0 -label "-------" ("castText" + $i);
+	}
+}
+
+
+global proc string[] getCastInfo(int $mode){
+	//0ならvalue、1ならlabelを返す
+	string $ret[];
+	for($i=0 ; $i<10 ; $i++){
+		if($mode == 0){
+			$ret[$i] = `checkBox -q -v ("castFlag" + $i)`;
+		}else{
+			$ret[$i] = `checkBox -q -label ("castFlag" + $i)`;
+		}
+	}
+		return($ret);
+}
+
+
+//=======================================================================================
+//	9節・UI基部
+//=======================================================================================
+
+
+global proc motion_Divide_ToolWindow(string $MDT_csvSaveFileName){
+
+	string $title = "RTD_Motion_Divide_Tool";
+	string $MDwindow = "MDtool";
+
+	if ( `window -exists $MDwindow` )
+	{
+		deleteUI	$MDwindow;
+	}
+
+//	string $rtdPass = "C:\\GP\\trunk\\resource\\original\\GP\\rtd\\";
+	string $rtdPass = "C:\\GP\\trunk\\resource\\original\\GP\\rtd\\rtd10000";
+	string $mayaPass = "S:\\motion\\maya\\";
+	string $basePath = "S:\\motion\\collada\\";
+
+	string $MDTversion = getMDTVersion();
+	window  -t ($title + "   " + $MDTversion) -menuBar true -w 200 -h 90 $MDwindow;
+
+	string $formL = `formLayout -numberOfDivisions 100`;
+
+	string $Lay_top = `frameLayout -labelAlign "top" -label "各ツールの出力先指定" -borderStyle "etchedIn" TOP_frame`;
+		string $Lay_top_s = `columnLayout`;
+			string $tf_top_1 = (`textFieldButtonGrp -cl3 left both right -cw3 120 440 100 -label "作業rtdシーン" -text ($rtdPass + "\\") -ann "処理を行うリアルタイムデモのフォルダを指定して下さい。" -buttonLabel "Edit" MDT_RtdNameTF`);
+			string $tx_top_1 = `text -align "left" -label "指定フォルダ直下の「dae」フォルダにcolladaファイル、\r\n「motionPackage」フォルダにコンバート済みファイルが保存されます。"`;
+			setParent ..;
+		setParent ..;
+
+	string $MDT_tablayouts = `tabLayout -innerMarginWidth 5 -innerMarginHeight 5 MDT_tabs`;
+
+		formLayout -edit
+			-attachForm $Lay_top "top"    10
+			-attachForm $Lay_top "left"   10
+			-attachNone $Lay_top "bottom"
+			-attachForm $Lay_top "right"  10
+
+			-attachControl $MDT_tablayouts "top" 10 $Lay_top
+			-attachForm $MDT_tablayouts "left"   10
+			-attachForm $MDT_tablayouts "bottom" 10
+			-attachForm $MDT_tablayouts "right"  10
+		$formL;
+
+	//---------------------------------------------------------------------------------------------
+		string $MHME_frame = `frameLayout -labelAlign "top" -label "シーン内MSのモーションデータを、指定パスに存在する他キャラ全体に流し込み・エクスポートします。" -borderStyle "etchedIn" MHME_frame`;
+			string $MHME_forms = `formLayout -numberOfDivisions 100`;
+				string $tf_MHME_1 = (`textFieldButtonGrp -cl3 left both right -cw3 120 440 100 -label "コピー元リグ選択" -text "出力したい機体のrigノードを選択してください。" -ann "処理を行うMSのリグノードを選択して下さい。" -buttonLabel "選択中ノードをセット" MHME_srcRigTF`);
+				string $tf_MHME_2 = (`textFieldButtonGrp -cl3 left both right -cw3 120 440 100 -label "コピー先機体フォルダ" -text $mayaPass -ann "直下のフォルダからキャラ一覧を取得し、ホール機体_rigbase.mbを使って出力を行います。" -buttonLabel "Edit" MHME_tgtCharaTF`);
+				string $tx_MHME_1 = `text -label "■対象キャラ" -ann "(以下のキャラクターに、[コピー元リグ選択]にて選ばれたモーションがインポート・出力されます。)"`;
+
+//				string $tx_MHME_2 = `text -label "" -align "left" MHME_charaList`;
+				string $tx_MHME_2 = `scrollField -text "" MHME_charaList`;
+
+				string $MHME_Lay02 = `columnLayout`;
+					string $s_MHME_1 = `separator -w 660 -h 10`;
+					string $tx_MHME_3 = `text -label "■collada保存先設定"`;
+					string $resultSet_MHME = `rowLayout -numberOfColumns 3 -columnWidth3 400 50 150 -adjustableColumn 3`;
+						string $tf_MHME_res1 = `textField -w 400 -text ($rtdPass + "\\dae\\") MHME_resRtdTF`;
+						string $tf_MHME_res2 = `textField -en 0 -w 50 -text "chr0000" -ann "characterID" MHME_resChrTF`;
+						string $tf_MHME_res3 = `textField -w 60 -text "_cast0001" MHME_resCastTF`;
+						setParent ..;
+					MHME_reCollectRtdMember($mayaPass);
+					string $MHME_b1 = `button -w 420 -h 30 -l "「■対象キャラ」ホール機体へコピー・OROCHIエクスポート" motExptBtn`;
+					setParent ..;
+//				setParent ..;
+
+				formLayout -edit
+					-attachForm $tf_MHME_1 "top"    10
+					-attachForm $tf_MHME_1 "left"   10
+					-attachNone $tf_MHME_1 "bottom"
+					-attachForm $tf_MHME_1 "right"  10
+
+					-attachControl $tf_MHME_2 "top"  0 $tf_MHME_1
+					-attachForm $tf_MHME_2 "left"   10
+					-attachNone $tf_MHME_2 "bottom"
+					-attachForm $tf_MHME_2 "right"  10
+
+					-attachControl $tx_MHME_1 "top"  0 $tf_MHME_2
+					-attachForm $tx_MHME_1 "left"   10
+					-attachNone $tx_MHME_1 "bottom"
+					-attachForm $tx_MHME_1 "right"  10
+
+					-attachControl $tx_MHME_2 "top"    0 $tx_MHME_1
+					-attachForm $tx_MHME_2 "left"      10
+					-attachControl $tx_MHME_2 "bottom" 10 $MHME_Lay02
+					-attachForm $tx_MHME_2 "right"     10
+
+					-attachNone $MHME_Lay02 "top"
+					-attachForm $MHME_Lay02 "left"   10
+					-attachForm $MHME_Lay02 "bottom" 10
+					-attachForm $MHME_Lay02 "right"  10
+				$MHME_forms;
+				setParent ..;
+			setParent ..;
+
+	//---------------------------------------------------------------------------------------------
+
+	//---------------------------------------------------------------------------------------------
+		string $MDT_frame = `frameLayout -labelAlign "top" -label "指定したRTD内ホール機体のcolladaデータを、パーツ用に分割します。" -borderStyle "etchedIn" MDT_frame`;
+			string $MDT_forms = `formLayout -numberOfDivisions 100`;
+//			string $LayS = `columnLayout`;
+			//対象デモのフォルダ指定
+				string $tf_MDT_1 = (`textFieldButtonGrp -cl3 left both right -cw3 150 440 100 -label "ホール機体(.mb)フォルダ" -text $mayaPass -ann "直下のフォルダからキャラモデル(.mbファイル)を取得します。" -buttonLabel "Edit" MDT_modelTF`);
+				string $tf_MDT_2 = (`textFieldButtonGrp -cl3 left both right -cw3 150 440 100 -label "ベースポーズ(collada)フォルダ" -text $basePath -ann "直下のフォルダからベースポーズのcolladaファイルを取得して出力を行います。" -buttonLabel "Edit" MDT_basePathTF`);
+				string $s_MDT_1 = `separator -w 660 -h 10`;
+
+
+				string $charaSet[],$c[],$tx[];
+				int $i;
+				string $LayS = `columnLayout`;
+					string $indxset = `rowLayout -numberOfColumns 2 -columnWidth2 80 150 -adjustableColumn 2`;
+						string $txi1 = `text -label "■対象キャスト"`;
+						string $txi2 = `text -label "■メンバーリスト" itex`;
+						setParent ..;
+					for($i=0 ; $i < 10 ; $i++){
+						$charaSet[$i] = `rowLayout -numberOfColumns 2 -columnWidth2 80 150 -adjustableColumn 2`;
+							$c[$i] = `checkBox -en 0 -v 1 -label "cast0000" ("castFlag" + $i)`;
+							$tx[$i] = `text -en 0 -label ($rtdPass) ("castText" + $i)`;
+							setParent ..;
+					}
+					MDT_reCollectRtdMember($rtdPass + "\\");
+				setParent ..;
+				string $mDT_b1 = `button -w 420 -h 30 -l "パーツへ分解・OROCHIエクスポート＆コンバート" motDivBtn`;
+	
+
+			formLayout -edit
+				-attachForm $tf_MDT_1 "top"    10
+				-attachForm $tf_MDT_1 "left"   10
+				-attachNone $tf_MDT_1 "bottom"
+				-attachForm $tf_MDT_1 "right"  10
+
+				-attachControl $tf_MDT_2 "top"  0 $tf_MDT_1
+				-attachForm $tf_MDT_2 "left"   10
+				-attachNone $tf_MDT_2 "bottom"
+				-attachForm $tf_MDT_2 "right"  10
+
+				-attachControl $s_MDT_1 "top"  0 $tf_MDT_2
+				-attachForm $s_MDT_1 "left"   10
+				-attachNone $s_MDT_1 "bottom"
+				-attachForm $s_MDT_1 "right"  10
+
+				-attachControl $LayS "top"    0 $s_MDT_1
+				-attachForm $LayS "left"      10
+				-attachControl $LayS "bottom" 10 $mDT_b1
+				-attachForm $LayS "right"     10
+
+				-attachNone $mDT_b1 "top"
+				-attachForm $mDT_b1 "left"   10
+				-attachForm $mDT_b1 "bottom" 10
+				-attachForm $mDT_b1 "right"  10
+			$MDT_forms;
+//		motion_Divide_Exec(string $tgtRTD)
+			setParent ..;
+		setParent ..;
+	//---------------------------------------------------------------------------------------------
+
+	tabLayout -edit -tabLabel $MHME_frame "ホール機体モーション出力" -tabLabel $MDT_frame "ホール機体モーション分割" $MDT_tablayouts;
+
+	button -edit -command "MHME_main( `textFieldButtonGrp -q -text MDT_RtdNameTF` , `textFieldButtonGrp -q -text MHME_srcRigTF` , `textField -q -text MHME_resChrTF` , `textField -q -text MHME_resCastTF` , `textFieldButtonGrp -q -text MHME_tgtCharaTF` , `scrollField -q -text MHME_charaList` , `textField -q -text MHME_resRtdTF` );" -ann "モーション分解を行い、最後まで出力します。" motExptBtn;
+	button -edit -command "motion_Divide_Exec( `textFieldButtonGrp -q -text MDT_RtdNameTF` , `getCastInfo(1)` , `getCastInfo(0)` , `textFieldButtonGrp -q -text MDT_modelTF` , `textFieldButtonGrp -q -text MDT_basePathTF` );" -ann "モーション分解を行い、最後まで出力します。" motDivBtn;
+	string $tfc0 = `textFieldButtonGrp -edit -bc ("fileBrowserDialog -mode 4 -fileType \"directory\" -actionName \"select Folder\" -fileCommand \"rtd_setTextfData(\\\"MDT_RtdNameTF\\\")\" ") MDT_RtdNameTF`;
+	string $tfc1 = `textFieldButtonGrp -edit -bc ("fileBrowserDialog -mode 4 -fileType \"directory\" -actionName \"select Folder\" -fileCommand \"rtd_setTextfData(\\\"MHME_tgtCharaTF\\\")\" ") MHME_tgtCharaTF`;
+	string $tfc2 = `textFieldButtonGrp -edit -bc ("string $selectsList[] = `ls -sl`;rtd_setTextfData(\"MHME_srcRigTF\" , $selectsList[0] , \"\")") MHME_srcRigTF`;
+
+	window -e -w 750 -h 480 $MDwindow;
+	showWindow $MDwindow;
+}
+
+	
+	
+//==============================================================================
+//! @file		GPmultiMotionExport_htGxMotionExportUI.mel	より簒奪、ジンバル対策ノードを一緒にベイク～キー整理する
+//! @brief		モーションエクスポータ
+// 
+//!	@update		10/07/14	作成
+//!	@update		10/10/01	引継ぎ
+//!	@update		12/12/20	簒奪汚染
+//==============================================================================
+
+
+
+
+//==============================================================================
+// エクスポート処理
+//	$sExportPath		出力先
+//	$sOption			出力オプション
+//	$asExportCommand[]	タイトル側設定のプロシージャ
+//					[0]	出力先の取得
+//					[1]	出力オプション作成
+//					[2]	(エクスポート)シーン保存後処理
+//					[3]	(エクスポート)最適化後処理
+//					[4]	コンバート先の取得
+//					[5]	コンバータの場所の所得
+//	ret					エラーメッセージ
+//==============================================================================
+global proc string GPmultiMotionExport_htGxMotionExportUI( string $sExportPath, string $sOption, string $asExportCommand[] )
+{
+	string	$topNodes[]	= `ls -assemblies`;
+	// シーンのチェック
+	string $root = "";
+	{
+		trace "シーンのチェック・・・";
+		for( $node in $topNodes )
+		{
+			if(	( "" != `match "^root$" $node` )
+			 ||	( "" != `match ":root$" $node` )
+			)
+			{
+				$root = $node;
+				break;
+			}
+		}
+		if( "" == $root )
+		{
+			return "rootがありません";
+		}
+		trace "OK!!";
+	}
+
+	// ファイルオープン直後、非表示オブジェクトに関する拘束が効かない問題対応
+	{
+		string $layers[] = `ls -type displayLayer`;
+		for ( $layer in $layers )
+		{
+			if ( 0 == `getAttr ( $layer + ".visibility" )` )
+			{
+				// デフォルトレイヤーなら非表示にはな ってない
+				setAttr ($layer+".visibility") 1;
+			}
+			flushUndo;
+		}
+		
+		if ( `objExists dummy_root` )
+		{
+			setAttr ("dummy_root.visibility") 1;
+		}
+	}
+
+	// シーン保存後、処理
+	if( $asExportCommand[2] != "" )
+	{
+		trace "シーンの保存・・・";
+		string $err = `eval( $asExportCommand[2] + " " + $sOption )`;
+		if( $err != "" )
+		{
+			return $err;
+		}
+		trace "OK!!";
+	}
+
+	// シーンのフレーム数を取得
+	float $startTime;
+	float $endTime;
+	int $nRangeRep = `mrGetParamInt $sOption "ExportOptionBase_BakeToRangeReproduction"`;
+	if( $nRangeRep == 1 || $nRangeRep == -1 )
+	{
+		// 再生範囲の開始、終了
+		$startTime	= `playbackOptions -q -minTime`;
+		$endTime	= `playbackOptions -q -maxTime`;
+	}
+	else
+	{
+		// アニメーションの開始、終了
+		$startTime	= `playbackOptions -q -animationStartTime`;
+		$endTime	= `playbackOptions -q -animationEndTime`;
+	}
+
+	// リファレンスのネームスペースが正しく付加されているかチェック
+	int $nRefNSCheck = `mrGetParamInt $sOption "ExportOptionBase_ReferenceNameSpaceCheck"`;
+	if( $nRefNSCheck == 1 || $nRefNSCheck == -1 )
+	{
+		trace "リファレンスのネームスペースチェック・・・";
+		string $sErr = `htCheckReferenceNameSpace`;
+		if( "" != $sErr )
+		{
+			return $sErr;
+		}
+		trace "OK!!";
+	}
+
+	// リファレンスインポート
+	int $nRefImport = `mrGetParamInt $sOption "ExportOptionBase_ReferenceImport"`;
+	if( $nRefImport == 1 || $nRefImport == -1 )
+	{
+		trace "リファレンスインポートチェック・・・";
+		source "ohUtility.mel";
+		ohImportAllReference;
+		trace "OK!!";
+	}
+
+//--------------------------------------------------------------------
+//対ジンバル作業2012-12版、専用階層をrootと一緒に焼きたい
+	trace "GP専用独自処理、ジンバル対策ノード確認・・・";
+	string $Parent = "";
+	for( $node in $topNodes ){
+		if(	( "" != `match "^Parent$" $node` )
+		 ||	( "" != `match ":Parent$" $node` )
+		)
+		{
+			$Parent = $node;
+			break;
+		}
+	}
+
+	if( "" != $Parent ){
+		parent $Parent $root;
+		string $ParentTmp[] = `ls -sl`;
+		$Parent = $ParentTmp[0];
+		trace "OK!!";
+	}
+
+
+//--------------------------------------------------------------------
+
+	// ベイク
+	int $nBakeAnime = `mrGetParamInt $sOption "ExportOptionBase_BakeAnimation"`;
+	if( $nBakeAnime == 1 || $nBakeAnime == -1 )
+	{
+		trace "ベイク・・・";
+	//	htSwitchModelPanel;	// パネルを隠す
+	
+		// ロックされているアトリビュートを全て解除
+		select -hi $root;
+		string $ary[] = `ls -sl`;
+		string $unlocks[] = {"translateX", "translateY", "translateZ", "rotateX", "rotateY", "rotateZ", "scaleX", "scaleY", "scaleZ"};
+		int $i = 0;
+		for($i = 0; $i < `size $ary`; $i++)
+		{
+			int $flgUnlock = false;
+			for($j = 0; $j < `size $unlocks`; $j++)
+			{
+				if( `attributeExists $unlocks[$j] $ary[$i]` == 1 && `getAttr -l ($ary[$i]+"."+$unlocks[$j])` == 1 )
+				{
+					setAttr -l false ($ary[$i]+"."+$unlocks[$j]);
+					$flgUnlock = true;
+				}
+			}
+			if( $flgUnlock == true )
+			{
+				trace("アトリビュートのロックを解除 : " + $ary[$i]);
+			}
+		}
+
+		hide -all;
+		showHidden $root;
+
+		bakeResults
+			-simulation				true
+			-time					($startTime + ":" + $endTime)
+			-hierarchy				below
+			-sampleBy				1.0
+			-disableImplicitControl	true
+			-preserveOutsideKeys	false
+			-sparseAnimCurveBake	false
+			-controlPoints			false
+			-shape					true
+			-attribute				translate
+			-attribute				rotate
+			-attribute				scale
+			$root;
+
+		//htSwitchModelPanel;	// パネルを戻す
+		trace "OK!!";
+	}
+	flushUndo;
+
+	// オイラーフィルタ
+	{
+		string $anmCvs[] = `ls -type animCurve`;
+		filterCurve -filter euler $anmCvs;
+	}
+	flushUndo;
+
+	// ネームスペースを取っ払う
+	{
+		string	$buf[];
+		while ( 1 != `tokenize $root ":" $buf` )
+		{
+			namespace -moveNamespace $buf[0] ":" -force;
+			$root	= `substitute $buf[0] $root   ""`;
+		}
+	}
+	flushUndo;
+
+	// 作業用ダミージョイントの削除
+	int $uDeleteDummyJoint = `mrGetParamInt $sOption "ExportOptionBase_DeleteDumyJoint"`;
+	if( $uDeleteDummyJoint == 1 || $uDeleteDummyJoint = -1 )
+	{
+		trace "ダミージョイントの削除・・・";
+		string $deleteList[]; clear $deleteList;
+		string $allJoints[] = `ls`;
+		for( $joint in $allJoints )
+		{
+			if( "" != `match "dummy" $joint` )
+			{
+				trace $joint;
+				$deleteList[`size $deleteList`] = $joint;
+			}
+			flushUndo;
+		}
+		delete $deleteList;
+		trace "OK!!";
+	}
+	flushUndo;
+
+	// 不要なキーの削除
+	int $nDeleteKey = `mrGetParamInt $sOption "ExportOptionBase_DeleteNeedlessKey"`;
+	if( $nDeleteKey == 1 || $nDeleteKey = -1 )
+	{
+		trace "不要キーの削除・・・";
+		string $anmCvs[] = `ls -type animCurve`;
+		for ( $cv in $anmCvs )
+		{
+			string	$plug[]		= `listConnections -s false -d true -p true ($cv+".output")`;
+			if (	("" == `match "\.translate.$" $plug[0]`)
+				&&	("" == `match "\.rotate.$" $plug[0]`)
+				&&	("" == `match "\.scale.$" $plug[0]`)
+				)
+			{
+				delete	$cv;
+			}
+			flushUndo;
+		}
+		trace "OK!!";
+	}
+	flushUndo;
+	
+	//	指定名ノード以下の削除
+	int $nTexCopy = `mrGetParamInt $sOption "ExportOption_DeleteNode"`;
+	if( $nTexCopy == 1 || $nTexCopy == -1 )
+	{
+		trace "指定名ノード以下の削除・・・";
+		string $matchText = `mrGetParamString $sOption "ExportOption_DeleteNodeText"`;
+		string $matchNodeList[] = stringToStringArray($matchText, ",");
+		deleteNodeToMatchName($matchNodeList);
+	}
+
+	// 接線タイプをSplineにする
+	int $nSpline = `mrGetParamInt $sOption "ExportOptionBase_SetTangentSpline"`;
+	if( $nSpline == 1 || $nSpline = -1 )
+	{
+		trace "接線タイプのSpline化・・・";
+		string $dagList[] = `ls -v -st`;	// dagを選択
+
+		int $dagNum = `size($dagList)`;
+		int $jointNum = 0;
+
+		// ジョイントノードだけ取り出す
+		string $jointList[];
+		for( $i=0 ; $i<$dagNum ; $i+=2 )
+		{
+			if( $dagList[$i+1]=="joint" || $dagList[$i+1]=="locator" ) {	// ジョイントとロケータ
+				$jointList[$jointNum] =  $dagList[$i];
+				$jointNum++;
+			}
+			flushUndo;
+		}
+		flushUndo;
+
+		if(0 < `size($jointList)`)
+		{
+			selectKey -r -k $jointList;
+			keyTangent -itt spline -ott spline;
+		}
+		flushUndo;
+		trace "OK!!";
+	}
+	
+	// 最適化後処理
+	if( $asExportCommand[3] != "" )
+	{
+		trace "最適化・・・";
+		string $err = `eval( $asExportCommand[3] + " " + $sOption )`;
+		if( $err != "" )
+		{
+			return $err;
+		}
+		trace "OK!!";
+	}
+	flushUndo;
+
+
+
+//--------------------------------------------------------------------
+//対ジンバル作業2012-12版、専用階層をrootと一緒に焼きたい
+	trace "GP専用独自処理、ジンバル対策ノード作業・・・";
+	if( "" != $root ){
+		parent -world ($root + "|Parent");
+		trace "OK!!";
+	}
+
+//--------------------------------------------------------------------
+
+
+
+	// 拡張子の入力が無い場合は ".mot.dae" をつける
+	string $sMatch = `match "\\..*$" $sExportPath`;
+	if( 0 == `strcmp "" $sMatch` )
+		$sExportPath = $sExportPath + ".mot.dae";
+
+	// dae出力
+	{
+		trace "DAE出力・・・";
+		sysFile -makeDir (`dirname $sExportPath`);
+		select -r $root;
+		string	$op = "bakeTransforms=0;relativePaths=1;bakeLighting=0;exportCameraAsLookat=0;exportTriangles=0;isSampling=0;curveConstrainSampling=0;removeStaticCurves=0;samplingFunction=;exportPolygonMeshes=0;exportLights=0;exportCameras=0;exportJointsAndSkin=1;exportAnimations=1;exportInvisibleNodes=0;exportDefaultCameras=0;exportNormals=0;exportTexCoords=0;exportVertexColors=0;exportVertexColorAnimations=0;exportTexTangents=0;exportTangents=0;exportMaterialsOnly=0;exportConstraints=0;exportPhysics=0;exclusionSetMode=0;exclusionSets=;exportXRefs=1;dereferenceXRefs=0;cameraXFov=0;cameraYFov=1;";
+		file -f -op $op -typ "COLLADA exporter" -pr -es $sExportPath;
+		trace "OK!!";
+	}
+	flushUndo;
+
+	//.daeを.gz圧縮
+	{
+		trace "dae圧縮・・・";
+		string	$grZipPath = "\"" + `getenv "GP_MAYA_ROOT"` + "/common/tool/GrZip.exe\"";
+				$grZipPath = `toNativePath $grZipPath`;
+		string	$command = ($grZipPath + " -c \"" + `toNativePath $sExportPath` + "\"");
+		$command = ("\"" + $command + "\"");
+		system	$command;
+		trace $command;
+		sysFile -delete $sExportPath;
+		trace "OK!!";
+	}
+
+	return "";
+}

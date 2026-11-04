@@ -1,0 +1,84 @@
+/* This file downloaded from Highend3d.com
+''  
+''  Highend3d.com File Information:
+''  
+''    Script Name: Delete Poly Crease
+''    Author: madpear 
+''    Last Updated: Apr 29, 2008
+''    Update/Change this file at:
+''    http://Highend3d.com/maya/downloads/mel_scripts/polygon/2124.html
+''  
+''  Please do not alter any information above this line
+''  it is generated dynamically by Highend3d.com and will
+''  be changed automatically on any updates.
+*/
+/*  Rename all shapes to match the transform node name.
+    Code taken from Tiny Tools DB cleaner and modify to keep
+    the selection active and to return no information*/
+
+proc string MDL_SLN(string $UN_longName)
+{
+	string	$UN_tokenArray[];
+	tokenize $UN_longName "|" $UN_tokenArray;
+	if( size($UN_tokenArray) == 0 )	
+	return $UN_longName;
+	return $UN_tokenArray[size($UN_tokenArray)-1];
+}
+
+global proc MDL_removeCrease()
+{
+	string $selList[] = `ls -sl`;
+	string $CSN_liste[] = `ls -l -g`;
+	for ($CSN_objects in $CSN_liste)
+	{
+		string $CSN_intermedAttr = $CSN_objects + ".intermediateObject";
+		int $CSN_intermedAttrValue = `getAttr $CSN_intermedAttr`;
+		if ($CSN_intermedAttrValue == 0)
+		{
+			string $CSN_transform[] = `pickWalk -d up $CSN_objects`;
+			string $CSN_transformShort = `MDL_SLN($CSN_transform[0])`;
+			string $CSN_objectNewName = $CSN_transformShort + "Shape";
+			rename $CSN_objects $CSN_objectNewName;
+		}
+	}
+	select -r $selList;
+	
+/*  Creases cleaning begins here*/	
+    
+//string $objects[]=`ls -sl`;
+int $count = size($selList);
+  for ($name in $selList)
+  {
+    delete -ch;
+    string $keepName = $name;
+    string $newName = $name + "WipCrease";
+    rename $name $newName;
+    $f = `polyEvaluate -f`;
+    int $r = $f[0];
+    $maxFace = ($r - 1);
+    PolySelectConvert 1;
+    polyChipOff -ch 0 -kft 1 -dup 1 -off 0 ($newName + ".f[0:" + $maxFace + "]");
+    polySeparate -ch 0 -n resultCleanCrease ($newName+"Shape");
+    delete resultCleanCrease;
+    rename resultCleanCrease1 $keepName;
+    
+/*  Reparent cleaned object to original parent*/    
+    
+    string $firstParent[] = `listRelatives -p $keepName`; // get direct parent
+    string $finalParent[] = `listRelatives -p $firstParent[0]`; // get  direct parent's parent
+    if ($finalParent[0] == "" )
+    {
+      parent -w; //// si pas de parent direct > unparent to the world
+      delete $firstParent;
+    }
+    else
+    {
+      parent  $keepName $finalParent[0]; // sinon parentage au parent du parent direct parent $sel[0] $finalParent[0]
+      delete $firstParent;
+    } 
+  }
+select $selList; //retour à la selection originale
+print ("Poly crease removed on " + $count + " objects" );
+}
+
+

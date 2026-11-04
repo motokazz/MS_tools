@@ -1,0 +1,207 @@
+
+global proc string MS_groupSkinWeight_SkinCluster(string $obj){
+	string $a[]=`ls -o $obj`;
+	string $b=`findRelatedSkinCluster $a[0]`;
+	return $b;
+}
+
+
+global proc string MS_componentLastSelected(){
+	string $undo, $buffer[], $target;
+	$undo = `undoInfo -q -un`;
+	tokenize $undo " " $buffer;
+	$target = $buffer[size($buffer)-1];
+	return $target;
+}
+
+global proc float MS_nearestObjectV2_distance(string $target_a,string $target_b){
+	
+	float $a[] = `xform -q -ws -t $target_a`;
+	float $b[] = `xform -q -ws -t $target_b`;
+	//2点間の移動距離を計算
+	float $len = sqrt(($a[0]-$b[0])*($a[0]-$b[0])+($a[1]-$b[1])*($a[1]-$b[1])+($a[2]-$b[2])*($a[2]-$b[2]));
+	
+	return $len;
+	
+}
+
+global proc string[] MS_nearestObjectV2(string $sourceObj[],string $distObj){
+	//string $sourceObj[]=`ls -typ transform`;
+	string $entryObj[]=stringArrayRemove ({$distObj},$sourceObj);
+	string $dists[];
+	
+	$i=0;
+	for($each in $entryObj){
+		float $ftemp=`MS_nearestObjectV2_distance $distObj $each`;
+		$dists[$i]=((1000000+$ftemp)+"<>"+$each);
+		$i++;
+	}
+	string $result[]=`sort $dists`;
+	
+	string $final[];
+	$j=0;
+	for($each in $result){
+		string $stemp[];
+		tokenize($each,"<>",$stemp);
+		$final[$j]=$stemp[1];
+		$j++;
+	}
+	return $final;
+}
+
+
+global proc MS_Progress(){
+	//プログレスウィンドウ
+	if((`window -ex MS_ProgressWindow`) == true)deleteUI MS_ProgressWindow;
+	if(`windowPref -ex MS_ProgressWindow`){ windowPref -r MS_ProgressWindow; }
+	window -wh 248 70 -tlc 414 516 -tlb true -s true -t "Calculating" MS_ProgressWindow;
+	columnLayout;
+	progressBar -maxValue 10 -width 246 MS_progress;
+	setParent ..;
+	showWindow MS_ProgressWindow;
+}
+
+
+global proc string[] MS_groupSkinWeight_selectFilter(){
+
+	/*
+	より分け選択
+	*/
+	
+	string $objz[]=`ls -typ mesh -sl`;
+	if(!size($objz)){
+		$objz=`filterExpand -sm 12 -sm 31 -sm 32 -sm 34 `;
+	}
+	return $objz;
+	
+}
+
+
+global proc MS_groupSkinWeight(){
+	
+	string $targetJoint1=`textFieldGrp -q -tx "targetJoint1"`;
+	int $effectiveRGB=`checkBox -q -v "effectiveRGB"`;
+	int $effectiveAlpha=`checkBox -q -v "effectiveAlpha"`;
+	int $considerNearest=`checkBox -q -v "considerNearest"`;
+	
+	float $startRGB[]=`colorSliderGrp -q -rgb "startRGB"`;
+	float $startAlpha[]=`colorSliderGrp -q -rgb "startAlpha"`;
+	
+	float $endRGB[]=`colorSliderGrp -q -rgb "endRGB"`;
+	float $endAlpha[]=`colorSliderGrp -q -rgb "endAlpha"`;
+
+	
+	string $obj[]=`MS_groupSkinWeight_selectFilter`;
+	string $target=`textFieldGrp -q -tx "objName"`;
+	print (size($obj));
+	if($considerNearest && size($obj)>1 && $target!=""){
+		string $temp[]= `MS_groupSkinWeight_selectFilter`;
+		$obj=`MS_nearestObjectV2 $temp $target`;
+		print "*";
+	}
+	
+	//プログレスバー
+	MS_Progress;
+	progressBar -edit -beginProgress -isInterruptable true -maxValue (size($obj)) MS_progress;
+	
+	
+	//頂点カラー割付
+	/*
+	int $i=0;
+	if($startAlpha[0]==$endAlpha[0]){
+		for($eachobj in $obj){
+			string $option="";
+			float $weightValue=$endAlpha[0]+((size($obj)-$i)*(($startAlpha[0]-$endAlpha[0])/size($obj)));
+			
+			if($effectiveRGB){
+				$option=$option+("-normalize on"+" ");
+				$option=$option+("-relative on"+" ");
+				$option=$option+("-transformValue  "+$targetJoint1+" "+$weightValue+" ");
+			}
+			string $SkinCluster=`MS_groupSkinWeight_SkinCluster $eachobj`;
+			
+			if($effectiveRGB || $effectiveAlpha){
+				eval ("skinPercent "+$option+$SkinCluster+" "+$eachobj);
+			}
+			$i++;
+			progressBar -edit -s 1 MS_progress;//プログレス
+		}
+	}else{
+		skinPercent -normalize on -relative on -transformValue  $targetJoint1 1;
+	}
+	*/
+	string $vt[]=`filterExpand -sm 31`;
+	string $SkinCluster=`MS_groupSkinWeight_SkinCluster $vt[0]`;
+	string $selectedJoint[]=`ls -l -typ joint -sl`;
+	skinPercent -normalize on -relative on -transformValue  $selectedJoint 1 $SkinCluster $vt;
+	deleteUI -window MS_ProgressWindow;//プログレス
+}
+
+global proc MS_groupSkinWeightUI_takeObj(){
+	//オブジェクトをtextFieldGrpに取得
+	string $obj[]=`ls -l -sl`;
+	textFieldGrp -e -tx $obj[0] "objName";
+}
+
+global proc MS_groupSkinWeightUI_takeJoint(){
+	//オブジェクトをtextFieldGrpに取得
+	string $obj[]=`ls -l -typ joint -sl`;
+	textFieldGrp -e -tx $obj[0] "targetJoint1";
+}
+
+global proc MS_groupSkinWeightUI(){
+	if(`window -exists MS_groupSkinWeight`){deleteUI "MS_groupSkinWeight";}
+	window -t MS_groupSkinWeight MS_groupSkinWeight;
+	
+	columnLayout;
+		text -w 1000 -al "left" -fn "boldLabelFont" -l "1.select objects. 2.set colors. 3.go";
+	setParent ..;
+	rowLayout -nc 2 -cw 1 110;
+		
+		columnLayout;
+			frameLayout -w 105 -h 35 -lv 0;
+				columnLayout;
+					checkBox -v 1 -l "effectiveRGB" "effectiveRGB";
+					checkBox -v 1 -l "effectiveAlpha" "effectiveAlpha";
+				setParent ..;
+			setParent ..;
+			frameLayout -w 105 -h 60 -lv 0;
+				columnLayout;
+					checkBox -v 1 -l "considerNearest" "considerNearest";
+					textFieldGrp -w 99 -en 0 "objName";
+					button -bgc 0.8 0.8 1.0 -w 100 -h 15-l "takeTarget" -c "MS_groupSkinWeightUI_takeObj";
+				setParent..;
+			setParent..;
+			frameLayout -w 105 -h 60 -lv 0;
+				columnLayout;
+					textFieldGrp -w 99 -en 0 "targetJoint1";
+					button -bgc 0.8 1.0 0.8 -w 100 -h 15-l "takeJoint" -c "MS_groupSkinWeightUI_takeJoint";
+				setParent..;
+			setParent..;
+			frameLayout -w 105 -h 35 -lv 0;
+				button -bgc 0.8 1.0 0.8 -w 100-l "groupVcolor" -c "MS_groupSkinWeight" "groupVcolor";
+			setParent ..;
+		setParent ..;
+		
+		columnLayout;
+			frameLayout -h 65 -lv 0;
+				columnLayout;
+					colorSliderGrp -rgb 1.0 1.0 1.0 -l "startRGB" "startRGB";
+					colorSliderGrp -rgb 1.0 1.0 1.0 -l "startAlpha" "startAlpha";
+					setParent ..;
+					setParent ..;
+			frameLayout -h 65 -lv 0;
+				columnLayout;		
+					colorSliderGrp -rgb 0 0 0 -l "endRGB" "endRGB";
+					colorSliderGrp -rgb 0 0 0 -l "endAlpha" "endAlpha";
+				setParent ..;
+			setParent ..;
+		setParent ..;
+	setParent ..;
+	
+	showWindow MS_groupSkinWeight;
+}
+
+//MS_groupSkinWeightUI;
+
+

@@ -1,0 +1,198 @@
+//GP2モーションエクスポータ
+//1,メインウィンドウ構築
+
+global proc GP2_motionExporterUI(){
+	string $toolVer = getVer();
+	string $windowName = ("exportFBXToolWindow_" + $toolVer);
+
+	if(`window -q -exists $windowName`){
+		deleteUI -window $windowName;
+	}
+	window -h 114 -w 250 $windowName;
+
+	string $rootName = "root";
+	string $saveDataList[] = {"exportFolder","multiExportSwitch","resetRootPosSwitch","multiTabMayaDataFolder","BookMarks"};
+	string $exportPath = GP2_motExp_globalLoad($saveDataList[0]);
+	string $multiExpSw = GP2_motExp_globalLoad($saveDataList[1]);
+	string $resetRotSw = GP2_motExp_globalLoad($saveDataList[2]);
+	string $multiMayPt = GP2_motExp_globalLoad($saveDataList[3]);
+	string $bookMarks = GP2_motExp_globalLoad($saveDataList[4]);
+
+	string $path = (`getenv GP_MAYA_ROOT` + "\\common\\scripts\\GP_mel\\csv\\headerOrigin_GP2.csv");
+
+	columnLayout -adj 1 eFT_baseColumnLayout;
+		string $form = `formLayout`;
+		string $tabs = `tabLayout -innerMarginWidth 5 -innerMarginHeight 5 eFT_modeSetTab`;
+		formLayout -edit
+			-attachForm $tabs "top"    0
+			-attachForm $tabs "left"   0
+			-attachForm $tabs "bottom" 0
+			-attachForm $tabs "right"  0
+			$form;
+
+//			string $child1 = `rowLayout -numberOfColumns 3 -columnWidth3 180 10 420 -adjustableColumn 1 -columnAlign  1 "right" -columnAttach 1 "both" 0 -columnAttach 2 "both" 0 -columnAttach 3 "both" 0 eFT_baseRowLayout`;
+			string $child1 = `rowLayout -numberOfColumns 3 -columnWidth3 180 10 420 -adj 3 -columnAlign  1 "right" -columnAttach 1 "both" 0 -columnAttach 2 "both" 0 -columnAttach 3 "both" 0 eFT_baseRowLayout`;
+				columnLayout -adj 1 eFT_singleColumnLayout;
+
+				text -label "出力キャラ";
+				textScrollList -nr 4 -showIndexedItem 4 -h 420 -ann "出力できるキャラリファレンス一覧です。選択したキャラのモーションが出力されます。" eFT_expChrTsl;
+
+				button -h 40 -l "List Reload" -ann "開いているシーンの状況をもとに、上記リストを更新します。" -command "setExpChrList()" eFTlReloadBtn;
+
+				separator -height 15 -style "in";
+
+				text -label "出力する骨階層・トップノード";
+				textField -tx $rootName -w 100 -ann "出力する骨階層のトップノードを指定します。(原則的にrootで固定です)" eFT_jointRootNameFld;
+
+				setExpChrList();
+				setParent ..;
+
+				separator -w 10 -h 590 -hr false -style "in";
+
+				columnLayout -adj 1 -w 520 eFT_divExpColumnLayout;
+
+				radioCollection eFT_divModeRadCol;
+				radioButton -label "シーン全体を1モーションとして出力" -sl -cc "switch_eFTUI()" -ann "現在の開始・終了フレームで、単独のモーションとして出力します。" eFT_divModeRad1;
+				radioButton -label "複数モーションを分割出力" -cc "switch_eFTUI()" -ann "設定に基づき、複数モーションを指定したフレーム数で出力します。" eFT_divModeRad2;
+
+//				separator -height 15 -style "in";
+				checkBox -label "loopMotion(1モーション出力用設定)" -v 0 -vis 0 -ann "(単体出力用)ループモーション用に、出力フレームの末尾をカットします。" eFT_loopModeChk;
+				checkBox -label "加算用モーションのベースとして使用" -v 0 -bgc 0.5 0.9 0.6 -vis 1 -cc ("eFT_autoSave_Settings()") -ann "射撃などの加算用モーションのベースとして、現在のモーションを設定します。" eFT_baseModeChk;
+				separator -height 15 -style "in";
+
+
+					rowLayout -numberOfColumns 6 -columnWidth6 15 310 80 30 30 90 -adjustableColumn 2 -columnAlign 2 "left" -columnAlign 3 "left" -columnAlign 4 "left" -columnAlign 5 "left" -columnAttach 2 "left" 0 -columnAttach 3 "left" 0 -columnAttach 4 "left" 0 -columnAttach 5 "left" 0;
+					checkBox -label "" -v 0 -cc "eFT_resetAllExpFlag()" -ann "全チェックon/off" eFT_divExpFlgChk_all;
+					text -label "motionName";
+					text -label "mopID";
+					text -label "start";
+					text -label "end";
+//					text -label "loop";
+					text -label "";
+					setParent ..;
+
+					scrollLayout -cr 1;
+					int $i;
+					for($i=0 ;$i<16 ; $i++){
+						float $c = ( 0.265625 - (($i % 2) * 0.05));
+						rowLayout -bgc $c $c $c -numberOfColumns 6 -columnWidth6 15 300 80 30 30 1 -adjustableColumn 2 -columnAlign 2 "right" -columnAttach 2 "both" 0 -columnAttach 3 "both" 0 -columnAttach 4 "both" 0 -columnAttach 5 "both" 0 -columnAttach 6 "both" 0;
+						checkBox -label "" -v 1 -ann "チェックを外されたモーションは、出力を行いません。" -cc "eFT_autoSave_Settings()" ("eFT_divExpFlgChk" + $i);
+						textField -w 90 -cc ("eFT_checkMotionName(" + $i + ");eFT_autoSave_Settings()") -ann "" ("eFT_divExpNameTF" + $i);
+						button -w 90 -h 22 -label "" -c ("eFT_checkMotionName(" + $i + ");eFT_autoSave_Settings()") -ann "" ("eFT_divExpMopIDBtn" + $i);
+						floatField -w 30 -cc "eFT_autoSave_Settings()" -v `playbackOptions -q -min` -pre 0 -ann "" ("eFT_divExpStTF" + $i);
+						floatField -w 30 -cc "eFT_autoSave_Settings()" -v `playbackOptions -q -max` -pre 0 -ann "" ("eFT_divExpEnTF" + $i);
+						checkBox -label "" -vis 0 -cc "eFT_autoSave_Settings()" -v 0 -ann "ループモーション用に、出力フレームの末尾をカットします。" ("eFT_divExpLpChk" + $i);
+						setParent ..;
+					}
+					setParent ..;
+					textScrollList -h 100 -ann "複数mopIDに適応するモーション名が見つかった場合、リストが表示されます。\r\n使用したいmopを選択し、mopIDボタンを押して下さい。" eFT_divExpSelMopTSL;
+					textScrollList -e -a "複数mopIDに適応するモーション名が見つかった場合、ここにリストが表示されます。" eFT_divExpSelMopTSL;
+					textScrollList -e -a "使用したいmopを選択し、mopIDボタンを押して下さい。" eFT_divExpSelMopTSL;
+					textScrollList -e -a "強制入力コマンド: [ button -e -label \"(入力したいmopID)\" eFT_divExpMopIDBtn0 ;eFT_autoSave_Settings();] 0を変更すれば2段目以降を指定" eFT_divExpSelMopTSL;
+					textScrollList -e -a "モーションリストの更新が間に合っていなかったり、csvに書き込まないモーション用(ブレンドのベース用など)。" eFT_divExpSelMopTSL;
+
+					text -label "Input_Assist";
+						rowLayout -numberOfColumns 4 -columnWidth4 30 300 30 30 -columnAlign 1 "right" -columnAttach 1 "both" 0 -columnAttach 2 "both" 0 -columnAttach 3 "both" 0 -columnAttach 4 "both" 0;
+						intField -v 16 -w 30 eFT_divExpTimeAssistTF;
+						textField -w 300 -ann "文字列を入力しEnterを押すと、上欄に連続モーション名として入力します。" -ec "divExpNameAssist();eFT_autoSave_Settings()" eFT_divExpNameAssistTF;
+						setParent ..;
+						button -l "clear" -ann "全削除" -command "divExpNameClear();eFT_autoSave_Settings()" eFT_divExpNameClearBtn;
+
+						separator -height 15 -style "in";
+						rowLayout -numberOfColumns 2 -columnWidth2 80 80 -columnAlign 1 "left" -columnAttach 1 "both" 0 -columnAttach 2 "both" 0 ;
+							button -l "save_setting" -en 0 -ann "現在開いているシーンへ、設定を保存します。" -command "eFT_saveSettings()" eFT_divExpSaveBtn;
+							button -l "load_setting" -ann "設定をロードします。" -command "eFT_loadSettings();" eFT_divExploadBtn;
+							setParent ..;
+
+				setParent ..;
+			setParent ..;
+
+			string $child2 = `columnLayout -adj 2 eFT_multiFileColumnLayout`;
+				string $eFT_tf1 = (`textFieldButtonGrp -cl3 left both right -cw3 120 500 100 -label "mayaデータフォルダ" -text $multiMayPt -ann "mayaデータの読み取り元フォルダを指定して下さい。" -buttonLabel "Edit" eFT_sourcePathTf`);
+				string $eFT_mFPaneLayout = `paneLayout -cn "vertical2" -ps 1 30 100 -ps 2 70 100 -st 10 eFT_mfPaneLot`;
+					string $eFT_Mcolumn1 = `columnLayout -adj 1 eFT_multiFileColumnLayout`;
+						text -label "File_Browser";
+						textScrollList -h 340 -ams 1 -dgc eFT_DragCallBack -dcc "eFT_fileBrDC()" eFT_fileBr_tsl;
+						separator -height 15 -style "in";
+						text -label "Bookmark";
+						textScrollList -h 150 -ams 0 -dgc eFT_DragCallBack -dpc eFT_DropCallBack -dcc "eFT_BrBookmarkDC()" eFT_BrBookmark_tsl;
+						rowLayout -numberOfColumns 3 -columnWidth3 100 100 100 -columnAlign 1 "left" -columnAttach 1 "both" 0 -columnAttach 2 "both" 0 ;
+							button -label "Delete" -c "eFT_toolBtn(\"eFT_dBMbtn\")" eFT_dBMbtn;
+						setParent ..;
+					setParent ..;
+					rowLayout -numberOfColumns 2 -adj 2 -columnWidth2 100 300 -columnAlign 1 "left" -columnAttach 1 "both" 0 -columnAttach 2 "both" 0 eFT_multiGenUI;
+						string $eFT_Mcolumn2 = `columnLayout -adj 1 eFT_multiToolColumnLayout`;
+							button -h 60 -w 60 -label "→" -c "eFT_addExportList()" eFT_multiToolAddBtn;
+							button -h 60 -w 60 -label "←" -c "eFT_delExportList()" eFT_multiToolDelBtn;
+//							separator -height 15 -style "in";
+//							text -l "UI_slide";
+							button -l "UIを→へずらす" -vis 0 -c "eFT_UISlideButton(0)" eFT_multiUIRSldBtn;
+							button -l "UIを←へずらす" -vis 0 -c "eFT_UISlideButton(1)" eFT_multiUILSldBtn;
+							intField -v 300 -vis 0 eFT_multiUISldItf;
+						setParent ..;
+						string $eFT_Mcolumn3 = `columnLayout -adj 1 eFT_multiExptColumnLayout`;
+							text -label "ExportList";
+							textScrollList -h 520 -w 400 -ams 1 -dpc eFT_DropCallBack eFT_ExportFileList_tsl;
+							rowLayout -numberOfColumns 3 -columnWidth3 100 100 100 -columnAlign 1 "left" -columnAttach 1 "both" 0 -columnAttach 2 "both" 0 ;
+								button -label "All_Select" -c "eFT_toolBtn(\"eFT_exlAlsbtn\")" eFT_exlAlsbtn;
+								button -label "All_Delete" -c "eFT_toolBtn(\"eFT_exlAldbtn\")" eFT_exlAldbtn;
+								button -label "clear_unselected" -c "eFT_toolBtn(\"eFT_exlCusbtn\")" eFT_exlCusbtn;
+							setParent ..;
+						setParent ..;
+					setParent ..;
+				setParent ..;
+			setParent ..;
+	
+			string $child3 = `columnLayout -adj 1 eFT_motionInfomationList`;
+				textScrollList -h 600 eFT_motionInfoTSL;
+			setParent ..;
+
+		setParent ..;
+	setParent ..;
+	tabLayout -edit
+		-tabLabel $child1 "現在開いているシーンを出力" -tabLabel $child2 "複数ファイルから出力" -tabLabel $child3 "モーション情報"
+		$tabs;
+
+	string $temp[];
+	tokenize $bookMarks "@" $temp;
+	int $i;
+	for($i=0 ; $i < size($temp) ; $i++){
+		textScrollList -e -a $temp[$i] eFT_BrBookmark_tsl;
+	}
+
+	string $eFT_tf2 = (`textFieldButtonGrp -cl3 left both right -cw3 120 500 100 -label "出力先フォルダ" -text $exportPath -ann "fbxファイルの出力先フォルダを指定して下さい。" -buttonLabel "Edit" eFT_exportTgtTf`);
+	checkBox -label "Reset_RootPos" -vis 0 -en 0 -v 0 -ann "(単・複数出力問わず)FBX出力を行う直前に、rootジョイントの開始フレームでの位置を原点へ移動します。" -cc "GP2_motExp_globalSave(\"resetRootPosSwitch\")" eFT_resetPosChk;
+
+	text -align "left" -label "■FBX出力先";
+	radioCollection eFT_exptPathRadCol;
+	radioButton -label "指定したフォルダにそのまま出力" -sl -ann "テスト・仮出力用。指定したパスにfbxファイルのみ出力します。" eFT_exptPathRad1;
+	radioButton -label "UE4_importフォルダへ出力" -ann "本出力用。元データのフォルダ構成と同じUE4_import階層に出力します。" eFT_exptPathRad2;
+
+	separator -height 15 -style "in";
+
+	text -align "left" -label "■csv書き込み";
+	radioCollection eFT_csvModeRadCol;
+	radioButton -label "編集しない" -sl -ann "対象となるcsvに対して、アクセスを行いません。" eFT_csvModeRad1;
+	radioButton -label "(存在する場合)開いて追記" -ann "対象となるcsvが存在する場合、情報の更新・追記を自動で行います。" eFT_csvModeRad2;
+	radioButton -label "新規作成" -ann "対象となるcsvを必ず新規生成します。既に存在している場合も、新しい情報のみで上書きします。" eFT_csvModeRad3;
+
+	button -h 40 -l "Export_FBX" -ann "モーションの出力を行います。" -command "eFT_switchExportMode()" eFTlExecBtn;
+
+	if($resetRotSw != "on"){
+		checkBox -e -v 0 eFT_resetPosChk;
+	}
+
+	$multiExpSw = "eFT_divModeRad2";
+	radioCollection -e -sl $multiExpSw eFT_divModeRadCol;
+	radioCollection -e -sl "eFT_csvModeRad1" eFT_csvModeRadCol;
+	switch_eFTUI();eFT_loadSettings();
+
+	textScrollList -vis 0 eFT_tmpWorkedMopLst;	//csvの新規作成用。出力作業を行ったmopを一時預かり
+
+	textFieldButtonGrp -edit -bc ("eFT_editTfData(\"eFT_exportTgtTf\")") eFT_exportTgtTf;
+	textFieldButtonGrp -edit -bc ("eFT_editTfData(\"eFT_sourcePathTf\")") eFT_sourcePathTf;
+	eFT_fileBrRenew($multiMayPt);
+	eFT_setupMotionInfo($path);
+
+	showWindow $windowName;
+}

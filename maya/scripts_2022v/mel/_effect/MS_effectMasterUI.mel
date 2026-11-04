@@ -1,0 +1,610 @@
+global proc int[] MS_selectTime(){
+	/*
+	タイムスライダーから時間を取得
+	
+	スライダーで範囲選択がある場合はその範囲内を
+	そうでない場合は現在のタイムスライダーの範囲を返す
+	
+	*/
+	//グローバル宣言しないとプロシージャ内でタイムスライダーを特定できない。
+	global string $gPlayBackSlider;
+	
+	string $buf[];
+	
+	string $tc=`timeControl -q -rng -gt $gPlayBackSlider`;
+	
+	tokenize $tc ":\"" $buf;
+	
+	int $st=$buf[0];
+	int $ed=$buf[1];
+	if(($ed-$st)<=1){
+		$st=`playbackOptions -q -min`;
+		$ed=`playbackOptions -q -max`;
+	}
+	return {$st,$ed};
+}
+
+
+
+global proc string[] MS_duplicateFace(){
+	string $obj[]=`ls -o -sl` ;
+	string $polygons[]=`ls -sl` ;
+	string $duped[]=`duplicate -rr -renameChildren $obj`;
+	string $name[];
+	string $polys[];
+	
+	
+	int $i=0;
+	for($each in $polygons){
+		tokenize($each,"[]",$name);
+		$polys[$i]=($duped[0]+".f["+$name[1]+"]");
+		$i++;
+	}
+	
+	select -r $polys;
+	InvertSelection;
+	delete;
+	
+	return $duped;
+	
+}
+
+
+
+global proc MS_constraint(
+	int $point,
+	string $point_option,
+	int $aim,
+	int $orient,
+	int $scale,
+	int $parent,
+	int $geometry,
+	int $normal,
+	int $tangent,
+	int $poleVector,
+	string $target[],
+	string $obj[])
+{
+	
+	for($each in $obj){
+		
+		if($point){
+		string $option=stringArrayToString($target," ");
+		eval("pointConstraint -w 1.0 -o 0 0 0 "+$point_option+" "+$option+" "+$each+";");
+		}
+		
+		if($aim)
+		aimConstraint -offset 0 0 0 -weight 1 -aimVector 1 0 0 -upVector 0 1 0 -worldUpType "vector" $target $each;
+		
+		if($orient)
+		orientConstraint -offset 0 0 0 -weight 1 $target $each;
+		
+		if($scale)
+		scaleConstraint -offset 1 1 1 -weight 1 $target $each;
+		
+		if($parent)
+		parentConstraint -mo -weight 1 $target $each;
+		
+		
+		if($geometry)
+		geometryConstraint -weight 1 $target $each;
+		
+		if($normal)
+		normalConstraint -weight 1 -aimVector 1 0 0 -upVector 0 1 0 -worldUpType "vector" -worldUpVector 0 1 0 $target $each;
+		
+		if($tangent)
+		tangentConstraint -weight 1 -aimVector 1 0 0 -upVector 0 1 0 -worldUpType "vector" -worldUpVector 0 1 0 $target $each;
+		
+		if($poleVector)
+		poleVectorConstraint -weight 1 $target $each;
+		
+	}
+	
+}
+
+
+
+global proc vector MS_ditectCenter(int $mode ){
+	/*
+	0　バウンディングボックス中心検出
+	1　ボリューム中心検出
+	
+	戻り値：vector
+	*/
+	string $orgobjz[]=`ls -sl`;
+	//より分け選択
+	string $objz[];
+	
+	$objz=`ls -tr -sl`;
+	
+	if(!size($objz)){
+		PolySelectConvert 3;
+		$objz=`filterExpand -sm 31`;
+	}
+	
+	vector $loc;
+	string $locatorList[];
+	string $temp[];
+	
+	float $totalX;
+	float $totalY;
+	float $totalZ;
+	
+	if ($mode==0){
+		
+		//バウンディングボックス中心検出
+		
+		float $bbox[6] = `exactWorldBoundingBox $objz`;
+		$loc=<<(($bbox[3]+$bbox[0])/2),(($bbox[4]+$bbox[1])/2),(($bbox[5]+$bbox[2])/2)>>;
+		
+		
+	}else if ($mode==1){
+		
+		//ボリューム中心検出
+		for ($each in $objz){
+			
+			vector $location=`xform -q -ws -t $each`;
+			
+			$totalX=$totalX+($location.x);
+			$totalY=$totalY+($location.y);
+			$totalZ=$totalZ+($location.z);
+			
+		}
+		
+		$loc=<<($totalX/size($objz)),($totalY/size($objz)),($totalZ/size($objz))>>;
+	}
+	
+	select -r $orgobjz;
+	return $loc;
+
+}
+
+
+
+// Callback when user chooses a "technique" radio button.
+global proc MS_AEcgfxShader_techniqueChoice( string $sNodeName, string $sChoice )
+{                                      
+    string $sCmd = "setAttr -type \"string\" " +
+                      $sNodeName + ".technique" +
+                      " \"" + $sChoice + "\"";
+    print ( $sCmd + ";\n" );
+    evalDeferred $sCmd;                // use evalDeferred so Maya will display
+                                       //   the setAttr command on undo/redo
+}                                      // AEcgfxShader_techniqueChoice
+
+
+
+global proc MS_duplicateWeapon(string $target[],float $offsetValue){
+	
+	vector $loc=`MS_ditectCenter 1`;
+	
+//選択ポリゴンの複製を作成
+	string $dup[]=`MS_duplicateFace`;
+	select -r $dup;
+	PolySelectConvert 3;
+	
+	int $vertexs[]=`polyEvaluate -v`;
+	string $newOptions;
+	for($i=0;$i<$vertexs[0];$i++){
+		$newOptions=($newOptions+"-n "+$offsetValue);
+	}
+	eval ("moveVertexAlongDirection "+$newOptions);
+	
+	
+	
+//ロケーター作成＆親子関係
+	string $newLoc[]=`spaceLocator`;
+	MS_constraint (1,"",0,1,0,0,0,0,0,0,$target,$newLoc);
+	
+	editDisplayLayerMembers "defaultLayer" $dup;
+	
+	select -r $dup;
+	
+	//アトリビュートアンロック
+	for ($each in $dup){
+		string $lockedAttr[]=`listAttr -l $each`;
+		for($eachAttr in $lockedAttr){
+			setAttr -l false ($each+"."+$eachAttr);
+		}
+	}
+	
+	/*
+	select -r $dup;
+	
+	PolySelectConvert 3;
+	
+	vector $loc=`MS_ditectCenter 0`;
+	
+	string $targetLoc[]=`spaceLocator`;
+	
+	xform -ws -t ($loc.x) ($loc.y) ($loc.z) $targetLoc[0];
+	*/
+	
+	parent $dup $newLoc[0] ;
+	
+	rename $dup "MS_duplicateWeapon_mesh";
+	rename $newLoc[0]  "MS_duplicateWeapon";
+	//delete $targetLoc;
+	
+}
+
+
+global proc MS_edgeVertexTransparent(){
+	//エッジの頂点カラーを0に設定
+	string $obj[]=`ls -sl`;
+	
+	PolySelectConvert 3;
+	
+	string $allVtx[]=`filterExpand -sm 31`;
+	
+	polyColorPerVertex -r 1 -g 1 -b 1 -a 1 -cdo $allVtx;
+	
+	polySelectConstraint -m 3 -t 1 -w 1;
+	
+	string $edgeVtx[]=`filterExpand -sm 31`;
+	
+	polyColorPerVertex -r 1 -g 1 -b 1 -a 0 -cdo $edgeVtx;
+	
+	polySelectConstraint -m 0 -t 0;
+	//polySelectConstraint -m 0 -t 0 -w 0;
+}
+
+
+global proc MS_flashWeapon(string $target[]){
+	
+	vector $loc=`MS_ditectCenter 1`;
+	
+	
+	
+//選択ポリゴンの複製を作成
+	string $dup[]=`MS_duplicateFace`;
+	select -r $dup;
+	PolySelectConvert 3;
+	
+	int $vertexs[]=`polyEvaluate -v`;
+	string $newOptions;
+	for($i=0;$i<$vertexs[0];$i++){
+		$newOptions=($newOptions+"-n 0.25 ");
+	}
+	eval ("moveVertexAlongDirection "+$newOptions);
+	
+	
+	
+//ロケーター作成＆親子関係
+	string $newLoc[]=`spaceLocator`;
+	MS_constraint (1,"",0,1,0,0,0,0,0,0,$target,$newLoc);
+	
+	editDisplayLayerMembers "defaultLayer" $dup;
+	
+	select -r $dup;
+	
+	//アトリビュートアンロック
+	for ($each in $dup){
+		string $lockedAttr[]=`listAttr -l $each`;
+		for($eachAttr in $lockedAttr){
+			setAttr -l false ($each+"."+$eachAttr);
+		}
+	}
+	
+	select -r $dup;
+	
+	PolySelectConvert 3;
+	
+	vector $loc=`MS_ditectCenter 0`;
+	
+	string $targetLoc[]=`spaceLocator`;
+	
+	xform -ws -t ($loc.x) ($loc.y) ($loc.z) $targetLoc[0];
+	
+	parent $dup $targetLoc[0] $newLoc[0] ;
+	
+	
+
+//頂点カラー作成
+	
+	select -r $dup;
+	
+	PolySelectConvert 3;
+	
+	string $allVtx[]=`filterExpand -sm 31`;
+	
+	polyColorPerVertex -r 1 -g 1 -b 1 -a 1 -cdo $allVtx;
+	
+	polySelectConstraint -m 3 -t 1 -w 1;
+	
+	string $edgeVtx[]=`filterExpand -sm 31`;
+	
+	polyColorPerVertex -r 1 -g 1 -b 1 -a 0 -cdo $edgeVtx;
+	
+	polySelectConstraint -m 0 -t 0 -w 0;
+	
+//シェーダー作成＆割付
+	
+	createEF_1;
+	
+	string $shad[]=`ls -sl`;
+	string $sg[]=`listConnections -t shadingEngine`;
+	string $cgfx[]=`listConnections -t cgfxShader`;
+	
+	select -r $dup;
+	sets -e -forceElement $sg[0];
+	MS_AEcgfxShader_techniqueChoice $cgfx[0] "stexture_vcolor";
+	
+//MS_VFA
+	
+	MS_VFA_Float(
+		`playbackOptions -q -min`,
+		`playbackOptions -q -max`,
+		0,
+		1,
+		$targetLoc[0],
+		$cgfx,
+		{"baseColorAlpha"}
+	);
+	
+	//後始末
+	delete $targetLoc;
+	/*
+	シーン内でかぶらないリネームはできないのか？
+	rename $shad[0] "MS_flashWeapon_lambt";
+	rename $cgfx[0] "MS_flashWeapon_cgfx";
+	rename $sg[0] "MS_flashWeapon_sg";
+	
+	rename $dup[0] "MS_flashWeapon_mesh";
+	rename $newLoc[0] "MS_flashWeapon";
+	*/
+}
+
+
+
+global proc MS_VFA_Float(
+	int $strtm,
+	int $endtm,
+	float $minvalue,
+	float $maxvalue,
+	string $target,
+	string $obj[],
+	string $attr[])
+{
+	/*
+	親アニメーションの前後のフレーム差でスケルトンをスケーリングする
+	*/
+	
+	float $all[];
+	
+	currentTime ($strtm-1);
+	float $ff[]=`xform -q -ws -t $target`;
+	
+	
+	//すべてのフレーム間で動き距離を検査
+	for($i=$strtm;$i<$endtm;$i++){
+		
+		currentTime $i;
+		
+		float $cf[] = `xform -q -ws -t $target`;
+		//2点間の移動距離を計算
+		float $len = sqrt(($ff[0]-$cf[0])*($ff[0]-$cf[0])+($ff[1]-$cf[1])*($ff[1]-$cf[1])+($ff[2]-$cf[2])*($ff[2]-$cf[2]));
+		
+		$all[$i-$strtm]=$len;
+		
+		$ff= $cf;
+		
+	}
+	
+	
+	//一番大きい動きを検査
+	float $hikaku[]=`sort $all`;
+	float $maxrange=$hikaku[(size($hikaku)-1)];
+	
+	//キーフレーム作成
+	for($each in $obj){
+		for($i=$strtm;$i<$endtm;$i++){
+			
+			float $rate=($all[$i-$strtm]/$maxrange)*$maxvalue;
+			if($rate<$minvalue){$rate=$minvalue;}
+				for($eachAttr in $attr)
+				setKeyframe -at $eachAttr -t $i -v $rate $each;
+				
+		}
+	}
+}
+
+
+global proc MS_ZANZO(
+	float $slideDistance,
+	int $ZANZOs
+){
+	int $tm[]=`MS_selectTime`;
+	//float $slideDistance=1;
+	$obj=`duplicate -rr -ic`;
+	bakeResults 
+		-simulation true 
+		-t ($tm[0]+":"+$tm[1])
+		-sampleBy 1 
+		-disableImplicitControl true 
+		-preserveOutsideKeys true 
+		-sparseAnimCurveBake false 
+		-at "tx" 
+		-at "ty" 
+		-at "tz" 
+		-at "rx" 
+		-at "ry" 
+		-at "rz" 
+		-at "sx" 
+		-at "sy" 
+		-at "sz" 
+		$obj;
+	keyframe -e -iub true -r -o over -tc $slideDistance $obj;
+	
+	for($i=1;$i<$ZANZOs;$i++){
+		$obj2=`duplicate -rr -un $obj`;
+		keyframe -e -iub true -r -o over -tc ($slideDistance*$i) $obj2;
+	}
+}
+
+global proc MS_ZANZO_pipe(){
+	float $slideDistance=`floatSliderGrp -q -v "slideDistance"`;
+	int $ZANZOs=` intSliderGrp -q -v "HowMatchZANZOs"`;
+	MS_ZANZO $slideDistance $ZANZOs;
+}
+
+global proc MS_duplicateWeapon_pipe(){
+	float $offsetValue=`floatSliderGrp -q -v "offsetValue"`;
+	string $tar=`textFieldGrp -q -tx "target_flash"`;
+	string $target[];
+	tokenize($tar," ",$target);
+	
+	int $error=0;
+	if(!size(`filterExpand -sm 34`)){
+		confirmDialog 
+			-t "Error" 
+			-m ("MS_flashWeapon Error.\n"+
+			"because...\n"+
+			"please select flash polygon face!\n"+
+			"MS_duplicateWeapon is only polygon face!\n");
+		$error++;
+	}
+
+	for($each in $target){
+		if(!size(`ls -typ transform $each`)){
+			//error -showLineNumber true "target is only [transform] node!";
+			confirmDialog 
+				-t "Error" 
+				-m ("MS_flashWeapon Error.\n"+
+				"because...\n"+
+				"target is nothing!\n"+
+				"target is only [transform] node!\n");
+			$error++;
+		}
+	}
+	
+	if(!$error){
+		MS_duplicateWeapon $target $offsetValue;
+		MS_edgeVertexTransparent;
+	}
+}
+
+global proc MS_flashWeaponUI_pipe(){
+	
+	string $tar=`textFieldGrp -q -tx "target_flash"`;
+	string $target[];
+	tokenize($tar," ",$target);
+	int $error=0;
+	if(!size(`filterExpand -sm 34`)){
+		confirmDialog 
+			-t "Error" 
+			-m ("MS_flashWeapon Error.\n"+
+			"because...\n"+
+			"please select flash polygon face!\n"+
+			"MS_flashWeapon is only polygon face!\n");
+		$error++;
+	}
+
+	for($each in $target){
+		if(!size(`ls -typ transform $each`)){
+			//error -showLineNumber true "target is only [transform] node!";
+			confirmDialog 
+				-t "Error" 
+				-m ("MS_flashWeapon Error.\n"+
+				"because...\n"+
+				"target is nothing!\n"+
+				"target is only [transform] node!\n");
+			$error++;
+		}
+	}
+	
+	if(!$error){
+		MS_flashWeapon ($target);
+	}
+}
+
+
+global proc MS_effectMasterUI_getTarget(){
+	
+	string $obj[]=`ls -typ transform -sl`;
+	
+	textFieldButtonGrp -e -tx $obj[0] "target_flash";
+}
+
+
+global proc MS_effectMasterUI(){
+	//Window Check
+	if(`window -exists MS_effectMasterUI`){
+		deleteUI MS_effectMasterUI;
+	}
+	
+	
+	//Create Window
+	
+	window -title "MS_effectMasterUI" MS_effectMasterUI;
+	
+	$tabs=`tabLayout`;
+	
+	//-------------------------------------------------------
+	
+	$tab1=`columnLayout`;
+	text -w 1000 -al "left" -fn "boldLabelFont" -l "1.select target and push [getTarget]button. ";
+	text -w 1000 -al "left" -fn "boldLabelFont" -l "2.select polygon component";
+	text -w 1000 -al "left" -fn "boldLabelFont" -l "3.do";
+	
+	floatSliderGrp -l "offsetValue" -f 1 -v 0.2 "offsetValue";
+	
+	textFieldButtonGrp -l "target" -bl "getTarget" -bc "MS_effectMasterUI_getTarget" "target_flash";
+	
+	button -l "do" -command "MS_flashWeaponUI_pipe" ;
+	
+	separator -w 1000;
+	
+	button -l "duplicateWeapon" -command "MS_duplicateWeapon_pipe" ;
+	
+	separator -w 1000;
+	
+	button -l "undo" -command "Undo" ;
+	button -l "exit" -command "deleteUI MS_effectMasterUI" ;
+	
+	setParent ..;
+	
+	//-------------------------------------------------------
+	
+	$tab2=`columnLayout`;
+	
+	text -w 1000 -al "left" -fn "boldLabelFont" -l "1.select animated object";
+	text -w 1000 -al "left" -fn "boldLabelFont" -l "3.do";
+	floatSliderGrp -l "sildeDistance" -f true -v 1 "slideDistance";
+	intSliderGrp -l "HowMatchZANZOs" -f true -v 5 "HowMatchZANZOs";
+	button -l "do" -command "MS_ZANZO_pipe" ;
+	
+	button -l "undo" -command "Undo" ;
+	button -l "exit" -command "deleteUI MS_effectMasterUI" ;
+	
+	
+	setParent ..;
+	
+	//-------------------------------------------------------
+	
+	$tab3=`columnLayout`;
+	setParent ..;
+	
+	//-------------------------------------------------------
+	
+	$FULLAUTOMATICSTEP=`columnLayout`;
+	
+	setParent ..;
+	
+
+	tabLayout -e 
+		-tl $tab1 "MS_flashWeapon" 
+		-tl $tab2 "MS_ZANZO" 
+		-tl $tab3 "" 		
+		-tl $FULLAUTOMATICSTEP ""
+	$tabs;
+	
+	//Footer
+	showWindow MS_effectMasterUI;
+	
+}
+
+//MS_effectMasterUI;
+
+
+

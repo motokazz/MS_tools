@@ -1,0 +1,837 @@
+//GPMobileSuitPartClipper
+
+//2012.01.19
+
+//概要：
+//GPのモビルスーツモデルから壊れパーツモデルを作るスクリプトです。
+
+//使用方法：
+//1)このスクリプトを実行します。ダイアログが出ます。
+//2)壊れパーツモデルにしたい部分の根元のジョイントを選択します。
+//3)Makeボタンを押すと、壊れパーツモデルが生成されます。
+//4)壊れパーツの関節を曲げたい場合は、関節を曲げてからFix All Jointsボタンをクリックします。
+//注・選択したジョイントに関係なく、root以下の全ジョイントに対してフィックスをかけます。
+//5)ジョイントを簡略化したい場合は、簡略化したい部分の根元ジョイントを選んでからTrimボタンをクリックします。
+
+//-----------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------
+global proc GPMobileSuitPartClipper()
+{
+//ダミー
+}
+//---------------------------
+global proc GPResultWindow(string$line1,string$line2,string$line3,string$line4,string$line5)
+{
+//リザルトウィンドウ
+string $windowTitle = "GPResultWindow";
+string $windowObjName = $windowTitle + "WindowObj";
+
+	if(`window -ex  $windowObjName` == 1)
+	{
+	deleteUI  $windowObjName;
+	}
+
+window -t $windowTitle $windowObjName;
+columnLayout;
+//--------------------------
+text -l $line1;
+text -l $line2;
+text -l $line3;
+text -l $line4;
+text -l $line5;
+//--------------------------
+//ウィンドウサイズを指定
+window -e -w 200 -h 150 $windowObjName;
+showWindow $windowObjName;
+}
+//-------------------------------------------------------------------------
+//--------------------------------------------------------
+proc string pickComponentType(string$componentName)
+{
+//This returns $componentName's component type.
+
+string $listA[];
+$wordNum = `tokenize $componentName "." $listA`;
+string $typeWithNum = $listA[$wordNum - 1];
+
+string $listB[];
+$wordNum = `tokenize $typeWithNum "[" $listB`;
+string $type = $listB[0];
+
+return $type;
+}
+//--------------------------------------------------------
+proc uvMoveAsValue(float$value,int$type)
+{
+//This moves selected UV vertex or faces in UV Texture Editor as $value.
+//If $type=0, the UV vertices are moved along U axis.
+//If $type=1, the UV vertices are moved along V axis.
+
+	if($type==0)
+	{
+	polyEditUV -u $value;
+	}
+	if($type==1)
+	{
+	polyEditUV -v $value;
+	}
+}
+//--------------------------------------------------------
+//--------------------------------------------------------
+proc uvScaleAsValue(float$value,int$type,int$direction)
+{
+//This scales selected UV vertex or faces in UV Texture Editor as $value.
+//If $type=other than 1, the UV vertices are scaled centering around 0,0 of UV Texture Editor.
+//If $type=1, the UV vertices are scaled centering around the center of selection region.
+//If $direction = 0, this scales UVs along U.
+//If $direction = 1, this scales UVs along V.
+
+string $sel[] = `ls -sl`;
+string $componentType = `pickComponentType $sel[0]`;
+	if($componentType=="map")
+	{
+	float $ctrU = 0.0;
+	float $ctrV = 0.0;
+		if($type == 1)
+		{
+		float $bbList[] = `polyEvaluate -bc2`;
+		$ctrU = (($bbList[0] + $bbList[1]) / 2);
+		$ctrV = (($bbList[2] + $bbList[3]) / 2);	
+		}
+		if($direction==0)
+		{
+		polyEditUV -pu $ctrU -pv $ctrV -su $value;
+		}
+		else if($direction==1)
+		{
+		polyEditUV -pu $ctrU -pv $ctrV -sv $value;
+		}
+	}
+}
+//--------------------------------------------------------
+proc int GPReturnUVAreaByObj(string$objList[])
+{
+//GPプロジェクト用フォーマットにおいて、$objListのUVがどのエリアに入っているかを返します。
+//下左が1、下中が2、下右が3、上左が4、上中が5、上右が6になります。
+//はみ出しがあった場合は0が返ります。
+//注・実行後はUVが選択された状態になります。
+
+//$objListからUVを取得し選択する
+select -cl;
+int $objListSize = `size $objList`;
+int $i;
+	for($i=0;$i<$objListSize;$i++)
+	{
+	string $obj = $objList[$i];
+	int $uvNumList[] = `polyEvaluate -uv $obj`;
+	int $uvNum = $uvNumList[0] - 1;
+	$uvNumString = (string)$uvNum;
+	string $uvList = $obj + ".map[0:" + $uvNumString + "]";
+	select -add $uvList;
+	}
+//選択からバウンディングボックスを取得する
+float $uvArea[] = `polyEvaluate -bc2`;
+
+//範囲を確認し結果を返す
+int $result = 0;
+
+	if(($uvArea[2] >= 0.0) && ($uvArea[3] <= 0.5))
+	{
+		if(($uvArea[0] >= 0.0) && ($uvArea[1] <= 1.0))
+		{
+		$result = 1;
+		}
+		else if(($uvArea[0] >= 1.0) && ($uvArea[1] <= 1.25))
+		{
+		$result = 2;
+		}
+		else if(($uvArea[0] >= 1.25) && ($uvArea[1] <= 1.5))
+		{
+		$result = 3;
+		}
+	}
+	else if(($uvArea[2] >= 0.5) && ($uvArea[3] <= 1.0))
+	{
+		if(($uvArea[0] >= 0.0) && ($uvArea[1] <= 0.5))
+		{
+		$result = 4;
+		}
+		else if(($uvArea[0] >= 0.5) && ($uvArea[1] <= 1.0))
+		{
+		$result = 5;
+		}
+		else if(($uvArea[0] >= 1.0) && ($uvArea[1] <= 1.5))
+		{
+		$result = 6;
+		}
+	}
+return $result;
+}
+//---------------------------------------------------
+proc int GPAdjustMSPartUV(string$objList[])
+{
+//GPプロジェクト用フォーマットにおいて、$objListのUVがどのエリアに入っているかを判定し、
+//UVサイズの調整を行います。
+//調整が実行されなかった場合は0を返します。
+
+//リストから範囲を取得
+int $uvAreaID = `GPReturnUVAreaByObj $objList`;
+	if($uvAreaID == 1)
+	{
+	uvScaleAsValue 2.0 0 1;
+	}
+	else if($uvAreaID == 2)
+	{
+	uvMoveAsValue -1.0 0;
+	uvScaleAsValue 4.0 0 0;
+	uvScaleAsValue 2.0 0 1;
+	}
+	else if($uvAreaID == 3)
+	{
+	uvMoveAsValue -1.25 0;
+	uvScaleAsValue 4.0 0 0;
+	uvScaleAsValue 2.0 0 1;
+	}
+	else if($uvAreaID == 4)
+	{
+	uvMoveAsValue -0.5 1;
+	uvScaleAsValue 2.0 0 0;
+	uvScaleAsValue 2.0 0 1;
+	}
+	else if($uvAreaID == 5)
+	{
+	uvMoveAsValue -0.5 0;
+	uvMoveAsValue -0.5 1;
+	uvScaleAsValue 2.0 0 0;
+	uvScaleAsValue 2.0 0 1;
+	}
+	else if($uvAreaID == 6)
+	{
+	uvMoveAsValue -1.0 0;
+	uvMoveAsValue -0.5 1;
+	uvScaleAsValue 2.0 0 0;
+	uvScaleAsValue 2.0 0 1;
+	}
+
+select -cl;
+return $uvAreaID;
+}
+//---------------------------------------------------
+proc GPAdjustMSPartUVexe()
+{
+//実行用プロシージャ
+
+//parts以下の全てのメッシュファイルにおいてGPAdjustMSPartUVを実行します。
+//エリアからはみ出した物がある場合はUV調整を行わず、代わりに警告ウィンドウを出します。
+string $objList[] = `listRelatives -c -ad -pa -type "transform" "parts"`;
+int $area = `GPAdjustMSPartUV $objList`;
+	if($area == 0)
+	{
+	GPResultWindow "Warning:" "" "Could not adjust UVs." "Some UVs are not in the area," "";
+	}
+}
+//---------------------------------------------------
+global proc string[] compressStringArray(string$list[])
+{
+//文字列配列$listの重複要素を削除します。
+//ただし配列の順序は変更されます。
+
+//リストをソート
+$list = `sort $list`;
+//処理
+string $result[];
+$result[0] = $list[0];
+int $i = 1;
+int $size = `size $list`;
+
+int $count;
+	for($count=1;$count<$size;$count++)
+	{
+		if($list[$count] != $list[($count-1)])
+		{
+		$result[$i] = $list[$count];
+		$i++;
+		}
+	}
+return $result;
+}
+//--------------------------------------------------------------
+global proc GPRemoveUnusedInflenceFromSkin(string$skin)
+{
+//$skinのスキンクラスタから、使用していないジョイントを外します。
+//なお、前提としてジョイントにスキンがウェイト100%でついているとします。
+
+//スキンクラスタを取得
+string $skinCluster = `returnSkinClusterName $skin`;
+//使用しているジョイントを取得
+string $jntList[] = `skinCluster -q -wi $skinCluster`;
+string $jnt = $jntList[0];
+//ジョイントとトランスフォームを取得
+string $infList[] = `skinCluster -q -inf $skinCluster`;
+
+//外す
+string $inf;
+	for($inf in $infList)
+	{
+		if($inf != $jnt)
+		{
+		skinCluster -e -ri $inf $skinCluster;
+		}
+	}
+}
+//-------------------------------------------------------------------
+global proc string convertObjToFullVertices(string$obj)
+{
+//$objの全バーテックスを返します。
+int $vtxNumList[] = `polyEvaluate -v $obj`;
+int $vtxNum = $vtxNumList[0] -1;
+$vtxNumString = (string)$vtxNum;
+string $result = $obj + ".vtx[0:" + $vtxNumString + "]";
+
+return $result;
+}
+//-------------------------------------------------------------------
+global proc string returnSkinClusterName(string $skin)
+{
+//引数$skinでスキンの名称を渡すと、スキンクラスタを返します
+
+//$skinのシェイプを取得
+string $skinShape[] = `listRelatives -pa -s $skin`;
+//シーン中の全てのスキンクラスタを取得
+string $skinClusterList[] = `ls -type "skinCluster"`;
+//照合
+string $result;
+string $item;
+	for($item in $skinClusterList)
+	{
+	string $geo[] = `skinCluster -q -g $item`;
+	string $shape;
+		for($shape in $skinShape)
+		{
+			if($geo[0] == $shape)
+			{
+			$result = $item;
+			break;
+			}
+		}
+	}
+return $result;
+}
+//-------------------------------------------------------------------
+global proc weightFiller(string$skin,string$jnt)
+{
+//$skinを$jntのウェイト100%にします。
+
+//-----
+//選択解除
+select -cl;
+
+//全バーテックス選択
+select `convertObjToFullVertices $skin`;
+string $skinClusterName = `returnSkinClusterName $skin`;
+
+//ウェイト設定
+skinPercent -tv $jnt 1.0 $skinClusterName;
+
+//選択解除
+select -cl;
+}
+//-------------------------------------------------------------------
+global proc int countItemInList(string$list[],string$item)
+{
+//$listの中に$itemが何回出現するかをカウントし返します。
+
+int $result = 0;
+int $listSize = `size $list`;
+	for($count=0;$count<$listSize;$count++)
+	{
+	string $name = $list[$count];
+		if($name == $item)
+		{
+		$result++;
+		}
+	}
+return $result;
+}
+//---------------------------------------------------------------
+global proc GPCropJointChildren(string$jnt)
+{
+//$jntと子供ジョイントにアサインされているメッシュを$jntのウェイト100%にし、
+//$jntの子供ジョイントを削除します。
+
+select -cl;
+//ジョイントと子供ジョイントにアサインされているメッシュを取得する
+string $listOrig[] = `getMeshListBindedJointAndChildern $jnt`;
+string $list[] = `compressStringArray $listOrig`;
+
+//$jntのウェイトを100%にする
+	for($item in $list)
+	{
+	//デフォーマになければ加える
+	string $deformerList[] = `skinCluster -q -inf $item`;
+		if(`countItemInList $deformerList $jnt` == 0)
+		{
+		skinCluster -e -wt 1.0 -ai $jnt $item;
+		}
+	//塗りつぶし
+	weightFiller $item $jnt;
+	}
+
+//子供ジョイントを削除する
+delete `listRelatives -c -pa -type "joint" $jnt`;
+
+}
+//---------------------------------------------------------------
+global proc string[] returnSkinFromJnt(string$jnt)
+{
+//$jntでジョイント名を渡すと、スキンクラスタを介して
+//接続されているシェイプのトランスフォーム名を返します。
+
+string $result[];
+clear $result;
+
+//スキンクラスタの配列を取得
+string $skinClusterList[] = `listConnections -d 1 -type "skinCluster" $jnt`;
+//各スキンクラスタごとにシェイプを取得しリストに追加する
+int $i = 0;
+string $skinCluster;
+	for($skinCluster in $skinClusterList)
+	{
+	//シェイプを取得
+	string $shapeList[] = `skinCluster -q -g $skinCluster`;
+		string $shape;
+		for($shape in $shapeList)
+		{
+		$result[$i] = `getTransformFromShape $shape`;
+		$i++;
+		}
+	}
+return $result;
+}
+//--------------------------------------------------------------------
+global proc string GPGetJntFromPart(string$obj)
+{
+//$objからスキンクラスタリストを取得し、そのアドレス0に接続されているジョイントリストを取得し、
+//そのアドレス0のジョイントを返します。
+//つまり、1メッシュが1ジョイントに100%アサインされ、シーンがオプティマイズされていれば、
+//メッシュに対応するジョイントが返されます。
+
+string $meshList[] = `listRelatives -c -pa -type "mesh" $obj`;
+string $skinClusterList[] = `listConnections -s 1 -type "skinCluster" $meshList[0]`; 
+string $jntList[] = `listConnections -s 1 -type "joint" $skinClusterList[0]`;
+ 
+return $jntList[0];
+}
+//--------------------------------------------------------------------
+global proc string getTransformFromShape(string$shape)
+{
+string $result;
+//$shapeがmeshだった場合はトランスフォームノードを、
+//トランスフォームノードだった場合はそのままを返します。
+string $typeList[] = `ls -st $shape`;
+	if($typeList[1] == "mesh")
+	{
+	string $parentList[] = `listRelatives -p -pa $shape`;
+	$result = $parentList[0];
+	}
+	else if($typeList[1] == "transform")
+	{
+	$result = $shape;
+	}
+return $result;
+}
+//-----------------------------------------------------------------------------------------
+global proc string[] catTwoStringLists(string$listA[],string$listB[])
+{
+//二つの文字列配列を結合します。
+int $sizeA = `size $listA`;
+int $sizeB = `size $listB`;
+int $i;
+int $count = 0;
+	for($i=$sizeA;$i<($sizeA+$sizeB);$i++)
+	{
+	$listA[$i] = $listB[$count];
+	$count++;
+	}
+return $listA;
+}
+//-----------------------------------------------------------------------------------------
+global proc string[] getMeshListBindedJointAndChildern(string$jnt)
+{
+//$jntと子供ジョイントにバインドされているメッシュのリストを返します。
+
+//$jnt以下のジョイントを取得
+string $chJntList[] = `listRelatives -c -ad -pa -type "joint" $jnt`;
+//上記リストの最後に$jnt自身を追加する
+int $chJntListSize = `size $chJntList`;
+$chJntList[$chJntListSize] = $jnt;
+//各ジョイントにアサインされているメッシュを全て取得
+string $meshList[];
+clear $meshList;
+string $chJnt;
+	for($chJnt in $chJntList)
+	{
+	string $currentMeshList[] = `returnSkinFromJnt $chJnt`;
+	$meshList = `catTwoStringLists $meshList $currentMeshList`;
+	}
+$meshList = `compressStringArray $meshList`;
+return $meshList;
+
+}
+//-----------------------------------------------------------------------------------------
+global proc string[] getTransformListFormMeshList(string$meshList[])
+{
+//メッシュリスト$meshからトランスフォームリストを返します。
+string $result[];
+clear $result;
+string $mesh;
+int $size = `size $meshList`;
+int $i;
+	for($i=0;$i<$size;$i++)
+	{
+	$result[$i] = `getTransformFromShape $meshList[$i]`;
+	}
+return $result;
+}
+//-----------------------------------------------------------------------------------------
+global proc int deleteUnusedBindPose(string$bindPose)
+{
+//$bindPoseのジョイントに何もスキンがアタッチされていない場合は
+//$bindPoseを削除します。
+//削除が実行された場合は$result=1となります。
+
+int $result = 1;
+
+//$bindPoseのメンバーのジョイントを取得
+string $member[] = `listConnections -s 1 -type "joint" $bindPose`;
+int $memberSize = `size $member`;
+int $i;
+	for($i=0;$i<$memberSize;$i++)
+	{
+	string $currentMeshList[] = `returnSkinFromJnt $member[$i]`;
+		if(`size $currentMeshList` > 0)
+		{	
+		$result = 0;
+		break;
+		}
+	}
+	if($result == 1)
+	{
+	delete $bindPose;
+	}
+return $result;
+
+}
+//-----------------------------------------------------------------------------------------
+global proc string[] GPDetachFirmSkinPartsActor(string$jnt)
+{
+//$jntにアタッチされているスキンを
+//Bake History設定でデタッチし、$jntと共に名前で返します。
+//リストのアドレスの最後がジョイント名になります。
+
+//$jntにバインドされているメッシュを全て取得
+string $meshList[] = `returnSkinFromJnt $jnt`;
+
+//それらのメッシュをbake historyでデタッチ
+string $mesh;
+	for($mesh in $meshList)
+	{
+	//スキンのロックを外す
+	bindSkin -ul $mesh;
+	//スキンのヒストリを削除する
+	delete -ch $mesh;
+	}
+int $meshListSize = `size $meshList`;
+$meshList[$meshListSize] = $jnt;
+return $meshList;
+}
+//-----------------------------------------------------------------------------------------
+
+
+
+//-----------------------------------------------------------------------------------------
+global proc string GPBrokenPartsClip(string$jnt,string$midJnt,string$rootJnt,string$partsGrp)
+{
+//GPの破壊後パーツ作成用プロシージャです。
+//以下を実行します。
+//・$jntとその下のジョイントにバインドされているポリゴンオブジェクトのみを
+//残し、他をデリートする。
+//・$jntをjointroot_000に移動させ、jointroot_000の下にあるその他のジョイントを削除する。
+//返り値は$jntの最終的な名前になります。
+
+
+//$rootJnt以下にバインドされているメッシュオブジェクトから余分なインフルエンスを外す
+string $bindedMeshList[] = `getMeshListBindedJointAndChildern $rootJnt`;
+string $bindedMesh;
+	for($bindedMesh in $bindedMeshList)
+	{
+	GPRemoveUnusedInflenceFromSkin $bindedMesh;
+	}
+
+//作業用グループを作ってその直下に$jntを置く
+string $grp = `group -em`;
+string $newSelList[] = `parent $jnt $grp`;
+string $newSel = $newSelList[0];
+
+//選択ジョイントが$midJntでない場合、$midJntの子供を全て削除する
+	if($newSel != $midJnt )
+	{
+	delete `listRelatives -c -ad -pa  $midJnt`;
+	}
+
+//partsロケータの子供の内、$newSelにバインドされている物以外を削除する
+string $partList[] = `listRelatives -c -ad -pa -type "transform" $partsGrp`;
+string $necessaryPartList[] = `getMeshListBindedJointAndChildern $newSel`;
+
+select $necessaryPartList;
+select -tgl $partList;
+
+delete;
+
+//選択ジョイントが$midJntでない場合、選択ジョイントを$midJnt直下に移動させる
+//選択ジョイントが$midJntの場合はroot直下に置く
+	if($newSel != $midJnt )
+	{
+	string $tempList[] = `parent $newSel $midJnt`;
+	$newSel = $tempList[0];
+	}
+	else
+	{
+	string $tempList[] = `parent $newSel $rootJnt`;
+	$newSel = $tempList[0];
+	}
+
+//作業用グループ削除
+delete $grp;
+
+return $newSel;
+}
+//-----------------------------------------------------------------------------------------
+global proc GPBrokenPartsAllocate(string$jnt,string$midJnt)
+{
+//GPの破壊後パーツを配置するプロシージャです。
+//（作成はGPBrokenPartsClipで行います）
+//・$jnt、$midJntを原点に移動させる。
+
+//$midJntと$newSelを原点に配置
+xform -ws -t 0.0 0.0 0.0 $midJnt;
+xform -ws -t 0.0 0.0 0.0 $jnt;
+
+}
+
+
+//-----------------------------------------------------------------------------------------
+global proc GPBrokenPartsFix(string$jnt,string$midJnt,string$rootJnt)
+{
+//GPの破壊後パーツをフィックスするプロシージャです。
+//（作成はGPBrokenPartsClipで行います）
+//以下を実行します。
+//・各パーツをbake historyでデタッチした後、再度同じウェイト値でアタッチする
+
+
+//$rootJnt以下にバインドされているメッシュオブジェクトから余分なインフルエンスを外す
+string $bindedMeshList[] = `getMeshListBindedJointAndChildern $rootJnt`;
+string $bindedMesh;
+	for($bindedMesh in $bindedMeshList)
+	{
+	GPRemoveUnusedInflenceFromSkin $bindedMesh;
+	}
+
+//上記メッシュリストに対応するジョイントリストを作成する。
+int $bindedMeshListSize = `size $bindedMeshList`;
+string $jntList[];
+clear $jntList;
+int $i;
+	for($i=0;$i<$bindedMeshListSize;$i++)
+	{
+	 $jntList[$i] = `GPGetJntFromPart $bindedMeshList[$i]`;
+	}
+
+//bindPoseを取得
+string $bindPoseList[] = `dagPose -q -bp $rootJnt`;
+//$newSel以下の全ジョイントのスキンをリセット
+string $chJntList[] = `listRelatives -c -ad -pa -type "joint" $rootJnt`;
+string $chJnt;
+	for($chJnt in $chJntList)
+	{
+	//各ジョイントのスキンをヒストリデリート設定でデタッチ
+	GPDetachFirmSkinPartsActor $chJnt;
+	}
+//bindPose削除
+	if(`size $bindPoseList`>0)
+	{
+	deleteUnusedBindPose $bindPoseList[0];
+	}
+
+//メッシュをバインドする
+string $skin;
+	for($skin in $bindedMeshList)
+	{
+	skinCluster $rootJnt $skin;
+	}
+
+//各パーツを100%でアサインする
+	for($i=0;$i<$bindedMeshListSize;$i++)
+	{
+	weightFiller $bindedMeshList[$i] $jntList[$i];
+	}
+
+//$rootJnt以下にバインドされているメッシュオブジェクトから余分なインフルエンスを外す（仕上げ）
+	for($bindedMesh in $bindedMeshList)
+	{
+	GPRemoveUnusedInflenceFromSkin $bindedMesh;
+	}
+}
+//-----------------------------------------------------------------------------------------
+global proc GPBrokenPartsClipExec()
+{
+//実行用プロシージャ
+//クリップ、配置、フィックスまで
+//選択があり、それがジョイントの場合のみ動作する
+string $list[] = `ls -sl`;
+	if(`size $list` == 1)
+	{
+	string $type[] = `ls -st $list`;
+		if($type[1] == "joint")
+		{
+		string $jnt = $list[0];
+		string $midJnt = "jointroot_000";
+		string $rootJnt = "root";
+		string $partsGrp = "parts";
+
+		GPBrokenPartsClip $jnt  $midJnt $rootJnt $partsGrp;
+		GPBrokenPartsAllocate $jnt $midJnt;
+		GPBrokenPartsFix $jnt $midJnt $rootJnt;
+
+			//UV調整
+			if(`checkBox -q -v "GPMobileSuitPartClipperWindowObj|GPMobileSuitPartClipperWindowObjLayout|uvCheck"` == 1)
+			{
+			GPAdjustMSPartUVexe;
+			}
+		}
+	}
+}
+//-----------------------------------------------------------------------------------------
+global proc GPBrokenPartsFixExec()
+{
+//実行用プロシージャ
+//フィックスのみ
+//選択なしで動作する
+
+select -cl;
+
+string $jnt = "jointroot_000";
+string $midJnt = "jointroot_000";
+string $rootJnt = "root";
+string $partsGrp = "parts";
+
+GPBrokenPartsFix $jnt $midJnt $rootJnt;
+
+}
+//-----------------------------------------------------------------------------------------
+global proc GPCropJointChildrenExec()
+{
+//実行用プロシージャ
+//子供ジョイントをまとめる
+//選択があり、それがジョイントの場合のみ動作する
+string $list[] = `ls -sl`;
+	if(`size $list` == 1)
+	{
+	string $type[] = `ls -st $list`;
+		if($type[1] == "joint")
+		{
+		string $jnt = $list[0];
+		string $rootJnt = "root";
+
+		GPCropJointChildren $jnt;
+		//$rootJnt以下にバインドされているメッシュオブジェクトから余分なインフルエンスを外す
+		string $bindedMeshList[] = `getMeshListBindedJointAndChildern $rootJnt`;
+		string $bindedMesh;
+			for($bindedMesh in $bindedMeshList)
+			{
+			GPRemoveUnusedInflenceFromSkin $bindedMesh;
+			}
+		}
+	}
+}
+//-----------------------------------------------------------------------------------------
+
+
+//-------------------------------------------------------------------------
+//ヘルプ
+global proc GPMobileSuitPartClipperHelp()
+{
+string $windowTitle = "GPMobileSuitPartClipperHelp";
+string $windowObjName = $windowTitle + "WindowObj";
+
+	if(`window -ex  $windowObjName` == 1)
+	{
+	deleteUI  $windowObjName;
+	}
+
+window -t $windowTitle $windowObjName;
+columnLayout;
+//--------------------------
+text -l "Overview:";
+text -l "This script makes a";
+text -l "broken part from MS.";
+separator -w 110;
+text -l "1)Select a root joint of a rimb.";
+text -l "2)Click Make to make a part.";
+text -l "3)After you bend a joint,";
+text -l "  Click Fix All Joints to fix joints.";
+text -l "  (This affects all joints under";
+text -l "  root so you don't have to select";
+text -l "  any joint.)";
+text -l "4)If you want to trim joints,";
+text -l "  select a joint then click Trim";
+text -l "  to trim children of the joint.";
+//--------------------------
+//ウィンドウサイズを指定
+window -e -w 150 -h 250 $windowObjName;
+showWindow $windowObjName;
+}
+//-------------------------------------------------------------------------
+//ダイアログウィンドウ作成
+{
+//ウィンドウタイトルとウィンドウオブジェクト名
+string $windowTitle = "GPMobileSuitPartClipper";
+string $windowObjName = $windowTitle + "WindowObj";
+
+	if(`window -ex  $windowObjName` == 1)
+	{
+	deleteUI  $windowObjName;
+	}
+
+window -t $windowTitle $windowObjName;
+string $layoutName = $windowObjName + "Layout";
+columnLayout $layoutName;
+//--------------------------
+text -l "GPMobileSuitPartClipper";
+button -w 50 -c "GPMobileSuitPartClipperHelp"  -l "Help";
+separator -w 110;
+button -w 100 -c "GPBrokenPartsClipExec"  -l "Make";
+checkBox -v 1 -l "Adjust UV" uvCheck;
+button -w 100 -c "GPBrokenPartsFixExec"  -l "Fix All Joints";
+button -w 100 -c "GPCropJointChildrenExec"  -l "Crop";
+
+
+//--------------------------
+//ウィンドウサイズを指定
+window -e -w 110 -h 150 $windowObjName;
+showWindow $windowObjName;
+}
+//-------------------------------------------------------------------------
+//終了
+
+
+
+
+
+
+
+
+
+
+
+

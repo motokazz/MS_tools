@@ -1,0 +1,90 @@
+/*
+-------------------
+MS_tunagime.mel
+-------------------
+
+◆概要
+テクスチャーのつなぎ目が見えてしまうときにつなぎ目に沿ってテープのようなポリゴンを作成してつなぎ目を隠すテクニックがある。
+それを作るツール。
+
+
+◆使用方法
+バーテックス、エッジ、ポリゴン、何でも良いのでコンポーネント選択をする。
+スクリプトを実行する。
+
+
+◆詳細
+・基本的にはフェース選択で使うのがスマート。選んだフェースのエッジにテープするので分かりやすい。
+・テープオブジェクトのエッジボーダーにはバーテックスカラーのA０、つまり完全透明が入るようになっている。（後で調整できるようにしたい）
+・テープを作成したときボーダー部分をノーマルZ方向に少し持ち上げるようにしてある（後で調整できるようにしたい）
+
+
+※注意
+はっきりいって未完成。
+
+
+*/
+
+
+global proc MS_SelectionBorderVertex(){
+	
+	polyUVSet -create -uvSet "tunagime_no_temp";
+	polyUVSet -currentUVSet -uvSet "tunagime_no_temp";
+	polyAutoProjection -pb 0 -ibd 0 -cm 0 -l 2 -sc 2 -o 0 -p 4 -ps 0.2 -ws 1;
+	polyProjection -type planar -mapDirection z;
+	
+	PolySelectConvert 4;
+	SelectUVBorder;
+	PolySelectConvert 3;
+	
+	$SelectionBorderVertex=`filterExpand -sm 31`;
+	DeleteCurrentUVSet;
+	select $SelectionBorderVertex;
+}
+
+
+
+
+
+
+
+
+PolySelectConvert 1;
+
+$sel_objname=`ls -o -hl`;
+
+duplicate -n MS_tunagime_temp $sel_objname;
+rename $sel_objname "MS_tunagime";
+rename "MS_tunagime_temp" $sel_objname;
+
+$sel_pol=`filterExpand -sm 34`;
+
+//バーテックスカラーベース作成
+
+select "MS_tunagime";
+polyColorPerVertex -a 0 -cdo;
+
+select $sel_pol;
+
+
+
+MS_SelectionBorderVertex;
+polyColorPerVertex -a 1 -cdo;
+
+polyNormalPerVertex -fn true;
+
+$move_vertex=`filterExpand -sm 31`;
+$i=0;
+for($i=0;$i<size($move_vertex);$i++){
+	moveVertexAlongDirection -n 1$move_vertex[$i];
+}
+
+PolySelectConvert 1;
+InvertSelection;
+delete;
+polyNormalPerVertex -fn false;
+
+select $sel_objname;
+PolySelectConvert 1;
+select -cl;
+

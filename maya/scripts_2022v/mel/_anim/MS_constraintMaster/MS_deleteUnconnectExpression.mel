@@ -1,0 +1,15 @@
+global proc MS_deleteUnconnectExpression(string $type){
+
+	//$typeにコネクションがないexpressionノードを削除
+
+	string $exp[]=`ls -typ expression`;
+	for($each in $exp){
+		string $connect[]=`listConnections -t $type $each`;
+		if ((size($connect))==0){delete $each;}
+	print (size($connect));
+	}
+
+}
+
+
+

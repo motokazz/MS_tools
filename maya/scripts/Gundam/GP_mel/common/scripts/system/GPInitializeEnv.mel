@@ -1,0 +1,87 @@
+/*!
+		@file		GPInitializeEnv.mel
+		@brief		環境変数の初期化
+*/
+
+
+////////////////////////////////////////////////////////////////////////////////
+//	指定されたディレクトリ以下の全てのディレクトリを環境変数に使用可能な形式で返す
+proc string createRelativePath( string $rootPath )
+{
+	string	$result = `toNativePath $rootPath`;
+	string	$files[] = `getFileList -folder ($rootPath+"/")`;
+	for( $file in $files )
+	{
+		//	SVNフォルダは無視
+		if( (".svn" == $file) || ("_svn" == $file) )
+			continue;
+		//	ディレクトリのみ拾う
+		if( 0 != `filetest -d ($rootPath+"/"+$file)` )
+		{
+			$result	+= (";" + `createRelativePath ($rootPath+"/"+$file)`);
+		}
+	}
+	return $result;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//	環境変数の初期化
+global proc GPInitializeEnv()
+{
+	//	root取得
+	string $rootPath = `getenv "GP_MAYA_ROOT"`;
+	if( "" == $rootPath )
+	{
+		print "// 環境変数 GP_MAYA_ROOT が設定されていません\n";
+		print "// 正常に環境設定を行うことが出来ませんでした\n";
+		trace "// 環境変数 GP_MAYA_ROOT が設定されていません";
+		trace "// 正常に環境設定を行うことが出来ませんでした";
+		return;
+	}
+
+	//	MAYA_PLUG_IN_PATH
+	string $pluginPath = `getenv "MAYA_PLUG_IN_PATH"`;
+	{
+		//	ココで指定するプラグインパスが先頭(最優先)に来るように.
+		// 32bitと64bitを判断する処理を追加
+		if( `about -is64` )
+		{
+			$pluginPath = ($rootPath + "\\" + `getApplicationVersionAsFloat` + "\\plug-ins;" + $pluginPath);
+			trace "□使用しているmayaは64bitバージョン";
+		}
+		else
+		{
+			$pluginPath = ($rootPath + "\\" + `getApplicationVersionAsFloat` + "\\plug-ins32;" + $pluginPath);
+			trace "□使用しているmayaは32bitバージョン";
+		}
+		trace ( "プラグインパス" + $pluginPath );
+		putenv "MAYA_PLUG_IN_PATH" $pluginPath;
+	}
+
+	//	MAYA_SCRIPT_PATH
+	string $scriptPath = `getenv "MAYA_SCRIPT_PATH"`;
+	{
+		string $rootPathEx = `fromNativePath $rootPath`;
+		
+		$scriptPath += (";" + $pluginPath);
+		$scriptPath += (";" + `createRelativePath ($rootPathEx + "/common/scripts")`);
+		$scriptPath += (";" + `createRelativePath ($rootPathEx + "/" + getApplicationVersionAsFloat() + "/scripts")`);
+		putenv "MAYA_SCRIPT_PATH" $scriptPath;
+	}
+	
+	//	XBMLANGPATH
+	string $xbmlangPath = `getenv "XBMLANGPATH"`;
+	{
+		$xbmlangPath += (";" + $rootPath + "\\" + `getApplicationVersionAsFloat` + "\\icons");
+		putenv "XBMLANGPATH" $xbmlangPath;
+	}
+	
+	//	MAYA_MODULE_PATH
+	string $modulePath = `getenv "MAYA_MODULE_PATH"`;
+	{
+		$modulePath += (";" + $rootPath + "\\common\\modules");
+		$modulePath += (";" + $rootPath + "\\" + `getApplicationVersionAsFloat` + "\\modules");
+		putenv "MAYA_MODULE_PATH" $modulePath;
+	}
+}
+

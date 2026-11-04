@@ -1,0 +1,114 @@
+
+
+//global string $fogShaders[];
+
+
+global proc fogParameterChange()
+{
+	float $fogNear     = `floatSliderGrp -q -v fogNearValue`;
+	float $fogFar      = `floatSliderGrp -q -v fogFarValue`;
+	float $fogDensity  = `floatSliderGrp -q -v fogDensityValue`;
+	float $fogColor[3] = `colorSliderButtonGrp -q -rgbValue fogColorValue`;
+	string $fogShaders[] = `ls -sl -type cgfxShader`;
+	if( size($fogShaders) == 0 )
+	{
+		$fogShaders = `ls -type cgfxShader`;
+	}
+	for ( $i=0; $i<size($fogShaders); $i++ )
+	{
+		
+		if( `attributeExists "fogNear" $fogShaders[$i]` )
+		{
+			setAttr ( $fogShaders[$i] + ".fogNear" ) $fogNear;
+		}
+		if( `attributeExists "fogFar" $fogShaders[$i]` )
+		{
+			setAttr ( $fogShaders[$i] + ".fogFar" ) $fogFar;
+		}
+		if( `attributeExists "fogDensity" $fogShaders[$i]` )
+		{
+			setAttr ( $fogShaders[$i] + ".fogDensity" ) $fogDensity;
+		}
+		if( `attributeExists "fogColor" $fogShaders[$i]` )
+		{
+			setAttr ( $fogShaders[$i] + ".fogColor" ) $fogColor[0] $fogColor[1] $fogColor[2];
+		}
+	}
+}
+
+global proc MS_EOJ_fogEditor()
+{
+	float  $fogNear = 1000.0;
+	float  $fogFar  = 10000.0;
+	float  $fogColor[3] = { 0.0, 0.0, 1.0 };
+	float  $fogDensity = 1.0;
+	
+	string $fogShaders[] = `ls -type cgfxShader`;
+	for ( $i=0; $i<size($fogShaders); $i++ )
+	{
+		if( `attributeExists "fogNear" $fogShaders[$i]` )
+		{
+			$fogNear = getAttr ( $fogShaders[$i] + ".fogNear" );
+		}
+		if( `attributeExists "fogFar" $fogShaders[$i]` )
+		{
+			$fogFar = getAttr ( $fogShaders[$i] + ".fogFar" );
+		}
+		if( `attributeExists "fogColor" $fogShaders[$i]` )
+		{
+			$fogColor = getAttr ( $fogShaders[$i] + ".fogColor" );
+		}
+		if( `attributeExists "fogColor" $fogShaders[$i]` )
+		{
+			$fogColor = getAttr ( $fogShaders[$i] + ".fogColor" );
+		}
+		if( `attributeExists "fogDensity" $fogShaders[$i]` )
+		{
+			$fogDensity = getAttr ( $fogShaders[$i] + ".fogDensity" );
+		}
+	}
+	
+	if( (`window -ex fogEditorWindow`) == true )
+	{
+		deleteUI fogEditorWindow;
+	}
+	
+	/* ウィンドウを作成する */
+	window -width 512 -height 640 -title "Fog Editor Tool" fogEditorWindow;
+	
+	columnLayout -adjustableColumn true;
+	
+	gridLayout -numberOfColumns 1 -cellWidth 480 -cellHeight 32;
+		floatSliderGrp -label "near" -field true
+			-minValue -50000.0 -maxValue 50000.0 -cw 1 100 -value $fogNear fogNearValue;
+	
+	gridLayout -numberOfColumns 1 -cellWidth 384 -cellHeight 32;
+		floatSliderGrp -label "far" -field true
+			-minValue -50000.0 -maxValue 50000.0 -cw 1 100 -value $fogFar fogFarValue;
+	
+	setParent..;
+	
+	columnLayout -adjustableColumn true;
+	
+	colorSliderButtonGrp
+			-label "color"
+			-buttonLabel "Apply"
+			-rgb $fogColor[0] $fogColor[1] $fogColor[2]
+			-symbolButtonDisplay false
+			-columnWidth 5 30 
+			-bc "fogParameterChange"
+			fogColorValue;
+//    		-image "navButtonUnconnected.xpm" fogColorValue;
+	setParent..;
+	
+	columnLayout -adjustableColumn true;
+	
+	gridLayout -numberOfColumns 1 -cellWidth 384 -cellHeight 32;
+		floatSliderGrp -label "density" -field true
+			-minValue 0.5 -maxValue 4.0 -cw 1 100 -value $fogDensity fogDensityValue;
+	
+	setParent..;
+	
+	showWindow fogEditorWindow;
+}
+

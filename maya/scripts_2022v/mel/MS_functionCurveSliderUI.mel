@@ -1,0 +1,146 @@
+global proc MS_functionCurveSlider(float $valueOfSlide){
+	int $i=1;
+	string $obj[]= `ls -sl`;
+	
+	string $attrMainChannel[]=`channelBox -q -sma mainChannelBox`;
+	string $attrShapeChannel[]=`channelBox -q -ssa mainChannelBox`;
+	string $attrInputChannel[]=`channelBox -q -sha mainChannelBox`;
+	for($eachobj in $obj){
+		for ($eachattrMainChannel in $attrMainChannel){
+			keyframe -e -iub true -r -o over -tc ($valueOfSlide*$i) ($eachobj+"."+$eachattrMainChannel) ;
+		}
+		for ($eachattrShapeChannel in $attrShapeChannel){
+			keyframe -e -iub true -r -o over -tc ($valueOfSlide*$i) ($eachobj+"."+$eachattrShapeChannel) ;
+		}
+		for ($eachattrInputChannel in $attrInputChannel){
+			keyframe -e -iub true -r -o over -tc ($valueOfSlide*$i) ($eachobj+"."+$eachattrInputChannel) ;
+		}
+		$i++;
+	}
+}
+
+global proc MS_functionCurveSliderSimple(float $valueOfSlide){
+	string $obj[]= `ls -sl`;
+	
+	string $attrMainChannel[]=`channelBox -q -sma mainChannelBox`;
+	string $attrShapeChannel[]=`channelBox -q -ssa mainChannelBox`;
+	string $attrInputChannel[]=`channelBox -q -sha mainChannelBox`;
+	for($eachobj in $obj){
+		for ($eachattrMainChannel in $attrMainChannel){
+			keyframe -e -iub true -r -o over -tc ($valueOfSlide) ($eachobj+"."+$eachattrMainChannel) ;
+		}
+		for ($eachattrShapeChannel in $attrShapeChannel){
+			keyframe -e -iub true -r -o over -tc ($valueOfSlide) ($eachobj+"."+$eachattrShapeChannel) ;
+		}
+		for ($eachattrInputChannel in $attrInputChannel){
+			keyframe -e -iub true -r -o over -tc ($valueOfSlide) ($eachobj+"."+$eachattrInputChannel) ;
+		}
+	}
+}
+
+global proc MS_setPriInfinity(string $METHOD){
+	string $obj[]= `ls -sl`;
+	
+	string $attrMainChannel[]=`channelBox -q -sma mainChannelBox`;
+	string $attrShapeChannel[]=`channelBox -q -ssa mainChannelBox`;
+	string $attrInputChannel[]=`channelBox -q -sha mainChannelBox`;
+	for($eachobj in $obj){
+		for ($eachattrMainChannel in $attrMainChannel){
+			setInfinity -pri $METHOD ($eachobj+"."+$eachattrMainChannel) ;
+		}
+		for ($eachattrShapeChannel in $attrShapeChannel){
+			setInfinity -pri $METHOD ($eachobj+"."+$eachattrShapeChannel) ;
+		}
+		for ($eachattrInputChannel in $attrInputChannel){
+			setInfinity -pri $METHOD ($eachobj+"."+$eachattrInputChannel) ;
+		}
+	}
+	
+}
+
+global proc MS_setTangents(string $METHOD){
+	string $obj[]= `ls -sl`;
+	
+	string $attrMainChannel[]=`channelBox -q -sma mainChannelBox`;
+	string $attrShapeChannel[]=`channelBox -q -ssa mainChannelBox`;
+	string $attrInputChannel[]=`channelBox -q -sha mainChannelBox`;
+	for($eachobj in $obj){
+		for ($eachattrMainChannel in $attrMainChannel){
+			keyTangent -itt $METHOD -ott $METHOD -animation objects ($eachobj+"."+$eachattrMainChannel);
+		}
+		for ($eachattrShapeChannel in $attrShapeChannel){
+			keyTangent -itt $METHOD -ott $METHOD -animation objects ($eachobj+"."+$eachattrShapeChannel);
+		}
+		for ($eachattrInputChannel in $attrInputChannel){
+			keyTangent -itt $METHOD -ott $METHOD -animation objects ($eachobj+"."+$eachattrInputChannel);
+		}
+	}
+	
+}
+
+global proc MS_setPostInfinity(string $METHOD){
+	string $obj[]= `ls -sl`;
+	
+	string $attrMainChannel[]=`channelBox -q -sma mainChannelBox`;
+	string $attrShapeChannel[]=`channelBox -q -ssa mainChannelBox`;
+	string $attrInputChannel[]=`channelBox -q -sha mainChannelBox`;
+	for($eachobj in $obj){
+		for ($eachattrMainChannel in $attrMainChannel){
+			setInfinity -poi $METHOD ($eachobj+"."+$eachattrMainChannel) ;
+		}
+		for ($eachattrShapeChannel in $attrShapeChannel){
+			setInfinity -poi $METHOD ($eachobj+"."+$eachattrShapeChannel) ;
+		}
+		for ($eachattrInputChannel in $attrInputChannel){
+			setInfinity -poi $METHOD ($eachobj+"."+$eachattrInputChannel) ;
+		}
+	}
+	
+}
+
+global proc MS_functionCurveSlider_pipe(){
+
+	float $valueOfSlide=`floatSliderGrp -q -v "valueOfSlide"`;
+	MS_functionCurveSlider($valueOfSlide);
+}
+
+global proc MS_functionCurveSliderSimple_pipe(){
+
+	float $valueOfSlide=`floatSliderGrp -q -v "valueOfSlide"`;
+	MS_functionCurveSliderSimple($valueOfSlide);
+}
+
+
+global proc MS_functionCurveSliderUI(){
+if(`window -exists MS_functionCurveSlider`){deleteUI "MS_functionCurveSlider";}
+window -t MS_functionCurveSlider MS_functionCurveSlider;
+
+columnLayout;
+
+text -w 1000 -al "left" -fn "boldLabelFont" -l "1.select animated object.";
+text -w 1000 -al "left" -fn "boldLabelFont" -l "2.select animating attribute from channelBox.";
+text -w 1000 -al "left" -fn "boldLabelFont" -l "3.go";
+separator -w 1000 ;
+
+
+
+floatSliderGrp -f 1 -l "Value of Slide" -v 1 -min -10000 -max 10000 "valueOfSlide";
+rowLayout -numberOfColumns 2 -columnWidth2 110 110 ;
+
+button -w 100-l "simpleSlide" -c "MS_functionCurveSliderSimple_pipe" "simpleslide";
+button -w 100-l "groupSlide" -c "MS_functionCurveSlider_pipe" "groupslide";
+
+setParent ..;
+
+rowLayout -numberOfColumns 2 -columnWidth2 110 110 ;
+button -w 100-l "MS_setPriInfinity" -c "MS_setPriInfinity cycle" "MS_setPriInfinity";
+button -w 100-l "MS_setPostInfinity" -c "MS_setPostInfinity cycle" "MS_setPostInfinity";
+
+setParent ..;
+button -w 100-l "MS_setTangents flat" -c "MS_setTangents flat" "MS_setTangents";
+
+showWindow MS_functionCurveSlider;
+}
+
+
+

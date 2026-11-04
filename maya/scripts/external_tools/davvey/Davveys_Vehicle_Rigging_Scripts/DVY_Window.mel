@@ -1,0 +1,141 @@
+/* This file downloaded from Highend3d.com
+''  
+''  Highend3d.com File Information:
+''  
+''    Script Name: Davveys Vehicle Rigging Scripts
+''    Author:  
+''    Last Updated: Jul 21, 2007
+''    Update/Change this file at:
+''    http://Highend3d.com/maya/downloads/mel_scripts/animation/4109.html
+''  
+''  Please do not alter any information above this line
+''  it is generated dynamically by Highend3d.com and will
+''  be changed automatically on any updates.
+*/
+
+
+//////////////////////////////////////////////////////////////////////////
+//					DVY_Window Procedure
+//////////////////////////////////////////////////////////////////////////
+
+
+
+//============================================================================
+//	GLOBAL VARIABLES
+//============================================================================
+	global int $DVYDebug;
+
+// Integer Flag that allows print statements to be output to
+// message field for tracking purposes.
+
+//============================================================================
+	
+global proc DVY_Window(int $N, string $Name, float $WPos[])
+ {
+	 print "Start of DVY_Window Procedure.\n";
+// ******************************************************************************** //	
+//	Global Variables
+
+	global string $GroupV_A[], $RigControlsA[], $DrControlsA[],$DVYWindB[], $DVYWindT[];
+	global string $DLocs[], $DJntsA[], $LocGroups[], $DVY_MuSuspGrp[];
+	global string $hier[], $LChier[], $JThier[];
+	
+	global string $DVY_VehName;
+	global int $On = 1;
+	
+	global float $DVYdata[];	
+	
+
+// -------------------------------------------------------------------------------- //
+	
+// ******************************************************************************** //	
+//	Local Variables
+
+	string $ShaderName,$NameOfShader, $Shader[], $Name, $Temp[];
+	float $DVYColour[], $DVYSpColour[], $DVYDiffColour[], $WhSz[];
+
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+
+		if (`objExists $GroupV_A[6]`)
+		{
+			$WhSz[0] = `getAttr ($GroupV_A[6] + ".boundingBoxSizeX")` * 0.1;
+			$WhSz[1] = `getAttr ($GroupV_A[6] + ".boundingBoxSizeY")` * 0.1;
+			$WhSz[2] = `getAttr ($GroupV_A[6] + ".boundingBoxSizeZ")` * 0.1;
+			print "$WhSz is \n";
+			print $WhSz;
+		}
+		else{ $WhSz[0] = 10; $WhSz[1] = 10; $WhSz[2] = 10; }
+		
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+//	Section to generate simple Green and Yellow Shaders for window Spheres.
+		
+	$ShaderName = "GreenSphere";	
+	if (`objExists($ShaderName + "_SH")`) {$Shader[2] = ($ShaderName + "_SH");}
+		else{
+				$DVYColour = {0.0, 1.0, 0.0};
+				$DVYSpColour = {0.1, 0.1, 0.1};
+				$DVYDiffColour = {0.6, 0.6, 0.6};
+			
+					$NameOfShader = `shadingNode -asShader blinn`;
+					$NameOfShader = `rename $NameOfShader ($ShaderName + "_SH")`;
+						setAttr ($NameOfShader + ".colorR") $DVYColour[0] ;
+						setAttr ($NameOfShader + ".colorG") $DVYColour[1] ;
+						setAttr ($NameOfShader + ".colorB") $DVYColour[2] ;
+					$Shader[2] = $NameOfShader;
+			}
+				
+	$ShaderName = "YellowSphere";	
+	if (`objExists($ShaderName + "_SH")`){$Shader[3] = ($ShaderName + "_SH");}
+		else{
+				$DVYColour = {1.0, 1.0, 0.0};
+				$DVYSpColour = {0.1, 0.1, 0.1};
+				$DVYDiffColour = {0.6, 0.6, 0.6};
+			
+					$NameOfShader = `shadingNode -asShader blinn`;
+					$NameOfShader = `rename $NameOfShader ($ShaderName + "_SH")`;
+						setAttr ($NameOfShader + ".colorR") $DVYColour[0] ;
+						setAttr ($NameOfShader + ".colorG") $DVYColour[1] ;
+						setAttr ($NameOfShader + ".colorB") $DVYColour[2] ;
+					$Shader[3] = $NameOfShader;
+			}
+				
+//	print "$Shaders are \n";
+//	print $Shader;
+	
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+//	Section to generate and initially Position Window Location Spheres.	
+			
+	string $DAttrBA[], $DAttrRA[], $Att;
+	$DAttrBA = {".sx", ".sy", ".sz"};
+	$DAttrRA = {".ry", ".rz", ".sx", ".sy", ".sz"};
+	
+		$Temp = `polySphere -r 1 -sx 8 -sy 8 -ax 0 1 0 -tx 1 -ch 0 -name Green`;
+		scale $WhSz[0] $WhSz[0] $WhSz[0];
+		for ($Att in $DAttrBA) {setAttr -l true - k false ("Green" + $Att);}
+		$DVYWindB[$N] = `rename $Temp[0] ($DVY_VehName + $Name + "Bot_Window_1")`;
+			select -r $DVYWindB[$N];
+			hyperShade -assign "initialShadingGroup";
+			hyperShade -assign $Shader[2];
+
+		$Temp = `polySphere -r 1 -sx 8 -sy 8 -ax 0 1 0 -tx 1 -ch 0 -name Yellow`;
+			for ($Att in $DAttrRA) {setAttr -l true - k false ("Yellow" + $Att);} 
+			$DVYWindT[$N] = `rename $Temp[0] ($DVY_VehName + $Name + "Top_Window_1")`;
+			move -r 0 $WPos[10] 0 ;
+			select -r $DVYWindT[$N];
+			hyperShade -assign "initialShadingGroup";
+			hyperShade -assign $Shader[3];
+		
+		parent $DVYWindT[$N] $DVYWindB[$N];
+		select -r $DVYWindB[$N];
+		move -r $WPos[0] $WPos[1] $WPos[2] $DVYWindB[$N];
+		
+		print "End of DVY_Window Procedure";
+		
+}			
+

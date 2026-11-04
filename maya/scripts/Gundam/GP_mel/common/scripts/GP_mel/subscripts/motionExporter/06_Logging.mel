@@ -1,0 +1,348 @@
+//出力ログ作成
+//ネームスペース、モーション名、フレーム数(開始・終了)、mayaシーン名、作業者、作業日時を記録
+global proc fbxExport_makeLog(string $iptChrNS , string $e_nme , int $max ,int $min, float $timer){
+	string $motionName = basenameEx($e_nme);
+	string $mayaFileName = `file -q -sceneName`;
+	$mayaFileName = basename($mayaFileName,"");
+	string $player = system("echo %USERNAME%");
+	$player = startString($player,size($player)-2);
+	string $workDate = `date`;
+	string $newData = ($iptChrNS + "," + $motionName + "," + $min + "," + $max + "," + $mayaFileName + "," + $player + "," + $workDate + ",exportElapse:" + $timer + "[s]\r\n");
+
+	string $saveData[] = fbxExport_loadLog();
+
+	int $i , $reWriteFlag;
+	for($i=0 ; $i<size($saveData) ; $i++){
+		if(startsWith($saveData[$i] , ($iptChrNS + "," + $motionName))){
+			$saveData[$i] = $newData;
+			$reWriteFlag = 1;
+		}
+	}
+
+	if($reWriteFlag == 0){
+		$saveData[$i] = $newData;
+		$i++;
+	}
+	$saveData[$i] = "end_of_List,,,,,,";
+
+	fbxExport_saveLog($saveData);
+}
+
+
+global proc string[] fbxExport_loadLog(){
+	string $logFileName = "M:\\Tools\\GP_mel\\common\\scripts\\GP_mel\\subscripts\\motionExporter\\log\\exportFBXWorkTool_ExportLog.csv";
+
+	$fileId=`fopen $logFileName "r"`;
+	string $nextLine = `fgetline $fileId`;
+	string $loadedData[];
+	int $i = 0;
+	while ( size( $nextLine ) > 0 ) {
+		if(gmatch( $nextLine , "end_of_List*")){
+			break;
+		}else{
+			$loadedData[$i] = $nextLine;
+		}
+	    $nextLine = `fgetline $fileId`;
+	    $i++;
+	}
+	fclose $fileId;
+	return $loadedData;
+}
+
+global proc fbxExport_saveLog(string $saveData[]){
+	string $logFileName = "M:\\Tools\\GP_mel\\common\\scripts\\GP_mel\\subscripts\\motionExporter\\log\\exportFBXWorkTool_ExportLog.csv";
+	//string $logFileName = "\\\\192.168.6.99\\gp2\\design\\tool\\exportFBXWorkTool_ExportLog.csv";
+	$fileId=`fopen $logFileName "w"`;
+	int $i;
+	for($i=0 ; $i<size($saveData) ; $i++){
+		fprint $fileId $saveData[$i];
+	}
+	fclose $fileId;
+}
+
+
+//出力先調整
+//出力モーションの一覧から、fbxファイルの宛先を取得する。
+//基本的には「出力先」欄のパス + mopナンバーだが、
+//全モーション行き場が無ければmopを付けない場所を返す。
+//複数mopにまたがる場合はその数だけ返す。
+
+global proc string[] fbxExport_getExportPath(){
+	string $mop_exptPath[];
+	string $temp ;//, $mop_csvFile;
+//	int $mopID ;
+
+	string $path = `textFieldButtonGrp -q -text eFT_exportTgtTf`;
+	string $exportingList[] = exportFBX_getExportList(0);
+	string $mopList[] = getMopList($exportingList,1);
+
+	if(size($mopList) != 0){
+		for($i=0 ; $i<size($mopList) ; $i++){
+			$mop_exptPath[$i] = ($path + "mop" + $mopList[$i] + "/");
+		}
+	}else{
+		$mop_exptPath[0] = $path;
+	}
+
+	return $mop_exptPath;
+}
+
+global proc string[] fbxExport_getExportPath_ver2(){
+	string $mop_exptPath[];
+
+	// 今開いてるシーン名含むフルパスを得る
+	string $path = `file -q -sn`;
+	// ファイル名を除いたディレクトリパスを得る
+	$path = `dirname($path)`;
+	
+	string $tmp_list[] = stringToStringArray($path, "/");
+
+	string $ret_path = "M:/UE4_import/";
+
+	int $flag = 0;
+	for ($str in $tmp_list)
+	{
+    	if ($str == "Motions")
+    	{
+    	    $flag = 1;
+    	}
+    
+    	if ($flag == 1)
+    	{
+    	    $ret_path = $ret_path + $str + "/";
+    	}
+	}
+	
+	// パスの一部を置換
+	//$path = substituteAllString($path, "Design", "UE4_import");
+
+	$mop_exptPath[0] = $ret_path;
+	
+	/*
+	//string $path = `textFieldButtonGrp -q -text eFT_exportTgtTf`;
+	string $mopList[];
+	for($i=0 ; $i<16 ; $i++ ){
+		$mopList[$i] = `button -q -label ("eFT_divExpMopIDBtn" + $i)`;
+	}
+	$mopList = stringArrayRemoveDuplicates($mopList);
+	$mopList = stringArrayRemove({""},$mopList);
+
+	if(size($mopList) != 0){
+		for($i=0 ; $i<size($mopList) ; $i++){
+			$mop_exptPath[$i] = ($path + $mopList[$i] + "/");
+		}
+	}else{
+		$mop_exptPath[0] = $path;
+	}
+	*/
+	return $mop_exptPath;
+}
+
+//UIから、出力するモーション名の情報を返す
+//modeによっては(1)、フレーム数を付ける
+global proc string[] exportFBX_getExportList(int $mode){
+	string $motionList[];
+	for($i=0 ; $i<16 ; $i++){
+		$motionList[$i] = `textField -q -text ("eFT_divExpNameTF" + $i)`;
+		if($mode){
+			$motionList[$i] = ($motionList[$i] + "," + `floatField -q -v ("eFT_divExpStTF" + $i)`);
+			$motionList[$i] = ($motionList[$i] + "," + `floatField -q -v ("eFT_divExpEnTF" + $i)`);
+		}
+	}
+	return $motionList;
+}
+
+//UIから、出力するモーション名の情報を返す
+//modeによっては(1)、フレーム数を付ける
+global proc string[] exportFBX_getExportList_ver2(int $mode){
+	string $motionList[];
+	string $tmp;
+	int $i , $j;
+	for($i=0 ; $i<16 ; $i++){
+		$tmp = `textField -q -text ("eFT_divExpNameTF" + $i)`;
+		if($tmp != ""){
+			$motionList[$j] = $tmp;
+			if($mode){
+				$motionList[$j] = ($motionList[$j] + "," + `floatField -q -v ("eFT_divExpStTF" + $i)`);
+				$motionList[$j] = ($motionList[$j] + "," + `floatField -q -v ("eFT_divExpEnTF" + $i)`);
+				$motionList[$j] = ($motionList[$j] + "," + `button -q -label ("eFT_divExpMopIDBtn" + $i)`);
+			}
+			$j++;
+		}
+	}
+	return $motionList;
+}
+
+//モーション名のリストから、使用するmopのリストを返す
+//modeが1の時は重複を削除
+global proc string[] getMopList(string $exportingList[],int $mode){
+	source "GP2_Ut.mel";
+
+	string $fileName = `getenv GP_MAYA_ROOT` + "\\common\\scripts\\GP_mel\\csv\\GP2_motionList.csv";
+	string $motionIDList[] = GP2ut_getCsvData($fileName , 0);
+	string $motionNameList[] = GP2ut_getCsvData($fileName , 1);
+	string $mopList[];
+	int $i , $mopID ;
+
+	for($i=0 ; $i<16 ; $i++){
+		if(`checkBox -q -v ("eFT_divExpFlgChk" + $i)`){
+			$mopID = stringArrayFind($exportingList[$i], 0, $motionNameList);
+			if($mopID != -1){
+				$mopList[size($mopList)] = $motionIDList[$mopID];
+			}else{
+				print($exportingList[$i] + "は所属不明のモーション\r\n");
+			}
+		}
+	}
+	if($mode){
+		$mopList = stringArrayRemoveDuplicates($mopList);
+	}
+	return $mopList;
+}
+
+global proc eFT_shiftCSV(){
+	string $exportedMop[] = `textScrollList -q -ai eFT_tmpWorkedMopLst`;
+	$exportedMop = stringArrayRemoveDuplicates($exportedMop);
+	string $path = `textFieldButtonGrp -q -text eFT_exportTgtTf`;
+	string $saveDataFileName,$oldFileName;
+	for($mopID in $exportedMop){
+		$saveDataFileName = ($path + $mopID + "/new_" + $mopID + ".csv");
+		$oldFileName = ($path + $mopID + "/" + $mopID + ".csv");
+		sysFile -del $oldFileName;
+		sysFile -ren $oldFileName $saveDataFileName;
+	}
+}
+
+//コンバート用csv生成・調整
+global proc update_motionCSV(string $fbxFileName){
+	string $exportingList[] = exportFBX_getExportList_ver2(1);	//motionName,10,30,mopID
+	string $motionName[] , $mopList[] , $temp[];
+
+	int $i;
+	for($i = 0 ; $i<size($exportingList) ; $i++){
+		tokenize $exportingList[$i] "," $temp;
+		$motionName[size($motionName)] = $temp[0];
+		$mopList[size($mopList)] = $temp[3];
+	}
+
+	string $mop_uniList[] = stringArrayRemoveDuplicates($mopList);
+
+	int $i,$j;
+	string $tgtMotion[];	//該当mopに含まれるモーションの出力設定
+
+	for($item in $mop_uniList){
+		$j=0;
+		for($i=0 ; $i<size($exportingList) ; $i++){
+			if($mopList[$i] == $item){
+				$tgtMotion[$j] = $exportingList[$i];
+				$j++;
+			}
+		}
+		fbxExport_csvUpdate($fbxFileName,$item,$tgtMotion);
+		textScrollList -e -a $item eFT_tmpWorkedMopLst;
+	}
+}
+
+global proc fbxExport_csvUpdate(string $fbxFileName , string $mopID , string $newSaveData[] ){
+
+	int $basemodeSw = `checkBox -q -v eFT_baseModeChk`;
+	string $accessMode = `radioCollection -q -sl eFT_csvModeRadCol`;
+	if($accessMode != "eFT_csvModeRad1"){
+		string $path = `textFieldButtonGrp -q -text eFT_exportTgtTf`;
+		string $saveDataFileName = ($path + $mopID + "/" + $mopID + ".csv");
+		if( $accessMode == "eFT_csvModeRad3" ){
+			$saveDataFileName = ($path + $mopID + "/new_" + $mopID + ".csv");
+		}
+
+		string $mtHeader = getHeaderFromMopID($mopID);
+
+		int $i = 0;
+		string $bookmarkList[];
+		string $text;
+		string $loadedData[] , $motionName[];
+
+		if(`filetest -r $saveDataFileName` == 0){
+	//セーブデータなし
+			$loadedData[0] = ("#ファイル名,出力時の別名,ベースポーズ出力指定,差分モーション指定,サンプリングFPS指定,ジョイント設定ファイル,開始フレーム,終了フレーム,ルート平行移動を0から開始する");
+			$loadedData[1] = ("global," + $mtHeader + ",0,,30,../jointsetting.csv,,,0");
+			$loadedData[2] = ("../_basepose.fbx,basepose,1,,,,,,");
+		}else{
+			int $fileId = `fopen $saveDataFileName "r"`;
+			string $line;
+			$line = `fgetline $fileId`;
+			int $i , $savedFlag;
+			while ( size( $line ) > 0 ){
+				$loadedData[$i] = $line;
+				string $buffer[];
+				tokenize $line "," $buffer;
+				$motionName[$i] = $buffer[1];
+				$line = `fgetline $fileId`;
+				$i++;
+			}
+			fclose $fileId;
+		}
+
+		int $j;
+		string $temp[] , $temps[];
+
+		//情報書き換え
+		for($j=0 ; $j<size($newSaveData) ; $j++){
+			tokenize $newSaveData[$j] "," $temp;
+			$savedFlag = 0;
+
+			for($i=0 ; $i<size($loadedData) ; $i++){
+				if($motionName[$i] == $temp[0]){
+					string $kakikae = substituteAllString($loadedData[$i] , "," , ",@");
+					tokenize $kakikae "," $temps;			//				tokenize $loadedData[$i] "," $temps;
+					int $k;
+					for($k = 0 ; $k<size($temps) ; $k++){
+						$temps[$k] = substituteAllString($temps[$k] , "@" , "");
+					}
+					if($basemodeSw == 0){
+						$loadedData[$i] = ( $fbxFileName + ".fbx," + $temp[0] + "," + $temps[2] + "," + $temps[3] + "," + $temps[4] + "," + $temps[5] + "," + $temp[1] + "," + $temp[2] + "," + $temps[8]);
+					}else{
+						$loadedData[$i] = ( $temps[0] + "," + $temp[0] + "," + $temps[2] + "," + $fbxFileName + ".fbx," + $temps[4] + "," + $temps[5] + "," + $temp[1] + "," + $temp[2] + "," + $temps[8]);
+					}
+	//				print ("save as [ " + $loadedData[$i] + " ].\r\n");
+					$savedFlag = 1;
+					continue;
+				}
+			}
+			if($savedFlag == 0){
+				if($basemodeSw == 0){
+					$loadedData[size($loadedData)] = ( $fbxFileName + ".fbx," + $temp[0] + ",,,,," + $temp[1] + "," + $temp[2] + ",1");
+				}else{
+					$loadedData[size($loadedData)] = ( "../basepose.fbx," + $temp[0] + ",," + $fbxFileName + ".fbx,,,," + $temp[1] + "," + $temp[2] + ",1");
+				}
+			}
+		}
+
+		$fileId=`fopen $saveDataFileName "w"`;
+
+		for ($loadedItem in $loadedData){
+			if (endsWith($loadedItem,"\n") == 0){
+				$loadedItem = ($loadedItem + "\n");
+			}
+			fprint $fileId ($loadedItem);
+	//		print ($loadedItem);
+		}
+		fclose $fileId;
+	}
+}
+
+
+global proc string getHeaderFromMopID(string $mopID){
+	string $res;
+	$mopID = `substitute "mop" $mopID ""`;
+	string $headers[] = GP2_motionInfoLoadArray({0,4});
+	string $temp[];
+	$headers = stringArrayRemoveDuplicates($headers);
+	for($i=0 ; $i<size($headers) ; $i++ ){
+		tokenize $headers[$i] "\t" $temp;
+		if($temp[0] == $mopID){
+			$res = $temp[1];
+			break;
+		}
+	}
+	return $res;
+}

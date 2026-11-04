@@ -1,0 +1,32 @@
+/*!
+		@file		GPInitialize.mel
+		@brief		GP環境初期化
+					userSetup.melから呼び出すこと
+*/
+
+
+////////////////////////////////////////////////////////////////////////////////
+proc _GPInitialize()
+{
+	//	環境変数初期化
+	GPInitializeEnv;
+	
+	//	シェルフ初期化
+	GPInitializeShelf;
+	
+	//	メニュー初期化
+	GPInitializeMenu;
+	
+	//	BonusTools
+	if( "" != match("^Mel procedure", `whatIs bonusToolsMenu`) )
+	{
+		scriptJob -permanent -event "MenuModeChanged" "bonusToolsMenu";
+		bonusToolsMenu;
+	}
+}
+global proc GPInitialize()
+{
+	//	何かエラーが発生してもuserSetupの処理を止めないようにする
+	catch( `_GPInitialize` );
+}
+

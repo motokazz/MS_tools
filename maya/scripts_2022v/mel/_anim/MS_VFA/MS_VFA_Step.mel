@@ -1,0 +1,51 @@
+global proc MS_VFA_Step(
+	int $strtm,
+	int $endtm,
+	float $threshold,
+	string $target,
+	string $obj[],
+	string $attr[]
+	)
+{
+	/*
+	親アニメーションの前後のフレーム差でスケルトンをスケーリングする
+	*/
+	
+	
+	float $all[];
+	
+
+	currentTime -u 1 ($strtm-1);
+	float $ff[]=`xform -q -ws -t $target`;
+	//
+	for($i=$strtm;$i<$endtm;$i++){
+		currentTime -u 1 $i;
+		
+		float $cf[] = `xform -q -ws -t $target`;
+		
+		for($each in $obj){
+			for($eachAttr in $attr){
+				if($cf[1]<$threshold && $ff[1]>$threshold){
+						setKeyframe -at $eachAttr -t ($i-1) -v 0 $each;
+						setKeyframe -at $eachAttr -t $i -v 1 $each;
+						setKeyframe -at $eachAttr -t ($i+1) -v 0 $each;
+				}
+				if($cf[1]>$threshold && $ff[1]<$threshold){
+						setKeyframe -at $eachAttr -t ($i-1) -v 0 $each;
+						setKeyframe -at $eachAttr -t $i -v 1 $each;
+						setKeyframe -at $eachAttr -t ($i+1) -v 0 $each;
+				}
+			}
+		}
+		$ff= $cf;
+	}
+	//補完変更
+	for($each in $obj){
+		selectKey -add -k ($each+"_EmitterVolume") ;
+		keyTangent -ott step;
+	}
+
+}
+
+
+

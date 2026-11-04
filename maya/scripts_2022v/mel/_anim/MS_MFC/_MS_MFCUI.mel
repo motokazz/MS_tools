@@ -1,0 +1,62 @@
+//MS_ModifyFunctionCurve
+global proc MS_MFC_deleteFlatPoint_pipe(){
+
+	string $values[]=`channelBox -q -sma mainChannelBox`;
+	string $values2[]=`channelBox -q -ssa mainChannelBox`;
+	
+	$obj=`ls -sl`;
+	
+	int $tm[]=`MS_selectTime`;
+	
+	for ($eachobj in $obj){
+		for($eachvalues in $values){
+			string $name=$eachobj+"."+$eachvalues;
+			MS_MFC_deleteFlatPoint($tm[0],$tm[1],$name);
+		}
+		
+		for($eachvalues in $values2){
+			string $name=$eachobj+"."+$eachvalues;
+			MS_MFC_deleteFlatPoint($tm[0],$tm[1],$name);
+		}
+	}
+}
+
+global proc MS_MFC_keepTurningPoint_pipe(){
+
+	string $values[]=`channelBox -q -sma mainChannelBox`;
+	string $values2[]=`channelBox -q -ssa mainChannelBox`;
+	
+	$obj=`ls -sl`;
+	
+	int $tm[]=`MS_selectTime`;
+	
+	for ($eachobj in $obj){
+		for($eachvalues in $values){
+			string $name=$eachobj+"."+$eachvalues;
+			MS_MFC_keepTurningPoint($tm[0],$tm[1],$name);
+		}
+		
+		for($eachvalues in $values2){
+			string $name=$eachobj+"."+$eachvalues;
+			MS_MFC_keepTurningPoint($tm[0],$tm[1],$name);
+		}
+	}
+}
+
+global proc MS_MFCUI(){
+	if(`window -exists MS_MFCUI`){deleteUI MS_MFCUI;}
+	window -t "MS_MFC" "MS_MFCUI";
+	columnLayout;
+	text -al left -w 1000 -fn "boldLabelFont" -l "1:selectObjects&Channels. \n2:go";
+	button -l "keepTurningPoint" -c "MS_MFC_keepTurningPoint_pipe" MS_MFC_keepTurningPoint_pipe;
+	
+	button -l "deleteFlatPoint" -c "MS_MFC_deleteFlatPoint_pipe" MS_MFC_deleteFlatPoint_pipe;
+	
+	window -e -w 200 -h 200"MS_MFCUI";
+	showWindow "MS_MFCUI";
+	
+	
+}
+
+
+

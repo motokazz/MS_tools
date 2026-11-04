@@ -1,0 +1,1855 @@
+/*
+MP_MS_matterSetupUI
+坂井元一
+
+EOPPSPで使用するツールPEdit用のアトリビュートをMAYAでセットアップします。
+
+MP_MS_matterSetup_set(string $toroAttr,int $value)
+$toroAttrで指定したアトリビュートを$valueの値、任意の型式でshapeノードに追加します。
+
+◆指定アトリビュート
+
+anisoFilter
+	0:NEAREST
+	1:LINEAR
+	2:NEAREST_NEAREST
+	3:LINEAR_NEAREST
+	4:NEAREST_LINEAR
+	5:LINEAR_LINEAR
+
+mipmapFilter
+	0:NEAREST
+	1:LINEAR
+	2:NEAREST_NEAREST
+	3:LINEAR_NEAREST
+	4:NEAREST_LINEAR
+	5:LINEAR_LINEAR
+	6:mipmapFilter
+
+shaderFromName
+	0:DefaultVS
+	1:FogSkinVS
+	2:FogVS
+	3:LightSkinVS
+	4:LightVS
+	5:ProjSkinVS
+	6:ProjVS
+	7:SphereSkinVS
+	8:SphereVS
+	9:ToonSkinVS
+	10:ToonVS
+	11:blend
+
+blend
+	0:none
+	1:add
+	2:mul
+	3:sub:
+
+fogOff
+	0:fogOn
+	1:fogOff
+
+backfaceCurring
+	0:none
+	1:back
+	2:front
+
+zOffset
+	0-255
+
+zFunction
+	0:none
+	1:ALWAYS
+	2:GREATER
+	3:GEQUAL
+	4:EQUAL
+	5:LEQUAL
+	6:LESS:NEVER
+
+zWrite
+	0:off
+	1:on
+
+aFunction
+	0:none
+	1:ALWAYS
+	2:GREATER
+	3:GEQUAL
+	4:EQUAL
+	5:LEQUAL
+	6:LESS:NEVER
+
+
+aReffernce
+	0-255
+
+renderStage
+	0:3DNormal
+	1:3DEffect
+	2:2DGauge1
+	3:Shadowmap
+	4:2DEffect
+	5:2DGauge2:
+
+priority
+	0-255
+
+*/
+
+global proc MP_MS_matterSetupUI_setDefault(){
+	optionMenu -e -v "LINEAR" "anisoFilter";
+	optionMenu -e -v "LINEAR" "mipmapFilter";
+	optionMenu -e -v "shadowlight_v" "shaderFromName";
+	optionMenu -e -v "通常" "blend";
+	checkBox -e -v 0 "fogOff";
+	optionMenu -e -v "Back" "backfaceCurring";
+	intField -e -v 0 "zOffset";
+	optionMenu -e -v "LEQUAL" "zFunction";
+	checkBox -e -v 1 "zWrite";
+	optionMenu -e -v "無し" "aFunction";
+	intField -e -v 128 "aReffernce";
+	optionMenu -e -v "0" "renderStage";
+	floatField -e -v 0 "priority";
+	optionMenu -e -v "castshadow_mate" "SetMultPass";
+	MP_MS_matterSetupUI_storeRecallUI store;
+}
+
+//森田フレームセットアップ
+global proc int[] MP_MS_matterSetupUI_Ret_min_max_anim(string $node_name) 
+{
+	int $ret_val[] = {};
+	int $frame_array[] = {};
+	int $index_no = 0;
+/*TRS node animation frame check*/
+	string $attr_type[] = {".tx", ".ty", ".tz", ".rx", ".ry", ".rz", ".sx", ".sy", ".sz"};
+	for($i in $attr_type)
+	{
+		$anim_index = `keyframe -q -kc ($node_name + $i)`;
+		for($j = 0; $j < $anim_index; $j++)
+		{
+			$time_v = `keyframe -in $j -q ($node_name + $i)`;
+			$frame_array[$index_no] = $time_v[0];
+			$index_no++;
+		}
+	}
+/*texture UV animation frame check*/
+	/*
+	$shape_node = `listRelatives -s $node_name`;
+	if(`objectType $shape_node[0]` == "mesh"){
+		$sg_name = `listConnections -s 1 ($shape_node[0] + ".instObjGroups[0]")`;
+		if(`connectionInfo -id ($sg_name[0] + ".surfaceShader")`){
+			$mat_name = `listConnections -d 1 ($sg_name[0] + ".surfaceShader")`;
+			if(`connectionInfo -id ($mat_name[0]+".color")`){
+				$file_name = `listConnections -d 1 ($mat_name[0] + ".color")`;
+				$place_name = `listConnections -d 1 ($file_name[0] + ".uvCoord")`;
+			
+				$anim_index = `keyframe -q -kc ($place_name[0] + ".ofu")`;
+				if($anim_index > 0){
+					$time_v = `keyframe -in 0 -q ($place_name[0] + ".ofu")`;
+					$frame_array[$index_no] = $time_v[0];
+					$index_no++;
+					$time_v = `keyframe -in ($anim_index - 1) -q ($place_name[0] + ".ofu")`;
+					$frame_array[$index_no] = $time_v[0];
+					$index_no++;
+				}
+				
+				$anim_index = `keyframe -q -kc ($place_name[0] + ".ofv")`;
+				
+				if($anim_index > 0){
+					$time_v = `keyframe -in 0 -q ($place_name[0] + ".ofv")`;
+					$frame_array[$index_no] = $time_v[0];
+					$index_no++;
+					$time_v = `keyframe -in ($anim_index - 1) -q ($place_name[0] + ".ofv")`;
+					$frame_array[$index_no] = $time_v[0];
+					$index_no++;
+				}
+			}
+		}
+	}
+	*/
+/*return value*/
+	if(`size $frame_array` > 1)
+	{
+		$frame_array = `sort $frame_array`;
+		$ret_val[0] = $frame_array[0];
+		$ret_val[1] = $frame_array[(`size $frame_array` - 1)];	
+	}
+	else
+	{
+		$ret_val[0] = 0;
+		$ret_val[1] = 0;
+	}
+	return $ret_val;
+}
+
+//スクリプト出力
+//エクストラスクリプト
+global proc MP_MS_scriptSetup_addExtraScript(string $mode,int $index){
+	string $obj[]=`ls -as -sl`;
+	if(!size($obj)){
+		confirmDialog -bgc 1.0 0.8 0.6 -t "Warnning" -m "トップオブジェクトでなければExtraScriptつきません";
+		return;
+	}
+	
+	string $relatedShape[]=`listRelatives -typ shape $obj[0]`;
+	
+	string $value;
+	
+	if (`attributeExists "ExtraScript" $relatedShape[0]`){
+		$value=`getAttr ($relatedShape[0]+".ExtraScript")`;
+	}
+	
+	string $separatedCommand[];
+	tokenize($value,";",$separatedCommand);
+	
+	//modify
+	if( $mode=="modify" || $mode=="add" && !$index ||$mode=="delete"){
+		$value = `scrollField -q -tx "addExtraScriptTag"`;
+		setAttr -type "string" ($relatedShape[0]+".ExtraScript") $value;
+	}
+	
+	//add
+	if($mode=="add"){
+		if (!`attributeExists "ExtraScript" $relatedShape[0]`){
+			addAttr -k false -hidden false -ln "ExtraScript"  -dt "string" $relatedShape[0];
+			setAttr -type "string" ($relatedShape[0]+".ExtraScript") $value;
+		}else{
+			setAttr -type "string" ($relatedShape[0]+".ExtraScript") $value;
+		}
+	}
+	
+	//delete
+	if($mode=="delete"){
+			if (`attributeExists "ExtraScript" $relatedShape[0]`){
+				deleteAttr ($relatedShape[0]+".ExtraScript");
+			}
+	}
+	
+	//show
+	MP_MS_scriptSetup_ExtraScriptWindow $value;
+}
+
+global proc MP_MS_scriptSetup_ExtraScriptWindow(string $ExtraScript){
+	string $obj[]=`ls -as -l -sl`;
+	string $relatedShape[]=`listRelatives -typ shape $obj[0]`;
+	string $separatedCommand[];
+	tokenize($ExtraScript,";",$separatedCommand);
+	if (`window -q -ex MP_MS_scriptSetup_ExtraScriptLayout`){
+		deleteUI MP_MS_scriptSetup_ExtraScriptLayout;
+	}
+	window MP_MS_scriptSetup_ExtraScriptLayout;
+	columnLayout;
+		text -w 80 -l "selected object";
+		text -w 320 -h 40 -fn "boldLabelFont" -bgc 1.0 1.0 0.8 -l $obj[0] "MP_MS_scriptSetup_addExtraScript_selected";
+		rowLayout -nc 2 -cw2 300 100;
+			button -w 300 -bgc 0.8 0.9 1.0 -l "addExtraScript" -c ("MP_MS_scriptSetup_addExtraScript add "+size($separatedCommand));
+			button -w 100 -bgc 1.0 0.9 0.8 -l "deleteExtraScript" -c ("MP_MS_scriptSetup_addExtraScript delete "+size($separatedCommand));
+		setParent ..;
+		text -w 50 -l "   ExtraScript";
+		if(`attributeExists "ExtraScript" $relatedShape[0]`){
+			scrollField -w 400 -h 300 -tx $ExtraScript "addExtraScriptTag";
+			button -w 400 -h 30 -bgc 0.8 1.0 0.9 -l "setExtraScript" -c ("MP_MS_scriptSetup_addExtraScript modify "+size($separatedCommand));
+		}
+	setParent..;
+	showWindow MP_MS_scriptSetup_ExtraScriptLayout;
+}
+
+
+//イベントテーブル
+global proc MP_MS_scriptSetup_AddEventTable(string $mode,int $index){
+	string $obj[]=`ls -as -sl`;
+	if(!size($obj)){
+		confirmDialog -bgc 1.0 0.8 0.6 -t "Warnning" -m "トップオブジェクトでなければモーションテーブルつきません";
+		return;
+	}
+	
+	string $relatedShape[]=`listRelatives -typ shape $obj[0]`;
+	
+	string $value;
+	
+	if (`attributeExists "EventTable" $relatedShape[0]`){
+		$value=`getAttr ($relatedShape[0]+".EventTable")`;
+	}
+	
+	string $separatedCommand[];
+	tokenize($value,";",$separatedCommand);
+	
+
+	//modify
+	if( $mode=="modify" || $mode=="add" && !$index ||$mode=="delete"){
+		for ($i=0;$i<$index;$i++){
+			$separatedCommand[$i]="";
+			$separatedCommand[$i]=$separatedCommand[$i]+`text -q -l ("AddEventTable"+$i)`;
+			$separatedCommand[$i]=$separatedCommand[$i]+"(";
+			$separatedCommand[$i]=$separatedCommand[$i]+`intField -q -v ("AddEventTableTag"+$i)`;
+			$separatedCommand[$i]=$separatedCommand[$i]+",\"";
+			$separatedCommand[$i]=$separatedCommand[$i]+`optionMenu -q -v ("AddEventTableEvent"+$i)`;
+			$separatedCommand[$i]=$separatedCommand[$i]+"\",\"";
+			$separatedCommand[$i]=$separatedCommand[$i]+`textField -q -tx ("AddEventTableValueA"+$i)`;
+			$separatedCommand[$i]=$separatedCommand[$i]+"\",\"";
+			$separatedCommand[$i]=$separatedCommand[$i]+`textField -q -tx ("AddEventTableValueB"+$i)`;
+			$separatedCommand[$i]=$separatedCommand[$i]+"\",\"";
+			$separatedCommand[$i]=$separatedCommand[$i]+`textField -q -tx ("AddEventTableValueC"+$i)`;
+			$separatedCommand[$i]=$separatedCommand[$i]+"\")";
+			$value=`stringArrayToString $separatedCommand ";"`+";";
+			setAttr -type "string" ($relatedShape[0]+".EventTable") $value;
+		}
+	}
+
+	//add
+	if($mode=="add"){
+		$value=$value+"AddEventTable(0,\"Effect\",\"\",\"\",\"\");";
+		if (!`attributeExists "EventTable" $relatedShape[0]`){
+			addAttr -k false -hidden false -ln "EventTable"  -dt "string" $relatedShape[0];
+			setAttr -type "string" ($relatedShape[0]+".EventTable") $value;
+		}else{
+			setAttr -type "string" ($relatedShape[0]+".EventTable") $value;
+		}
+	}
+		
+	//delete
+	if($mode=="delete"){
+		$value="";
+		stringArrayRemoveAtIndex($index,$separatedCommand);
+		for($each in $separatedCommand){
+			$value=$value+$each+";";
+		}
+		setAttr -type "string" ($relatedShape[0]+".EventTable") $value;
+	}
+	
+	//show
+	MP_MS_scriptSetup_EventTableWindow $value;
+}
+
+global proc MP_MS_scriptSetup_EventTableWindow(string $EventTable){
+	string $obj[]=`ls -as -l -sl`;
+	string $separatedCommand[];
+	tokenize($EventTable,";",$separatedCommand);
+	if (`window -q -ex MP_MS_scriptSetup_EventTableLayout`){
+		deleteUI MP_MS_scriptSetup_EventTableLayout;
+	}
+	window MP_MS_scriptSetup_EventTableLayout;
+	columnLayout;
+		text -w 80 -l "selected object";
+		text -w 400 -h 40 -fn "boldLabelFont" -bgc 1.0 0.9 0.8 -l $obj[0] "MP_MS_scriptSetup_AddEventTable_selected";
+		rowLayout -nc 2 -cw2 120 200;
+			button -w 120 -bgc 0.9 1.0 1.0 -l "addTable" -c ("MP_MS_scriptSetup_AddEventTable add "+size($separatedCommand));
+			button -w 200 -bgc 0.8 1.0 0.9 -l "setTable" -c ("MP_MS_scriptSetup_AddEventTable modify "+size($separatedCommand));
+		setParent..;
+		rowLayout -nc 2 -cw2 80 300;
+			text -w 50 -l "script";
+			rowLayout -nc 6 -cw6 30 60 60 60 70 30;
+				text -w 50 -l "Frame";
+				text -w 50 -l "Event";
+				text -w 50 -l "Param1";
+				text -w 50 -l "Param2";
+				text -w 50 -l "Param3";
+			setParent..;
+		setParent..;
+	setParent..;
+	frameLayout -bv 0 -lv 0 -w 420 -h 400 ;
+		scrollLayout;
+			columnLayout;
+			if($EventTable!=""){
+				int $i;
+				for($each in $separatedCommand){
+					string $commandB=("MP_MS_scriptSetup_AddEventTable delete "+$i);
+					string $tmp[];
+					tokenize($each,"(,)",$tmp);
+					rowLayout -nc 2 -cw2 80 300;
+					text -l $tmp[0] ("AddEventTable"+$i);
+						rowLayout -nc 6 -cw6 30 60 60 60 70 30 ;
+							intField -w 30 -v (int($tmp[1])) ("AddEventTableTag"+$i);
+							optionMenu  ("AddEventTableEvent"+$i);
+								menuItem -label "Effect";
+								menuItem -label "Signal";
+								optionMenu -e -v `substituteAllString $tmp[2] "\"" ""` ("AddEventTableEvent"+$i);
+							textField -w 60 -tx `substituteAllString $tmp[3] "\"" ""` ("AddEventTableValueA"+$i);
+							textField -w 60 -tx `substituteAllString $tmp[4] "\"" ""` ("AddEventTableValueB"+$i);
+							textField -w 60 -tx `substituteAllString $tmp[5] "\"" ""` ("AddEventTableValueC"+$i);
+							button -bgc 1.0 0.9 0.8 -w 30 -l "del" -c $commandB;
+						setParent..;
+					setParent..;
+					$i++;
+				}
+			}
+			setParent..;
+		setParent..;
+	setParent..;
+	
+	showWindow MP_MS_scriptSetup_EventTableLayout;
+}
+
+//モーションテーブル
+global proc MP_MS_scriptSetup_addMotionTable(string $mode,int $index){
+	string $obj[]=`ls -as -sl`;
+	if(!size($obj)){
+		confirmDialog -bgc 1.0 0.8 0.6 -t "Warnning" -m "トップオブジェクトでなければモーションテーブルつきません";
+		return;
+	}
+	
+	string $relatedShape[]=`listRelatives -typ shape $obj[0]`;
+	
+	string $value;
+	
+	if (`attributeExists "MotionTable" $relatedShape[0]`){
+		$value=`getAttr ($relatedShape[0]+".MotionTable")`;
+	}
+	
+	string $separatedCommand[];
+	tokenize($value,";",$separatedCommand);
+	
+
+	
+	//modify
+	if( $mode=="modify" || $mode=="add" && !$index ||$mode=="delete"){
+		for ($i=0;$i<$index;$i++){
+			$separatedCommand[$i]="";
+			$separatedCommand[$i]=$separatedCommand[$i]+`text -q -l ("addMotionTable"+$i)`;
+			$separatedCommand[$i]=$separatedCommand[$i]+"(\"";
+			$separatedCommand[$i]=$separatedCommand[$i]+`textField -q -tx ("addMotionTableTag"+$i)`;
+			$separatedCommand[$i]=$separatedCommand[$i]+"\",";
+			$separatedCommand[$i]=$separatedCommand[$i]+`intField -q -v ("addMotionTableValueA"+$i)`;
+			$separatedCommand[$i]=$separatedCommand[$i]+",";
+			$separatedCommand[$i]=$separatedCommand[$i]+`intField -q -v ("addMotionTableValueB"+$i)`;
+			$separatedCommand[$i]=$separatedCommand[$i]+",";
+			$separatedCommand[$i]=$separatedCommand[$i]+`intField -q -v ("addMotionTableValueC"+$i)`;
+			$separatedCommand[$i]=$separatedCommand[$i]+")";
+			$value=`stringArrayToString $separatedCommand ";"`+";";
+			setAttr -type "string" ($relatedShape[0]+".MotionTable") $value;
+		}
+	}
+	
+	//add
+	if($mode=="add"){
+		$value=$value+"AddMotionTable(\"New\",0,0,0);";
+		if (!`attributeExists "MotionTable" $relatedShape[0]`){
+			addAttr -k false -hidden false -ln "MotionTable"  -dt "string" $relatedShape[0];
+			setAttr -type "string" ($relatedShape[0]+".MotionTable") $value;
+		}else{
+			setAttr -type "string" ($relatedShape[0]+".MotionTable") $value;
+		}
+	}
+	//delete
+	if($mode=="delete"){
+		$value="";
+		stringArrayRemoveAtIndex($index,$separatedCommand);
+		for($each in $separatedCommand){
+			$value=$value+$each+";";
+		}
+		setAttr -type "string" ($relatedShape[0]+".MotionTable") $value;
+	}
+	
+	//show
+	MP_MS_scriptSetup_MotionTableWindow $value;
+}
+
+global proc MP_MS_scriptSetup_MotionTableWindow(string $MotionTable){
+	string $obj[]=`ls -as -l -sl`;
+	string $separatedCommand[];
+	tokenize($MotionTable,";",$separatedCommand);
+	if (`window -q -ex MP_MS_scriptSetup_MotionTableLayout`){
+		deleteUI MP_MS_scriptSetup_MotionTableLayout;
+	}
+	window MP_MS_scriptSetup_MotionTableLayout;
+	columnLayout;
+		text -w 80 -l "selected object";
+		text -w 320 -h 40 -fn "boldLabelFont" -bgc 1.0 1.0 0.8 -l $obj[0] "MP_MS_scriptSetup_addMotionTable_selected";
+		rowLayout -nc 2 -cw2 120 200;
+			button -w 120 -bgc 0.9 1.0 1.0 -l "addTable" -c ("MP_MS_scriptSetup_addMotionTable add "+size($separatedCommand));
+			button -w 200 -bgc 0.8 1.0 0.9 -l "setTable" -c ("MP_MS_scriptSetup_addMotionTable modify "+size($separatedCommand));
+		setParent..;
+		rowLayout -nc 6 -cw6 80 80 40 40 40 50;
+			text -w 50 -l "script";
+			text -w 50 -l "name";
+			text -w 50 -l "start";
+			text -w 50 -l "count";
+			text -w 50 -l "offset";
+		setParent..;
+	setParent..;
+	frameLayout -bv 0 -lv 0 -w 350 -h 400 ;
+		scrollLayout;
+			columnLayout ;
+			if($MotionTable!=""){
+				int $i;
+				for($each in $separatedCommand){
+					string $commandB=("MP_MS_scriptSetup_addMotionTable delete "+$i);
+					string $tmp[];
+					tokenize($each,"(,)",$tmp);
+					rowLayout -nc 6 -cw6 80 80 40 40 40 30 ;
+						text -l $tmp[0] ("addMotionTable"+$i);
+						textField -w 80 -tx `substituteAllString $tmp[1] "\"" ""` ("addMotionTableTag"+$i);
+						intField -w 40 -v (int($tmp[2])) ("addMotionTableValueA"+$i);
+						intField -w 40 -v (int($tmp[3])) ("addMotionTableValueB"+$i);
+						intField -w 40 -v (int($tmp[4])) ("addMotionTableValueC"+$i);
+						button -bgc 1.0 0.9 0.8 -w 40 -l "del" -c $commandB;
+					setParent..;
+					$i++;
+				}
+			}
+			setParent..;
+		setParent..;
+	setParent..;
+	
+	showWindow MP_MS_scriptSetup_MotionTableLayout;
+}
+
+//エクストラセットアップ
+global proc MP_MS_extraStringSetup_set(string $toroAttr,string $value){
+	string $obj[]=`ls -tr -typ mesh -sl`;
+	//PEdit用スクリプトセットアップ
+	if (($toroAttr=="PEScript" || $toroAttr=="all") && size($obj)){
+		for($each in $obj){
+			string $relatedShape[]=`listRelatives -typ shape $each`;
+			if(!`attributeExists "PEScript"  $relatedShape[0]`){
+				addAttr -k false -hidden false -ln "PEScript"  -dt "string" $relatedShape[0];
+			}
+			setAttr -type "string" ($relatedShape[0]+".PEScript") $value;
+		}
+	}
+	//その他テキストセットアップ
+	if (($toroAttr=="EXText" || $toroAttr=="all") && size($obj)){
+		for($each in $obj){
+			string $relatedShape[]=`listRelatives -typ shape $each`;
+			if(!`attributeExists "EXText"  $relatedShape[0]`){
+				addAttr -k false -hidden false -ln "EXText"  -dt "string" $relatedShape[0];
+			}
+			setAttr -type "string" ($relatedShape[0]+".EXText") $value;
+		}
+	}
+}
+
+//フレーム設定
+global proc MP_MS_extraSetup_Get(){
+	string $obj[]=`ls -tr -typ mesh -sl`;
+	string $relatedShape[]=`listRelatives -typ shape $obj[0]`;
+	if(`attributeExists "startFrame" $relatedShape[0]`){
+		intField -e -v `getAttr ($relatedShape[0]+".startFrame")` "startFrame";
+		intField -e -v `getAttr ($relatedShape[0]+".endFrame")` "endFrame";
+	}
+}
+
+global proc MP_MS_frameSetup_setField(){
+	string $obj[]=`ls -sl`;
+	int $obj_frame[]=`MP_MS_matterSetupUI_Ret_min_max_anim $obj[0]`;
+	intField -e -v $obj_frame[0] "startFrame";
+	intField -e -v $obj_frame[1] "endFrame";
+}
+
+global proc MP_MS_extraSetup_preset(string $mode){
+	 if(($mode=="frame" || $mode=="all")){
+		 int $startFrame=`intField -q -v "startFrame"`;
+		 MP_MS_extraSetup_set startFrame $startFrame;
+		 int $endFrame=`intField -q -v "endFrame"`;
+		 MP_MS_extraSetup_set endFrame $endFrame;
+	}
+	
+	 if(($mode=="PEScript" || $mode=="all")){
+		 string $PEScript=`textField -q -tx "PEScript"`;
+		 MP_MS_extraStringSetup_set PEScript $PEScript;
+	}
+	
+	if(($mode=="EXText" || $mode=="all")){
+		 string $EXText=`textField -q -tx "EXText"`;
+		 MP_MS_extraStringSetup_set EXText $EXText;
+	}
+}
+
+global proc MP_MS_extraSetup_set(string $toroAttr,int $value){
+	string $obj[]=`ls -tr -typ mesh -sl`;
+	if (($toroAttr=="startFrame" || $toroAttr=="all") && size($obj)){
+		for($each in $obj){
+			string $relatedShape[]=`listRelatives -typ shape $each`;
+			if(`attributeExists "startFrame"  $relatedShape[0]`){
+				deleteAttr -at "startFrame" $relatedShape[0];
+			}
+			addAttr -k false -at short -hidden false -ln "startFrame" $relatedShape[0];
+			setAttr -channelBox true ($relatedShape[0]+".startFrame") $value;
+		}
+	}
+	if (($toroAttr=="endFrame" || $toroAttr=="all") && size($obj)){
+		for($each in $obj){
+			string $relatedShape[]=`listRelatives -typ shape $each`;
+			if(`attributeExists "endFrame"  $relatedShape[0]`){
+				deleteAttr -at "endFrame" $relatedShape[0];
+			}
+			addAttr -k false -at short -hidden false -ln "endFrame" $relatedShape[0];
+			setAttr -channelBox true ($relatedShape[0]+".endFrame") $value;
+		}
+	}
+	
+	if (($toroAttr=="PEScript" || $toroAttr=="all") && size($obj)){
+		for($each in $obj){
+			string $relatedShape[]=`listRelatives -typ shape $each`;
+			if(`attributeExists "PEScript"  $relatedShape[0]`){
+				deleteAttr -at "PEScript" $relatedShape[0];
+			}
+			addAttr -k false -dt "string" -hidden false -ln "PEScript"  $relatedShape[0];
+			setAttr -type "string" ($relatedShape[0]+".PEScript") $value;		}
+	}
+	
+	
+	
+}
+
+global proc MP_MS_extraSetup_delete(string $toroAttr){
+	string $obj[]=`ls -tr -typ transform -sl`;
+	//フィルタ設定
+	if (($toroAttr=="frame" || $toroAttr=="all")&& size($obj)){
+		for($each in $obj){
+			string $relatedShape[]=`listRelatives -typ shape $each`;
+			if(`attributeExists "startFrame"  $relatedShape[0]`){
+				deleteAttr -at "startFrame" $relatedShape[0];
+			}
+			if(`attributeExists "endFrame"  $relatedShape[0]`){
+				deleteAttr -at "endFrame" $relatedShape[0];
+			}
+		}
+	}
+}
+
+//ノードセットアップ
+global proc MP_MS_nodeSetup_Get(){
+	string $obj[]=`ls -tr -typ mesh -sl`;
+	string $relatedShape[]=`listRelatives -typ shape $obj[0]`;
+	print $relatedShape[0];
+	if (`attributeExists  "skin" $relatedShape[0]`){
+		checkBox 
+			-e
+			-v `getAttr ($relatedShape[0]+".skin")`
+			"skin";
+	}
+	if (`attributeExists  "collision" $relatedShape[0]`){
+		checkBox 
+			-e
+			-v `getAttr ($relatedShape[0]+".collision")`
+			"collision";
+	}
+	if (`attributeExists  "osage" $relatedShape[0]`){
+		checkBox 
+			-e
+			-v `getAttr ($relatedShape[0]+".osage")`
+			"osage";
+	}
+	if (`attributeExists  "hide" $relatedShape[0]`){
+		checkBox 
+			-e
+			-v `getAttr ($relatedShape[0]+".hide")`
+			"hide";
+	}
+	if (`attributeExists  "billbord" $relatedShape[0]`){
+		checkBox 
+			-e
+			-v `getAttr ($relatedShape[0]+".billbord")`
+			"billbord";
+	}
+	if (`attributeExists  "camera" $relatedShape[0]`){
+		checkBox 
+			-e
+			-v `getAttr ($relatedShape[0]+".camera")`
+			"camera";
+	}
+	if (`attributeExists  "renderStage" $relatedShape[0]`){
+		optionMenu 
+			-e
+			-sl (`getAttr ($relatedShape[0]+".renderStage")`+1)
+			"nodeRenderStage";
+	}
+	if (`attributeExists  "priority" $relatedShape[0]`){
+		floatField
+			-e
+			-v `getAttr ($relatedShape[0]+".priority")`
+			"nodePriority";
+	}
+	if (`attributeExists  "nodeSort" $relatedShape[0]`){
+		optionMenu 
+			-e
+			-sl (`getAttr ($relatedShape[0]+".nodeSort")`+1)
+			"nodeSort";
+	}
+	MP_MS_matterSetupUI_storeRecallUI store;
+}
+
+global proc MP_MS_nodeSetup_preset(string $mode){
+	 if(($mode=="skin" || $mode=="all")){
+		 int $skin=`checkBox -q -v "skin"`;
+		 MP_MS_nodeSetup_set skin $skin;
+	}
+	 if(($mode=="collision" || $mode=="all")){
+		 int $collision=`checkBox -q -v "collision"`;
+		 MP_MS_nodeSetup_set collision $collision;
+	}
+	 if(($mode=="osage" || $mode=="all")){
+		 int $osage=`checkBox -q -v "osage"`;
+		 MP_MS_nodeSetup_set osage $osage;
+	}
+	 if(($mode=="hide" || $mode=="all")){
+		 int $hide=`checkBox -q -v "hide"`;
+		 MP_MS_nodeSetup_set hide $hide;
+	}
+	 if(($mode=="billbord" || $mode=="all")){
+		 int $billbord=`checkBox -q -v "billbord"`;
+		 MP_MS_nodeSetup_set billbord $billbord;
+	}
+	 if(($mode=="camera" || $mode=="all")){
+		 int $camera=`checkBox -q -v "camera"`;
+		 MP_MS_nodeSetup_set camera $camera;
+	}
+	 if(($mode=="nodeRenderStage" || $mode=="all")){
+		 int $nodeRenderStage=(`optionMenu -q -sl "nodeRenderStage"`-1);
+		 MP_MS_nodeSetup_set nodeRenderStage $nodeRenderStage;
+	}
+	 if(($mode=="nodePriority" || $mode=="all")){
+		 float $priority=`floatField -q -v "nodePriority"`;
+		 MP_MS_nodeSetup_set nodePriority $priority;
+	}
+	if(($mode=="nodeSort" || $mode=="all")){
+		 int $nodeSort=(`optionMenu -q -sl "nodeSort"`-1);;
+		 MP_MS_nodeSetup_set nodeSort $nodeSort;
+	}
+}
+
+global proc MP_MS_nodeSetup_set(string $toroAttr,float $value){
+	string $obj[]=`ls -tr -typ mesh -sl`;
+
+	//スキン設定
+	if (($toroAttr=="skin" || $toroAttr=="all") && size($obj)){
+		for($each in $obj){
+			string $relatedShape[]=`listRelatives -typ shape $each`;
+			if(`attributeExists "skin"  $relatedShape[0]`){
+				deleteAttr -at "skin" $relatedShape[0];
+			}
+			addAttr -k false-at bool -hidden false -ln "skin" $relatedShape[0];
+			setAttr -channelBox true ($relatedShape[0]+".skin") $value;
+		}
+	}
+	//コリジョン設定
+	if (($toroAttr=="collision" || $toroAttr=="all") && size($obj)){
+		for($each in $obj){
+			string $relatedShape[]=`listRelatives -typ shape $each`;
+			if(`attributeExists "collision"  $relatedShape[0]`){
+				deleteAttr -at "collision" $relatedShape[0];
+			}
+			addAttr -k false-at bool -hidden false -ln "collision" $relatedShape[0];
+			setAttr -channelBox true ($relatedShape[0]+".collision") $value;
+		}
+	}
+	//おさげ設定
+	if (($toroAttr=="osage" || $toroAttr=="all") && size($obj)){
+		for($each in $obj){
+			string $relatedShape[]=`listRelatives -typ shape $each`;
+			if(`attributeExists "osage"  $relatedShape[0]`){
+				deleteAttr -at "osage" $relatedShape[0];
+			}
+			addAttr -k false-at bool -hidden false -ln "osage" $relatedShape[0];
+			setAttr -channelBox true ($relatedShape[0]+".osage") $value;
+		}
+	}
+	//HIDE設定
+	if (($toroAttr=="hide" || $toroAttr=="all") && size($obj)){
+		for($each in $obj){
+			string $relatedShape[]=`listRelatives -typ shape $each`;
+			if(`attributeExists "hide"  $relatedShape[0]`){
+				deleteAttr -at "hide" $relatedShape[0];
+			}
+			addAttr -k false-at bool -hidden false -ln "hide" $relatedShape[0];
+			setAttr -channelBox true ($relatedShape[0]+".hide") $value;
+		}
+	}
+	//ビルボード設定
+	if (($toroAttr=="billbord" || $toroAttr=="all") && size($obj)){
+		for($each in $obj){
+			string $relatedShape[]=`listRelatives -typ shape $each`;
+			if(`attributeExists "billbord"  $relatedShape[0]`){
+				deleteAttr -at "billbord" $relatedShape[0];
+			}
+			addAttr -k false-at bool -hidden false -ln "billbord" $relatedShape[0];
+			setAttr -channelBox true ($relatedShape[0]+".billbord") $value;
+		}
+	}
+	//cameraノード設定
+	if (($toroAttr=="camera" || $toroAttr=="all") && size($obj)){
+		for($each in $obj){
+			string $relatedShape[]=`listRelatives -typ shape $each`;
+			if(`attributeExists "camera"  $relatedShape[0]`){
+				deleteAttr -at "camera" $relatedShape[0];
+			}
+			addAttr -k false-at bool -hidden false -ln "camera" $relatedShape[0];
+			setAttr -channelBox true ($relatedShape[0]+".camera") $value;
+		}
+	}
+	//カリング設定
+	if (($toroAttr=="backfaceCurring" || $toroAttr=="all") && size($obj)){
+		for($each in $obj){
+			string $relatedShape[]=`listRelatives -typ shape $each`;
+			if(`attributeExists "backfaceCurring"  $relatedShape[0]`){
+				deleteAttr -at "backfaceCurring" $relatedShape[0];
+			}
+			addAttr -k false -at "enum" -en "none:back:front" -hidden false -ln "backfaceCurring" $relatedShape[0];
+			setAttr -channelBox true ($relatedShape[0]+".backfaceCurring") $value;
+		}
+	}
+	//レンダリングステージ設定
+	if (($toroAttr=="nodeRenderStage" || $toroAttr=="all") && size($obj)){
+		for($each in $obj){
+			string $relatedShape[]=`listRelatives -typ shape $each`;
+			if(`attributeExists "renderStage" $relatedShape[0]`){
+				deleteAttr -at "renderStage" $relatedShape[0];
+			}
+			addAttr -k false -at "enum" -en "-1material:0 :1_:2_:3_:4_:5_:6_:7_:" -hidden false -ln "renderStage" $relatedShape[0];
+			setAttr -channelBox true ($each+".renderStage") $value;
+		}
+	}
+	//優先度設定
+	if (($toroAttr=="nodePriority" || $toroAttr=="all") && size($obj)){
+		for($each in $obj){
+			string $relatedShape[]=`listRelatives -typ shape $each`;
+			if(`attributeExists "priority"  $relatedShape[0]`){
+				deleteAttr -at "priority" $relatedShape[0];
+			}
+			addAttr -k false-at "float" -hidden false -min -255 -max 255  -ln "priority" $relatedShape[0];
+			setAttr -channelBox true ($relatedShape[0]+".priority") $value;
+		}
+	}
+	//ノードソート設定
+	if (($toroAttr=="nodeSort" || $toroAttr=="all") && size($obj)){
+		for($each in $obj){
+			string $relatedShape[]=`listRelatives -typ shape $each`;
+			if(`attributeExists "nodeSort"  $relatedShape[0]`){
+				deleteAttr -at "nodeSort" $relatedShape[0];
+			}
+			addAttr -k false -at "enum" -en "none:X:Y:Z:Depth:-X:-Y:-Z:-Depth:" -hidden false -ln "nodeSort" $relatedShape[0];
+			setAttr -channelBox true ($relatedShape[0]+".nodeSort") $value;
+		}
+	}
+}
+
+global proc MP_MS_nodeSetup_delete(string $toroAttr){
+	string $obj[]=`ls -tr -typ mesh -sl`;
+	//フィルタ設定
+	if (($toroAttr=="skin" || $toroAttr=="all")&& size($obj)){
+		for($each in $obj){
+			string $relatedShape[]=`listRelatives -typ shape $each`;
+			if(`attributeExists "skin"  $relatedShape[0]`){
+				deleteAttr -at "skin" $relatedShape[0];
+			}
+		}
+	}
+	if (($toroAttr=="collision" || $toroAttr=="all")&& size($obj)){
+		for($each in $obj){
+			string $relatedShape[]=`listRelatives -typ shape $each`;
+			if(`attributeExists "collision"  $relatedShape[0]`){
+				deleteAttr -at "collision" $relatedShape[0];
+			}
+		}
+	}
+	if (($toroAttr=="osage" || $toroAttr=="all")&& size($obj)){
+		for($each in $obj){
+			string $relatedShape[]=`listRelatives -typ shape $each`;
+			if(`attributeExists "osage"  $relatedShape[0]`){
+				deleteAttr -at "osage" $relatedShape[0];
+			}
+		}
+	}
+	if (($toroAttr=="hide" || $toroAttr=="all")&& size($obj)){
+		for($each in $obj){
+			string $relatedShape[]=`listRelatives -typ shape $each`;
+			if(`attributeExists "hide"  $relatedShape[0]`){
+				deleteAttr -at "hide" $relatedShape[0];
+			}
+		}
+	}
+	if (($toroAttr=="billbord" || $toroAttr=="all")&& size($obj)){
+		for($each in $obj){
+			string $relatedShape[]=`listRelatives -typ shape $each`;
+			if(`attributeExists "billbord"  $relatedShape[0]`){
+				deleteAttr -at "billbord" $relatedShape[0];
+			}
+		}
+	}
+	if (($toroAttr=="camera" || $toroAttr=="all")&& size($obj)){
+		for($each in $obj){
+			string $relatedShape[]=`listRelatives -typ shape $each`;
+			if(`attributeExists "camera"  $relatedShape[0]`){
+				deleteAttr -at "camera" $relatedShape[0];
+			}
+		}
+	}
+	if (($toroAttr=="nodeRenderStage" || $toroAttr=="all")&& size($obj)){
+		for($each in $obj){
+			string $relatedShape[]=`listRelatives -typ shape $each`;
+			if(`attributeExists "renderStage"  $relatedShape[0]`){
+				deleteAttr -at "renderStage" $relatedShape[0];
+			}
+		}
+	}
+	if (($toroAttr=="nodePriority" || $toroAttr=="all")&& size($obj)){
+		for($each in $obj){
+			string $relatedShape[]=`listRelatives -typ shape $each`;
+			if(`attributeExists "priority"  $relatedShape[0]`){
+				deleteAttr -at "priority" $relatedShape[0];
+			}
+		}
+	}
+	if (($toroAttr=="nodeSort" || $toroAttr=="all")&& size($obj)){
+		for($each in $obj){
+			string $relatedShape[]=`listRelatives -typ shape $each`;
+			if(`attributeExists "nodeSort"  $relatedShape[0]`){
+				deleteAttr -at "nodeSort" $relatedShape[0];
+			}
+		}
+	}
+
+}
+
+//マテリアルセットアップ
+global proc MP_MS_matterSetup_Get(){
+	//シェイプノードからの処理
+	string $preobj[]=`ls -tr -typ mesh -sl`;
+	string $lambertShapeFrom[];
+	for ($each in $preobj){
+		string $shape[]=`listRelatives -ad -typ shape $each`;
+		string $shadingEngine[]=`listConnections -t shadingEngine $shape[0]`;
+		$lambertShapeFrom=`listConnections -t lambert $shadingEngine[0]`;
+	}
+	//選択ランバート処理
+	string $selectedLambert[]=`ls -typ lambert -sl`;
+	if ($selectedLambert[0]!=""){
+		$lambertShapeFrom[0]=$selectedLambert[0];
+	}
+	
+	if (`attributeExists  "skin" $lambertShapeFrom[0]`){
+		checkBox 
+			-e
+			-v `getAttr ($lambertShapeFrom[0]+".skin")`
+			"skin";
+	}
+	if (`attributeExists  "anisoFilter" $lambertShapeFrom[0]`){
+			optionMenu 
+				-e
+				-sl (`getAttr ($lambertShapeFrom[0]+".anisoFilter")`+1)
+				"anisoFilter";
+	}
+	if (`attributeExists  "mipmapFilter" $lambertShapeFrom[0]`){
+			optionMenu 
+				-e
+				-sl (`getAttr ($lambertShapeFrom[0]+".mipmapFilter")`+1)
+				"mipmapFilter";
+	}
+	if (`attributeExists  "shaderFromName" $lambertShapeFrom[0]`){
+			optionMenu 
+				-e
+				-sl (`getAttr ($lambertShapeFrom[0]+".shaderFromName")`+1)
+				"shaderFromName";
+	}
+	if (`attributeExists  "blend" $lambertShapeFrom[0]`){
+			optionMenu 
+				-e
+				-sl (`getAttr ($lambertShapeFrom[0]+".blend")`+1)
+				"blend";
+	}
+	if (`attributeExists  "fogOff" $lambertShapeFrom[0]`){
+			checkBox 
+				-e
+				-v `getAttr ($lambertShapeFrom[0]+".fogOff")`
+				"fogOff";
+	}
+	if (`attributeExists  "backfaceCurring" $lambertShapeFrom[0]`){
+			optionMenu 
+				-e
+				-sl (`getAttr ($lambertShapeFrom[0]+".backfaceCurring")`+1)
+				"backfaceCurring";
+	}
+	if (`attributeExists  "zOffset" $lambertShapeFrom[0]`){
+			intField
+				-e
+				-v `getAttr ($lambertShapeFrom[0]+".zOffset")`
+				"zOffset";
+	}
+	if (`attributeExists  "zFunction" $lambertShapeFrom[0]`){
+			optionMenu 
+				-e
+				-sl (`getAttr ($lambertShapeFrom[0]+".zFunction")`+1)
+				"zFunction";
+	}
+	if (`attributeExists  "zWrite" $lambertShapeFrom[0]`){
+			checkBox 
+				-e
+				-v `getAttr ($lambertShapeFrom[0]+".zWrite")`
+				"zWrite";
+	}
+	if (`attributeExists  "aFunction" $lambertShapeFrom[0]`){
+			optionMenu 
+				-e
+				-sl (`getAttr ($lambertShapeFrom[0]+".aFunction")`+1)
+				"aFunction";
+	}
+	if (`attributeExists  "aReffernce" $lambertShapeFrom[0]`){
+			intField
+				-e
+				-v `getAttr ($lambertShapeFrom[0]+".aReffernce")`
+				"aReffernce";
+	}
+	if (`attributeExists  "renderStage" $lambertShapeFrom[0]`){
+			optionMenu
+				-e
+				-sl (`getAttr ($lambertShapeFrom[0]+".renderStage")`+1)
+				"renderStage";
+	}
+	if (`attributeExists  "priority" $lambertShapeFrom[0]`){
+			floatField
+				-e
+				-v `getAttr ($lambertShapeFrom[0]+".priority")`
+				"priority";
+	}
+	if (`attributeExists  "SetMultPass" $lambertShapeFrom[0]`){
+			optionMenu
+				-e
+				-sl (`getAttr ($lambertShapeFrom[0]+".SetMultPass")`+1)
+				"SetMultPass";
+	}
+	
+	MP_MS_matterSetupUI_storeRecallUI store;
+}
+
+global proc MP_MS_matterSetup_preset(string $mode){
+	if(($mode=="Filter" || $mode=="all")){
+		int $anisoFilter=(`optionMenu -q -sl "anisoFilter"`-1);
+		MP_MS_matterSetup_set anisoFilter $anisoFilter;
+		int $mipmapFilter=(`optionMenu -q -sl "mipmapFilter"`-1);
+		MP_MS_matterSetup_set mipmapFilter $mipmapFilter;
+	}
+	 if(($mode=="shaderFromName" || $mode=="all")){
+		 int $shaderFromName=(`optionMenu -q -sl "shaderFromName"`-1);
+		 MP_MS_matterSetup_set shaderFromName $shaderFromName;
+	}
+	
+	 if(($mode=="blend" || $mode=="all")){
+		 int $blend=(`optionMenu -q -sl "blend"`-1);
+		 MP_MS_matterSetup_set blend $blend;
+	}
+	 if(($mode=="fogOff" || $mode=="all")){
+		 int $fogOff=`checkBox -q -v "fogOff"`;
+		 MP_MS_matterSetup_set fogOff $fogOff;
+	}
+	 if(($mode=="backfaceCurring" || $mode=="all")){
+		 int $backfaceCurring=(`optionMenu -q -sl "backfaceCurring"`-1);
+		 MP_MS_matterSetup_set backfaceCurring $backfaceCurring;
+	}
+	 if(($mode=="zOffset" || $mode=="all")){
+		 int $zOffset=`intField -q -v "zOffset"`;
+		 MP_MS_matterSetup_set zOffset $zOffset;
+	}
+	 if(($mode=="zFunction" || $mode=="all")){
+		 int $zFunction=(`optionMenu -q -sl "zFunction"`-1);
+		 MP_MS_matterSetup_set zFunction $zFunction;
+	}
+	 if(($mode=="zWrite" || $mode=="all")){
+		 int $zWrite=`checkBox -q -v "zWrite"`;
+		 MP_MS_matterSetup_set zWrite $zWrite;
+	}
+	 if(($mode=="aFunction" || $mode=="all")){
+		 int $aFunction=(`optionMenu -q -sl "aFunction"`-1);
+		 MP_MS_matterSetup_set aFunction $aFunction;
+	}
+	 if(($mode=="aReffernce" || $mode=="all")){
+		 int $aReffernce=`intField -q -v "aReffernce"`;
+		 MP_MS_matterSetup_set aReffernce $aReffernce;
+	}
+	 if(($mode=="renderStage" || $mode=="all")){
+		 int $renderStage=(`optionMenu -q -sl "renderStage"`-1);
+		 MP_MS_matterSetup_set renderStage $renderStage;
+	}
+	 if(($mode=="priority" || $mode=="all")){
+		 float $priority=`floatField -q -v "priority"`;
+		 MP_MS_matterSetup_set priority $priority;
+	}
+	 if(($mode=="SetMultPass" || $mode=="all")){
+		 int $MultPass=(`optionMenu -q -sl "SetMultPass"`-1);
+		 MP_MS_matterSetup_set SetMultPass $MultPass;
+	}
+}
+
+global proc MP_MS_matterSetup_set(string $toroAttr,float $value){
+	//マテリアルノードセットアップ
+	//シェイプノードからの処理
+	string $preobj[]=`ls -tr -typ mesh -sl`;
+	string $lambertShapeFrom[];
+	for ($each in $preobj){
+		string $shape[]=`listRelatives -ad -typ shape $each`;
+		string $shadingEngine[]=`listConnections -t shadingEngine $shape[0]`;
+		$lambertShapeFrom=`listConnections -t lambert $shadingEngine[0]`;
+	}
+	//選択ランバート処理
+	string $selectedLambert[]=`ls -typ lambert -sl`;
+	print $selectedLambert;
+	//対象オブジェクト特定
+	string $newArray[]=`stringArrayCatenate $lambertShapeFrom $selectedLambert`;
+	string $obj[]=`stringArrayRemoveDuplicates $newArray`;
+	
+	//フィルタ設定
+	if (($toroAttr=="anisoFilter" || $toroAttr=="all") && size($obj)){
+		for($each in $obj){
+			if(`attributeExists "anisoFilter"  $each`){
+				deleteAttr -at "anisoFilter" $each;
+			}
+			addAttr -k false -at "enum" -en "NEAREST:LINEAR:NEAREST_NEAREST:LINEAR_NEAREST:NEAREST_LINEAR:LINEAR_LINEAR:" -hidden false -ln "anisoFilter" $each;
+			setAttr -channelBox true ($each+".anisoFilter") $value;
+		}
+	}
+	if (($toroAttr=="mipmapFilter" || $toroAttr=="all") && size($obj)){
+		for($each in $obj){
+			if(`attributeExists "mipmapFilter"  $each`){
+				deleteAttr -at "mipmapFilter" $each;
+			}
+			addAttr -k false -at "enum" -en "NEAREST:LINEAR:NEAREST_NEAREST:LINEAR_NEAREST:NEAREST_LINEAR:LINEAR_LINEAR:" -hidden false -ln "mipmapFilter" $each;
+			setAttr -channelBox true ($each+".mipmapFilter") $value;
+		}
+	}
+	//シェーダ設定
+	if (($toroAttr=="shaderFromName" || $toroAttr=="all") && size($obj)){
+		for($each in $obj){
+			if(`attributeExists "shaderFromName"  $each`){
+				deleteAttr -at "shaderFromName" $each;
+			}
+			addAttr -k false -at "enum" -en "bloom_f:blur:BuildLUTPass:castshadow_v:castshadowsk_v:ColorTweakPass:Decal:DecalSkin:DecodeNormalPass:DefaultVS:DefaultVSA:dof_f:dofy_f:gauss_f:gaussy_f:LightPass:LinearSkyBox:shadowgauss_f:shadowgaussy_f:shadowlight_v:shadowlights_v:shadowlightsk_v:Shiba:sRGBSkyBox:ssaogauss_f:ssaogaussy_f:SsaoPass:tonemap_f:ZtoDepthPass:" -hidden false -ln "shaderFromName" $each;
+			setAttr -channelBox true ($each+".shaderFromName") $value;
+		}
+	}
+	
+	
+	//ブレンド設定
+	if (($toroAttr=="blend" || $toroAttr=="all") && size($obj)){
+		for($each in $obj){
+			if(`attributeExists "blend"  $each`){
+				deleteAttr -at "blend" $each;
+			}
+			addAttr -k false -at "enum" -en "none:add:mul:sub:"-hidden false -ln "blend" $each;
+			setAttr -channelBox true ($each+".blend") $value;
+		}
+	}
+	//Fogオフ設定
+	if (($toroAttr=="fogOff" || $toroAttr=="all") && size($obj)){
+		for($each in $obj){
+			if(`attributeExists "fogOff"  $each`){
+				deleteAttr -at "fogOff" $each;
+			}
+			addAttr -k false-at bool -hidden false -ln "fogOff" $each;
+			setAttr -channelBox true ($each+".fogOff") $value;
+		}
+	}
+	
+	//カリング設定
+	if (($toroAttr=="backfaceCurring" || $toroAttr=="all") && size($obj)){
+		for($each in $obj){
+			if(`attributeExists "backfaceCurring"  $each`){
+				deleteAttr -at "backfaceCurring" $each;
+			}
+			addAttr -k false -at "enum" -en "none:back:front" -hidden false -ln "backfaceCurring" $each;
+			setAttr -channelBox true ($each+".backfaceCurring") $value;
+		}
+	}
+	
+	//Z-オフセット設定
+	if (($toroAttr=="zOffset" || $toroAttr=="all") && size($obj)){
+		for($each in $obj){
+			if(`attributeExists "zOffset"  $each`){
+				deleteAttr -at "zOffset" $each;
+			}
+			addAttr -k false-at short -hidden false -min 0 -max 255 -ln "zOffset" $each;
+			setAttr -channelBox true ($each+".zOffset") $value;
+		}
+	}
+	
+	//zFunction設定
+	if (($toroAttr=="zFunction" || $toroAttr=="all") && size($obj)){
+		for($each in $obj){
+			if(`attributeExists "zFunction"  $each`){
+				deleteAttr -at "zFunction" $each;
+			}
+			addAttr -k false -at "enum" -en "none:ALWAYS:GREATER:GEQUAL:EQUAL:LEQUAL:LESS:NEVER:" -hidden false -ln "zFunction" $each;
+			setAttr -channelBox true ($each+".zFunction") $value;
+		}
+	}
+	
+	//Z-書き込み設定
+	if (($toroAttr=="zWrite" || $toroAttr=="all") && size($obj)){
+		for($each in $obj){
+			if(`attributeExists "zWrite"  $each`){
+				deleteAttr -at "zWrite" $each;
+			}
+			addAttr -k false-at bool -hidden false -ln "zWrite" $each;
+			setAttr -channelBox true ($each+".zWrite") $value;
+		}
+	}
+	
+	//aFunction設定
+	if (($toroAttr=="aFunction" || $toroAttr=="all") && size($obj)){
+		for($each in $obj){
+			if(`attributeExists "aFunction"  $each`){
+				deleteAttr -at "aFunction" $each;
+			}
+			addAttr -k false -at "enum" -en "none:ALWAYS:GREATER:GEQUAL:EQUAL:LEQUAL:LESS:NEVER:" -hidden false -ln "aFunction" $each;
+			setAttr -channelBox true ($each+".aFunction") $value;
+		}
+	}
+	//aReffernce設定
+	if (($toroAttr=="aReffernce" || $toroAttr=="all") && size($obj)){
+		for($each in $obj){
+			if(`attributeExists "aReffernce"  $each`){
+				deleteAttr -at "aReffernce" $each;
+			}
+			addAttr -k false-at short -hidden false  -min 0 -max 255 -ln "aReffernce" $each;
+			setAttr -channelBox true ($each+".aReffernce") $value;
+		}
+	}
+	
+	//レンダリングステージ設定
+	if (($toroAttr=="renderStage" || $toroAttr=="all") && size($obj)){
+		for($each in $obj){
+			if(`attributeExists "renderStage"  $each`){
+				deleteAttr -at "renderStage" $each;
+			}
+			addAttr -k false -at "enum" -en "0:1:2:3:4:5:6:7:" -hidden false -ln "renderStage" $each;
+			setAttr -channelBox true ($each+".renderStage") $value;
+		}
+	}
+	
+	//優先度設定
+	if (($toroAttr=="priority" || $toroAttr=="all") && size($obj)){
+		for($each in $obj){
+			if(`attributeExists "priority"  $each`){
+				deleteAttr -at "priority" $each;
+			}
+			addAttr -k false-at "float" -hidden false -min -255 -max 255  -ln "priority" $each;
+			setAttr -channelBox true ($each+".priority") $value;
+		}
+	}
+	
+	//MultPass設定
+	if (($toroAttr=="SetMultPass" || $toroAttr=="all") && size($obj)){
+		for($each in $obj){
+			if(`attributeExists "SetMultPass"  $each`){
+				deleteAttr -at "SetMultPass" $each;
+			}
+			addAttr -k false -at "enum" -en "なし:castshadow_mate:" -hidden false -ln "SetMultPass" $each;
+			setAttr -channelBox true ($each+".SetMultPass") $value;
+		}
+	}
+	
+	
+}
+
+global proc MP_MS_matterSetup_delete(string $toroAttr){
+	//マテリアルノード削除
+	//シェイプノードからの処理
+	string $preobj[]=`ls -tr -typ mesh -sl`;
+	string $lambertShapeFrom[];
+	for ($each in $preobj){
+		string $shape[]=`listRelatives -ad -typ shape $each`;
+		string $shadingEngine[]=`listConnections -t shadingEngine $shape[0]`;
+		$lambertShapeFrom=`listConnections -t lambert $shadingEngine[0]`;
+	}
+	//選択ランバート処理
+	string $selectedLambert[]=`ls -typ lambert -sl`;
+	//対象オブジェクト特定
+	string $newArray[]=`stringArrayCatenate $lambertShapeFrom $selectedLambert`;
+	string $obj[]=`stringArrayRemoveDuplicates $newArray`;
+	
+	//フィルタ設定
+	if (($toroAttr=="filter" || $toroAttr=="all")&& size($obj)){
+		for($each in $obj){
+			
+			if(`attributeExists "anisoFilter"  $each`){
+				deleteAttr -at "anisoFilter" $each;
+			}
+			if(`attributeExists "mipmapFilter"  $each`){
+				deleteAttr -at "mipmapFilter" $each;
+			}
+		}
+	}
+	if (($toroAttr=="shaderFromName" || $toroAttr=="all")&& size($obj)){
+		for($each in $obj){
+			
+			if(`attributeExists "shaderFromName"  $each`){
+				deleteAttr -at "shaderFromName" $each;
+			}
+		}
+	}
+	if (($toroAttr=="blend" || $toroAttr=="all")&& size($obj)){
+		for($each in $obj){
+			
+			if(`attributeExists "blend"  $each`){
+				deleteAttr -at "blend" $each;
+			}
+		}
+	}
+	if (($toroAttr=="fogOff" || $toroAttr=="all")&& size($obj)){
+		for($each in $obj){
+			
+			if(`attributeExists "fogOff"  $each`){
+				deleteAttr -at "fogOff" $each;
+			}
+		}
+	}
+	if (($toroAttr=="backfaceCurring" || $toroAttr=="all")&& size($obj)){
+		for($each in $obj){
+			
+			if(`attributeExists "backfaceCurring"  $each`){
+				deleteAttr -at "backfaceCurring" $each;
+			}
+		}
+	}
+	if (($toroAttr=="zOffset" || $toroAttr=="all")&& size($obj)){
+		for($each in $obj){
+			
+			if(`attributeExists "zOffset"  $each`){
+				deleteAttr -at "zOffset" $each;
+			}
+		}
+	}
+	if (($toroAttr=="zFunction" || $toroAttr=="all")&& size($obj)){
+		for($each in $obj){
+			
+			if(`attributeExists "zFunction"  $each`){
+				deleteAttr -at "zFunction" $each;
+			}
+		}
+	}
+	if (($toroAttr=="zWrite" || $toroAttr=="all")&& size($obj)){
+		for($each in $obj){
+			
+			if(`attributeExists "zWrite"  $each`){
+				deleteAttr -at "zWrite" $each;
+			}
+		}
+	}
+	if (($toroAttr=="aFunction" || $toroAttr=="all")&& size($obj)){
+		for($each in $obj){
+			
+			if(`attributeExists "aFunction"  $each`){
+				deleteAttr -at "aFunction" $each;
+			}
+		}
+	}
+	if (($toroAttr=="aReffernce" || $toroAttr=="all")&& size($obj)){
+		for($each in $obj){
+			
+			if(`attributeExists "aReffernce"  $each`){
+				deleteAttr -at "aReffernce" $each;
+			}
+		}
+	}
+	if (($toroAttr=="renderStage" || $toroAttr=="all")&& size($obj)){
+		for($each in $obj){
+			
+			if(`attributeExists "renderStage"  $each`){
+				deleteAttr -at "renderStage" $each;
+			}
+		}
+	}
+	if (($toroAttr=="priority" || $toroAttr=="all")&& size($obj)){
+		for($each in $obj){
+			
+			if(`attributeExists "priority"  $each`){
+				deleteAttr -at "priority" $each;
+			}
+		}
+	}
+	if (($toroAttr=="shaderFromName" || $toroAttr=="all")&& size($obj)){
+		for($each in $obj){
+			
+			if(`attributeExists "shaderFromName"  $each`){
+				deleteAttr -at "shaderFromName" $each;
+			}
+		}
+	}
+	if (($toroAttr=="SetMultPass" || $toroAttr=="all")&& size($obj)){
+		for($each in $obj){
+			
+			if(`attributeExists "SetMultPass"  $each`){
+				deleteAttr -at "SetMultPass" $each;
+			}
+		}
+	}
+	
+	
+	
+	
+	
+	
+	
+}
+
+//UI
+global proc MP_MS_matterSetupUI_storeRecallUI( string $mode ){
+	string $prefix="MS_MP_MS_matterSetupUI__";
+	
+	string $floatFieldList[] = {
+		"nodePriority",
+		"priority"
+		};
+
+	string $intFieldList[] = {
+		"zOffset",
+		"aReffernce",
+		"startFrame",
+		"endFrame"
+		};
+
+	string $floatSliderGrpList[] = {
+		};
+
+	string $intSliderGrpList[] = {
+		};
+
+	string $checkBoxList[] = {
+		"fogOff",
+		"zWrite",
+		"skin",
+		"collision",
+		"osage",
+		"hide",
+		"billbord",
+		"camera"
+		};
+
+	string $radioButtonGrpList[] = {
+		};
+
+	string $frameLayoutList[] = {
+		};
+
+	string $textFieldList[] = {
+		};
+
+	string $textFieldList_file[] = {
+		};
+	string $optionMenu[] = {
+		"anisoFilter",
+		"mipmapFilter",
+		"shaderFromName",
+		"blend",
+		"backfaceCurring",
+		"zFunction",
+		"aFunction",
+		"renderStage",
+		"nodeRenderStage",
+		"nodeSort",
+		"SetMultPass"
+		};
+	string $oldENV[] = {
+		"nodePriority",
+		"priority"
+	};
+	
+		
+	int $cnt;
+
+	if ( $mode == "store" )
+	{
+		for ( $each in $floatFieldList)
+			optionVar -floatValue ($prefix+$each) `floatField -q -value $each`;
+
+		for ( $each in $intFieldList)
+			optionVar -intValue ($prefix+$each) `intField -q -value $each`;
+
+		for ( $each in $floatSliderGrpList)
+			optionVar -floatValue ($prefix+$each) `floatSliderGrp -q -value $each`;
+
+		for ( $each in $intSliderGrpList)
+			optionVar -intValue ($prefix+$each) `intSliderGrp -q -value $each`;
+
+		for ( $each in $checkBoxList)
+			optionVar -intValue ($prefix+$each) `checkBox -q -value $each`;
+
+		for ( $each in $radioButtonGrpList)
+			optionVar -intValue ($prefix+$each) `radioButtonGrp -q -select $each`;
+
+		for ( $each in $frameLayoutList)
+			optionVar -intValue ($prefix+$each) `frameLayout -q -collapse $each`;
+
+		for ( $each in $textFieldList)
+			optionVar -stringValue ($prefix+$each) `textField -q -tx $each`;
+
+		for ( $each in $textFieldList_file)
+			optionVar -stringValue ($prefix+$each) `textField -q -fileName $each`;
+
+		for ( $each in $optionMenu)
+			optionVar -intValue ($prefix+$each) `optionMenu -q -sl $each`;
+	}
+
+	if ( $mode == "recall" )
+	{
+		for ( $each in $floatFieldList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				floatField -e -value `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $intFieldList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				intField -e -value `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $floatSliderGrpList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				floatSliderGrp -e -value `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $intSliderGrpList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				intSliderGrp -e -value `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $checkBoxList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				checkBox -e -value `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $radioButtonGrpList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				radioButtonGrp -e -select `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $frameLayoutList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				frameLayout -e -collapse `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $textFieldList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				textField -e -tx `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $textFieldList_file)
+			if ( `optionVar -exists ($prefix+$each)` )
+				textField -e -fileName `optionVar -q ($prefix+$each)` $each;
+		for ( $each in $optionMenu)
+			if ( `optionVar -exists ($prefix+$each)` )
+				optionMenu -e -sl `optionVar -q ($prefix+$each)` $each;
+	}
+
+	if ( $mode == "reset" )
+	{
+		for ( $each in $floatFieldList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $intFieldList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $floatSliderGrpList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $intSliderGrpList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $checkBoxList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $radioButtonGrpList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $frameLayoutList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $textFieldList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $textFieldList_file)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $optionMenu)
+			optionVar -remove ($prefix+$each);
+		
+		for ( $each in $oldENV)
+			optionVar -remove ($prefix+$each);
+	}
+}
+
+global proc MP_MS_matterSetupUI(){
+	if (`window -q -ex MP_MS_matterSetupUI`){
+		deleteUI MP_MS_matterSetupUI;
+	}
+	window MP_MS_matterSetupUI;
+	
+	columnLayout;
+	//マテリアル設定
+		separator -w 300 -h 20 ;
+		button-w 300 -bgc 0.9 0.9 0.9 -l "マテリアル設定（ここ押すと設定GET）" -c "MP_MS_matterSetup_Get";
+		separator -w 300;
+		rowLayout -nc 4 -cw4 50 100 50 100;
+			button -w 50 -l "ステージ" -c "MP_MS_matterSetup_preset renderStage";
+			optionMenu -cc "MP_MS_matterSetupUI_storeRecallUI store" "renderStage";
+				menuItem -label "0";
+				menuItem -label "1";
+				menuItem -label "2";
+				menuItem -label "3";
+				menuItem -label "4";
+				menuItem -label "5";
+				menuItem -label "6";
+				menuItem -label "7";
+			button -w 50 -l "優先度" -c "MP_MS_matterSetup_preset priority";
+			floatField
+				-v 0 
+				-cc "MP_MS_matterSetupUI_storeRecallUI store" 
+				"priority";
+		setParent..;
+		rowLayout -nc 3 -cw3 50 125 125;
+			button -w 50 -l "MultPass" -c "MP_MS_matterSetup_preset SetMultPass";
+			optionMenu -cc "MP_MS_matterSetupUI_storeRecallUI store" "SetMultPass";
+				menuItem -label "なし";
+				menuItem -label "castshadow_mate";
+		setParent..;
+				
+		
+		rowLayout -nc 3 -cw3 50 125 125;
+			button -w 50 -l "フィルタ" -c "MP_MS_matterSetup_preset Filter";
+			optionMenu -cc "MP_MS_matterSetupUI_storeRecallUI store" "anisoFilter";
+				menuItem -label "NEAREST";
+				menuItem -label "LINEAR";
+				menuItem -label "NEAREST_NEAREST";
+				menuItem -label "LINEAR_NEAREST";
+				menuItem -label "NEAREST_LINEAR";
+				menuItem -label "LINEAR_LINEAR";
+			optionMenu -cc "MP_MS_matterSetupUI_storeRecallUI store" "mipmapFilter";
+				menuItem -label "NEAREST";
+				menuItem -label "LINEAR";
+				menuItem -label "NEAREST_NEAREST";
+				menuItem -label "LINEAR_NEAREST";
+				menuItem -label "NEAREST_LINEAR";
+				menuItem -label "LINEAR_LINEAR";
+		setParent..;
+		
+		rowLayout -nc 3 -cw3 50 125 125;
+			button -w 50 -l "シェーダ" -c "MP_MS_matterSetup_preset shaderFromName";
+			optionMenu -cc "MP_MS_matterSetupUI_storeRecallUI store" "shaderFromName";
+				menuItem -label "bloom_f";
+				menuItem -label "blur";
+				menuItem -label "BuildLUTPass";
+				menuItem -label "castshadow_v";
+				menuItem -label "castshadowsk_v";
+				menuItem -label "ColorTweakPass";
+				menuItem -label "Decal";
+				menuItem -label "DecalSkin";
+				menuItem -label "DecodeNormalPass";
+				menuItem -label "DefaultVS";
+				menuItem -label "DefaultVSA";
+				menuItem -label "dof_f";
+				menuItem -label "dofy_f";
+				menuItem -label "gauss_f";
+				menuItem -label "gaussy_f";
+				menuItem -label "LightPass";
+				menuItem -label "LinearSkyBox";
+				menuItem -label "shadowgauss_f";
+				menuItem -label "shadowgaussy_f";
+				menuItem -label "shadowlight_v";
+				menuItem -label "shadowlights_v";
+				menuItem -label "shadowlightsk_v";
+				menuItem -label "Shiba";
+				menuItem -label "sRGBSkyBox";
+				menuItem -label "ssaogauss_f";
+				menuItem -label "ssaogaussy_f";
+				menuItem -label "SsaoPass";
+				menuItem -label "tonemap_f";
+				menuItem -label "ZtoDepthPass";
+		setParent..;
+		
+		rowLayout -nc 4 -cw4 50 100 50 100;
+			button -w 50 -l "ブレンド" -c "MP_MS_matterSetup_preset blend";
+			optionMenu -cc "MP_MS_matterSetupUI_storeRecallUI store" "blend";
+				menuItem -label "通常";
+				menuItem -label "加算";
+				menuItem -label "乗算";
+				menuItem -label "減算";
+			button-w 50 -l "Fogオフ" -c "MP_MS_matterSetup_preset fogOff";
+			checkBox 
+			-cc "MP_MS_matterSetupUI_storeRecallUI store" 
+				-l ""
+				-v 0 
+				"fogOff";
+		setParent..;
+		
+		rowLayout -nc 4 -cw4 50 100 50 100;
+			button -w 50 -l "カリング" -c "MP_MS_matterSetup_preset backfaceCurring";
+			optionMenu -cc "MP_MS_matterSetupUI_storeRecallUI store" "backfaceCurring";
+				menuItem -label "なし";
+				menuItem -label "Back";
+				menuItem -label "Front";
+			button -w 50 -l "Z-Ofs" -c "MP_MS_matterSetup_preset zOffset";
+			intField
+			-cc "MP_MS_matterSetupUI_storeRecallUI store" 
+				-v 0 
+				"zOffset";
+		setParent..;
+		
+		rowLayout -nc 4 -cw4 50 100 50 100;
+			button -w 50 -l "Z-Func" -c "MP_MS_matterSetup_preset zFunction";
+			optionMenu -cc "MP_MS_matterSetupUI_storeRecallUI store" "zFunction";
+				menuItem -label "無し";
+				menuItem -label "ALWAYS";
+				menuItem -label "GREATER";
+				menuItem -label "GEQUAL";
+				menuItem -label "EQUAL";
+				menuItem -label "LEQUAL";
+				menuItem -label "LESS";
+				menuItem -label "NEVER";
+			button -w 50 -l "Z-Write" -c "MP_MS_matterSetup_preset zWrite";
+			checkBox 
+			-cc "MP_MS_matterSetupUI_storeRecallUI store" 
+				-l ""
+				-v 0 
+				"zWrite";
+		setParent..;
+		
+		
+		rowLayout -nc 4 -cw4 50 100 50 100;
+			button -w 50 -l "A-Func" -c "MP_MS_matterSetup_preset aFunction";
+			optionMenu -cc "MP_MS_matterSetupUI_storeRecallUI store" "aFunction";
+				menuItem -label "無し";
+				menuItem -label "ALWAYS";
+				menuItem -label "GREATER";
+				menuItem -label "GEQUAL";
+				menuItem -label "EQUAL";
+				menuItem -label "LEQUAL";
+				menuItem -label "LESS";
+				menuItem -label "NEVER";
+			button -w 50 -l "A-Ref" -c "MP_MS_matterSetup_preset aReffernce";
+			intField
+				-v 0 
+				-cc "MP_MS_matterSetupUI_storeRecallUI store" 
+				"aReffernce";
+		setParent..;
+		
+
+		rowLayout -nc 3 -cw3 100 100 100;
+		button -w 100 -l "set MatterAttr" -bgc 0.8 1.0 0.8  -c "MP_MS_matterSetup_preset all";
+		button -w 100 -l "set Default" -bgc 0.8 0.8 1.0  -c "MP_MS_matterSetupUI_setDefault";
+		button -w 100 -l "delete MatterAttr" -bgc 0.8 0.8 1.0  -c "MP_MS_matterSetup_delete all";
+		setParent ..;
+		separator -w 300 -h 20 ;
+	//ノード設定
+		button-w 300 -bgc 0.9 0.9 0.9 -l "ノード設定（ここ押すと設定GET）" -c "MP_MS_nodeSetup_Get";
+		separator -w 300;	
+		rowLayout -nc 4 -cw4 50 100 50 100;
+			button-w 50 -l "スキニング" -c "MP_MS_nodeSetup_preset skin";
+			checkBox 
+				-l ""
+				-v 0 
+				-cc "MP_MS_matterSetupUI_storeRecallUI store" 
+				"skin";
+			button-w 50 -l "コリジョン" -c "MP_MS_nodeSetup_preset collision";
+			checkBox 
+				-l ""
+				-v 0 
+				-cc "MP_MS_matterSetupUI_storeRecallUI store" 
+				"collision";
+		setParent..;
+		rowLayout -nc 4 -cw4 50 100 50 100;
+			button-w 50 -l "おさげ" -c "MP_MS_nodeSetup_preset osage";
+			checkBox 
+				-l ""
+				-v 0 
+				-cc "MP_MS_matterSetupUI_storeRecallUI store" 
+				"osage";
+			button-w 50 -l "非表示" -c "MP_MS_nodeSetup_preset hide";
+			checkBox 
+				-l ""
+				-v 0 
+				-cc "MP_MS_matterSetupUI_storeRecallUI store" 
+				"hide";
+		setParent..;
+		rowLayout -nc 4 -cw4 50 100 50 100;
+			button-w 50 -l "ビルボード" -c "MP_MS_nodeSetup_preset billbord";
+			checkBox 
+				-l ""
+				-v 0 
+				-cc "MP_MS_matterSetupUI_storeRecallUI store" 
+				"billbord";
+			button-w 50 -l "カメラ" -c "MP_MS_nodeSetup_preset camera";
+			checkBox 
+				-l ""
+				-v 0 
+				-cc "MP_MS_matterSetupUI_storeRecallUI store" 
+				"camera";
+		setParent..;		
+		rowLayout -nc 4 -cw4 50 100 50 100;
+			button -w 50 -l "ステージ" -c "MP_MS_nodeSetup_preset nodeRenderStage";
+			optionMenu -cc "MP_MS_matterSetupUI_storeRecallUI store" "nodeRenderStage";
+				menuItem -label "-1:material";
+				menuItem -label "0";
+				menuItem -label "1";
+				menuItem -label "2";
+				menuItem -label "3";
+				menuItem -label "4";
+				menuItem -label "5";
+				menuItem -label "6";
+				menuItem -label "7";
+			button -w 50 -l "優先度" -c "MP_MS_nodeSetup_preset nodePriority";
+			floatField
+				-v 0 
+				-cc "MP_MS_matterSetupUI_storeRecallUI store" 
+				"nodePriority";
+		setParent..;
+		rowLayout -nc 4 -cw4 50 100 50 100;
+			button -w 50 -l "ソート" -c "MP_MS_nodeSetup_preset nodeSort";
+			optionMenu -cc "MP_MS_matterSetupUI_storeRecallUI store" "nodeSort";
+				menuItem -label "0:なし";
+				menuItem -label "1:X";
+				menuItem -label "2:Y";
+				menuItem -label "3:Z";
+				menuItem -label "4:Depth";
+				menuItem -label "5:-X";
+				menuItem -label "6:-Y";
+				menuItem -label "7:-Z";
+				menuItem -label "8:-Depth";
+		setParent..;
+		rowLayout -nc 2 -cw2 150 150;
+		button -w 150 -l "set NodeAttr" -bgc 0.8 1.0 0.8  -c "MP_MS_nodeSetup_preset all";
+		button -w 150 -l "delete NodeAttr" -bgc 0.8 0.8 1.0  -c "MP_MS_nodeSetup_delete all";
+		setParent ..;
+
+		separator -w 300 -h 20 ;
+		
+
+		separator -w 300;
+	button -w 300 -bgc 0.9 0.9 0.9 -l "エクストラ設定（ここを押すと設定GET）" -c "MP_MS_extraSetup_Get";
+		separator -w 300;
+		text -w 300 -l "オブジェクトに出力フレームを設定";
+		rowLayout -nc 6 -cw6 50 40 20 40 120 30;
+			button -w 50 -l "セット" -bgc 0.9 1.0 0.9 -c "MP_MS_extraSetup_preset frame";
+			intField
+				-w 40
+				-v 0 
+				-cc "MP_MS_matterSetupUI_storeRecallUI store" 
+				"startFrame";
+			text -l "～";
+			intField
+				-w 40
+				-v 0 
+				-cc "MP_MS_matterSetupUI_storeRecallUI store" 
+				"endFrame";
+			button -w 120 -l "アニメーションの値セット" -bgc 0.8 1.0 0.9 -c "MP_MS_frameSetup_setField";
+			button -w 30 -l "del" -bgc 1.0 0.9 0.8  -c "MP_MS_extraSetup_delete frame";
+		setParent..;
+		separator -w 300 -h 10;
+		button -w 300 -h 30 -l "モーションテーブルセットアップ" -bgc 1.0 1.0 0.8
+		-c "MP_MS_scriptSetup_addMotionTable show 0";
+		
+		separator -w 300 -h 10;
+		button -w 300 -h 30 -l "イベントテーブルセットアップ" -bgc 1.0 0.9 0.8
+		-c "MP_MS_scriptSetup_AddEventTable show 0";
+
+		separator -w 300 -h 10;
+		button -w 300 -h 30 -l "エクストラスクリプトセットアップ" -bgc 0.9 0.8 1.0 
+		-c "MP_MS_scriptSetup_addExtraScript show 0";
+
+		separator -w 300 -h 10 ;
+
+		separator -w 300 -h 200;
+		button -w 300 -l "環境変数クリアボタン" -bgc 1.0 0.5 0.5  -c "MP_MS_matterSetupUI_storeRecallUI reset";
+	setParent..;
+	
+	MP_MS_matterSetupUI_storeRecallUI recall;
+	
+	window -e -wh 310 800 MP_MS_matterSetupUI;
+	
+	showWindow MP_MS_matterSetupUI;
+}
+
+
+//MP_MS_matterSetupUI;
+
+

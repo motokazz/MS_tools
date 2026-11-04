@@ -1,0 +1,41 @@
+//stringPopNthWord, by Julian Love, julian@lightmail.com. Part of the StringTools set.
+//
+//description:	chops off the word at the position within the source string based
+//				on the word char. Index starts with at 1.
+//
+//usage:		stringPopNthWord string[source string] int[position] string[character that separates words];
+//
+//examples:		stringPopNthWord "hello world." 1 " ";
+//				// Result: hello //
+//
+//				stringPopNthWord "left_wrist_controller" 2 "_";
+//				// Result: left_controller //
+
+
+global proc string stringPopNthWord (string $item, int $position, string $wordChar){
+	string	$tokenList[];
+	string	$returnString;
+	int		$x, $y;
+	
+	tokenize $item $wordChar $tokenList;
+	$y = size($tokenList);
+	
+	for ($x=0; $x<$y; $x++){
+		if ($x != ($position -1)){
+			if ($position != $y){
+				if ($x != ($y-1))
+					{$returnString += ($tokenList[$x] + $wordChar);}
+				else
+					{$returnString += $tokenList[$x];}
+			}
+			else{
+				if ($x != ($y-2))
+					{$returnString += ($tokenList[$x] + $wordChar);}
+				else
+					{$returnString += $tokenList[$x];}
+			}		
+		}
+	}
+	
+	return $returnString;
+}

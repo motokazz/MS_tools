@@ -1,0 +1,267 @@
+/* This file downloaded from Highend3d.com
+''  
+''  Highend3d.com File Information:
+''  
+''    Script Name: Davveys Vehicle Rigging Scripts
+''    Author:  
+''    Last Updated: Jul 21, 2007
+''    Update/Change this file at:
+''    http://Highend3d.com/maya/downloads/mel_scripts/animation/4109.html
+''  
+''  Please do not alter any information above this line
+''  it is generated dynamically by Highend3d.com and will
+''  be changed automatically on any updates.
+*/
+
+
+///////////////////////////////////////////////////////////////////////////////
+/*			
+	Copyright © 2006 DVY_VehicleTilter. All rights reserved davvey@ntlworld.com
+					
+						- DVY_VehicleTilter -
+
+///////////////////////////////////////////////////////////////////////////////
+						  
+	This script is called by DVY_RigVehcile to set the Vehicle's Rig  to allow 
+	the whole Vehicle to be roated +/-90 degrees in X and Z axix but still keep
+	the rigcontrols in the correct location. Also the suspesnsion continues to
+	operate as normal in relation to the `Ground` or the `Ground Plane` (if set up).
+	
+*/
+///////////////////////////////////////////////////////////////////////////////
+//					DVY_VehicleTilter Procedure
+///////////////////////////////////////////////////////////////////////////////
+
+//=============================================================================
+//	GLOBAL VARIABLES
+//=============================================================================
+	global int $DVYDebug;
+
+// Integer Flag that allows print statements to be output to
+// message field for tracking purposes.
+	
+//=============================================================================
+
+global proc DVY_VehicleTilter()
+ {
+	 
+	print "Starting DVY_VehicleTilter procedure.\n\n";
+	 
+// *******************************************************************************//	
+//	Global Variables
+	
+	global string $RigControlsA[], $GroupV_A[], $LChier[], $DJntsA[];
+	global string $DVY_VehName;
+	global float $DVYdata[];
+	
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+//	Local Variables
+
+	string $Temp[], $TiltCondN[], $OrientCon[], $ParentCon[];
+	string $DPrefix[] = {"Lf", "Rt", "Fr", "Rr"};
+	string $DPrefixSp[] = {"LfFr_", "RtFr_", "LfRr_", "RtRr_"};
+	
+	int $i; int $j; int $k;
+	
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+
+	float $LocsLf  = `getAttr ($GroupV_A[1] + ".boundingBoxMaxX")`;
+	float $LocsRt  = `getAttr ($GroupV_A[1] + ".boundingBoxMinX")`;
+	float $LocsFr  = `getAttr ($GroupV_A[1] + ".boundingBoxMaxZ")`;
+	float $LocsRr  = `getAttr ($GroupV_A[1] + ".boundingBoxMinZ")`;
+	
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+
+	$a = $DVYdata[1]; $b = $DVYdata[2];
+	
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+
+	parent `group -em -name ( $DVY_VehName + "VehcileTilter_GrpN_1")` $GroupV_A[0];
+	parent `group -em -name ( $DVY_VehName + "Loc_VehcileTilt_GrpN_1")` ( $DVY_VehName + "VehcileTilter_GrpN_1");
+	parentConstraint -mo -weight 1 $RigControlsA[0] ( $DVY_VehName + "VehcileTilter_GrpN_1");
+	
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+
+	$Temp = `polySphere -r 0.1 -sx 9 -sy 9 -ax 0 1 0 -ch 0 -name LfCn_TiltGrdTiN_1`;
+		$LChier[150] = `rename $Temp ( $DVY_VehName + "LfCn_TiltGrdTiN_1")`;
+		setAttr ($LChier[150] + ".tx") $LocsLf;
+
+	$Temp = `polySphere -r 0.1 -sx 9 -sy 9 -ax 0 1 0 -ch 0 -name Rtn_TiltGrdTiN_1`;
+		$LChier[151] = `rename $Temp ( $DVY_VehName + "RtCn_TiltGrdTiN_1")`;
+		setAttr ($LChier[151] + ".tx") $LocsRt;
+	
+	$Temp = `polySphere -r 0.1 -sx 9 -sy 9 -ax 0 1 0 -ch 0 -name FrCn_TiltGrdTiN_1`;
+		$LChier[152] = `rename $Temp ( $DVY_VehName + "FrCn_TiltGrdTiN_1")`;
+		setAttr ($LChier[152] + ".tz") $LocsFr;
+		
+	$Temp = `polySphere -r 0.1 -sx 9 -sy 9 -ax 0 1 0 -ch 0 -name RrCn_TiltGrdTiN_1`;
+		$LChier[153] = `rename $Temp ( $DVY_VehName + "RrCn_TiltGrdTiN_1")`;
+		setAttr ($LChier[153] + ".tz") $LocsRr;
+		
+	$Temp = `polyCube -w 1 -h 1 -d 1 -sx 1 -sy 1 -sz 1 -ax 0 1 0 -ch 0 -name Cn_TiltGrdTiN_1`;
+		$LChier[155]  = `rename $Temp ( $DVY_VehName + "Cn_TiltGrdTiN_1")`;
+	
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+
+	for ($i=0; $i<4; $i++)
+		{
+			$Temp = `parentConstraint -mo -weight 1 $LChier[$i + 150] $LChier[155] `;
+			$ParentCon[$i] = $Temp[0];
+		//	print ($ParentCon[$i] + "\n");
+		}
+		
+		
+		parent $LChier[150] $LChier[151] $LChier[152] $LChier[153] ( $DVY_VehName + "VehcileTilter_GrpN_1");
+		parent $LChier[155] ($DVY_VehName + "Loc_VehcileTilt_GrpN_1");
+		
+		parentConstraint -mo -weight 0 $LChier[155] ($DVY_VehName + "BodyShell_GrpN_1");
+		parentConstraint -mo -weight 0 $LChier[155] ($DVY_VehName + "BodyShell_JnT_1");
+		pointConstraint -mo -weight 1 $LChier[155] ($DVY_VehName + "VehicleRotate_LocGrpN_1") ;
+	
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+//	Z Axis Nodes 
+
+		$TiltCondN[0] = `createNode condition -name ($DVY_VehName + "Tilt_ZPlus_CondN_1")`;
+		$TiltCondN[1] = `createNode condition -name ($DVY_VehName + "Tilt_ZNeg_CondN_1")`;
+		
+	for($i=0; $i<2; $i++)
+		{
+		setAttr ($TiltCondN[$i] + ".op") 2;
+		setAttr ($TiltCondN[$i] + ".st") 0;
+		connectAttr -f ($RigControlsA[4] + ".rz") ($TiltCondN[$i] + ".ft");
+		
+		setAttr ($TiltCondN[$i] + ".cfr") 0; setAttr ($TiltCondN[$i] + ".ctr") 1; // Z Axis is working Axis
+		setAttr ($TiltCondN[$i] + ".cfg") 0; setAttr ($TiltCondN[$i] + ".ctg") 1; 
+		setAttr ($TiltCondN[$i] + ".cfb") 0; 
+	
+		connectAttr -f ($RigControlsA[4] + ".rz") ($TiltCondN[$i] + ".ctb");	// Z Axis is working Axis
+		}
+	 
+		setAttr ($TiltCondN[1] + ".op") 4;
+	
+// -------------------------------------------------------------------------------- //
+	
+// ******************************************************************************** //	
+//	X Axis Nodes 
+	
+	$TiltCondN[2] = `createNode condition -name ($DVY_VehName + "Tilt_XPlus_CondN_1")`;
+	$TiltCondN[3] = `createNode condition -name ($DVY_VehName + "Tilt_XNeg_CondN_1")`;
+
+	for($i=2; $i<4; $i++)
+		{
+		setAttr ($TiltCondN[$i] + ".op") 2;
+		setAttr ($TiltCondN[$i] + ".st") 0;
+		connectAttr -f ($RigControlsA[4] + ".rx") ($TiltCondN[$i] + ".ft");
+		
+		setAttr ($TiltCondN[$i] + ".cfb") 0; setAttr ($TiltCondN[$i] + ".ctb") 1; // Z Axis is working Axis
+		setAttr ($TiltCondN[$i] + ".cfg") 0; setAttr ($TiltCondN[$i] + ".ctg") 1; 
+		setAttr ($TiltCondN[$i] + ".cfr") 0; 
+		connectAttr -f ($RigControlsA[4] + ".rx") ($TiltCondN[$i] + ".ctr");
+		}
+	
+// -------------------------------------------------------------------------------- //
+	
+// ******************************************************************************** //	
+
+	setAttr ($TiltCondN[3] + ".op") 4;
+
+ 	string $TiltRangeN_1 = `createNode setRange -name ($DVY_VehName + "Tilt_RangeN_1")`;
+		setAttr ($TiltRangeN_1 + ".oldMinX") 0; setAttr ($TiltRangeN_1 + ".oldMaxX") 1;
+		setAttr ($TiltRangeN_1 + ".minX") 0;		setAttr ($TiltRangeN_1 + ".maxX") 1;		
+		setAttr ($TiltRangeN_1 + ".oldMinY") 0; 	setAttr ($TiltRangeN_1 + ".oldMaxY") 1;
+		setAttr ($TiltRangeN_1 + ".minY") 0;		setAttr ($TiltRangeN_1 + ".maxY") 1;		
+		setAttr ($TiltRangeN_1 + ".oldMinZ") 0; 	setAttr ($TiltRangeN_1 + ".oldMaxZ") 1;
+		setAttr ($TiltRangeN_1 + ".minZ") 0;		setAttr ($TiltRangeN_1 + ".maxZ") 2;		
+		
+		connectAttr -f ($TiltRangeN_1 + ".outValueX")
+			($DVY_VehName + "BodyShell_GrpN_1_parentConstraint1." + $DVY_VehName + "Rig_ControllerN_1W0");
+		connectAttr -f ($TiltRangeN_1 + ".outValueX")
+			($DVY_VehName + "BodyShell_JnT_1_parentConstraint1." + $DVY_VehName + "Rig_ControllerN_1W0");
+		connectAttr -f ($TiltRangeN_1 + ".outValueZ") ($DVY_VehName + "BodyShell_JnT_1_parentConstraint1." + $LChier[155] + "W1");
+		connectAttr -f ($TiltRangeN_1 + ".outValueZ") ($DVY_VehName + "BodyShell_GrpN_1_parentConstraint1." + $LChier[155] + "W1");
+	
+// -------------------------------------------------------------------------------- //
+	
+// ******************************************************************************** //	
+
+	for ($i=0; $i<4; $i++)
+		{
+		setAttr ($TiltCondN[$i] + ".ocg") 1;		
+		setAttr ($TiltRangeN_1 + ".valueX") 0;
+		setAttr ($TiltRangeN_1 + ".valueZ") 1;
+			setDrivenKeyframe -cd ($TiltCondN[$i] + ".ocg") ($TiltRangeN_1 + ".valueX");
+			setDrivenKeyframe -cd ($TiltCondN[$i] + ".ocg") ($TiltRangeN_1 + ".valueZ");
+		
+		setAttr ($TiltCondN[$i] + ".ocg") 0;
+		setAttr ($TiltRangeN_1 + ".valueX") 1;
+		setAttr ($TiltRangeN_1 + ".valueZ") 0;
+			setDrivenKeyframe -cd ($TiltCondN[$i] + ".ocg") ($TiltRangeN_1 + ".valueX");
+			setDrivenKeyframe -cd ($TiltCondN[$i] + ".ocg") ($TiltRangeN_1 + ".valueZ");
+	
+		setAttr ($TiltCondN[$i] + ".ocg") 0;
+		}
+	
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+
+	connectAttr -f ($TiltCondN[0] + ".ocr") ($ParentCon[0] + "." + $LChier[151]+ "W1");
+	connectAttr -f ($TiltCondN[0] + ".ocb") ($LChier[151] + ".rotateZ");
+					 
+	connectAttr -f ($TiltCondN[1] + ".ocr") ($ParentCon[1] + "." + $LChier[150] + "W0");
+	connectAttr -f ($TiltCondN[1] + ".ocb") ($LChier[150] + ".rotateZ");
+	
+	connectAttr -f ($TiltCondN[2] + ".ocb") ($ParentCon[2] + "." + $LChier[152] + "W2");
+	connectAttr -f ($TiltCondN[2] + ".ocr") ($LChier[152] + ".rotateX");
+	
+	connectAttr -f ($TiltCondN[3] + ".ocb") ($ParentCon[3] + "." + $LChier[153] + "W3");
+	connectAttr -f ($TiltCondN[3] + ".ocr") ($LChier[153] + ".rotateX");
+	
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+
+	select -r $LChier[155] ;
+		CBdeleteConnection ($LChier[155] + ".rx");
+		CBdeleteConnection ($LChier[155] + ".ry");
+		CBdeleteConnection ($LChier[155] + ".rz");
+	
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+
+	connectAttr -f ($RigControlsA[4] + ".rotate") ($LChier[155] + ".rotate");
+	
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+/*	
+	
+	print "\n Vehicle Tilt Condition Nodes are..\n";
+	print $TiltCondN; 
+	print "\n Davvey © 2006..\n";
+	
+	print "\n Vehicle Tilt Rnage Nodes are..\n";
+	print $TiltRangeN_1;
+	print "\n Davvey © 2006..\n";
+
+*/
+	
+	print "\n DVY_VehicleTilter has set up Nodes for Tilting the whole Vehicle to side based on Z axis rotation. See help file for more details. Davvey © 2006..\n\n";
+
+ }	//	End of DVY_VehicleTilter.
+ 

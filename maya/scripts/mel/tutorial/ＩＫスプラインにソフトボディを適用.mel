@@ -1,0 +1,68 @@
+global proc uksplineik_softbody_crate()
+{
+//UserInterFaceCrate
+if(`window -ex spikwin`){deleteUI spikwin;}
+window -t "tasukete" spikwin;
+columnLayout -adj 1 cl1;
+button -l "splineik_softbody_crate" -c "workspiksoft()";
+button -l "goalPPset_Window" -c "ukgoalPPset";
+checkBox -l "Raise_goalPP_Window" -v 1 chkBox1;
+setParent ..;
+showWindow spikwin;
+window -e -wh 300 150 spikwin;
+}
+global proc workspiksoft()
+{
+string $selejoint[2] = `ls -sl -type "joint"`;
+string $ikname[3];
+string $softparticle[];
+$ikname = `ikHandle -sol ikSplineSolver -sj $selejoint[0] -ee $selejoint[1]`;
+$softparticle = `soft -c -dh -g 1 -h 0 $ikname[2]`;
+select -r $softparticle[0];
+if(`checkBox -q -v spikwin|cl1|chkBox1`){ukgoalPPset;}
+}
+global proc ukgoalPPset()
+{
+string $selePar[] = `ls -sl -dag -type particle`;
+int $Pcount = `particle -q -ct $selePar[0]`;
+float $ptgolPP[];
+//Crateing UserInterFace section
+if(`window -ex setSPP`){deleteUI setSPP;}
+window -t aho setSPP;
+columnLayout -adj 1 cl1;
+setParent ..;
+showWindow setSPP;
+window -e -wh 300 180 setSPP;
+
+for($n=0;$n<$Pcount;$n++)
+{
+$ptgolPP = `getParticleAttr -at goalPP ($selePar[0] + ".pt[" + $n + "]")`;
+rowLayout -nc 2 ("rwL" + $n);
+text -l ("pt[" + $n + "]");
+floatField -v $ptgolPP[0] ("flfi" + $n);
+setParent setSPP|cl1;
+}
+button -l "setAttr & Reload" -c "workgoalPPset();ukgoalPPset();";
+button -l "Reload" -c "ukgoalPPset";
+button -l "nextSetup_splineik_softbody" -c "uksplineik_softbody_crate()";
+setParent setSPP|cl1;
+}
+global proc workgoalPPset()
+{
+string $selePar[] = `ls -sl -dag -type particle`;
+int $Pcount = `particle -q -ct $selePar[0]`;
+string $strcomA = "particle -e -or ";
+string $strcomB = " -at goalPP -fv ";
+float $valgoalPP = "0.8";
+string $mascom = "";
+string $rescom[1];
+for($n=0;$n<$Pcount;$n++)
+{
+$valgoalPP = `floatField -q -v ("setSPP|cl1|rwL" + $n + "|flfi" + $n)`;
+$rescom[$n] = $strcomA + $n + $strcomB + $valgoalPP + " " + $selePar[0] + ";";
+$mascom += $rescom[$n];
+}
+print $rescom;
+eval($mascom);
+}
+uksplineik_softbody_crate();

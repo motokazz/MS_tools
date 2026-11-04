@@ -1,0 +1,217 @@
+
+/////////////////////////////////////////////////////////////////////////////			
+			
+	Copyright © 2006 DVY_RigVehicle. All rights reserved davvey@ntlworld.com
+
+					- DVY_RigVehicle -
+						
+/////////////////////////////////////////////////////////////////////////////
+	Installation	
+
+	Just install scripts in any Maya script path and install
+	Icon and Image files in May\\Prefs\Icons directory
+
+	Usage
+
+	Type DVY_Vehicle Rigger in command line or middle mouse drag it to a shelf.
+	There is an Icon file (DVY_Vehicle.xpm) supplied to use with the Shelf Button.
+
+ 	This is a collection of some scripts using utility nodes only to set a Multi
+	wheeled vehicle. Copy  files to your script directory and the scene files to
+	wherever you store your Maya scene files. The TestRig_Vehicle file is a low poly
+	count vehicle to show heirarchy stucture required.
+	Also included is a rigged version.
+
+    If you run script using default values in the GUI it will rig the vehicle correctly.
+	To use your own naming convention select each Group node as required and load using
+	corresponding button
+
+    These scripts are a Revison on the first Beta set with little error checking but
+	I will follow up with more scripts over time.
+	Please let me know and also any suggestions for additional ideas etc.
+	The scripts are planned to include all the various rigging options for any vehicle
+	type and their various requirements.
+    
+    Thanks and  enjoy the scripts and please let me know any good and more importantly 
+	bad points to help with the development of these scripts.
+
+  
+	Description	
+						  
+	This script will build Vehicle rig for wheel rotation, suspension
+	and steering. This script is called by the GUI DVY_Vehicle Rigger.mel
+
+	This script current has minimal error checking but if you find it useful please
+	let me know and I will rewrite it with full error checking.
+	
+	This script was written to demonstrate the use of Utility nodes to replace
+	expressions foor vehicle control etc.
+	
+	I am currently working on building a full suite ot scripts to allow rigging
+	of all the various parts of any wheeled vehicle. The intention is to build a
+	set of "modular" scripts to allow rigging oif individual parts and or a fullly
+	rigged vehicle.
+	
+	Directions:
+	
+	Source and run DVY_Vehicle Rigger.mel, use default values is you have named
+	them as shown or selct each item in turn and load required field. Also you can
+	type names in the field as required. Script will error out if not all items are
+	found. Once all fields correct press "Rig Vehicle" button. 
+
+	Each Tab must be initialized by selecting the relevant CheckBox on the first Tab.
+	To set up the Doors and Hood Section, select the required items using the check
+	boxes, then select the items or use default values (same as wheel section method).
+	Once all field completed press the "Set Hinge Position" Button on that Tab.
+	Repeat for Hood etc Tab if required , then adjust position of the Blue Spheres to
+	the exact position you want the Hinge point to be. Then adjust the Red Spheres to
+	the `Handle` position for that item. The Blue Spheres can be Translated and Rotated,
+	the Red just Translated. The Red handle sphere is used to set the angle of rotation
+	of the Hinge. The limit of opening angle is 110 degrees but this can be changed
+	using the Controllers `Y` Translate Axis limits in the Attribute Editor
+	
+	The Window Spheres (green and Yellow) carry out a similar function but are used to
+	set up a sliding action to simulate Window opening.
+	
+	Structure of intial Vehicle is as follows :-
+	
+Top Node
+ |___
+    |
+    |___BodyShell Group
+ 	|
+  	|_____BodyWork_GrpN_1
+  	   |	  |
+  	   |	  |__Door_GrpN_1
+	   |	  |	 |
+	   |	  |	 |__LfFr_Door_GrpN_1
+	   |	  |	 |__RtFr_Door_GrpN_1
+	   |	  |	 |__LfRr_Door_GrpN_1
+	   |	  |	 |__RtRr_Door_GrpN_1 
+	   |	  |
+	   |	  |__Fr_Hood_GrpN_1
+	   |	  |__Rr_Trunk_GrpN_1 or Rr_Tailgate_GrpN_1 
+	   |	  |
+	   |	  |			 or	(Rr_TopTailgate_GrpN_1
+	   |	  |			 	 Rr_BotTailgate_GrpN_1)
+	   |	  |						 
+	   |	  |				 or (LfRr_Tailgate_GrpN_1
+	   |	  |				 RtRr_TailDoor_GrpN_1)
+	   |	  |
+	   |	  |__Remaining Chassis parts(contains all geometry except Wheels.
+	   |
+	   |___Wheels Grp_1 
+	   |___
+		|Fr_Wheels_Grp_1
+		|	|
+		|	|__ LfFr_Wheel_Grp_1	(Wheel Group Naming must follow this 							|	|					  structure i.e.
+		|	|__ RtFr_Wheel_Grp_1	  LfFr_Wheel_Grp_1,  LfFr_Wheel _Grp_2
+		|	|__ LfFr_Wheel_Grp_2	  the order is not important within each of 
+		|	|__ RtFr_Wheel_Grp_2 	  the Group Nodes.)
+		|					  
+		|Rr_Wheels_Grp_1
+			|
+			|__ LfRr_Wheel_Grp_1
+			|__ RtRr_Wheel_Grp_1
+			|__ LfRr_Wheel_Grp_2
+			|__ RtRr_Wheel_Grp_2	
+
+			
+			
+	Basic Procedure:
+		Main procedure uses a $GroupV_A to store main groups from GUI and 
+		build a rig of joints with locators as reuired.
+		Joints are constrained to individual locators.
+		Also some locators are constrained to individual joints.
+		
+		Wheels can be individually controlled based on distnace moved or set
+		to spin based on time (see help file for more info).
+		
+		There are 4 Main "Rig Contollers" plus auxillary Controllers.
+		
+		Rig_ControllerN_1 :-
+		
+			Controls movement and rotation of main vehicle.
+			Also houses attributes for setting range of suspension travel
+			using attribute Piston Range. Also there are also individual
+			range settings for each wheel(not active yet).
+		
+		Steering_ControllerN_1 
+		
+			Controls steering for Front and Rear Wheels. The front steering
+			is active by default, to activate Rear steering set "Rr Steer"
+			to On. Setting the "Fr Steer Ratio" and "Rr Steer Ratios" to a 
+			negative value will reverse direction of rotation.
+			Set "Fr Steer to Off will set vehicle to have rerar steering.
+			The ratio can be set anywhere between -1 and 1, this will
+			reduce effect of rotation to simulat the Rear wheel steer you
+			now see on some high performance cars.
+		
+	Bank_ControllerN_1
+		
+		This will Bank the Vehicle by a mavximum of 5 degrees in both 
+		X and Z +/- axis and still allow full susupension control.
+		The maximum range can be altered in the attribute editor by adjusting
+		the X and Z axis rotate limits.
+			
+	VehicleTilt_ControllerN_1
+	
+		This will tilt the Chassis group as reguired. Also each indiviual
+		Wheel can be moved up and down by moving each wheel Group Ground 
+		Locator to simulate ground variations.
+		
+		Also if Doors and Hand and TRunk Options are selected then there will
+		be individual controllers for each Door or BodyShell Section. Plus
+		individual controllers for each opening window (sliding open).
+			
+	Auxillary Controllers 
+		(For Door, Window, Front Hood and Rear Runk or Tailgate)
+		
+		The Auxillary Controllers are set up for each individual section i.e.
+		Left Front passenger Door, Right Front Passenger Door. If required
+		a Window Controller will be added as required. The controls are set
+		up so that transaltion in the Horizontal direction will drive the
+		opening or closing by rotation of the relevant section or item.
+		The Window Contollers work in the Vertical direction and open the
+		window by a sliding action.
+
+	Floor Control
+
+		There is an option to set up an automatic wheel control for each
+		wheel by setting up a Geometry Constaint to a "Ground Plane".
+		This has an auto ON/OFF setup which releases the wheels once car
+		leaves the ground a distance greater than suspension travel.
+			
+	Motion Path
+		
+		To setup Vehicle to Motion Path. Select Rig_Controller and Motion
+		Path. This will set up and parent a locator under Vehicle Top Node
+		and constrain the Rig Controls to the motion path via the locator.
+		The remain controls will operate as usual and wheels will either 
+		auto rotate based on movement or based on wheel spin settings
+
+	Also included with the script download pack is a PDF Help File which
+	should be located in the following directory which will allow the main 
+	GUI to call it from the menu.
+
+Installation example (for Maya 8.0):
+
+1. Install scripts in the Maya Script directory
+	E:\Documents and Settings\Davvey\My Documents\Maya\8.0\scripts
+
+2. Install all icons (xpm files) in
+	E:\Documents and Settings\Davvey\My Documents\Maya\8.0\prefs\icons
+	
+1. Install PDF Help File in a Maya Documents directory
+	E:\Documents and Settings\Davvey\My Documents\Maya\Docuementation
+
+	Davvey
+If you like the scripts please rate them.
+
+I Thought I saw Light at the end of the Tunnel
+but it was just some Bxxxxxx with more troubles.
+
+davvey@ntlworld.com
+			
+	
+

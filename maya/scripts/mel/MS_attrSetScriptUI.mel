@@ -1,0 +1,64 @@
+/*
+チャンネルボックスで選択したアトリビュートを別のオブジェクトにコピーするためのスクリプト。
+使用方法
+オブジェクトを選んで、
+チャンネルボックスを選んで、
+スクリプト実行すると、
+チャンネルボックスの値を別のオブジェクトにセットするためのスクリプトがスクリプトエディターに表示される。
+それをコピーして、
+コピーしたいオブジェクトを選んで、
+そのスクリプトを実行するとアトリビュート転送できる。
+*/
+
+
+
+global proc MS_attrSetScript(){
+
+	string $obj[]=`ls -sl`;
+	string $attrMainChannel[]=`channelBox -q -sma mainChannelBox`;
+	string $attrShapeChannel[]=`channelBox -q -ssa mainChannelBox`;
+	string $command;
+	$command= "\n\n\n//### script Start ############\n";
+	
+	for($eachattr in $attrMainChannel){
+		float $a=`getAttr ($obj[0]+"."+$eachattr)`;
+		float $lock=`getAttr -lock ($obj[0]+"."+$eachattr)`;
+		$command=$command+ ("setAttr -lock "+$lock+" "+"."+$eachattr+" "+float($a)+";\n");
+	}
+	for($eachattr in $attrShapeChannel){
+		float $a=`getAttr ($obj[0]+"."+$eachattr)`;
+		float $lock=`getAttr -lock ($obj[0]+"."+$eachattr)`;
+		$command=$command+ ("setAttr -lock "+$lock+" "+"."+$eachattr+" "+float($a)+";\n");
+	}
+	$command=$command+ "//### script End ############\n";
+	
+	scrollField -e -tx $command "MS_attrSetScript_field";
+	
+}
+
+global proc MS_attrSetScript_Execute(){
+	string $command=`scrollField -q -tx "MS_attrSetScript_field"`;
+	eval $command;
+}
+
+
+global proc MS_attrSetScriptUI(){
+	if (`window -exists MS_attrSetScriptUI`){
+		deleteUI MS_attrSetScriptUI;
+	}
+	
+	
+	window -title "MS_attrSetScriptUI" MS_attrSetScriptUI;
+	
+	columnLayout;
+	scrollField -w 300 -h 400 "MS_attrSetScript_field";
+	button -l "getCommand" -c "MS_attrSetScript";
+	button -l "Execute" -c "MS_attrSetScript_Execute";
+	
+	showWindow MS_attrSetScriptUI;
+}
+
+//MS_attrSetScript;
+
+
+

@@ -1,0 +1,13 @@
+
+Version 1.1.2
+Modified script for Winder Style Complex Stairs to correct geometry area at top of straig hht section
+
+Version 1.1.1
+Added missing Image files to Script pack  
+
+Version 1.1.0
+Script now updated to include complex stair styles plus 14 spindles and 6 handrail styles 
+
+
+Version 1.0.0
+First Release

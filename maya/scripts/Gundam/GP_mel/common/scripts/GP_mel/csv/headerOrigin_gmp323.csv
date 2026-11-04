@@ -1,0 +1,8 @@
+#ifdef GR_FILE_LINKED
+
+GR_FILE_LINKED( _basepose )
+GR_FILE_LINKED( motion_c100_gmp323_op_beam_saber_dash )
+GR_FILE_LINKED( motion_c100_gmp323_op_beam_saber_slash )
+
+#undef GR_FILE_LINKED
+#endif // GR_FILE_LINKED

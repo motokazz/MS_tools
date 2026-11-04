@@ -1,0 +1,69 @@
+/*
+
+MS_locatorToCurve
+
+nurvesカーブに沿ったロケーターを配置
+
+パラメータ
+countOfLocator	カーブ上に配置するロケーターの数
+curveDetail		配置するときの精度。あげると正確な位置に配置されたりする。
+
+*/
+
+
+
+
+global proc MS_locatorToCurve(){
+	
+	string $orgobj[]=`ls -sl`;
+	
+	int $countOfLocator=`intField -q -v "countOfLocator"`;
+	int $curveDetail=`intField -q -v "curveDetail"`;
+	
+	string $obj[]=`duplicate $orgobj[0]`;
+	rebuildCurve -keepRange 0 -rt 0 -s $curveDetail $obj[0];
+	
+	float $spans=1;
+	float $stepValue=($spans/float($countOfLocator-1));
+	
+	$i=0;
+	while($i<$countOfLocator){
+		$location=`pointPosition -w ($obj[0]+".u["+($stepValue*$i)+"]")`;
+		$locName=`spaceLocator`;
+		xform -ws -t $location[0] $location[1] $location[2] $locName[0];
+		rename  $locName[0] MS_locatorToCurve;
+		$i++;
+	}
+	
+	delete $obj[0];
+	
+}
+
+
+
+global proc MS_locatorToCurveUI(){
+		//Window Check
+	if(`window -exists MS_locatorToCurve`){
+		deleteUI MS_locatorToCurve;
+	}
+	
+	
+	//Create Window
+	
+	window -title "MS_locatorToCurve" MS_locatorToCurve;
+	
+	columnLayout;
+	text -l "countOfLocator";
+	intField  -w 80 -v 2 -min 2 "countOfLocator";
+	text -l "curveDetail";
+	intField  -w 80 -v 100 -min 2 "curveDetail";
+	separator -w 100;
+	button -l "goStep" -c "MS_locatorToCurve" ;
+	setParent ..;
+	
+	showWindow MS_locatorToCurve;
+	
+}
+
+
+

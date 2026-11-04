@@ -1,0 +1,990 @@
+global proc MS_jointToComponents_core()
+{
+	float $center[3];
+
+	// Assert that the user has selected one or more polymesh components	
+	string $meshComponents[] = `filterExpand -sm 31 -sm 32 -sm 34`;
+
+	// Get shape nodes for selected items
+	string $selectedNodes[] = `selectedNodes`;
+	
+	//quary rotation 
+	string $baseobj[]=`ls -o -hl`;
+	float $rotX=0,$rotY=0,$rotZ=0;
+	float $tmpX=0,$tmpY=0,$tmpZ=0;
+	float $rot[];
+	
+	
+	if ( size($meshComponents) && size($selectedNodes) )
+	{
+		float $bbox[5] = `polyEvaluate -bc`;
+		
+		$center[0] = ( ($bbox[0]/2) + ($bbox[1]/2) ) ;
+		$center[1] = ( ($bbox[2]/2) + ($bbox[3]/2) ) ;
+		$center[2] = ( ($bbox[4]/2) + ($bbox[5]/2) ) ;
+		
+		for($each in $baseobj){
+		$rot=`xform -q -ws -ro $each`;
+		$tmpX=$tmpX+$rot[0];
+		$tmpY=$tmpY+$rot[1];
+		$tmpZ=$tmpZ+$rot[2];
+		}
+		$rotX=$tmpX/size($baseobj);
+		$rotY=$tmpY/size($baseobj);
+		$rotZ=$tmpZ/size($baseobj);
+		
+		select -cl;
+		$joint=`joint -p $center[0] $center[1] $center[2] -sc false`;
+		xform -ws -ro $rotX $rotY $rotZ $joint;
+		
+	}
+}
+
+global proc MS_locatorToComponentsV2_core()
+{
+	float $center[3];
+
+	// Assert that the user has selected one or more polymesh components	
+	string $meshComponents[] = `filterExpand -sm 31 -sm 32 -sm 34`;
+
+	// Get shape nodes for selected items
+	string $selectedNodes[] = `selectedNodes`;
+	
+	//quary rotation 
+	string $baseobj[]=`ls -o -hl`;
+	float $rotX=0,$rotY=0,$rotZ=0;
+	float $tmpX=0,$tmpY=0,$tmpZ=0;
+	float $rot[];
+	
+	if ( size($meshComponents) && size($selectedNodes) )
+	{
+		float $bbox[5] = `polyEvaluate -bc`;
+		
+		$center[0] = ( ($bbox[0]/2) + ($bbox[1]/2) ) ;
+		$center[1] = ( ($bbox[2]/2) + ($bbox[3]/2) ) ;
+		$center[2] = ( ($bbox[4]/2) + ($bbox[5]/2) ) ;
+		
+		for($each in $baseobj){
+		$rot=`xform -q -ws -ro $each`;
+		$tmpX=$tmpX+$rot[0];
+		$tmpY=$tmpY+$rot[1];
+		$tmpZ=$tmpZ+$rot[2];
+		}
+		$rotX=$tmpX/size($baseobj);
+		$rotY=$tmpY/size($baseobj);
+		$rotZ=$tmpZ/size($baseobj);
+		
+		$locatername=`spaceLocator -p 0 0 0`;
+		move -wd $center[0] $center[1] $center[2] $locatername;
+		xform -ws -ro $rotX $rotY $rotZ $locatername;
+		//spaceLocator -p $center[0] $center[1] $center[2];
+	}
+}
+
+global proc MS_constraintRepair(){
+
+	string $point_option;
+	if(!`checkBox -q -v "px"`){$point_option="-sk x ";}
+	if(!`checkBox -q -v "py"`){$point_option=($point_option+"-sk y ");}
+	if(!`checkBox -q -v "pz"`){$point_option=($point_option+"-sk z ");}
+	
+	string $orient_option;
+	if(!`checkBox -q -v "ox"`){$orient_option="-sk x ";}
+	if(!`checkBox -q -v "oy"`){$orient_option=($orient_option+"-sk y ");}
+	if(!`checkBox -q -v "oz"`){$orient_option=($orient_option+"-sk z ");}
+	
+	string $dist[]=`ls -sl`;
+	for($each in $dist){
+		
+		string $point[]=`pointConstraint -q -tl $each`;
+		string $aim[]=`aimConstraint -q -tl $each`;
+		string $orient[]=`orientConstraint -q -tl $each`;
+		string $scale[]=`scaleConstraint -q -tl $each`;
+		string $parent[]=`parentConstraint -q -tl $each`;
+		string $geometry[]=`geometryConstraint -q -tl $each`;
+		string $normal[]=`normalConstraint -q -tl $each`;
+		string $tangent[]=`tangentConstraint -q -tl $each`;
+		//string $poleVector[]=`poleVectorConstraint -q -tl $each`;
+		
+		/*ターゲット名をウェイトリストから取得する試み
+		string $point[];
+		string $aim[];
+		string $orient[];
+		string $scale[];
+		string $parent[];
+		string $geometry[];
+		string $normal[];
+		string $tangent[];
+		string $poleVector[];
+		
+
+		
+		
+		string $point_base[]=`pointConstraint -q -wal $each`;
+		string $aim_base[]=`aimConstraint -q -wal $each`;
+		string $orient_base[]=`orientConstraint -q -wal $each`;
+		string $scale_base[]=`scaleConstraint -q -wal $each`;
+		string $parent_base[]=`parentConstraint -q -wal $each`;
+		string $geometry_base[]=`geometryConstraint -q -wal $each`;
+		string $normal_base[]=`normalConstraint -q -wal $each`;
+		string $tangent_base[]=`tangentConstraint -q -wal $each`;
+		string $poleVector_base[]=`poleVectorConstraint -q -wal $each`;
+		
+		int $i=0;
+		for($each_b in $point_base){
+			$point[$i]=`substring $each_b 1 (size($each_b)-2)`;
+			$i++;
+		}
+		int $i=0;
+		for($each_b in $aim_base){
+			$aim[$i]=`substring $each_b 1 (size($each_b)-2)`;
+			$i++;
+		}
+		int $i=0;
+		for($each_b in $orient_base){
+			$orient[$i]=`substring $each_b 1 (size($each_b)-2)`;
+			$i++;
+		}
+		int $i=0;
+		for($each_b in $scale_base){
+			$scale[$i]=`substring $each_b 1 (size($each_b)-2)`;
+			$i++;
+		}
+		int $i=0;
+		for($each_b in $parent_base){
+			$parent[$i]=`substring $each_b 1 (size($each_b)-2)`;
+			$i++;
+		}
+		int $i=0;
+		for($each_b in $geometry_base){
+			$geometry[$i]=`substring $each_b 1 (size($each_b)-2)`;
+			$i++;
+		}
+		int $i=0;
+		for($each_b in $normal_base){
+			$normal[$i]=`substring $each_b 1 (size($each_b)-2)`;
+			$i++;
+		}
+		int $i=0;
+		for($each_b in $tangent_base){
+			$tangent[$i]=`substring $each_b 1 (size($each_b)-2)`;
+			$i++;
+		}
+		int $i=0;
+		for($each_b in $poleVector_base){
+			$poleVector[$i]=`substring $each_b 1 (size($each_b)-2)`;
+			$i++;
+		}
+		
+		*/
+		
+		string $constPoint[]=`listConnections -t pointConstraint $each`;
+		string $constAim[]=`listConnections -t aimConstraint $each`;
+		string $constOrient[]=`listConnections -t orientConstraint $each`;
+		string $constScale[]=`listConnections -t scaleConstraint $each`;
+		string $constParent[]=`listConnections -t parentConstraint $each`;
+		string $constGeometry[]=`listConnections -t geometryConstraint $each`;
+		string $constNormal[]=`listConnections -t normalConstraint $each`;
+		string $constTangent[]=`listConnections -t tangentConstraint $each`;
+		string $constPoleVector[]=`listConnections -t poleVectorConstraint $each`;
+		
+		if(size($point)){
+			//リファレンスワイルドカード化
+			string $optionP;
+			for($eachstr in $point){
+				string $tmp[];
+				if(tokenize($eachstr,":",$tmp)){
+					$optionP=$optionP+" \"*:"+$tmp[size($tmp)-1]+"\"";
+				}else{
+					$optionP=$eachstr;
+				}
+			}
+			print ($optionP+"\n");
+			//
+			delete $constPoint;
+			eval("pointConstraint -w 1.0 -o 0 0 0 "+$point_option+" "+$optionP+" "+$each);
+		}
+		
+		if(size($aim)){
+			//リファレンスワイルドカード化
+			string $optionP;
+			for($eachstr in $aim){
+				string $tmp[];
+				if(tokenize($eachstr,":",$tmp)){
+					$optionP=$optionP+" \"*:"+$tmp[size($tmp)-1]+"\"";
+				}else{
+					$optionP=$eachstr;
+				}
+			}
+			print ($optionP+"\n");
+			//
+			delete $constAim;
+			aimConstraint -offset 0 0 0 -weight 1 -aimVector 0 1 0 -upVector 0 1 0 -worldUpType "vector" $point $each;
+		}
+		
+		if(size($orient)){
+			//リファレンスワイルドカード化
+			string $optionP;
+			for($eachstr in $orient){
+				string $tmp[];
+				if(tokenize($eachstr,":",$tmp)){
+					$optionP=$optionP+" \"*:"+$tmp[size($tmp)-1]+"\"";
+				}else{
+					$optionP=$eachstr;
+				}
+			}
+			print ($optionP+"\n");
+			//
+			delete $constOrient;
+			eval("orientConstraint -w 1.0 -o 0 0 0 "+$orient_option+" "+$optionP+" "+$each);
+		}
+		
+		if(size($scale)){
+			//リファレンスワイルドカード化
+			string $optionP;
+			for($eachstr in $scale){
+				string $tmp[];
+				if(tokenize($eachstr,":",$tmp)){
+					$optionP=$optionP+" \"*:"+$tmp[size($tmp)-1]+"\"";
+				}else{
+					$optionP=$eachstr;
+				}
+			}
+			print ($optionP+"\n");
+			//
+			delete $constScale;
+			scaleConstraint -offset 1 1 1 -weight 1 $scale $optionP;
+		}
+		
+		if(size($parent)){
+			//リファレンスワイルドカード化
+			string $optionP;
+			for($eachstr in $parent){
+				string $tmp[];
+				if(tokenize($eachstr,":",$tmp)){
+					$optionP=$optionP+" \"*:"+$tmp[size($tmp)-1]+"\"";
+				}else{
+					$optionP=$eachstr;
+				}
+			}
+			print ($optionP+"\n");
+			//
+			delete $constParent;
+			parentConstraint -mo -weight 1 $parent $optionP;
+		}
+		
+		if(size($geometry)){
+			//リファレンスワイルドカード化
+			string $optionP;
+			for($eachstr in $geometry){
+				string $tmp[];
+				if(tokenize($eachstr,":",$tmp)){
+					$optionP=$optionP+" \"*:"+$tmp[size($tmp)-1]+"\"";
+				}else{
+					$optionP=$eachstr;
+				}
+			}
+			print ($optionP+"\n");
+			//
+			delete $constGeometry;
+			geometryConstraint -weight 1 $geometry $optionP;
+		}
+		if(size($normal)){
+			//リファレンスワイルドカード化
+			string $optionP;
+			for($eachstr in $normal){
+				string $tmp[];
+				if(tokenize($eachstr,":",$tmp)){
+					$optionP=$optionP+" \"*:"+$tmp[size($tmp)-1]+"\"";
+				}else{
+					$optionP=$eachstr;
+				}
+			}
+			print ($optionP+"\n");
+			//
+			delete $constNormal;
+			normalConstraint -weight 1 -aimVector 0 1 0 -upVector 0 1 0 -worldUpType "vector" -worldUpVector 0 1 0 $normal $optionP;
+		}
+		if(size($tangent)){
+			//リファレンスワイルドカード化
+			string $optionP;
+			for($eachstr in $tangent){
+				string $tmp[];
+				if(tokenize($eachstr,":",$tmp)){
+					$optionP=$optionP+" \"*:"+$tmp[size($tmp)-1]+"\"";
+				}else{
+					$optionP=$eachstr;
+				}
+			}
+			print ($optionP+"\n");
+			//
+			delete $constTangent;
+			tangentConstraint -weight 1 -aimVector 0 1 0 -upVector 0 1 0 -worldUpType "vector" -worldUpVector 0 1 0 $tangent $optionP;
+		}
+		/*
+		if(size($poleVector)){
+			delete $constPoleVector;
+			poleVectorConstraint -weight 1 $poleVector $each;
+		}
+		*/
+	}
+	
+	
+}
+
+
+
+global proc float MS_distance(string $target_a,string $target_b){
+	float $a[] = `xform -q -ws -t $target_a`;
+	float $b[] = `xform -q -ws -t $target_b`;
+	//2点間の移動距離を計算
+	float $len = sqrt(($a[0]-$b[0])*($a[0]-$b[0])+($a[1]-$b[1])*($a[1]-$b[1])+($a[2]-$b[2])*($a[2]-$b[2]));
+	return $len;
+}
+
+global proc MS_spaceLocatorBySceneName(){
+	//シーン名の付いたロケーターを作成
+	string $obj[]=`ls -typ transform -sl`;
+	
+	$loc=`spaceLocator`;
+	$newname=`file -q -ns`;
+	if(size($obj)){
+		parent $obj $loc;
+	}
+	rename $loc $newname;
+}
+
+global proc MS_constraint(
+	int $point,
+	string $point_option,
+	int $aim,
+	int $orient,
+	string $orient_option,
+	int $scale,
+	int $parent,
+	int $geometry,
+	int $normal,
+	int $tangent,
+	int $poleVector,
+	string $target[],
+	string $obj[]){
+	
+	for($each in $obj){
+		
+		if($point){
+			string $option=stringArrayToString($target," ");
+			eval("pointConstraint -w 1.0 -o 0 0 0 "+$point_option+" "+$option+" "+$each+";");
+		}
+		
+		if($aim){
+			aimConstraint -offset 0 0 0 -weight 1 -aimVector 0 1 0 -upVector 0 1 0 -worldUpType "vector" $target $each;
+		}
+		
+		if($orient){
+			string $option=stringArrayToString($target," ");
+			eval("orientConstraint -offset 0 0 0 "+$orient_option+" -weight 1 "+$option+" "+$each+";");
+		}
+		
+		if($scale){
+			scaleConstraint -offset 1 1 1 -weight 1 $target $each;
+		}
+		
+		if($parent){
+			parentConstraint -mo -weight 1 $target $each;
+		}
+		
+		if($geometry){
+			geometryConstraint -weight 1 $target $each;
+		}
+		
+		if($normal){
+			normalConstraint -weight 1 -aimVector 0 1 0 -upVector 0 1 0 -worldUpType "vector" -worldUpVector 0 1 0 $target $each;
+		}
+		
+		if($tangent){
+			int $wuvX =`checkBox -q -v "tangentX"`;
+			int $wuvY =`checkBox -q -v "tangentY"`;
+			int $wuvZ =`checkBox -q -v "tangentZ"`;
+			tangentConstraint -weight 1 -aimVector $wuvX $wuvY $wuvZ -upVector 0 1 0 -worldUpType "vector" -worldUpVector 0 1 0 $target $each;
+		}
+		
+		if($poleVector){
+			poleVectorConstraint -weight 1 $target $each;
+		}
+	}
+	select -r $obj;
+}
+
+global proc string[] MS_constraintMaster_nearestObject(string $sourceObj[],string $distObj){
+	//要MS_distance
+	//string $sourceObj[]=`ls -typ transform`;
+	string $entryObj[]=stringArrayRemove ({$distObj},$sourceObj);
+	string $dists[];
+	
+	$i=0;
+	for($each in $entryObj){
+		float $ftemp=`MS_distance $distObj $each`;
+		$dists[$i]=((1000000+$ftemp)+"<>"+$each);
+		$i++;
+	}
+	string $result[]=`sort $dists`;
+	
+	string $final[];
+	$j=0;
+	for($each in $result){
+		string $stemp[];
+		tokenize($each,"<>",$stemp);
+		$final[$j]=$stemp[1];
+		$j++;
+	}
+	return $final;
+}
+
+//選んだオブジェクトにロケーターをコンストレイン
+global proc MS_createLocatorwithConstraint(){
+	string $strtgt=`textFieldGrp -q -text TFGTgt`;
+	string $target[];
+	tokenize ($strtgt,$target);
+	string $newArray[];//出来たオブジェクト選択用の配列
+	
+	int $pointSeaparate=`checkBox -q -v "pointSeparate"   `;
+	
+
+	
+	int $i=0;
+	
+	if($pointSeaparate){
+		for($each in $target){
+			float $pos[]=`xform -q -ws -t $each`;
+			string $tmp[]=`spaceLocator`;
+			xform -ws -t $pos[0] $pos[1] $pos[2] $tmp[0];
+			$newArray[$i]=$tmp[0];
+			MS_constraint_exec({$each},{$tmp[0]});
+			$i++;
+		}
+	}else{
+		string $tmp[]=`spaceLocator `;
+		MS_constraint_exec($target,{$tmp[0]});
+	}
+	select -r $newArray;
+}
+
+
+
+global proc MS_deleteConstraint(){
+	string $obj[]=`ls -sl`;
+	for($each in $obj){
+		
+		if (`checkBox -q -v "point"          `){
+			string $connect[]=`listRelatives -typ pointConstraint $each`;
+			if ($connect[0]!="")
+			delete $connect[0];
+		}
+		
+		if (`checkBox -q -v "aim"       `){
+			string $connect[]=`listRelatives -typ aimConstraint $each`;
+			if ($connect[0]!="")
+			delete $connect[0];
+		}
+		
+		if (`checkBox -q -v "orient"        `){
+			string $connect[]=`listRelatives -typ orientConstraint $each`;
+			if ($connect[0]!="")
+			delete $connect[0];
+		}
+		
+		if (`checkBox -q -v "scale"          `){
+			string $connect[]=`listRelatives -typ scaleConstraint $each`;
+			if ($connect[0]!="")
+			delete $connect[0];
+		}
+		
+		if (`checkBox -q -v "parent"       `){
+			string $connect[]=`listRelatives -typ parentConstraint $each`;
+			if ($connect[0]!="")
+			delete $connect[0];
+		}
+		
+		if (`checkBox -q -v "geometry"     `){
+			string $connect[]=`listRelatives -typ geometryConstraint $each`;
+			if ($connect[0]!="")
+			delete $connect[0];
+		}
+		
+		if (`checkBox -q -v "normal"       `){
+			string $connect[]=`listRelatives -typ normalConstraint $each`;
+			if ($connect[0]!="")
+			delete $connect[0];
+		}
+		
+		if (`checkBox -q -v "tangent"      `){
+			string $connect[]=`listRelatives -typ tangentConstraint $each`;
+			if ($connect[0]!="")
+			delete $connect[0];
+		}
+		
+		if (`checkBox -q -v "poleVector"   `){
+			string $connect[]=`listRelatives -typ poleVectorConstraint $each`;
+			if ($connect[0]!="")
+			delete $connect[0];
+		}
+	}
+	
+}
+
+
+global proc MS_deleteUnconnectExpression(string $type){
+
+	//$typeにコネクションがないexpressionノードを削除
+
+	string $exp[]=`ls -typ expression`;
+	for($each in $exp){
+		string $connect[]=`listConnections -t $type $each`;
+		if ((size($connect))==0){delete $each;}
+	print (size($connect));
+	}
+
+}
+
+
+
+
+global proc MS_pivotToComponents_core()
+{
+	string $name[]=`ls -o -hl`;
+	float $center[3];
+
+	// Assert that the user has selected one or more polymesh components	
+	string $meshComponents[] = `filterExpand -sm 31 -sm 32 -sm 34`;
+
+	// Get shape nodes for selected items
+	string $selectedNodes[] = `selectedNodes`;
+	
+	if ( size($meshComponents) && size($selectedNodes) )
+	{
+		float $bbox[5] = `polyEvaluate -bc`;
+		
+		
+		$center[0] = ( ($bbox[0]+$bbox[1]) /2 ) ;
+		$center[1] = ( ($bbox[2]+$bbox[3]) /2 ) ;
+		$center[2] = ( ($bbox[4]+$bbox[5]) /2 ) ;
+		
+		for($each in $name){
+			xform -ws -piv $center[0] $center[1] $center[2] $each;
+		}
+	}
+}
+
+
+global proc MS_duplicateToLocater()
+{
+	
+	string $obj_name[]=`ls -sl`;
+	
+	$i=0;
+	
+	for ($i=1;$i<size($obj_name);$i++)
+	{
+		string $obj_tx=$obj_name[$i]+".tx";
+		string $obj_ty=$obj_name[$i]+".ty";
+		string $obj_tz=$obj_name[$i]+".tz";
+		
+		float $val_tx=`getAttr $obj_tx`;
+		float $val_ty=`getAttr $obj_ty`;
+		float $val_tz=`getAttr $obj_tz`;
+		
+		duplicate -n "MS_duplicateToLocater_xxxx" $obj_name[0];
+		align -atl -x Mid -y Mid -z Mid "MS_duplicateToLocater_xxxx" $obj_name[$i];
+		delete $obj_name[$i];
+		rename "MS_duplicateToLocater_xxxx" "MS_duplicateToLocater_0000";
+		
+	}
+}
+
+
+global proc MS_splitTwoPointConstraintLocator(int $split){
+	
+	int $xxx=$split+1;
+	
+	string $objz[]=`ls -sl` ;
+	
+	for ($i=1;$i<$xxx;$i++){
+		string $newloc[]=`spaceLocator`;
+		
+		pointConstraint -w ($i) $objz[0] $newloc[0];
+		pointConstraint -w ($xxx-$i) $objz[1] $newloc[0];
+		
+		rename $newloc[0] "MS_splitTwoPointConstraintLocator";
+	}
+
+}
+
+
+
+global proc MS_vertexpointConstraint(string $src[],string $dist){
+	
+	string $a;
+	$a=($a+"{\n");
+	
+	string $obj=stringArrayToString($src,"\",\"");
+	
+	$a=($a+"string $objz[]={\""+$obj+"\"};\n");
+	$a=($a+"float $totalX=0;\n");
+	$a=($a+"float $totalY=0;\n");
+	$a=($a+"float $totalZ=0;\n");
+	
+	//ボリューム中心検出
+	$a=($a+"for ($each in $objz){\n");
+			
+	$a=($a+"vector $location=`xform -q -ws -t $each`;\n");
+
+	$a=($a+"$totalX=$totalX+($location.x);\n");
+	$a=($a+"$totalY=$totalY+($location.y);\n");
+	$a=($a+"$totalZ=$totalZ+($location.z);\n");
+			
+	$a=($a+"}\n");
+
+	$a=($a+"//xform -ws -t ($totalX/size($objz)) ($totalY/size($objz)) ($totalZ/size($objz)) "+$dist+";\n");
+	
+	$a=($a+$dist+".translateX=($totalX/size($objz));\n");
+	$a=($a+$dist+".translateY=($totalY/size($objz));\n");
+	$a=($a+$dist+".translateZ=($totalZ/size($objz));\n");
+	
+	$a=($a+"}\n");
+	
+	print $a;
+	expression -n "MS_vertexpointConstraint_Expression"-o $dist -s $a;
+}
+
+
+
+global proc MS_constraintNearest(){
+	
+	string $obj[]=`ls -typ transform -sl`;
+	
+	string $strtgt=`textFieldGrp -q -text TFGTgt`;
+	string $target[];
+	tokenize($strtgt,$target);
+	
+	for($each in $obj){
+		string $dist[]=MS_constraintMaster_nearestObject($target,$each);
+		print ($dist[0]+"\n");
+		MS_constraint_exec({$dist[0]},{$each});
+	
+	}
+	
+}
+
+
+global proc MS_splitTwoPointConstraintLocator_pipe(){
+	int $split=`intSliderGrp -q -v "split"`;
+	MS_splitTwoPointConstraintLocator $split;
+	
+}
+
+global proc MS_constraint_exec(string $target[],string $obj[]){
+	select -r $target;
+	if(size(`ls -typ transform -sl`)){
+		MS_constraint_obj($target,$obj);
+	}
+	if(size(`filterExpand -sm 31`)){
+		MS_vertexpointConstraint($target,$obj[0]);
+	}
+}
+
+global proc string MS_constraint_obj(string $target[],string $obj[]){
+	int $point     =`checkBox -q -v "point"        `;
+	string $point_option;
+	if(!`checkBox -q -v "px"`){$point_option="-sk x ";}
+	if(!`checkBox -q -v "py"`){$point_option=($point_option+"-sk y ");}
+	if(!`checkBox -q -v "pz"`){$point_option=($point_option+"-sk z ");}
+	
+	int $aim       =`checkBox -q -v "aim"          `;
+	
+	int $orient    =`checkBox -q -v "orient"       `;
+	string $orient_option;
+	if(!`checkBox -q -v "ox"`){$orient_option="-sk x ";}
+	if(!`checkBox -q -v "oy"`){$orient_option=($orient_option+"-sk y ");}
+	if(!`checkBox -q -v "oz"`){$orient_option=($orient_option+"-sk z ");}
+	
+	int $scale     =`checkBox -q -v "scale"        `;
+	int $parent    =`checkBox -q -v "parent"       `;
+	int $geometry  =`checkBox -q -v "geometry"     `;
+	int $normal    =`checkBox -q -v "normal"       `;
+	int $tangent   =`checkBox -q -v "tangent"      `;
+	int $poleVector=`checkBox -q -v "poleVector"   `;
+	
+	string $targets=stringArrayToString($target,"\",\"");
+	string $objs=stringArrayToString($obj,"\",\"");
+	
+
+	string $command=("MS_constraint ("+$point+",\""+$point_option+"\","+$aim+","+$orient+",\""+$orient_option+"\","+$scale+","+$parent+","+$geometry+","+$normal+","+$tangent+","+$poleVector+","+"{\""+$targets+"\"},{\""+$objs+"\"})");
+	
+	eval $command;
+	
+	return $command;
+}
+
+
+global proc MS_constraintMasterUI_pipe(){
+	
+	string $strtgt=`textFieldGrp -q -text TFGTgt`;
+	string $target[];
+	tokenize ($strtgt,$target);
+	
+	string $obj[]=`ls -typ transform -sl`;
+	
+	
+	MS_constraint_exec $target $obj;
+	
+}
+
+
+global proc MS_vertexpointConstraint_pipe(){
+	
+	
+	string $strtgt=`textFieldGrp -q -text TFGTgt`;
+	string $target[];
+	tokenize ($strtgt,$target);
+	
+	string $obj[]=`ls -typ transform -sl`;
+	
+	
+	for ($each in $obj){
+	MS_vertexpointConstraint $target $each;
+	}
+}
+
+//ClickTragetList-------------------------------------------
+global proc ClickTargetList(){
+	string $objz[] = `ls -typ transform -sl`;
+	
+	string $fexz[] =`filterExpand -sm 31 -sm 32 -sm 34 -sm 46 -sm 28 `;
+	
+	string $objzstr=stringArrayToString($objz," ");
+	string $fexzstr=stringArrayToString($fexz," ");
+	
+	textFieldGrp -e -tx ($objzstr+" "+$fexzstr) TFGTgt;
+	
+}
+
+
+global proc MS_constraintMasterUI(){
+	
+	if(`window -exists MS_constraintMasterUI`){
+		deleteUI MS_constraintMasterUI;
+	}
+	
+	window -title "MS_constraintMasterUI" "MS_constraintMasterUI";	
+	
+	$tabs=`tabLayout`;
+	
+	//------------------------------------------------------------------------------------
+	
+	$mainform=`formLayout`;
+	
+	button -bgc 1 1 1 -al "center"  -l "SelectTargetObjects" -w 120 -c "ClickTargetList" "CLCTgt";
+	textFieldGrp -en 0 -cw 1 160  "TFGTgt";
+
+	checkBox -v 1 -l "point"        "point"         ;
+	
+	checkBox -v 1 -l "X"        "px"         ;
+	checkBox -v 1 -l "Y"        "py"         ;
+	checkBox -v 1 -l "Z"        "pz"         ;
+	
+	checkBox -v 0 -l "aim"          "aim"           ;
+	
+	checkBox -v 0 -l "orient"       "orient"        ;
+	checkBox -v 1 -l "X"        "ox"         ;
+	checkBox -v 1 -l "Y"        "oy"         ;
+	checkBox -v 1 -l "Z"        "oz"         ;
+	
+	checkBox -v 0 -l "scale"        "scale"         ;
+	checkBox -v 0 -l "parent"       "parent"        ;
+	checkBox -v 0 -l "geometry"     "geometry"      ;
+	checkBox -v 0 -l "normal"       "normal"        ;
+
+	checkBox -v 0 -l "tangent"      "tangent"       ;
+	checkBox -v 0 -l "X"      "tangentX"       ;
+	checkBox -v 0 -l "Y"      "tangentY"       ;
+	checkBox -v 0 -l "Z"      "tangentZ"       ;
+
+	checkBox -v 0 -l "poleVector"   "poleVector"    ;
+	
+	button -w 100 -bgc 0.8 1 1 -l "constraintRepair" -c "MS_constraintRepair" "MS_constraintRepair";
+	
+	checkBox -v 1 -l "eachPointSeparatery"   "pointSeparate"    ;
+	
+	button -w 150 -bgc 1 0.8 0.8 -l "CreateLoacatorConstraint" -c "MS_createLocatorwithConstraint" "MSCCLT";
+	
+	button -w 50 -bgc 0.8 0.8 1 -l "DEL" -c "MS_deleteConstraint" "MSCDEL";
+	
+	button -w 120 -bgc 0.8 1 0.8 -l "MS_constraintNearest" -c "MS_constraintNearest" "MSCNEA";
+	
+	button -w 150 -bgc 1 1 1 -l "MS_constraint" -c "MS_constraintMasterUI_pipe" "MSCEXE";
+	
+	button -w 150 -bgc 1 1 0.5 -l "VertexConstraintExpression" -c "MS_vertexpointConstraint_pipe" "MSVCLT";
+	
+	button -w 100 -bgc 1 0.8 0.5 -l "cleanExpression" -c "MS_deleteUnconnectExpression transform" "MDELEX";
+	
+	button 
+		-w 80 -h 50 
+		-bgc 0.8 1 0.5 
+		-ann "create Locator by Scene Name." 
+		-l "createLocator" 
+		-c "MS_spaceLocatorBySceneName" 
+		"SPCLOC";
+
+	
+	
+	formLayout -e
+	
+	-af	"CLCTgt"	"top"	0
+	-af	"CLCTgt"	"left"	0
+	-af	"TFGTgt"	"top"	0
+	-af	"TFGTgt"	"left"	120
+	
+	
+	-af	"point"     "top"	30
+	-af	"point"     "left"	0
+	
+	-af	"px"     "top"	30
+	-af	"px"     "left"	50
+	-af	"py"     "top"	30
+	-af	"py"     "left"	90
+	-af	"pz"     "top"	30
+	-af	"pz"     "left"	130
+	
+	
+	-af	"aim"       "top"	50
+	-af	"aim"       "left"	0
+	
+	-af	"orient"    "top"	70
+	-af	"orient"    "left"	0
+
+	-af	"ox"     "top"	70
+	-af	"ox"     "left"	50
+	-af	"oy"     "top"	70
+	-af	"oy"     "left"	90
+	-af	"oz"     "top"	70
+	-af	"oz"     "left"	130
+
+	-af	"scale"     "top"	90
+	-af	"scale"     "left"	0
+	-af	"parent"    "top"	110
+	-af	"parent"    "left"	0
+	-af	"geometry"  "top"	130 
+	-af	"geometry"  "left"	0 
+	-af	"normal"    "top"	150
+	-af	"normal"    "left"	0
+	//
+	-af	"tangent"   "top"	170
+	-af	"tangent"   "left"	0
+	-af	"tangentX"     "top"	170
+	-af	"tangentX"     "left"	100
+	-af	"tangentY"     "top"	170
+	-af	"tangentY"     "left"	140
+	-af	"tangentZ"     "top"	170
+	-af	"tangentZ"     "left"	180
+
+	-af	"poleVector""top"	190
+	-af	"poleVector""left"	0
+
+	//constraintRepair
+	-af	"MS_constraintRepair"	"top"	20
+	-af	"MS_constraintRepair"	"left"	250
+	
+	//eachPoinSeaparatery
+	-af	"pointSeparate"	"top"	60
+	-af	"pointSeparate"	"left"	250
+
+	//createLocatorConstraint
+	-af	"MSCCLT"	"top"	80
+	-af	"MSCCLT"	"left"	250
+	
+	//constraintNearest
+	-af	"MSCNEA"	"top"	120
+	-af	"MSCNEA"	"left"	250
+
+	//vertexConstaintExpression
+	-af	"MSVCLT"	"top"	150
+	-af	"MSVCLT"	"left"	250
+	//cleanExpression
+	-af	"MDELEX"	"top"	180
+	-af	"MDELEX"	"left"	250
+
+	//createLocator
+	-af	"SPCLOC"	"top"	210
+	-af	"SPCLOC"	"left"	300
+
+	//実行
+	-af	"MSCEXE"	"top"	240
+	-af	"MSCEXE"	"left"	10
+	
+	//削除
+	-af	"MSCDEL"	"top"	240
+	-af	"MSCDEL"	"left"	200
+	
+	$mainform;
+	setParent ..;
+	//------------------------------------------------------------------------------------
+	$misc=`columnLayout`;
+	
+	intSliderGrp -f 1 -v 1 -l "split" "split";
+	
+	button 
+		-w 80 -h 50 
+		-bgc 0.8 1 0.5 
+		-ann "splitTwoPointConstraintLocator." 
+		-l "createLocator" 
+		-c "MS_splitTwoPointConstraintLocator_pipe" 
+		"SPTPCL";
+	
+	setParent ..;
+	//------------------------------------------------------------------------------------
+	
+	$locatorToComponents=`columnLayout`;
+	
+	//Contents	
+	
+	//text
+	text -label "ThisWindowIsMS_locatorToComponents";
+	separator -w 100 -h 10 -st "single";	
+	//---------------
+	//Execute Buttons
+	//---------------
+	separator -w 100 -h 20 -st "doubleDash";
+	
+	button -bgc 1.0 0.5 0.5 -l "locatorToComponents" -command "MS_locatorToComponentsV2_core" ;
+	separator -w 100 -h 20 -st "doubleDash";
+	
+	button -bgc 0.5 1.0 0.5 -l "duplicateToLocater" -command "MS_duplicateToLocater" ;
+	separator -w 100 -h 20 -st "double";
+	
+	button -bgc 0.5 0.5 1.0 -l "pivotToCompornents" -command "MS_pivotToComponents_core" ;
+	separator -w 100 -h 20 -st "double";
+	
+	button -bgc 0.5 0.8 0.5 -l "jointToComponents" -command "MS_jointToComponents_core" ;
+	separator -w 100 -h 20 -st "doubleDash";
+	
+	button -l "undo" -command "Undo" ;
+	
+	button -l "exit" -command "deleteUI MS_locatorToComponentsV2" ;
+	
+	setParent ..;
+	
+	tabLayout -e
+		-tl $mainform "main"
+		-tl $misc "misc"
+		-tl $locatorToComponents "locatorToComponents"
+		$tabs;
+	
+	showWindow "MS_constraintMasterUI";
+	
+	
+	
+	
+}
+
+MS_constraintMasterUI;
+

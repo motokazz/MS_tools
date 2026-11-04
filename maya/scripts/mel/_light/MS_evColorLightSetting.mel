@@ -1,0 +1,254 @@
+//Creation	Co,
+//day		2004.06.01
+//WEB		http://www.d4.dion.ne.jp/~mosquito/index.html
+//mail		mosquito@d4.dion.ne.jp
+
+
+//クリック「tragetModel」ボタン----------------------------------------
+global proc ClickTragetModel(){
+string $fOBJ[]=`ls -sl`;
+textFieldGrp -e -tx $fOBJ[0] fGetName;
+};
+
+//クリック「useMaterial」ボタン----------------------------------------
+global proc ClickUseMaterial(){
+string $sOBJ[]=`ls -sl`;
+textFieldGrp -e -tx $sOBJ[0] sGetName;
+};
+
+//クリック「CreateLight」ボタン----------------------------------------
+global proc CreateLight(){
+//ウインドウで決めた値を収納
+string $MB = `textFieldGrp -q -text fGetName`;
+string $MA = `textFieldGrp -q -text sGetName`;
+int $TLI = `intSliderGrp -q -v TLintensity`;
+int $DMS = `checkBox -q -v DMShadow`;
+int $DR = `intSliderGrp -q -v DResolution`;
+int $DFS = `intSliderGrp -q -v DFSize`;
+
+//選択されたオブジェクトとマテリアルをリスト化
+select -r $MB;
+duplicate;
+select -tgl$MA;
+string $OBJ[];
+$OBJ = `ls -sl`;
+
+
+//オブジェクトのカラーリング-------------------------
+//マテリアルのカラーに接続されているファイルノード名を取得
+string $FileName[] = `listConnections -d off -s on $OBJ[1]`;
+
+/*MS改造
+//ファイルのパス取得
+string $FilePath = `getAttr ($FileName[0] + ".fileTextureName")`;
+
+//頂点カラーの焼きこみ
+select -r $OBJ[0];
+PaintVertexColorTool;
+artImportAttrMapCB artAttrPaintVertexCtx $FilePath "image";
+MoveTool;
+*/
+
+//intensityの値を決める------------------------------
+//バーテックスを選択
+select -r $OBJ[0];
+PolySelectConvert 3;
+
+//選択してる頂点と個数を求める。
+string $sV[] = `filterExpand -sm 31`;
+int $sVs = `size $sV`;
+
+//ついでにライトのトータルintensityが2になるように個々の値を取得
+float $intensity;
+$intensity = $TLI;
+$intensity /= $sVs;
+
+
+//頂点の中心を求める---------------------------
+//バーテックスを選択
+select -r $OBJ[0];
+PolySelectConvert 3;
+
+//中心位置にクラスタを作成しrotateの値を中心値とする
+string $CenV[] = `newCluster " -envelope 0"`;
+float $CenP[] = `getAttr ($CenV[1] + ".rotatePivot")`;
+
+//クラスタを削除
+delete $CenV;
+
+
+//ライトの配置と配色---------------------------
+//中心となるロケーター制作
+spaceLocator -p $CenP[0] $CenP[1] $CenP[2];
+CenterPivot;
+rename LightTarget_temp;
+
+//改めてバーテックスのリスト化
+select -r $OBJ[0];
+PolySelectConvert 3;
+string $sVertes[];
+$sVertes = `ls -sl -fl`;
+
+//お決まりのループ準備
+int $roop = 0;
+int $num = `size $sVertes`;
+
+//ライトをいれるグループの制作
+CreateEmptyGroup;
+rename evColorLightGroup;
+string $AllGup[];
+$AllGup = `ls -sl -fl`;
+
+while ( $roop < $num) { 
+	select -r $sVertes[$roop] ;
+	string $verT[];
+	$verT = `ls -sl -fl`;
+
+	float $pVer[];
+	$pVer = `pointPosition -w $verT[0]`;
+
+	float $verC[];
+	$verC = `polyColorPerVertex -q -rgb $verT[0]`;
+
+	float $ShadowC;
+	$ShadowC = ($verC[0] + $verC[1] + $verC[2]) ;
+	$ShadowC =((($ShadowC/3-1)*-1)/3);
+
+	directionalLight -i $intensity -rgb $verC[0] $verC[1] $verC[2];
+	setAttr ".useDepthMapShadows" $DMS;
+	setAttr ".dmapResolution" $DR;
+	setAttr ".dmapFilterSize" $DFS;
+	setAttr ".shadowColor" $ShadowC $ShadowC $ShadowC ;
+	move -rpr $pVer[0] $pVer[1] $pVer[2] ;
+	rename EVColorLight;
+	string $Lighten[];
+	$Lighten = `ls -sl`;
+
+	select -r LightTarget_temp;
+	select -tgl $Lighten[0];
+	aimConstraint -aimVector 0 0 -1 -upVector 0 1 0;
+	select -r $Lighten[0] ;
+	pickWalk -d down;
+	pickWalk -d right;
+	delete;
+
+
+	parent $Lighten $AllGup;
+	$roop++;
+};
+
+delete LightTarget_temp;
+delete $OBJ[0];
+};
+
+
+//ウインドウ作成------------------------------------------------
+global proc evColorLightSetting(){
+if((`window -ex colorLight`) == true)deleteUI colorLight;
+
+window -wh 360 240 -s true -t "evColorLightSetting Ver1.0" colorLight;
+columnLayout -columnAttach "both" 5 -rs 1 -cw 320 type;
+
+rowLayout
+	-numberOfColumns 4
+	-cat 1 "left" 5
+	-columnWidth 1 100
+	-columnWidth 2 50;
+		button
+			-al "center" 
+			-l "tragetModel"
+			-w 90
+			-c "ClickTragetModel";
+		textFieldGrp 
+			-cw 1 100 
+			 fGetName;
+		setParent ..;
+
+rowLayout
+	-numberOfColumns 4
+	-cat 1 "left" 5
+	-columnWidth 1 100
+	-columnWidth 2 50;
+		button
+			-al "center" 
+			-l "useMaterial"
+			-w 90
+			-c "ClickUseMaterial";
+		textFieldGrp 
+			-cw 1 100 
+			 sGetName;
+		setParent ..;
+
+frameLayout
+ -label "Options"
+ -labelAlign "center"
+ -cll true
+ -cl false
+ option;
+ columnLayout;
+	intSliderGrp -label "TotalLightIntensity"
+	 -field true
+	 -fieldMinValue 1
+	 -fieldMaxValue 30
+	 -minValue 1
+	 -maxValue 20
+	 -cw 1 100
+	 -cw 2 40
+	 -value 5
+	 TLintensity;
+
+separator -w 280;
+
+frameLayout
+ -label "shodow"
+ -labelAlign "center"
+ -cll true
+ -cl false
+ shadowFrame;
+ columnLayout;
+	checkBox
+	 -label "useDepthMapShadows"
+	 -align "left"
+	 -value on
+	 DMShadow;
+
+	intSliderGrp -label "DmapResolution"
+	 -field true
+	 -fieldMinValue 32
+	 -fieldMaxValue 2048
+	 -minValue 32
+	 -maxValue 2048
+	 -cw 1 100
+	 -cw 2 40
+	 -value 128
+	 DResolution;
+
+	intSliderGrp -label "DmapFilterSize"
+	 -field true
+	 -fieldMinValue 0
+	 -fieldMaxValue 5
+	 -minValue 0
+	 -maxValue 5
+	 -cw 1 100
+	 -cw 2 40
+	 -value 3
+	 DFSize;
+ setParent ..; 
+ setParent ..; 
+setParent ..; 
+setParent ..; 
+
+separator -w 280;
+separator -w 280;
+
+	button -label "CreateLightSet"
+		-align "center"
+		-c "CreateLight";
+	button -label "- Close -"
+		-align "center"
+		-c ("deleteUI -window colorLight");
+
+showWindow colorLight;
+};
+
+evColorLightSetting;

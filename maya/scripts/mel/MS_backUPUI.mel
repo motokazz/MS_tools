@@ -1,0 +1,265 @@
+global proc MS_backUP_textureCopy(){
+	string $exportPath=`textField -q -fi "exportPath"`;
+	string $file[]=`ls -typ file`;
+	string $name[];
+	int $i=0;
+	string $fileTextureName[];
+	for($each in $file){
+		if(!`gmatch $each "*:*"`){//リファレンスチェック
+		//シーン内で使用しているテクスチャーをコピー
+		$fileTextureName[$i]=`getAttr ($each+".fileTextureName")`;
+		tokenize($fileTextureName[$i],"/",$name);
+		sysFile -copy ($exportPath+$name[size($name)-1]) $fileTextureName[$i];
+		$i++;
+		//シーン内のファイルテクスチャーノードを書き換え
+		setAttr ($each+".fileTextureName") -type "string" $name[size($name)-1];
+		}
+	}
+	print $fileTextureName;
+	
+}
+
+
+global proc MS_backUP_getDir_refferencePath(string $exp_dir,string $dummy){
+
+	textField -e -fileName ($exp_dir+"/") "refferencePath";
+
+}
+
+global proc MS_backUP_getDir_exportPath(string $exp_dir,string $dummy){
+
+	textField -e -fileName ($exp_dir+"/") "exportPath";
+	MS_backUP_storeRecallUI "store";
+
+}
+
+global proc MS_backUP_fileBrowser(string $command,string $controlID){
+	global string $gDefaultFileBrowserDir;
+	string $orgpath=$gDefaultFileBrowserDir;
+	string $path=`textField -q -fileName $controlID`;
+	eval("global string $gDefaultFileBrowserDir=\""+$path+"\"");
+	fileBrowser $command "Select Directory" "" 4 ;
+	eval("global string $gDefaultFileBrowserDir=\""+$orgpath+"\"");
+}
+
+
+global proc MS_backUP_core(){
+	string $exportPath=`textField -q -fileName "exportPath"`;
+	string $sourceDir=`workspace -q -rd`;
+	string $mbfiles[] = `getFileList -folder $sourceDir -filespec "*.mb"`;
+	string $mafiles[] = `getFileList -folder $sourceDir -filespec "*.ma"`;
+	string $scenefiles[] =`stringArrayCatenate $mbfiles $mafiles`;
+	int $i=0;
+	for($each in $scenefiles){
+		if(`checkBox -q -v ("fileList_"+$i)`){
+			string $formatCheck[]=`file -q -typ -o  $each`;
+			//MAYABINARY
+			if($formatCheck[0]=="mayaBinary"){
+				file -f -options "v=0;p=17"  -typ "mayaBinary" -o $each;
+				MS_backUP_textureCopy;//テクスチャーコピー
+				string $name[];
+				tokenize ($each,"/\\",$name);
+				file -rename ($exportPath+$name[size($name)-1]);
+				file -f -save -options "v=0;p=17" -type "mayaBinary";
+				print "MB";
+			}
+			//MAYAASCII
+			if($formatCheck[0]=="mayaAscii"){
+				file -f -options "v=0;p=17"  -typ "mayaAscii" -o $each;
+				MS_backUP_textureCopy;//テクスチャーコピー
+				string $name[];
+				tokenize ($each,"/\\",$name);
+				file -rename ($exportPath+$name[size($name)-1]);
+				file -f -save -options "v=0;p=17" -type "mayaAscii";
+				print "MA";
+			}
+		}
+		$i++;
+	}
+	
+	file -f -new;
+	confirmDialog -bgc 1.0 0.8 0.5 -m "====== backup finish ! =====";
+}
+
+
+global proc MS_backUP_storeRecallUI ( string $mode ){
+
+	string $prefix="MS_backUPUI";
+	
+	string $floatFieldList[] = {
+		};
+
+	string $intFieldList[] = {
+		};
+
+	string $floatSliderGrpList[] = {
+		};
+
+	string $intSliderGrpList[] = {
+		};
+
+	string $checkBoxList[] = {
+		};
+
+	string $radioButtonGrpList[] = {
+		};
+
+	string $frameLayoutList[] = {
+		};
+
+	string $textFieldList[] = {
+		};
+
+	string $textFieldList_file[] = {
+		"exportPath"
+		};
+
+	int $cnt;
+
+	if ( $mode == "store" )
+	{
+		for ( $each in $floatFieldList)
+			optionVar -floatValue ($prefix+$each) `floatField -q -value $each`;
+
+		for ( $each in $intFieldList)
+			optionVar -intValue ($prefix+$each) `intField -q -value $each`;
+
+		for ( $each in $floatSliderGrpList)
+			optionVar -floatValue ($prefix+$each) `floatSliderGrp -q -value $each`;
+
+		for ( $each in $intSliderGrpList)
+			optionVar -intValue ($prefix+$each) `intSliderGrp -q -value $each`;
+
+		for ( $each in $checkBoxList)
+			optionVar -intValue ($prefix+$each) `checkBox -q -value $each`;
+
+		for ( $each in $radioButtonGrpList)
+			optionVar -intValue ($prefix+$each) `radioButtonGrp -q -select $each`;
+
+		for ( $each in $frameLayoutList)
+			optionVar -intValue ($prefix+$each) `frameLayout -q -collapse $each`;
+
+		for ( $each in $textFieldList)
+			optionVar -stringValue ($prefix+$each) `textField -q -tx $each`;
+
+		for ( $each in $textFieldList_file)
+			optionVar -stringValue ($prefix+$each) `textField -q -fileName $each`;
+	}
+
+	if ( $mode == "recall" )
+	{
+		for ( $each in $floatFieldList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				floatField -e -value `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $intFieldList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				intField -e -value `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $floatSliderGrpList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				floatSliderGrp -e -value `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $intSliderGrpList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				intSliderGrp -e -value `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $checkBoxList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				checkBox -e -value `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $radioButtonGrpList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				radioButtonGrp -e -select `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $frameLayoutList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				frameLayout -e -collapse `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $textFieldList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				textField -e -tx `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $textFieldList_file)
+			if ( `optionVar -exists ($prefix+$each)` )
+				textField -e -fileName `optionVar -q ($prefix+$each)` $each;
+
+	}
+
+	if ( $mode == "reset" )
+	{
+		for ( $each in $floatFieldList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $intFieldList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $floatSliderGrpList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $intSliderGrpList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $checkBoxList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $radioButtonGrpList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $frameLayoutList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $textFieldList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $textFieldList_file)
+			optionVar -remove ($prefix+$each);
+	}
+}
+
+
+
+
+global proc MS_backUPUI(){
+	//string $sourceDir=`textField -q -fileName "refferencePath"`;
+	string $sourceDir=`workspace -q -rd`;
+	string $mbfiles[] = `getFileList -folder $sourceDir -filespec "*.mb"`;
+	string $mafiles[] = `getFileList -folder $sourceDir -filespec "*.ma"`;
+	string $scenefiles[] =`stringArrayCatenate $mbfiles $mafiles`;
+	
+	if(`window -q -ex MS_backUPUI`)deleteUI MS_backUPUI;
+	window MS_backUPUI;
+	columnLayout;
+	button -width 200 -bgc 0.7 0.7 1.0 -label "SetProject" -c "SetProject;MS_backUPUI;";
+	//ファイルリスト作成
+	setParent..;
+	string $scrollLayout=`scrollLayout`;
+	columnLayout;
+	int $i;
+	string $name[];
+	for($each in $scenefiles){
+		tokenize($each,"/",$name);
+		checkBox -l ($name[size($name)-1]) ("fileList_"+$i);
+		$i++;
+		
+	}
+	setParent..;
+	setParent..;
+	columnLayout;
+	
+	text -bgc 1.0 0.7 0.7 -width 200 -font boldLabelFont -label "exportPath" ;//Data//
+	rowLayout -nc 2 -cw2 150 50;
+	textField -fileName `workspace -q -rd` -width 150 "exportPath" ;//Data//
+	button -width 50 -label "Brouse" -c "MS_backUP_fileBrowser MS_backUP_getDir_exportPath exportPath";
+	setParent ..;
+	
+	button -width 200 -bgc 0.7 1.0 0.7 -label "backUP" -c "MS_backUP_core";
+	MS_backUP_storeRecallUI "recall";
+	scrollLayout -e -w 200 -h 400 $scrollLayout;
+	window -edit -width 208  -h 510 MS_backUPUI;
+	window -e -s false MS_backUPUI;
+	showWindow MS_backUPUI;
+	
+}
+
+

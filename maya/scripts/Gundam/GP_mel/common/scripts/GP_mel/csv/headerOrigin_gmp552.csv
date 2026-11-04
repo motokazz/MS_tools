@@ -1,0 +1,12 @@
+#ifdef GR_FILE_LINKED
+
+GR_FILE_LINKED( _basepose )
+GR_FILE_LINKED( motion_c100_gmp552_pg_sonicthrust_00_jump )
+GR_FILE_LINKED( motion_c100_gmp552_pg_sonicthrust_01_jump_loop )
+GR_FILE_LINKED( motion_c100_gmp552_pg_sonicthrust_02_start )
+GR_FILE_LINKED( motion_c100_gmp552_pg_sonicthrust_03_thrust )
+GR_FILE_LINKED( motion_c100_gmp552_pg_sonicthrust_04_loop )
+GR_FILE_LINKED( motion_c100_gmp552_pg_sonicthrust_05_end )
+
+#undef GR_FILE_LINKED
+#endif // GR_FILE_LINKED

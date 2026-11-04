@@ -1,0 +1,23 @@
+
+//python("print os.path.dirname(os.path.abspath(__file__))\r\n");
+//python("execfile('./MS_toolShelf.py')");
+
+global proc MS_toolShelf_dummy_exec(string $ppp){
+	python("import sys\r\n");
+	python("sys.path.append('"+$ppp+"/')\r\n");
+
+
+	//python("import MS_toolShelf.MS_toolShelf as MS_toolShelf\r\n");
+	python("import MS_toolShelf.MS_toolShelf as MS_toolShelf\r\n");
+	python("reload(MS_toolShelf)\r\n");
+	python("MS_toolShelf.UI()\r\n");
+
+}
+
+string $path = `whatIs MS_toolShelf_dummy_exec`;
+python("path='/'.join('"+$path+"'.split()[-1].replace('.mel','.py').split('/')[0:-2])\r\n");
+$path = python("path\r\n");
+
+MS_toolShelf_dummy_exec($path);
+
+

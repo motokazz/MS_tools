@@ -1,0 +1,7 @@
+global proc string[] MS_arrayAdd(string $arr[],string $add){
+	$arr[size($arr)]=$add;
+	return $arr;
+}
+
+
+

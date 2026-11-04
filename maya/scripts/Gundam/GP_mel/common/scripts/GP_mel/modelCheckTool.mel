@@ -1,0 +1,564 @@
+//modelJointCheckTool
+//
+//
+//
+//モデルの組み合わせチェックSS撮影用ツール
+//まあ動くんじゃないかなレベル
+
+
+//Aパート、各ジャンルのモデル集合シーンを作る
+global proc modelConnectionChecker_compCheckScene(string $savePath , string $modelPath){
+	string $fullModelPath;
+	string $fullTexPath;
+	int $i,$workPartsCat;
+//繰り返し処理
+	for($workPartsCat=2 ; $workPartsCat<8 ; $workPartsCat++){
+		file -f -new;
+	//作業パーツカテゴリの取得
+	//対象パーツIDを確定
+		string $useModelList[];
+		clear $useModelList;
+		$useModelList = `mdlCheckTool_getUseList($workPartsCat)`;
+
+		spaceLocator -n "cycleControlSystem";
+		addAttr -ln "cycleFrame"  -at long  -min 1 -dv 1 |cycleControlSystem;
+		setAttr -e-keyable true |cycleControlSystem.cycleFrame;
+		addAttr -ln "partsNum"  -at long  -min 1 -dv 1 |cycleControlSystem;
+		setAttr -e-keyable true |cycleControlSystem.partsNum;
+		//繰り返し処理
+		for($i=0 ; $i<size($useModelList) ; $i++){
+
+		//対応するマテリアルを作成
+			shadingNode -asShader blinn -n ("mat_" + $useModelList[$i]);
+			sets -renderable true -noSurfaceShader true -empty -name ("mat_" + $useModelList[$i] + "SG");
+
+		//テクスチャインポート
+			$fullTexPath = ($modelPath + "chr" + $useModelList[$i] + "\\chr" + $useModelList[$i] + "_col.dds");
+			$fullTexPath = `substitute "\\\\" $fullTexPath "\\"`;
+			importImageFile($fullTexPath, false, false, true);
+		
+		//マテリアル構築
+			connectAttr -f ("mat_" + $useModelList[$i] + ".outColor") ("mat_" + $useModelList[$i] + "SG.surfaceShader");
+
+		//モデルインポート
+			$fullModelPath = ($modelPath + "chr" + $useModelList[$i] + "\\chr" + $useModelList[$i] + ".mdl.dae");
+			catch( `file -i -f $fullModelPath` );
+			rename parts ("parts" + $i);
+			rename root ("root" + $i);
+			select -r ("root" + $i) ("parts" + $i);
+			group -n ("group_" + $useModelList[$i]);
+		//マテリアル設定
+			//if($i==0){	select -r "parts";	}else{	select -r ("parts" + $i);	}
+			select -r ("parts" + $i);
+			sets -e -forceElement ("mat_" + $useModelList[$i] + "SG");
+
+			string $texNodeName = "";
+			string $tokeTemp[];
+			tokenize $fullModelPath "\\" $tokeTemp;
+			int $tokeCount;
+			for($tokeCount = 1; $tokeCount < (size($tokeTemp) -1) ; $tokeCount++){
+				$texNodeName = $texNodeName + "_" + $tokeTemp[$tokeCount];
+			}
+			print $texNodeName;
+			catch( `connectAttr -force ($texNodeName + "_chr" + $useModelList[$i] + "_col_1.outColor") ("mat_" + $useModelList[$i] + ".color")` );
+
+		//エクスプレッション(手のリグを参考に、シーン名によってサイクルを変えたい)
+			expression -s ("if((trunc(frame/cycleControlSystem.cycleFrame))% " + `size($useModelList)` + " == " + $i + "){\r\n\tgroup_" + $useModelList[$i] + ".visibility = 1;\r\n}else{\r\n\tgroup_" + $useModelList[$i] + ".visibility = 0;\r\n}")  -o ("group_" + $useModelList[$i]) -ae 1 -uc all ;
+		}
+		setAttr "|cycleControlSystem.partsNum" $i;
+	//保存
+		file -rename ( $savePath + "\\checkScene0" + $workPartsCat + ".mb" );
+		file -f -s -options "v=0" -type "mayaBinary";
+		file -f -new;
+	}
+}
+
+
+
+//Bパート、複数パーツの組み合わせシーンを構築、任意のモーションを流し込む
+global proc modelConnectionChecker_compConnectionScene(string $savePath , string $motionPath){
+	string $fullMotPath;
+	int $i;
+//								0			1				2				3				4			
+	string $checkTypeList[]	= {"Head_Body",	"Right_Body",	"Left_Body",	"Under_Body",	"Back_Body"	};
+	string $parentIDList[]	= {"7",			"7",			"7",			"5",			"7"		};
+	string $childIDList[]	= {"2",			"3",			"4",			"7",			"6"		};
+	string $connectList[]	= {"|checkScene07:jointroot_000|checkScene07:J_mune_001|checkScene07:J_kao_002","|checkScene07:jointroot_000|checkScene07:J_mune_001|checkScene07:J_Rkata_100","|checkScene07:jointroot_000|checkScene07:J_mune_001|checkScene07:J_Lkata_200","|checkScene05:jointroot_000","|checkScene07:jointroot_000|checkScene07:J_mune_001|checkScene07:J_backpackConnect_250"};
+
+//繰り返し処理
+	for($i=0 ; $i<size($checkTypeList) ; $i++){
+		//対象カテゴリ×カテゴリの取得
+		string $useChildModelList[] = mdlCheckTool_getUseList($childIDList[$i]);
+		string $useParentModelList[] = mdlCheckTool_getUseList($parentIDList[$i]);
+		
+		//リファレンス
+		file -r -type "mayaBinary" -gl -loadReferenceDepth "all" -namespace ("checkScene0" + $parentIDList[$i]) -options "v=0" ($savePath + "\\checkScene0" + $parentIDList[$i] + ".mb");
+		file -r -type "mayaBinary" -gl -loadReferenceDepth "all" -namespace ("checkScene0" + $childIDList[$i] ) -options "v=0" ($savePath + "\\checkScene0" + $childIDList[$i]  + ".mb");
+
+		int $childNumMax = `getAttr ("checkScene0" + $childIDList[$i] + ":cycleControlSystem.partsNum")`;
+		int $parentNumMax = `getAttr ("checkScene0" + $parentIDList[$i] + ":cycleControlSystem.partsNum")`;
+
+		//全子をロケータヘコンストレイン
+			for($j=0 ; $j<$childNumMax ; $j++){
+				select -r ("checkScene0" + $childIDList[$i] + ":cycleControlSystem");
+				select -add ("*:group_" + $useChildModelList[$j] + "|*:root*");
+				parentConstraint -weight 1;
+			}
+
+		//ロケータを全親へコンストレイン
+			for($j=0 ; $j<$parentNumMax ; $j++){
+				select -r ("checkScene0" + $parentIDList[$i] + ":group_" + $useParentModelList[$j] + "|checkScene0" + $parentIDList[$i] + ":root" + $j + $connectList[$i]);
+				select -add ("checkScene0" + $childIDList[$i] + ":cycleControlSystem");
+				parentConstraint -weight 1;
+			}
+		
+		//全親をロケータヘコンストレイン
+			for($j=0 ; $j<$parentNumMax ; $j++){
+				select -r ("checkScene0" + $parentIDList[$i] + ":cycleControlSystem");
+				select -add ("*:group_" + $useParentModelList[$j] + "|*:root*");
+				parentConstraint -weight 1;
+			}
+
+		//エクスプレッション
+		string $temp[];
+		tokenize $connectList[$i] ":" $temp;
+		string $connectJointShortName = $temp[size($temp)-1];
+			for($j=0;$j<$parentNumMax;$j++){
+				expression -s ("if((trunc(frame/checkScene0" + $parentIDList[$i] + ":cycleControlSystem.cycleFrame))% " + $parentNumMax + " == " + $j + "){\r\n\tcheckScene0" + $childIDList[$i] + ":cycleControlSystem_parentConstraint1." + $connectJointShortName + "W" + $j + " = 1;\r\n}else{\r\n\tcheckScene0" + $childIDList[$i] + ":cycleControlSystem_parentConstraint1." + $connectJointShortName + "W" + $j + " = 0;\r\n}")  -o ("group_" + $useChildModelList[$j]) -ae 1 -uc all ;
+			}
+
+
+		string $useParentMotionList[] = mdlCheckTool_getUseMotionList($parentIDList[$i]);
+		string $useChildMotionList[] = mdlCheckTool_getUseMotionList($childIDList[$i]);
+		string $lackMotionList[];
+		//モーション流し込み
+		string	$grZipPath = "\"" + `getenv "GP_MAYA_ROOT"` + "/common/tool/GrZip.exe\"";
+			$grZipPath = `toNativePath $grZipPath`;
+		for($j=0 ; $j<$parentNumMax ; $j++){
+			$fullMotPath = ($motionPath + "\\chr" + $useParentMotionList[$j] + "\\motion_chr" + $useParentMotionList[$j] + "_gmp000_wait.mot.dae");
+
+			if(size(`getFileList -filespec $fullMotPath`) != 1){
+				$fullMotPath = ($motionPath + "\\chr010" + $parentIDList[$i] + "\\motion_chr010" + $parentIDList[$i] + "_gmp000_wait.mot.dae");
+			}
+
+			string	$command = ($grZipPath + " -x \"" + `toNativePath $fullMotPath` + ".gz\"");
+			$command = ("\"" + $command + "\"");
+			system	$command;
+			file -i -f -typ "COLLADA importer" $fullMotPath;
+			sysFile -delete $fullMotPath;
+			pause -sec 1;
+		}
+		rename root root0;
+		for($j=0 ; $j<$parentNumMax ; $j++){
+			select -hi ("root" + $j);
+			SetKeyRotate;
+			setKeyframe -at rotate;
+			copyKey -time ":" -float ":" -hierarchy below -controlPoints 0 -shape 1 {("root" + $j)};
+			pasteKey -option merge -copies 1 -connect 0 -timeOffset 0 -floatOffset 0 -valueOffset 0 {("checkScene0" + $parentIDList[$i] + ":group_" + $useParentModelList[$j] + "|checkScene0" + $parentIDList[$i] + ":root" + $j)};
+			delete ("root" + $j);
+		}
+
+		for($j=0 ; $j<$childNumMax ; $j++){
+			$fullMotPath = ($motionPath + "\\chr" + $useChildMotionList[$j] + "\\motion_chr" + $useChildMotionList[$j] + "_gmp000_wait.mot.dae");
+
+			if(size(`getFileList -filespec $fullMotPath`) != 1){
+				$fullMotPath = ($motionPath + "\\chr010" + $childIDList[$i] + "\\motion_chr010" + $childIDList[$i] + "_gmp000_wait.mot.dae");
+			}
+
+			string	$command = ($grZipPath + " -x \"" + `toNativePath $fullMotPath` + ".gz\"");
+			$command = ("\"" + $command + "\"");
+			system	$command;
+			file -i -f -typ "COLLADA importer" $fullMotPath;
+			sysFile -delete $fullMotPath;
+			pause -sec 1;
+		}
+		rename root root0;
+		for($j=0 ; $j<$childNumMax ; $j++){
+			select -hi ("root" + $j);
+			SetKeyRotate;
+			setKeyframe -at rotate;
+			copyKey -time ":" -float ":" -hierarchy below -controlPoints 0 -shape 1 {("root" + $j)};
+			pasteKey -option merge -copies 1 -connect 0 -timeOffset 0 -floatOffset 0 -valueOffset 0 {("checkScene0" + $childIDList[$i] + ":group_" + $useChildModelList[$j] + "|checkScene0" + $childIDList[$i] + ":root" + $j)};
+			delete ("root" + $j);
+		}
+
+		//保存
+		setAttr ("checkScene0" + $childIDList[$i] + ":cycleControlSystem.cycleFrame") $parentNumMax;
+		playbackOptions -min 0 -max ($parentNumMax -1) ;
+
+		file -rename ( $savePath + "\\connectionScene0" + $childIDList[$i] + $parentIDList[$i] + ".mb" );
+		file -f -s -options "v=0" -type "mayaBinary";
+
+		setAttr ("checkScene0" + $childIDList[$i] + ":cycleControlSystem.cycleFrame") 1;
+		setAttr ("checkScene0" + $parentIDList[$i] + ":cycleControlSystem.cycleFrame") $childNumMax;
+		playbackOptions -min 0 -max ($childNumMax -1) ;
+
+		file -rename ( $savePath + "\\connectionScene0" + $parentIDList[$i] + $childIDList[$i] + ".mb" );
+		file -f -s -options "v=0" -type "mayaBinary";
+		file -f -new;
+
+	}
+}
+
+//Cパート、あらかじめ設定したシーンで撮影
+global proc modelConnectionChecker_compPrintScene(string $savePath){
+	int $i,$j;
+	string $conIDList[] = {"27","37","47","57","67","72","73","74","75","76"};
+	sysFile -md ($savePath + "\\images");
+
+	//各種設定用グローバル変数
+	global int $gUseScenePanelConfig;
+	global string $gDynPaintEditorName;
+	int $gUseScenePanelConfigBackup = $gUseScenePanelConfig;
+	$gUseScenePanelConfig = 1;
+
+	for($i=0 ; $i<size($conIDList) ; $i++ ){
+		//準備しておいた配置設定シーンデータを使用
+		sysFile -copy ( $savePath + "\\printScene0" + $conIDList[$i] + ".mb") (`getenv "GP_MAYA_ROOT"` + "/common/scripts/GP_mel/MCT/printScene0" + $conIDList[$i] +".mb");
+		file -f -options "v=0"  -ignoreVersion  -typ "mayaBinary" -o ( $savePath + "\\printScene0" + $conIDList[$i] + ".mb");
+
+		//撮影用セットアップ
+		lookThroughModelPanel front modelPanel4;
+		updateModelPanelBar modelPanel4;
+		DisplayShadedAndTextured;
+		{
+			string $currentPanel = `getPanel -withFocus`;
+			string $panelType = `getPanel -to $currentPanel`;
+			if ($panelType ==  "modelPanel") {
+				modelEditor -edit -da "smoothShaded" -displayTextures on -dl "default" $currentPanel;
+			} else if (`isTrue "MayaCreatorExists"` && `scriptedPanel -ex $currentPanel` && `scriptedPanel -q -type $currentPanel` == "dynPaintScriptedPanelType") {
+				dynPaintEditor -e -dtx 1 -dsa "smoothShaded" -dsl "default" $gDynPaintEditorName;
+			} else if ($panelType ==  "scriptedPanel") {
+				string $cmd = "modelEditor -edit -displayAppearance \"smoothShaded\" -displayTextures on -displayLights \"default\" ";
+				scriptedPanelRunTimeCmd( $cmd, $currentPanel );
+			}
+		};
+		updateLightingMenu MayaWindow|mayaMainWindowForm|formLayout3|viewPanes|modelPanel4|menu28 modelPanel4;
+		modelEditor -e -dl none modelPanel4;
+		modelPanelBarDecorationsCallback("GridBtn", "modelPanel4", "MayaWindow|mayaMainWindowForm|formLayout3|viewPanes|modelPanel4|modelPanel4|modelEditorIconBar");
+		restoreLastPanelWithFocus();
+		updateModelPanelBar modelPanel4;
+
+		string $scaleObjs[];
+		string $fnamePiece;
+		for($j=0 ; $j<3 ; $j++ ){
+			switch($j){
+				case 0:
+					$fnamePiece = "HG_HG";
+					break;
+				case 1:
+					$scaled = startString($conIDList[$i],1);
+					select -r ("connectionScene0*:checkScene0" + $scaled + ":root*");
+					$scaleObjs = `ls -sl -type joint`;
+					for($scaleItem in $scaleObjs){
+						setAttr ($scaleItem + ".sx") 1.2;
+						setAttr ($scaleItem + ".sy") 1.2;
+						setAttr ($scaleItem + ".sz") 1.2;
+					}
+					$fnamePiece = "HG_MG";
+					break;
+				case 2:
+					$scaled = endString($conIDList[$i],1);
+					select -r ("connectionScene0*:checkScene0" + $scaled + ":root*");
+					$scaleObjs = `ls -sl -type joint`;
+					for($scaleItem in $scaleObjs){
+						setAttr ($scaleItem + ".sx") 1.2;
+						setAttr ($scaleItem + ".sy") 1.2;
+						setAttr ($scaleItem + ".sz") 1.2;
+					}
+					$fnamePiece = "MG_HG";
+					break;
+			}
+			playblast -format image -v 0 -w 1280 -h 1024 -p 100 -filename ($savePath + "\\images\\checker_" + $fnamePiece + "_" + $conIDList[$i] + "") ;
+
+			for($scaleItem in $scaleObjs){
+				setAttr ($scaleItem + ".sx") 1;
+				setAttr ($scaleItem + ".sy") 1;
+				setAttr ($scaleItem + ".sz") 1;
+			}
+			clear $scaleObjs;
+		}
+	}
+	$gUseScenePanelConfig = $gUseScenePanelConfigBackup;
+}
+
+global proc string[] mdlCheckTool_getUseList(int $partsCtgr){
+	string $useModelList[];
+	switch ($partsCtgr){
+		case 2:
+			$useModelList = {
+				"0102", "0112", "0122", "0132", "0172", "0182",
+				"0212", "0222", "0232", "0242", "0252", "0272", "0282",
+				"0302", "0312", "0322", "0342", "0362", "0382", "0392",
+				"0402", "0422", "0442", "0462", "0472", "0492",
+				"0502", "0512", "0532", "0542", "0552", "0562", "0572", "0582", "0592",
+				"0612", "0672", "0682", "0692",
+				"0722", "0732", "0762",
+				"0802"
+			};
+			break;
+
+		case 3:
+			$useModelList = {
+				"0103", "0113", "0123", "0173", "0183",
+				"0213", "0223", "0233", "0243", "0253", "0263", "0273", "0283",
+				"0303", "0313", "0323", "0343", "0363", "0383", "0393",
+				"0403", "0423", "0443", "0463", "0473", "0493",
+				"0513", "0533", "0543", "0553", "0563",
+				"0613", "0623", "0633", "0673", "0683", "0693",
+				"0723", "0763",
+				"0823", "0833", "0843"
+			};
+			break;
+
+		case 4:
+			$useModelList = {
+				"0104", "0114", "0124", "0174", "0184",
+				"0214", "0224", "0234", "0244", "0254", "0264", "0274", "0284",
+				"0304", "0314", "0324", "0344", "0364", "0384", "0394",
+				"0404", "0424", "0444", "0464", "0474", "0494",
+				"0514", "0534", "0544", "0554", "0564",
+				"0614", "0624", "0634", "0674", "0684", "0694",
+				"0724", "0764",
+				"0824", "0834", "0844"
+			};
+			break;
+			
+		case 5:
+			$useModelList = {
+				"0105", "0115", "0125", "0145", "0155", "0175", "0185", "0195",
+				"0205", "0215", "0225", "0235", "0245", "0255", "0265", "0275", "0285",
+				"0305", "0315", "0325", "0345", "0365", "0385", "0395",
+				"0405", "0425", "0435", "0445", "0465", "0475", "0495",
+				"0515", "0535", "0545", "0555", "0565",
+				"0615", "0675", "0685", "0695",
+				"0725", "0765", 
+				"0875", "0895"
+			};
+			break;
+			
+		case 6:
+			$useModelList = {
+				"0106", "0116", "0126", "0166", "0176", "0186", "0196",
+				"0216", "0226", "0236", "0246", "0256", "0276", "0286", "0296",
+				"0306", "0316", "0326", "0346", "0366", "0376", "0386", "0396",
+				"0406", "0426", "0436", "0446", "0466", "0476", "0496",
+				"0516", "0536", "0546", "0556", "0566",
+				"0616", "0626", "0636", "0646", "0676", "0686", "0696",
+				"0726", "0766",
+				"0856"
+			};
+			break;
+			
+		case 7:
+			$useModelList = {
+				"0107", "0117", "0127", "0147", "0177", "0187",
+				"0217", "0227", "0237", "0247", "0257", "0277", "0287",
+				"0307", "0317", "0327", "0347", "0367", "0387", "0397",
+				"0407", "0427", "0447", "0477", "0497",
+				"0517", "0537", "0547", "0557", "0567",
+				"0617", "0677", "0687", "0697",
+				"0727", "0767"
+			};
+			break;
+
+		default :
+			$useModelList = {
+				"5100",
+				"5101","5102","5103","5105","5120",
+				"5121","5122","5123","5130",
+				"5131","5132","5170",
+				"5171","5172","5174","5178","5179","5180",
+				"5181","5185","5210",
+				"5211","5230",
+				"5240",
+				"5241","5242","5245","5250",
+				"5255","5280",
+				"5281","5290",
+				"5291","5292","5293","5300",
+				"5301","5303","5305","5310",
+				"5311","5312","5321","5330",
+				"5340",
+				"5361","5362","5363","5366","5380",
+				"5381","5382","5383","5384","5385","5393","5395","5400",
+				"5401","5402","5405","5420",
+				"5421","5423","5431","5434","5438","5439","5441","5461","5464","5468","5469","5471","5474","5490",
+				"5491","5492","5495","5510",
+				"5513","5515","5530",
+				"5531","5532","5533","5535","5541","5545","5555","5565","5610",
+				"5611","5615","5619","5631","5632","5640",
+				"5641","5644","5690",
+				"5691","5720",
+				"5721","5722","5725","5729","5761","5831","5832","5833","5850",
+				"5861","5880",
+				"5930",
+				"5951","5961","5971","5980",
+				"5981"
+			};
+	}
+	return($useModelList);
+}
+
+global proc string[] mdlCheckTool_getUseMotionList(int $partsCtgr){
+	string $useModelList[];
+	switch ($partsCtgr){
+		case 2:
+			$useModelList={
+				"0102","0112","0112","0112","0172","0182",
+				"0212","0222","0232","0102","0102","0102","0282",
+				"0302","0312","0322","0342","0362","0382","0392",
+				"0402","0422","0442","0672","0472","0492",
+				"0492","0512","0532","0532","0552","0552","0572","0582","0592",
+				"0612","0672","0672","0672",
+				"0722","0722","0762",
+				"0102"
+			};
+			break;
+
+		case 3:
+			$useModelList={
+				"0103","0113","0113","0173","0183",
+				"0213","0223","0233","0103","0103","0103","0103","0283",
+				"0303","0313","0323","0343","0363","0383","0393",
+				"0403","0423","0443","0673","0473","0493",
+				"0513","0533","0533","0553","0553",
+				"0613","0623","0633","0673","0673","0673",
+				"0723","0763",
+				"0103","0113","0613"
+			};
+			break;
+
+		case 4:
+			$useModelList={
+				"0104","0114","0114","0174","0184",
+				"0214","0224","0234","0104","0104","0104","0104","0284",
+				"0304","0314","0324","0344","0364","0384","0394",
+				"0404","0424","0444","0674","0474","0494",
+				"0514","0534","0534","0554","0554",
+				"0614","0624","0634","0674","0674","0674",
+				"0724","0764",
+				"0104","0114","0614"
+			};
+			break;
+
+		case 5:
+			$useModelList={
+				"0105","0115","0115","0115","0115","0175","0185","0115",
+				"0115","0215","0225","0235","0105","0105","0105","0105","0285",
+				"0305","0315","0325","0345","0365","0385","0395",
+				"0405","0425","0675","0445","0675","0475","0495",
+				"0515","0535","0535","0555","0555",
+				"0615","0675","0675","0675",
+				"0725","0765",
+				"0225","0445"
+			};
+			break;
+
+		case 6:
+			$useModelList={
+				"0106","0116","0116","0116","0176","0186","0116",
+				"0216","0226","0236","0106","0106","0106","0286","0296",
+				"0306","0316","0326","0346","0366","0376","0386","0396",
+				"0406","0426","0436","0446","0466","0476","0496",
+				"0516","0536","0536","0556","0556",
+				"0616","0626","0636","0646","0676","0676","0676",
+				"0726","0766",
+				"0856"
+			};
+			break;
+
+		case 7:
+			$useModelList={
+				"0107","0117","0117","0117","0177","0187",
+				"0217","0227","0237","0107","0107","0107","0287",
+				"0307","0317","0327","0347","0367","0387","0397",
+				"0407","0427","0447","0477","0497",
+				"0517","0537","0537","0557","0557",
+				"0617","0677","0677","0677",
+				"0727","0767"
+			};
+			break;
+
+	}
+	return($useModelList);
+}
+
+
+
+global proc modelCheckTool_execConnectionCheck(string $savePath , string $modelPath , string $motionPath){
+	sysFile -md $savePath;
+	modelConnectionChecker_compCheckScene($savePath,$modelPath);
+	modelConnectionChecker_compConnectionScene($savePath,$motionPath);
+	modelConnectionChecker_compPrintScene($savePath);
+	confirmDialog -title "MotionDataChecker" -message ("作業が完了しました。" + $savePath + "\\images\\の画像を確認してください。") -button "OK";
+}
+
+
+//テキストフィールドのボタンから、データを指定された時の動作--------------------------------------------------------------------
+global proc MoDeCh_setTextfData(string $textf , string $fileName, string $fileType){
+	$fileName = `toNativePath( $fileName )`;
+	$fileName = ($fileName + "\\");
+	textFieldButtonGrp -e -text $fileName $textf;
+}
+
+
+global proc modelCheckTool(){
+	string $savePathPrime = ("L:\\partsCheckProject\\scenes\\");
+//	string $savePathPrime = ("L:\\partsCheckProject\\scenes\\" + `date -format "YYYY_MM_DD_hhmm"`);
+	string $modelPath = "C:\\GP\\trunk\\resource\\original\\GP\\model\\";
+	string $motionPath = "S:\\motion\\collada\\";
+	
+	string $title = "ModelDataCheckTool";
+	string $MoDeChwindow = "ModelDataCheckTool";
+
+	if ( `window -exists $MoDeChwindow` ){ deleteUI $MoDeChwindow;}
+
+	window  -t ($title) -menuBar true -w 640 -h 300 $MoDeChwindow;
+
+	//---------------------------------------------------------------------------------------------
+		string $MoDeCh_frame = `frameLayout -labelAlign "top" -label "指定したフォルダ内のパーツモデル(.mdl.dae)にwaitモーションを流し込み、チェック用SSを撮影します。" -borderStyle "etchedIn" MoDeCh_frame`;
+			string $MoDeCh_forms = `formLayout -numberOfDivisions 100`;
+				string $tf_MoDeCh_1 = (`textFieldButtonGrp -cl3 left both right -cw3 120 440 100 -label "出力先フォルダ" -text $savePathPrime -ann "" -buttonLabel "Edit" MoDeCh_exptTf`);
+				string $tf_MoDeCh_2 = (`textFieldButtonGrp -cl3 left both right -cw3 120 440 100 -label "モデルデータフォルダ" -text $modelPath -ann "" -buttonLabel "Edit" MoDeCh_ModTf`);
+				string $tf_MoDeCh_3 = (`textFieldButtonGrp -cl3 left both right -cw3 120 440 100 -label "モーションcolladaフォルダ" -text $motionPath -ann "" -buttonLabel "Edit" MoDeCh_ColTf`);
+
+				string $MoDeCh_b1 = `button -w 420 -h 30 -l "モデルデータチェック" modCheckBtn`;
+
+				formLayout -edit
+
+					-attachForm $tf_MoDeCh_1 "top"    10
+					-attachForm $tf_MoDeCh_1 "left"   10
+					-attachNone $tf_MoDeCh_1 "bottom"
+					-attachForm $tf_MoDeCh_1 "right"  10
+
+					-attachControl $tf_MoDeCh_2 "top"  5 $tf_MoDeCh_1
+					-attachForm $tf_MoDeCh_2 "left"   10
+					-attachNone $tf_MoDeCh_2 "bottom"
+					-attachForm $tf_MoDeCh_2 "right"  10
+
+					-attachControl $tf_MoDeCh_3 "top"  5 $tf_MoDeCh_2
+					-attachForm $tf_MoDeCh_3 "left"   10
+					-attachNone $tf_MoDeCh_3 "bottom"
+					-attachForm $tf_MoDeCh_3 "right"  10
+
+					-attachNone $MoDeCh_b1 "top"
+					-attachForm $MoDeCh_b1 "left"   10
+					-attachForm $MoDeCh_b1 "bottom" 10
+					-attachForm $MoDeCh_b1 "right"  10
+				$MoDeCh_forms;
+				setParent ..;
+			setParent ..;
+
+	//---------------------------------------------------------------------------------------------
+
+
+	button -edit -command "modelCheckTool_execConnectionCheck((`textFieldButtonGrp -q -text MoDeCh_exptTf` + `date -format \"YYYY_MM_DD_hhmm\"`) , `textFieldButtonGrp -q -text MoDeCh_ModTf` , `textFieldButtonGrp -q -text MoDeCh_ColTf`);" -ann "指定フォルダ内のモーションヘッダファイルチェックを行います。" modCheckBtn;
+	string $tfc0 = `textFieldButtonGrp -edit -bc ("fileBrowserDialog -mode 4 -fileType \"directory\" -actionName \"select Folder\" -fileCommand \"MoDeCh_setTextfData(\\\"MoDeCh_exptTf\\\")\" ") MoDeCh_exptTf`;
+	string $tfc1 = `textFieldButtonGrp -edit -bc ("fileBrowserDialog -mode 4 -fileType \"directory\" -actionName \"select Folder\" -fileCommand \"MoDeCh_setTextfData(\\\"MoDeCh_ModTf\\\")\" ") MoDeCh_ModTf`;
+	string $tfc2 = `textFieldButtonGrp -edit -bc ("fileBrowserDialog -mode 4 -fileType \"directory\" -actionName \"select Folder\" -fileCommand \"MoDeCh_setTextfData(\\\"MoDeCh_ColTf\\\")\" ") MoDeCh_ColTf`;
+
+	window -e -w 640 -h 300 $MoDeChwindow;
+	showWindow $MoDeChwindow;
+}
+
+

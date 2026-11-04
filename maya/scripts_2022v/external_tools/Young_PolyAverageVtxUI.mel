@@ -1,0 +1,76 @@
+global proc sourceMain()
+{
+	//==source Young_PowerModelTools script==//
+	string $home = `getenv "HOME"`;
+	string $path_Tools = ( "source " + "\"" +$home+"/maya/scripts/Young_PolyAverageVtx.mel" + "\"");
+	eval $path_Tools;
+}
+
+global proc ck_PlyAvgVtx_connect_2()
+{
+	if (`radioCollection -q -sl ck` == "ckFast")
+	{
+		Young_PlyAvgVtx_connect_2 0;
+	}
+	else if (`radioCollection -q -sl ck` == "ckExact")
+	{
+		Young_PlyAvgVtx_connect_2 1;
+	}
+}
+
+global proc Young_PolyAverageVtxUI()
+{
+	sourceMain;
+	if (`window -exists Young_PolyAverageVtxUI`)deleteUI -window Young_PolyAverageVtxUI;
+	string $window=`window -t "Young_PolyAverageVtxUI" -wh 300 150 Young_PolyAverageVtxUI`;
+	
+	string $frame = `frameLayout -label "      - Young averge Vtx tools BETA 2.01   - " -borderStyle "in"`;
+	string $Playout = `paneLayout -ps 1 100 17 -ps 2 100 13 -ps 3 100 70 -configuration "horizontal3" -p $frame KKKK`;
+		rowColumnLayout 
+			-numberOfColumns 6 
+			-columnWidth 1 40
+			-columnWidth 2 50 
+			-columnWidth 3 50 
+			-columnWidth 4 95 
+			-columnWidth 5 25 
+			-columnWidth 6 25;
+				text -en 0 -l " Mode :";
+				radioCollection ck;
+				radioButton -label "Exact" -sl -align "left" -en 1 ckExact;
+				radioButton -label "Fast" -align "left" ckFast;
+				text -en 0 -l "    Distance Preset :";
+				button -l "1" -c "floatSliderGrp -e -v 1 distance";
+				button -l "-1" -c "floatSliderGrp -e -v -1 distance";
+		setParent ..;	
+		
+		rowColumnLayout -numberOfColumns 10 -columnWidth 1 1 -columnWidth 2 300;
+				text -l "";
+				//checkBox -label " In|Out"   -align "left" query;
+				floatSliderGrp -label " Distance" -field true
+				-minValue -10 -maxValue 10
+				-fieldMinValue -10 -fieldMaxValue 10
+				-value 1
+				-sliderStep 0.1
+				-cw3 55 60 30
+				-cal 1 "left" 
+				-cal 2 "left" 
+				-cal 3 "left"
+				distance
+				;
+		setParent ..;
+			
+		rowColumnLayout -nc 8 -cw 1 35 -cw 2 35 -cw 3 35 -cw 4 35 -cw 5 35 -cw 6 35 -cw 7 35 -cw 8 35;
+			iconTextButton -style "iconOnly" -image1 "icon_Young_PowModelTools_YAP.bmp" -c "Young_PolyAverageVtx 0";
+			iconTextButton -style "iconOnly" -image1 "icon_Young_Connect_1.BMP" -c "Young_connect_1";
+			iconTextButton -style "iconOnly" -image1 "icon_Young_Connect_2.BMP" -c "Young_connect_2";
+			iconTextButton -style "iconOnly" -image1 "icon_Young_MoveVtx_01.BMP" -c "Young_PlyAvgVtx_connect_1 0";
+			iconTextButton -style "iconOnly" -image1 "icon_Young_MoveVtx_02.BMP" -c "Young_PlyAvgVtx_connect_2 0";
+			iconTextButton -style "iconOnly" -image1 "icon_Loop.BMP" -label "sphere" -c "PowSlEgeLoop";
+			iconTextButton -style "iconOnly" -image1 "icon_Ring.BMP" -label "sphere" -c "SelectEdgeRing";
+			iconTextButton -style "iconOnly" -image1 "icon_DelEdge.bmp" -label "DeleteEdge" -c "DeleteEdge";
+		setParent ..;
+
+	window -edit -w 300 -h 180 $window;
+	showWindow $window;
+}
+Young_PolyAverageVtxUI;

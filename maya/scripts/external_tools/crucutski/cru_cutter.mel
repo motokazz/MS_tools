@@ -1,0 +1,523 @@
+/* This file downloaded from Highend3d.com
+''  
+''  Highend3d.com File Information:
+''  
+''    Script Name: Crucutski
+''    Author: greyskull 
+''    Last Updated: Feb 04, 2009
+''    Update/Change this file at:
+''    http://Highend3d.com/maya/downloads/mel_scripts/modeling/poly_tools/2742.html
+''  
+''  Please do not alter any information above this line
+''  it is generated dynamically by Highend3d.com and will
+''  be changed automatically on any updates.
+*/
+// 0: outside
+// 1: intersect
+// 2: inside
+global proc int cruCollision(string $bbox, string $object){
+	int $output;
+	
+	float $bboxLoc[] = `polyEvaluate -b -ae $bbox`;
+	int $countX[];
+	int $countY[];
+	int $countZ[];
+	
+	int $verts[] = `polyEvaluate -v $object`;
+	
+	int $i;
+	for ($i = 0; $i < $verts[0]; $i++) {
+		float $objectPos[] = `xform -q -ws -a -t ($object + ".vtx[" + $i + "]")`;
+	
+		if (($objectPos[0] >= $bboxLoc[0]) && ($objectPos[0] <= $bboxLoc[1])) {
+			if (($objectPos[2] >= $bboxLoc[4]) && ($objectPos[2] <= $bboxLoc[5])) {
+				if (($objectPos[1] >= $bboxLoc[2]) && ($objectPos[1] <= $bboxLoc[3])) {
+					$countX[$i] = 1;
+					$countY[$i] = 1;
+					$countZ[$i] = 1;
+				} else {
+					$countX[$i] = 1;
+					$countY[$i] = 0;
+					$countZ[$i] = 1;
+			}
+		} else {
+					$countX[$i] = 1;
+					$countY[$i] = 1;
+					$countZ[$i] = 0;
+			}
+		} else {
+					$countX[$i] = 0;
+					$countY[$i] = 1;
+					$countZ[$i] = 1;
+		}
+		
+		clear $objectPos;
+	}
+	
+	int $compare = `cruVertCompare $verts[0] $countX $countY $countZ`;
+	
+	if ($compare < -35) {
+		$output = 0;
+	} else if ($compare > -36 && $compare < 36) {
+		$output = 1;
+	} else  if ($compare > 35) {
+		$output = 2;
+	}
+
+	return $output;
+	
+	clear $bboxLoc;
+	clear $verts;
+	clear $countX;
+	clear $countY;
+	clear $countZ;
+}
+
+global proc int cruVertCompare(int $verts, int $x[], int $y[], int $z[]) {
+	int $output = 0;
+	
+	int $i;
+	for ($i = 0; $i < $verts; $i++) {
+		if ($x[$i] > 0 && $y[$i] > 0 && $z[$i] > 0) {
+			$output++;
+		} else if ($x[$i] < 1 || $y[$i] < 1 || $z[$i] < 1) {
+			$output--;
+		} else if ($x[$i] != $y[$i] && $y[$i] != $z[$i] && $z[$i] != $x[$i]) {
+			$output = 0;
+		}
+	}
+	
+	return $output;
+}
+
+global proc string[] cruSeparate(string $object) {
+	string $shapeType[] = `cruShapeType $object`;
+	string $output[];
+	string $temp[];
+	
+	int $eval[] = `polyEvaluate -s $shapeType[0]`;
+	int $test = $eval[0];
+	
+	if ($test < 2) {
+		$output[0] = $object;
+	} else {
+		$temp = `polySeparate -ch 0 $shapeType[0]`;
+		$output = `cruArrayMesh $temp`;
+	}
+	
+	return $output;
+	
+	clear $output;
+	clear $eval;
+	clear $temp;
+	clear $shapeType;	
+}
+
+global proc cruRandReplace(string $cutObj, string $targetObj) {
+	int $faces[] = `polyEvaluate -f $targetObj`;
+	int $randFace = rand(0, $faces[0]);
+	
+	float $facePos[] = `cruFaceCenter $targetObj $randFace`;
+	float $faceRot[] = { rand(-360,360), rand(-360,360), rand(-360,360) };
+	
+	setAttr ($cutObj + ".translate") -type double3 $facePos[0] $facePos[1] $facePos[2];
+	setAttr ($cutObj + ".rotate") -type double3 $faceRot[0] $faceRot[1] $faceRot[2];
+	
+	clear $faces;
+	clear $facePos;
+	clear $faceRot;
+}
+
+global proc cruGenSuperCutter() {
+	string $objs[] = `textScrollList -q -ai cru_objList`;
+	int $rand = rand(0,size($objs));
+	
+	if (size($objs) < 1) {
+		warning "CRU -> You need to have at least 1 item in the OBJECTS LIST.";
+	} else {
+		if (!`objExists $objs[$rand]`) {
+			warning "CRU -> An object in the OBJECTS LIST appears to be missing. Remove it from the list.";
+		} else {
+			string $cuts[] = `textScrollList -q -ai cru_cutList`;
+			string $cutter[] = `cruGenCutter 1 "superCutter"`;
+
+			setAttr -type "string" ($cutter[0] + ".crucutPlane") "superCut";
+			setAttr -l 1 ($cutter[0] + ".crucutPlane");
+			
+			int $faces[] = `polyEvaluate -f $objs[$rand]`;
+			int $randFace	= rand(0,$faces[0]);
+			
+			float $trans[] = `cruFaceCenter $objs[$rand] $randFace`;
+			float $scale[] = `getAttr ($objs[$rand] + ".scale")`;
+			float $rot[] = { rand(-360,360), rand(-360,360), rand(-360,360) };
+			float $objScale;
+			
+			if ($scale[0] > $scale[1] && $scale[0] > $scale[2]) {
+				$objScale = $scale[0];
+			} else if ($scale[0] < $scale[1] && $scale[1] > $scale[2]) {
+				$objScale = $scale[1];
+			} else {
+				$objScale = $scale[2];
+			}
+			
+			setAttr ($cutter[0] + ".translate") -type double3 $trans[0] $trans[1] $trans[2];
+			setAttr ($cutter[0] + ".rotate") -type double3 $rot[0] $rot[1] $rot[2];
+			setAttr ($cutter[0] + ".scale") -type double3 $objScale $objScale $objScale;
+			
+			if (!`cruInArray $cuts $cutter[0]`) {
+				textScrollList -e -a $cutter[0] cru_cutList;
+			}
+			
+			clear $cuts;
+			
+			cruListSort	"cru_cutList";
+				
+			clear $cuts;
+			clear $faces;
+			clear $trans;
+			clear $rot;
+			clear $scale;
+			
+			select -r $cutter[0];
+			
+			clear $cutter;
+		}
+	}
+	
+	cruChecker;
+	
+	clear $objs;
+}
+
+global proc string cruGenSoloCutter() {
+	string $objs[] = `textScrollList -q -ai cru_objList`;
+	string $cutter[] = `cruGenCutter 1 "cutter"`;
+	string $output;
+	
+	int $rand = rand(0,size($objs));
+
+	if (`objExists $objs[$rand]`) {
+		int $faces[] = `polyEvaluate -f $objs[$rand]`;
+		int $randFace = rand(0,$faces[0]);
+		
+		float $trans[] = `cruFaceCenter $objs[$rand] $randFace`;
+		float $scale[] = `getAttr ($objs[$rand] + ".scale")`;
+		float $rot[] = { rand(-360,360), rand(-360,360), rand(-360,360) };
+		float $objScale;
+		
+		if ($scale[0] > $scale[1] && $scale[0] > $scale[2]) {
+			$objScale = $scale[0];
+		} else if ($scale[0] < $scale[1] && $scale[1] > $scale[2]) {
+			$objScale = $scale[1];
+		} else {
+			$objScale = $scale[2];
+		}
+		
+		setAttr ($cutter[0] + ".translate") -type double3 $trans[0] $trans[1] $trans[2];
+		setAttr ($cutter[0] + ".rotate") -type double3 $rot[0] $rot[1] $rot[2];
+		setAttr ($cutter[0] + ".scale") -type double3 $objScale $objScale $objScale;
+
+		clear $faces;
+		clear $trans;
+		clear $rot;
+		clear $scale;
+	}
+	
+	$output = $cutter[0];
+	
+	select -r $output;
+	
+	return $output;
+	
+	clear $objs;
+	clear $cutter;
+}
+
+global proc string[] cruGenCutter(int $amount, string $namePrefix) {
+	string $output[];
+	string $master = "crucutters";
+	int $count = 0;
+	
+	if (!`objExists $master`) {
+		group -em -n $master;
+	}
+	
+	int $i;
+	for ($i = 0; $i < $amount; $i++) {
+		string $plane[] = `polyPlane -n ("cru_" + $namePrefix + "#") -w 1 -h 1 -sx 5 -sy 5 -ax 0 1 0 -tx 1 -ch 1`;
+		string $pHist[] = `listHistory $plane[0]`;
+
+		addAttr -ln crucutPlane -dt "string" $plane[0];
+		setAttr -e -keyable true ($plane[0] + ".crucutPlane");
+		
+		setAttr ($pHist[1] + ".axisY") 0;
+		delete -ch $plane[0];
+		
+		parent $plane[0] $master;
+		
+		$output[$count] = $plane[0];
+		
+		$count++;
+		
+		clear $plane;
+		clear $pHist;
+	}
+	
+	return $output;
+	
+	clear $output;
+}
+
+global proc string[] cruHoleSealer(string $object) {
+	string $faces[] = `filterExpand -sm 34 ($object + ".f[*]")`;
+	string $newFaces[];
+	string $output[];
+	int $compare = 0;
+	
+	polyCloseBorder -ch 1 $object;
+	
+	$newFaces = `filterExpand -sm 34 ($object + ".f[*]")`;
+	
+	$compare = `cruArrayCompare $faces $newFaces`;
+	
+	int $count = 0;
+	
+	int $i;
+	for ($i = (size($newFaces) - $compare); $i < size($newFaces); $i++) {
+		$output[$count] = $newFaces[$i];
+		
+		$count++;
+	}
+	
+	select -r $output;
+	
+	return $output;
+	
+	clear $output;
+	clear $faces;
+	clear $newFaces;
+}
+
+global proc string[] cruCut(int $doCut, string $object, string $cutter, string $shader, int $doShader, int $doDelete, int $doOffset, float $offX, float $offY, float $offZ, int $doFillHole, int $doSeparate) {
+	string $output[];
+	
+	if (`objExists $object`) {
+		float $trans[] = `getAttr ($cutter + ".translate")`;
+		float $rot[] = `getAttr ($cutter + ".rotate")`;
+		float $scale[] = `getAttr ($cutter + ".scale")`;
+		string $newFaces[];
+
+		if ($doCut > 0) {
+			polyCut -ch 1 -ro $rot[0] $rot[1] $rot[2] -pc $trans[0] $trans[1] $trans[2] -ps $scale[0] $scale[2] -df $doDelete -ef $doOffset -eo $offX $offY $offZ $object;
+			
+			if ($doFillHole > 0) {
+				$newFaces = `cruHoleSealer $object`;
+				
+				if ($doShader > 0) {
+					string $sg = `cruGetSG $shader`;
+					
+					select -r $newFaces;
+					
+					sets -e -forceElement $sg;
+					
+					select -cl;
+				}
+			}
+			
+			delete -ch $object;
+			
+			if ($doSeparate > 0) {
+				$output = `cruSeparate $object`;
+			}
+			
+			clear $trans;
+			clear $rot;
+			clear $scale;
+			clear $newFaces;
+		}
+	}
+	
+	return $output;
+	
+	clear $output;
+}
+
+global proc cruSuperCutter(int $realtime, string $objList, string $cutList, string $shader, int $doShader, int $doReplace, int $doFillHole, int $doSeparate, int $doDelete, int $doCutterDelete, int $doOffset, float $offX, float $offY, float $offZ) {
+	string $progressBar	= "crucutskiProgress";
+	string $obj[]		= `cruUnzip $objList`;
+	string $cutters[]	= `cruUnzip $cutList`;
+	string $new[];
+	string $cut[];
+	
+	string $objMaster = "crucutski";
+	string $cutMaster = "crucutters";
+	
+	int $doCut;
+	int $newObjects = size($obj);
+	
+	int $durup = 0;
+	int $duration = $newObjects + size($cutters) + $durup;
+	
+	if (!`objExists $objMaster`) {
+		group -em -n $objMaster;
+	}
+	
+	if (!`objExists $cutMaster`) {
+		group -em -n $cutMaster;
+	}
+	
+	progressBar -e -bp -max $duration $progressBar;
+	
+	int $i;
+	int $j;
+	for ($i = 0; $i < size($cutters); $i++) {
+		if (`objExists $cutters[$i]`) {
+			for ($j = 0; $j < $newObjects; $j++) {
+				if (`objExists $obj[$j]`) {		
+					if (`objExists $obj[$j]`) {
+						$doCut = 1;
+					} else {
+						$doCut = 0;
+					}
+		
+					if ($doReplace > 0) {
+						cruRandReplace $cutters[$i] $obj[$j];
+					}
+					
+					$cut = `cruCut $doCut $obj[$j] $cutters[$i] $shader $doShader $doDelete $doOffset $offX $offY $offZ $doFillHole $doSeparate`;
+				
+					
+					if ($doSeparate > 0) {
+						if (`window -ex crucutGUI`) {
+							cruParent $cut $objMaster;
+							delete -ch $cut;
+						}
+					}
+					
+					if ($realtime > 0) {
+						refresh;
+						cruList refresh;
+					}
+					
+					$duration += size($cut);
+				}
+			}
+			
+			clear $obj;
+			
+			string $retrieve[] = `listRelatives $objMaster`;
+			$obj = `cruGetMeshOnly $retrieve`;
+			
+			$newObjects = $newObjects + size($cut);
+			
+			clear $cut;
+			clear $retrieve;
+			
+			progressBar -e -s 1 $progressBar;
+		}
+	}
+		
+	if ($realtime < 1) {
+		refresh;
+		cruList refresh;
+	}
+	
+	print ("CRU -> Super Cutting Complete.\n");
+	
+	progressBar -e -ep $progressBar;
+	
+	clear $obj;
+	clear $cutters;
+	clear $new;
+}
+
+global proc cruCutter(int $realtime, string $objList, string $manual, string $shader, int $doShader, int $doReplace, int $doFillHole, int $doSeparate, int $doManual, int $doDelete, int $doOffset, float $offX, float $offY, float $offZ) {
+	string $obj[] = `cruUnzip $objList`;
+	string $master = "crucutski";
+	string $progressBar = "crucutskiProgress";
+
+	if (!`objExists $manual`) {
+		print ("Error: Designated cut object does not exist > " + $manual + "\n");
+	} else {
+		int $doCut;
+		int $duration;
+		
+		if (!`objExists $master`) {
+			group -em -n $master;
+		}
+		
+		if ($doManual > 0) {
+			$duration = size($obj);
+		} else {
+			$duration = 1;
+		}
+		
+		progressBar -e -bp -max $duration $progressBar;
+		
+		int $i;
+		int $j;
+		for ($i = 0; $i < size($obj); $i++) {			
+			if (`objExists $obj[$i]`) {
+				$doCut = 1;
+			} else {
+				$doCut = 0;
+			}
+			
+			if ($doReplace > 0) {
+				cruRandReplace $manual $obj[$i];
+			}
+			
+			string $cut[] = `cruCut $doCut $obj[$i] $manual $shader $doShader $doDelete $doOffset $offX $offY $offZ $doFillHole $doSeparate`;
+			
+			if ($doSeparate > 0 && $doCut > 0) {
+				if (`window -ex crucutGUI`) {
+					cruParent $cut $master;
+					delete -ch $cut;
+				}
+			}
+			
+			clear $cut;
+
+			if ($realtime > 0) {
+				refresh;
+				cruList refresh;
+			}
+
+			progressBar -e -s 1 $progressBar;
+		}
+
+		if ($realtime < 1) {
+			refresh;
+			cruList refresh;
+		}
+		
+		print ("CRU -> Cutting Complete.\n");
+		
+		progressBar -e -ep $progressBar;
+	}
+	
+	clear $obj;
+}
+
+global proc string[] cruParent(string $objects[], string $group) {
+	string $kids[] = `listRelatives -c $group`;
+	string $output[];
+	
+	int $count = 0;
+	
+	int $i;
+	for ($i = 0; $i < size($objects); $i++) {
+		if (!`cruInArray $kids $objects[$i]`) {
+			parent $objects[$i] $group;
+			
+			$output[$count] = $objects[$i];
+			
+			$count++;
+		}
+	}
+		
+	return $output;
+	
+	clear $kids;
+	clear $output;
+}

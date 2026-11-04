@@ -1,0 +1,235 @@
+
+global proc MS_vtxcol_random(){
+	
+	float $val=`floatField -q -v "floatField6"`;
+	float $AlphaMin=`floatField -q -v "AlphaMin"`;
+	float $AlphaMax=`floatField -q -v "AlphaMax"`;
+	int $check_lumine=`checkBox -q -v "luminance"`;
+	int $check_alpha=`checkBox -q -v "alpha"`;
+	PolySelectConvert 3;
+	string $vtx[]=`filterExpand -ex 1 -sm 31`;
+	
+	for($each in $vtx){
+
+		float $num=(rand($AlphaMin,$AlphaMax));
+		if($check_lumine){polyColorPerVertex -r $num -g $num -b $num $each;}
+		if($check_alpha){polyColorPerVertex -a $num $each;}
+		print ($each+":"+$num+"\n");
+	}
+	
+
+}
+
+
+global proc MS_vtxcol_random_SS(){
+	
+	float $val=`floatField -q -v "floatField6"`;
+	float $AlphaMin=`floatField -q -v "AlphaMin"`;
+	float $AlphaMax=`floatField -q -v "AlphaMax"`;
+	int $check_lumine=`checkBox -q -v "luminance"`;
+	int $check_alpha=`checkBox -q -v "alpha"`;
+	
+	polySelectConstraint -w 2 -m 3 -t 0x0001 -r 1 -rr (1/$val);
+	
+	for($i=0;$i<=$val;$i++){
+		polySelectConstraint -r true;
+		float $num=((($AlphaMax-$AlphaMin)*10)/$val)*$i;
+		if($check_lumine){polyColorPerVertex -r ($AlphaMin+($num/10)) -g ($AlphaMin+($num/10)) -b ($AlphaMin+($num/10));}
+		if($check_alpha){polyColorPerVertex -a ($AlphaMin+($num/10));}
+		polySelectConstraint -dis -mode 0;
+		polySelectConstraint -r false;
+	}
+	
+
+}
+
+global proc MS_selectUVBorder(){
+	string $obj[]=`ls -o -sl`;
+	select -r $obj;
+	PolySelectConvert 4;
+	polySelectBorderShell 1;
+	PolySelectConvert 3;
+}
+
+global proc MS_averageVtxColor(){
+	float $totalR;
+	float $totalG;
+	float $totalB;
+	float $totalA;
+	
+	string $vtx[]=`filterExpand -ex 1 -sm 31`;
+	
+	int $totalVtx=size($vtx);
+	
+	for($each in $vtx){
+		$vtxR=`polyColorPerVertex -q -r $each`;
+		$vtxG=`polyColorPerVertex -q -g $each`;
+		$vtxB=`polyColorPerVertex -q -b $each`;
+		$vtxA=`polyColorPerVertex -q -a $each`;
+		$totalR=$totalR+$vtxR[0];
+		$totalG=$totalG+$vtxG[0];
+		$totalB=$totalB+$vtxB[0];
+		$totalA=$totalA+$vtxA[0];
+	}
+	
+	polyColorPerVertex 
+		-r ($totalR/$totalVtx)
+		-g ($totalG/$totalVtx)
+		-b ($totalB/$totalVtx)
+		-a ($totalA/$totalVtx)
+		$vtx;
+	
+	
+}
+
+global proc MS_vcolor_core(string $option){
+	string $obj[]=`ls -sl`;
+	string $command="polyColorPerVertex ";
+	int $vcheckR=`checkBox -q -v vcheckR`;
+	int $vcheckG=`checkBox -q -v vcheckG`;
+	int $vcheckB=`checkBox -q -v vcheckB`;
+	int $vcheckA=`checkBox -q -v vcheckA`;
+	int $selectUVBorder=`checkBox -q -v selectUVBorder`;
+	float $vcolorR=`floatField -q -v vcolorR`;
+	float $vcolorG=`floatField -q -v vcolorG`;
+	float $vcolorB=`floatField -q -v vcolorB`;
+	float $vcolorA=`floatField -q -v vcolorA`;
+	//int $nun=`checkBox -q -v nun`;
+	//if($nun){$command=$command+("-nun ");}
+	
+	
+	string $mass;
+	
+	if($option=="inc"){
+		$command=$command+("-rel ");
+		$mass="";
+	}
+	
+	if($option=="dec"){
+		$command=$command+("-rel ");
+		$mass="-";
+	}
+	
+	if($selectUVBorder){MS_selectUVBorder;}
+	
+	if ($vcheckR||$vcheckG||$vcheckB||$vcheckA){
+		if($vcheckR){$command=$command+("-r "+$mass+$vcolorR+" ");}
+		if($vcheckG){$command=$command+("-g "+$mass+$vcolorG+" ");}
+		if($vcheckB){$command=$command+("-b "+$mass+$vcolorB+" ");}
+		if($vcheckA){$command=$command+("-a "+$mass+$vcolorA+" ");}
+		//$command+=stringArrayToString($obj, " ");
+
+		print $command;
+		eval $command;
+	}
+}
+
+
+global proc MS_vtxtool()
+{
+if(`window -q -ex MyTools_MS_vtxtool`)deleteUI MyTools_MS_vtxtool;
+window MyTools_MS_vtxtool;
+formLayout myUIFormLayout;
+//--DataPart--//
+button -command "MS_averageVtxColor" -label "averageVtxColor" -backgroundColor 0.3 0.6 0.6 "MS_averageVtxColor" ;//Data//
+text -label "Iteration" "text11" ;//Data//
+floatField -step 1 -value 5 -preventOverride 0 "floatField6" ;//Data//
+text -label "AlphaMin" "text15" ;//Data//
+floatField "AlphaMin" ;//Data//
+text -label "AlphaMax" "text14" ;//Data//
+floatField -value 1 "AlphaMax" ;//Data//
+checkBox -label "alpha" "alpha" ;//Data//
+checkBox -label "luminance" "luminance" ;//Data//
+button -command "MS_vtxcol_random" -label "Random" -backgroundColor 0.6 0.3 0.3 "button34" ;//Data//
+
+separator -width 400 "separator8" ;//Data//
+
+checkBox -label "vcolorR" -width 60 "vcheckR" ;//Data//
+checkBox -label "vcolorG" -width 60 "vcheckG" ;//Data//
+checkBox -label "vcolorB" -width 60 "vcheckB" ;//Data//
+checkBox -label "vcolorA" -width 60 "vcheckA" ;//Data//
+
+floatField -maxValue 1 -minValue 0 -changeCommand "floatSlider -e -v `floatField -q -v vcolorR `vsliderR" "vcolorR" ;//Data//
+floatField -maxValue 1 -minValue 0 -changeCommand "floatSlider -e -v `floatField -q -v vcolorG `vsliderG" "vcolorG" ;//Data//
+floatField -maxValue 1 -minValue 0 -changeCommand "floatSlider -e -v `floatField -q -v vcolorB `vsliderB" "vcolorB" ;//Data//
+floatField -maxValue 1 -minValue 0 -changeCommand "floatSlider -e -v `floatField -q -v vcolorA `vsliderA" "vcolorA" ;//Data//
+
+floatSlider -maxValue 1 -step 0.1 -dragCommand "floatField -e -v `floatSlider -q -v vsliderR `vcolorR" "vsliderR" ;//Data//
+floatSlider -maxValue 1 -step 0.1 -dragCommand "floatField -e -v `floatSlider -q -v vsliderG `vcolorG" "vsliderG" ;//Data//
+floatSlider -maxValue 1 -step 0.1 -dragCommand "floatField -e -v `floatSlider -q -v vsliderB `vcolorB" "vsliderB" ;//Data//
+floatSlider -maxValue 1 -step 0.1 -dragCommand "floatField -e -v `floatSlider -q -v vsliderA `vcolorA" "vsliderA" ;//Data//
+
+checkBox -label "selectUVBorder" -width 100 "selectUVBorder" ;//Data//
+button -label "vcolor" -command "MS_vcolor_core 0" -backgroundColor 0.3 0.6 0.3 "button35" ;//Data//
+button -label "-" -width 22 -command "MS_vcolor_core dec" "decButtonR";//Data//
+button -label "+" -width 22 -command "MS_vcolor_core inc" "incButtonR";//Data//
+button -command "MS_selectUVBorder" -label "do selectUVBorder" "button36" ;//Data//
+
+separator -width 400 "separator9" ;//Data//
+
+
+formLayout -e
+	-af "MS_averageVtxColor" "left" 16//Data//
+	-af "MS_averageVtxColor" "top" 416//Data//
+	-af "alpha" "left" 192//Data//
+	-af "alpha" "top" 48//Data//
+	-af "luminance" "left" 192//Data//
+	-af "luminance" "top" 16//Data//
+	-af "incButtonR" "left" 128//Data//
+	-af "incButtonR" "top" 368//Data//
+	-af "decButtonR" "left" 96//Data//
+	-af "decButtonR" "top" 368//Data//
+	-af "button36" "left" 240//Data//
+	-af "button36" "top" 368//Data//
+	-af "selectUVBorder" "left" 16//Data//
+	-af "selectUVBorder" "top" 336//Data//
+	-af "separator9" "left" 0//Data//
+	-af "separator9" "top" 400//Data//
+	-af "separator8" "left" 0//Data//
+	-af "separator8" "top" 160//Data//
+	-af "button35" "left" 16//Data//
+	-af "button35" "top" 368//Data//
+	-af "vcheckA" "left" 16//Data//
+	-af "vcheckA" "top" 304//Data//
+	-af "vcheckB" "left" 16//Data//
+	-af "vcheckB" "top" 272//Data//
+	-af "vcheckG" "left" 16//Data//
+	-af "vcheckG" "top" 240//Data//
+	-af "vcheckR" "left" 16//Data//
+	-af "vcheckR" "top" 208//Data//
+	-af "vcolorA" "left" 96//Data//
+	-af "vcolorA" "top" 304//Data//
+	-af "vsliderA" "left" 176//Data//
+	-af "vsliderA" "top" 304//Data//
+	-af "vsliderB" "left" 176//Data//
+	-af "vsliderB" "top" 272//Data//
+	-af "vsliderG" "left" 176//Data//
+	-af "vsliderG" "top" 240//Data//
+	-af "vcolorB" "left" 96//Data//
+	-af "vcolorB" "top" 272//Data//
+	-af "vcolorG" "left" 96//Data//
+	-af "vcolorG" "top" 240//Data//
+	-af "vsliderR" "left" 176//Data//
+	-af "vsliderR" "top" 208//Data//
+	-af "vcolorR" "left" 96//Data//
+	-af "vcolorR" "top" 208//Data//
+	-af "AlphaMin" "left" 80//Data//
+	-af "AlphaMin" "top" 48//Data//
+	-af "text15" "left" 16//Data//
+	-af "text15" "top" 48//Data//
+	-af "text14" "left" 16//Data//
+	-af "text14" "top" 80//Data//
+	-af "AlphaMax" "left" 80//Data//
+	-af "AlphaMax" "top" 80//Data//
+	-af "text11" "left" 16//Data//
+	-af "text11" "top" 16//Data//
+	-af "floatField6" "left" 80//Data//
+	-af "floatField6" "top" 16//Data//
+	-af "button34" "left" 16//Data//
+	-af "button34" "top" 112//Data//
+//--DataPart--//
+myUIFormLayout;
+showWindow MyTools_MS_vtxtool;
+}
+
+//MS_vtxtool;

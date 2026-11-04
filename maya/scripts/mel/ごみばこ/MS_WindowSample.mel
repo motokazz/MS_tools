@@ -1,0 +1,106 @@
+
+global proc MS_xxxx()
+{
+	$smp_isg=`intSliderGrp -q -v smp_isg`;
+	print ($smp_isg+"\n");
+	
+	$smp_fsg=`floatSliderGrp -q -v smp_fsg`;	
+	print ($smp_fsg+"\n");
+	
+	int $smp_radio=`radioButtonGrp -q -sl smp_radio`;
+	string $arr_radio[]={"dummy","radioX","radioY","radioZ"};
+	print ($arr_radio[$smp_radio]+"\n");
+	
+	string $smp_tfbg=`textFieldButtonGrp -q -text smp_tfbg`;
+	print ($smp_tfbg+"\n");
+	
+}
+global proc MS_get_file(){
+	string $file_path=`fileDialog -dm "C:/Documents and Settings/s002000/デスクトップ/My_mel/\*.mel"`;
+	textFieldButtonGrp -e -text $file_path smp_tfbg;
+}
+
+
+global proc MS_WindowSample()
+{
+	
+	//Window Check
+	if(`window -exists MS_WindowSample`){
+		deleteUI MS_WindowSample;
+	}
+	
+	
+	//Create Window
+	
+	window -title "MS_WindowSample" MS_WindowSample;
+	
+	columnLayout ;
+	
+	//Contents	
+	
+	
+	//text
+	text -label "ThisWindowIsWindowFormatSample";
+	separator;   
+	
+	
+	
+	//intSilder
+	intSliderGrp -l "intSlider" -field true -min 1 -max 100 -v 1 smp_isg;
+	separator -w 600 -h 40 -st "single";
+	
+	
+	//floatSilder
+	floatSliderGrp -l "floatSlider" -field true -min 1 -max 100 -v 1 smp_fsg;
+	separator -w 600 -h 40 -st "single";
+	
+	
+	//radio
+	
+	radioButtonGrp
+            		-numberOfRadioButtons 3
+            		-label "radio"
+            		-labelArray3 "radioX" "radioY" "radioZ"
+			-sl 1 smp_radio;
+	
+	separator -w 600 -h 40 -st "single";
+	
+	
+	//getFile
+	
+	textFieldButtonGrp 
+		-l "New Root"
+		-tx "C:/Documents and Settings/s002000/デスクトップ/My_mel"
+		-buttonLabel "Browse..." 
+		-bc "MS_get_file"
+		smp_tfbg
+		;
+	
+	separator -w 600 -h 40 -st "single";
+	
+	
+	
+	
+	
+	
+	//---------------
+	//Execute Buttons
+	//---------------
+	separator -w 600 -h 40 -st "doubleDash";
+	
+	button -l "do" -command "MS_xxxx" ;
+	
+	separator -w 600 -h 40 -st "double";
+	
+	button -l "undo" -command "Undo" ;
+	
+	button -l "exit" -command "deleteUI MS_WindowSample" ;
+	
+	
+	//Footer
+	showWindow MS_WindowSample;
+	
+}
+
+MS_WindowSample;
+

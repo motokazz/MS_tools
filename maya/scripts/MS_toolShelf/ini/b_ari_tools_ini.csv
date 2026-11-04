@@ -1,0 +1,43 @@
+cathegory,exec,label,image,annotation,command,link
+ari,melc,AriStraightVertex,AriStraightVertex,頂点を斜めに揃える(移動軸限定も可),AriStraightVertex,http://cgjishu.net/blog-entry-44.html
+ari,melc,AriSelectEdgeRing,AriSelectEdgeRing,エッジリングの拡張選択,AriSelectEdgeRingOptions,http://cgjishu.net/blog-entry-172.html
+ari,melc,AriFaceMaterialChecker,AriFaceMaterialChecker,マテリアルがフェースにアサインされているオブジェクトをチェック,AriFaceMaterialChecker,http://cgjishu.net/blog-entry-171.html
+ari,melc,AriAssetChanger,AriAssetChanger,アセット(オブジェクト)の配置と置き換え,AriAssetChanger,http://cgjishu.net/blog-entry-164.html
+ari,melc,AriUVDisplayImageChanger,AriUVDisplayImageChanger,UVバックグラウンドイメージ切り替えと範囲の変更,AriUVDisplayImageChanger,http://cgjishu.net/blog-entry-154.html
+ari,melc,AriStopwatch,AriStopwatch,ストップウォッチ＆タイミングメーカー,AriStopwatch,http://cgjishu.net/blog-entry-153.html
+ari,melc,AriUVAdsorptionMove,AriUVAdsorptionMove,選択側のUVを固定でシェルを移動し縫合(Sew UV),AriUVAdsorptionMoveOptions,http://cgjishu.net/blog-entry-152.html
+ari,melc,AriSelectHardEdgeInside,AriSelectHardEdgeInside,ハードエッジで囲まれたフェースを選択,AriSelectHardEdgeInside,http://cgjishu.net/blog-entry-150.html
+ari,melc,AriUVAdsorption,AriUVAdsorption,選択側のUVを固定で縫合(Sew UV),AriUVAdsorptionOptions,http://cgjishu.net/blog-entry-140.html
+ari,melc,AriReFreezeRotate,AriReFreezeRotate,ピボットの回転,AriReFreezeRotate,http://cgjishu.net/blog-entry-138.html
+ari,melc,AriCompactToolSettings,AriCompactToolSettings,複数のシェルフを表示,AriCompactToolSettings,http://cgjishu.net/blog-entry-136.html
+ari,melc,AriWindowPositionReset,AriWindowPositionReset,ウィンドウの位置をメインウィンドウの左上にリセット,AriWindowPositionReset,http://cgjishu.net/blog-entry-134.html
+ari,melc,AriResetAnimationPosition,AriResetAnimationPosition,アニメーションの移動値を現在の座標に再設定,AriResetAnimationPosition,http://cgjishu.net/blog-entry-127.html
+ari,melc,AriSelectUVLoop,AriSelectUVLoop,共有するエッジを選択しないUVループ選択,AriSelectUVLoop,http://cgjishu.net/blog-entry-118.html
+ari,melc,AriSelectMaterialAndObject,AriSelectMaterialAndObject,マテリアルからオブジェクト選択を選択オブジェクト内だけに絞る他,AriSelectMaterialAndObject,http://cgjishu.net/blog-entry-117.html
+ari,melc,AriProjectSetter,AriProjectSetter,手軽にプロジェクトセット,AriProjectSetter,http://cgjishu.net/blog-entry-115.html
+ari,melc,AriBoundingBoxScaling,AriBoundingBoxScaling,バウンディングボックス基準でサイズ調整,AriBoundingBoxScaling,http://cgjishu.net/blog-entry-110.html
+ari,melc,AriRenamer,AriRenamer,複数のノードを手軽にリネーム改2,AriRenamer,http://cgjishu.net/blog-entry-102.html
+ari,melc,AriKeepUnusedNodes,AriKeepUnusedNodes,選択マテリアルを保護して「未使用ノードの削除」,AriKeepUnusedNodes,http://cgjishu.net/blog-entry-99.html
+ari,melc,AriRoundOffPosition,AriRoundOffPosition,頂点 UV オブジェクト座標を四捨五入,AriRoundOffPosition,http://cgjishu.net/blog-entry-95.html
+ari,melc,AriReFreezeTrAndSetPivot,AriReFreezeTrAndSetPivot,ピボットをマニピュレータの位置にする等のピボット制御,AriReFreezeTrAndSetPivot,http://cgjishu.net/blog-entry-88.html
+ari,melc,AriReFreezeScale,AriReFreezeScale,フリーズしたオブジェクトのスケール値を戻す,AriReFreezeScale,http://cgjishu.net/blog-entry-81.html
+ari,melc,AriReFreezeRotate,AriReFreezeRotate,フリーズしたオブジェクトの回転値を戻す,AriReFreezeRotate,http://cgjishu.net/blog-entry-79.html
+ari,melc,AriDirectoryOpener,AriDirectoryOpener,テクスチャのディレクトリを選択状態で開く・・・etc,AriDirectoryOpener,http://cgjishu.net/blog-entry-77.html
+ari,melc,AriUnparentOne,AriUnparentOne,選択したオブジェクトをひとつだけ上の階層に出す,AriUnparentOne,http://cgjishu.net/blog-entry-74.html
+ari,melc,AriUVScaleChecker,AriUVScaleChecker,UVの大きさを確認　正確な解像度にスケール,AriUVScaleChecker,http://cgjishu.net/blog-entry-69.html
+ari,melc,AriCompactToolSettings,AriCompactToolSettings,コンパクトツール設定,AriCompactToolSettings,http://cgjishu.net/blog-entry-65.html
+ari,melc,AriTextureReload,AriTextureReload,テクスチャリロード,AriTextureReload,http://cgjishu.net/blog-entry-63.html
+ari,melc,AriUVGridding,AriUVGridding,UVを格子状に整列させる,AriUVGridding,http://cgjishu.net/blog-entry-58.html
+ari,melc,AriUVRatio,AriUVRatio,UVの比率を合わせる,AriUVRatioOptions,http://cgjishu.net/blog-entry-51.html
+ari,melc,AriHotkeyList,AriHotkeyList,ホットキーのリスト化,AriHotkeyList,http://cgjishu.net/blog-entry-46.html
+ari,melc,AriSortOutliner,AriSortOutliner,アウトライナのソート(ハイパーグラフでも),AriSortOutliner,http://cgjishu.net/blog-entry-37.html
+ari,melc,AriVertexColorEditor,AriVertexColorEditor,頂点カラーエディタ,AriVertexColorEditor,http://cgjishu.net/blog-entry-19.html
+ari,melc,AriSceneOpener,AriSceneOpener,シーンファイルを手間なく開く,AriSceneOpener,http://cgjishu.net/blog-entry-16.html
+ari,melc,AriPolygonCounter,AriPolygonCounter,さまざまなポリゴンのカウントと選択,AriPolygonCounter,http://cgjishu.net/blog-entry-13.html
+ari,melc,AriNewViewWindow,AriNewViewWindow,新しいビューを別ウィンドウで開く,AriNewViewWindow,http://cgjishu.net/blog-entry-12.html
+ari,melc,AriAllCloseWindow,AriAllCloseWindow,Windowをすべて閉じる,AriAllCloseWindow,http://cgjishu.net/blog-entry-10.html
+ari,melc,AriReversedFaceSelector,AriReversedFaceSelector,逆向きのフェースを検索,AriReversedFaceSelector,http://cgjishu.net/blog-entry-9.html
+ari,melc,AriCombineExtract,AriCombineExtract,親子関係やピポッド位置を保ったまま結合(Combine)＆抽出(Extract),AriCombineExtract,http://cgjishu.net/blog-entry-7.html
+ari,melc,AriSymmetryChecker,AriSymmetryChecker,シンメトリーチェック,AriSymmetryChecker,http://cgjishu.net/blog-entry-6.html
+ari,melc,AriIconViewer,AriIconViewer,デフォルトアイコン一覧,AriIconViewer,http://cgjishu.net/blog-entry-5.html
+ari,melc,AriMirror,AriMirror,オブジェクトのミラーを作成（UVも同時にミラー）,AriMirror,http://cgjishu.net/blog-entry-3.html

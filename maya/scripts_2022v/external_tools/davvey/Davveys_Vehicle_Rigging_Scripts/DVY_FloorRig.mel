@@ -1,0 +1,202 @@
+/* This file downloaded from Highend3d.com
+''  
+''  Highend3d.com File Information:
+''  
+''    Script Name: Davveys Vehicle Rigging Scripts
+''    Author:  
+''    Last Updated: Jul 21, 2007
+''    Update/Change this file at:
+''    http://Highend3d.com/maya/downloads/mel_scripts/animation/4109.html
+''  
+''  Please do not alter any information above this line
+''  it is generated dynamically by Highend3d.com and will
+''  be changed automatically on any updates.
+*/
+
+
+/////////////////////////////////////////////////////////////////////////////////
+/*			
+	Copyright © 2006 DVY_FloorRig. All rights reserved davvey@ntlworld.com
+					
+						- DVY_FloorRig -
+
+///////////////////////////////////////////////////////////////////////////////
+
+	This script is clled from the Vehicle Rigging UI.
+		
+	There is an option to set up an automatic wheel control for each wheel
+	by setting up a Geometry Constaint to a "Ground Plane".	This has an
+	auto ON/OFF setup which releases the wheels once car leaves the ground
+	a distance greater than suspension travel.
+		
+*/
+
+//////////////////////////////////////////////////////////////////////////////////
+//					DVY_FloorRig Procedure
+//////////////////////////////////////////////////////////////////////////////////
+			
+//================================================================================
+//	GLOBAL VARIABLES
+//================================================================================
+	global int $DVYDebug;
+
+// Integer Flag that allows print statements to be output to
+// message field for tracking purposes.
+	
+//================================================================================
+
+global proc DVY_FloorRig()
+{
+	 
+// ******************************************************************************** //	
+//	Global Variables
+
+	global string $GroupV_A[], $RigControlsA[];
+	global string $DVY_VehName;
+	global float $DVYdata[];
+	
+// -------------------------------------------------------------------------------- //
+	
+// ******************************************************************************** //	
+//	Local Variables
+
+	string $DPrefixSp[] = {"LfFr_", "RtFr_", "LfRr_", "RtRr_"};
+	string $DPrefix[] = {"LfFr", "RtFr", "LfRr", "RtRr"};
+	string $CNodes[], $Temp[], $Temps[];
+	float $Pos[];
+	int $a, $b, $c, $q;
+	
+// -------------------------------------------------------------------------------- //
+	
+// ******************************************************************************** //	
+
+	$Temp[0] = `group -em -name ($DVY_VehName + "Grd_Locator_GrpN_1")`;
+		parent $Temp[0] $GroupV_A[0];
+		
+		select -r ($DVY_VehName + "Rig_ControllerN_1") ; select -add ($DVY_VehName + "Grd_Locator_GrpN_1") ;
+			parentConstraint -mo -skipTranslate y -weight 1;
+	
+// -------------------------------------------------------------------------------- //
+	
+// ******************************************************************************** //	
+	
+	select -r GroundPlane ;
+		for ($q=1; $q< $DVYdata[1]+1; $q++)	{ select -tgl ($DVY_VehName + "LfFr_WheelFloor_CtrlN_" + $q) ; }
+			
+		for ($q=1; $q< $DVYdata[1]+1; $q++)	{ select -tgl ($DVY_VehName + "RtFr_WheelFloor_CtrlN_" + $q) ; }
+			
+		for ($q=1; $q<$DVYdata[2]+1; $q++)	{ select -tgl ($DVY_VehName + "LfRr_WheelFloor_CtrlN_" + $q) ;	}
+			
+		for ($q=1; $q<$DVYdata[2]+1; $q++)	{ select -tgl ($DVY_VehName + "RtRr_WheelFloor_CtrlN_" + $q) ; }
+
+	string $Sel[] = `ls -sl`;
+	print $Sel;
+
+	for ($a=0; $a<2; $a++)
+		{$q = 1;
+		for ($i=1; $i<$DVYdata[1]+1; $i++)
+			{
+				$Pos = `xform -q -ws -rp $Sel[$i]`;
+					createNode implicitBox;
+						scale 0.1 0.1 0.1;
+						move -r $Pos[0] $Pos[1] $Pos[2];
+						makeIdentity -apply true -t 1 -r 1 -s 1 -n 0;
+							pickWalk -d up;
+							$Temps[0] = `rename box1 ($DVY_VehName + $DPrefix[$a] + "_Grd_Target_" + $q)`;
+						parent $Temps[0] $Temp[0];
+				
+				$CNodes[$i] = `createNode condition -name ($DVY_VehName +$DPrefixSp[$a] + "ConstrainLimit_" + $q)`; 
+					setAttr ($CNodes[$i] + ".op") 2;			
+					connectAttr -f ($DVY_VehName + "SuspGrd_ClampNA_l.maxR") ($CNodes[$i] + ".ft");
+					connectAttr -f ($DVY_VehName + "Rig_ControllerN_1.translateY") ($CNodes[$i] + ".st") ;
+					setAttr ($CNodes[$i] + ".ctr") 1;	setAttr ($CNodes[$i] + ".cfr") 0;		
+	
+					setAttr ($CNodes[$i] + ".ctb") 0;	setAttr ($CNodes[$i] + ".cfb") -1;	
+	
+				$CNodes[$i+1] = `createNode condition -name ($DVY_VehName + $DPrefixSp[$a] + "ConstrainLimit_" + $q)`; 
+					setAttr ($CNodes[$i+1] + ".op") 4;			
+					connectAttr -f ($DVY_VehName + "SuspGrd_ClampNA_l.minR") ($CNodes[$i+1] + ".ft");
+					connectAttr -f ($DVY_VehName + "Rig_ControllerN_1.translateY") ($CNodes[$i+1] + ".st") ;
+					setAttr ($CNodes[$i+1] + ".ctr") 0;		setAttr ($CNodes[$i+1] + ".cfr") -1;	
+					
+					setAttr ($CNodes[$i+1] + ".ctb") 0;		setAttr ($CNodes[$i+1] + ".cfb") -1;	
+					
+				$CNodes[$i+2] = `createNode addDoubleLinear	-name ($DVY_VehName + $DPrefixSp[$a] + "AddLimit_" + $q)`; 
+				connectAttr -f ($CNodes[$i] + ".ocr") ($CNodes[$i+2] + ".i1");
+				connectAttr -f ($CNodes[$i+1] + ".ocr")	($CNodes[$i+2] + ".i2");
+				
+				$CNodes[$i+3] = `createNode addDoubleLinear	-name ($DVY_VehName + $DPrefixSp[$a] + "AddLimiter_" + $q)`; 
+				connectAttr -f ($CNodes[$i] + ".ocr") ($CNodes[$i+3] + ".i1");
+				connectAttr -f ($CNodes[$i+1] + ".ocr")	($CNodes[$i+3] + ".i2");
+				
+				geometryConstraint -name ($DVY_VehName + $DPrefixSp[$a] + "GeomConstrain_Grd_" + $q) -weight 1 $Sel[0] $Temps[0] ;
+				pointConstraint -offset 0 0 0 -skip x -skip z -weight 1 -name ($DVY_VehName + $DPrefixSp[$a] + "PointConstrain_Grd_" +$q)
+					$Temps[0] ($DVY_VehName + $DPrefix[$a] + "_WheelFloor_CtrlN_" + $q) ;
+				connectAttr -f ($CNodes[$i+2] + ".o")
+					($DVY_VehName + $DPrefixSp[$a] + "PointConstrain_Grd_" + $q + "." + $DVY_VehName + $DPrefixSp[$a] + "Grd_Target_" + $q +"W0");
+				print (" WheelFloor_Ctr Node " + $Sel[$i+$c] + " has been constrained to " + $Sel[0] + ".. Davvey © 2006\n"); 
+				$q++;			
+			}
+		$c = $DVYdata[1];
+	}
+	
+// -------------------------------------------------------------------------------- //
+	
+// ******************************************************************************** //	
+	
+	$c = $DVYdata[1]*2 ;
+	
+// -------------------------------------------------------------------------------- //
+	
+// ******************************************************************************** //	
+
+	for ($a=2; $a<4; $a++)
+		{$q = 1;
+		for ($i=1; $i<$DVYdata[2]+1; $i++)
+			{
+				$Pos = `xform -q -ws -rp $Sel[$i+$c]`;
+					createNode implicitBox;
+						scale 0.1 0.1 0.1;
+						move -r $Pos[0] $Pos[1] $Pos[2];
+						makeIdentity -apply true -t 1 -r 1 -s 1 -n 0;
+							pickWalk -d up;
+							$Temps[0] = `rename box1 ($DVY_VehName + $DPrefix[$a] + "_Grd_Target_" + $q)`;
+						parent $Temps[0] $Temp[0];
+				
+				$CNodes[$i] = `createNode condition -name ($DVY_VehName + $DPrefixSp[$a] + "ConstrainLimit_" + $q)`; 
+					setAttr ($CNodes[$i] + ".op") 2;			
+					connectAttr -f ($DVY_VehName + "SuspGrd_ClampNA_l.maxR") ($CNodes[$i] + ".ft");
+					connectAttr -f ($DVY_VehName + "Rig_ControllerN_1.translateY") ($CNodes[$i] + ".st") ;
+					setAttr ($CNodes[$i] + ".ctr") 1;	setAttr ($CNodes[$i] + ".cfr") 0;		
+	
+					setAttr ($CNodes[$i] + ".ctb") 0;	setAttr ($CNodes[$i] + ".cfb") -1;	
+	
+				$CNodes[$i+1] = `createNode condition -name ($DVY_VehName + $DPrefixSp[$a] + "ConstrainLimit_" + $q)`; 
+					setAttr ($CNodes[$i+1] + ".op") 4;			
+					connectAttr -f ($DVY_VehName + "SuspGrd_ClampNA_l.minR") ($CNodes[$i+1] + ".ft");
+					connectAttr -f ($DVY_VehName + "Rig_ControllerN_1.translateY") ($CNodes[$i+1] + ".st") ;
+					setAttr ($CNodes[$i+1] + ".ctr") 0;		setAttr ($CNodes[$i+1] + ".cfr") -1;	
+					
+					setAttr ($CNodes[$i+1] + ".ctb") 0;		setAttr ($CNodes[$i+1] + ".cfb") -1;	
+					
+				$CNodes[$i+2] = `createNode addDoubleLinear	-name ($DVY_VehName + $DPrefixSp[$a] + "AddLimit_" + $q)`; 
+				connectAttr -f ($CNodes[$i] + ".ocr") ($CNodes[$i+2] + ".i1");
+				connectAttr -f ($CNodes[$i+1] + ".ocr")	($CNodes[$i+2] + ".i2");
+				
+				$CNodes[$i+3] = `createNode addDoubleLinear	-name ($DVY_VehName + $DPrefixSp[$a] + "AddLimiter_" + $q)`; 
+				connectAttr -f ($CNodes[$i] + ".ocr") ($CNodes[$i+3] + ".i1");
+				connectAttr -f ($CNodes[$i+1] + ".ocr")	($CNodes[$i+3] + ".i2");
+				
+				geometryConstraint -name ($DVY_VehName + $DPrefixSp[$a] + "GeomConstrain_Grd_" + $q) -weight 1 $Sel[0] $Temps[0] ;
+				pointConstraint -offset 0 0 0 -skip x -skip z -weight 1 -name ($DVY_VehName + $DPrefixSp[$a] + "PointConstrain_Grd_" +$q)
+					$Temps[0] ($DVY_VehName + $DPrefix[$a] + "_WheelFloor_CtrlN_" + $q) ;
+				connectAttr -f ($CNodes[$i+2] + ".o")
+					($DVY_VehName + $DPrefixSp[$a] + "PointConstrain_Grd_" +$q + "." + $DVY_VehName + $DPrefixSp[$a] + "Grd_Target_" + $q +"W0");
+				$q++;			
+				print (" WheelFloor_Ctr Node " + $Sel[$i+$c] + " has been constrained to " + $Sel[0] + ".. Davvey © 2006\n"); 
+		
+			}
+			$c = $c +$DVYdata[2];
+	}	
+
+}

@@ -1,0 +1,456 @@
+
+global proc string getRATVersion(){
+	string $RATversion = "ver1.06_20130129";
+	return ($RATversion);
+}
+
+global proc int RACheckRigVersion(){
+	int $ret = 18;
+	if( catch (`select -r "Parent"`) && catch (`select -r "*:Parent"`)){
+		$ret = 17;
+	}
+	if( catch (`select -r "waist_twist_aiming"`) && catch (`select -r "*:waist_twist_aiming"`)){
+		$ret = 16;
+	}
+	string $temp[];
+	string $tgtJoint = "dummy_J_Lyubi_204";
+	string $getInfo = $tgtJoint + ".rotateX";
+	if (`connectionInfo -isDestination $getInfo`) {
+		$getInfo = `connectionInfo -sourceFromDestination $getInfo`;
+		tokenize $getInfo "." $temp;
+		string $destinations[];
+		clear $destinations;
+		$destinations = `connectionInfo -destinationFromSource ("Lbuki_weapon_ctrl.rx")`;
+		for ($destination in $destinations) {
+			if( gmatch($destination,"dummy_J_Lyubi*") ){
+				$ret = 15;
+			}
+		}
+	}
+	if(size(`listAttr -ud rig_l_weapon`)){
+		$ret = 14;
+	}
+	print ("this rig-Version is No" + $ret + ".\r\n");
+	return($ret);
+}
+
+global proc int AdjustShield(string $tmpPath , int $rigVersion){
+
+	if($rigVersion < 15){
+		
+		string $temp[];
+		string $tgtJoint = "rig_l_shieldShape";
+		string $getInfo = $tgtJoint + ".overrideDisplayType";
+		int $state = 0;
+		string $cnctSrc;
+
+		if (`connectionInfo -isDestination $getInfo`) {
+			$cnctSrc = `connectionInfo -sourceFromDestination $getInfo`;
+			tokenize $cnctSrc "." $temp;
+			if(gmatch($temp[0],"expression*")){
+				delete $temp[0];
+			}
+			setAttr $getInfo $state;
+		}
+		
+		$tgtJoint = "Lbuki_switch_ctrl";
+		$getInfo = $tgtJoint + ".rotateX";
+		int $state = 0;
+		$cnctSrc = `connectionInfo -sourceFromDestination $getInfo`;
+
+		tokenize( $cnctSrc , "." , $temp);
+
+
+		if(gmatch($temp[0],"*Constraint*")){
+			delete $temp[0];
+		}
+		$tgtJoint = "Lbuki_switch_ctrl";
+		$getInfo = $tgtJoint + ".translateX";
+		int $state = 0;
+		$cnctSrc = `connectionInfo -sourceFromDestination $getInfo`;
+		tokenize( $cnctSrc , "." , $temp );
+		if(gmatch($temp[0],"*Constraint*")){
+			delete $temp[0];
+		}
+
+		$tgtJoint = "dummy_J_Lyubi_204";
+		$getInfo = $tgtJoint + ".translateX";
+		int $state = 0;
+		$cnctSrc = `connectionInfo -sourceFromDestination $getInfo`;
+		tokenize( $cnctSrc , "." , $temp );
+		if(gmatch($temp[0],"*Constraint*")){
+			delete $temp[0];
+		}
+/*
+		$tgtJoint = "dummy_J_Lyubi_204";
+		$getInfo = $tgtJoint + ".rotateX";
+		int $state = 0;
+		$cnctSrc = `connectionInfo -sourceFromDestination $getInfo`;
+		tokenize $cnctSrc "." $temp;
+		if(gmatch($temp[0],"*Constraint*")){
+			delete $temp[0];
+		}
+*/
+		select -r Lbuki_shield_ctrl;
+		xform -cp;
+		select -r Lbuki_weapon_ctrl Lbuki_switch_ctrl ;
+		pointConstraint -mo -weight 1;orientConstraint -offset 0 0 0 -weight 1;
+		select -r dummy_J_Lyubi_204 Lbuki_shield_ctrl ;
+		pointConstraint -offset 0 0 0 -weight 1;pointConstraint -remove;
+		select -r Lbuki_shield_ctrl ;
+		makeIdentity -apply true -t 1 -r 0 -s 0 -n 0;
+		select -r Lbuki_shield_ctrl dummy_J_Lyubi_204 ;
+		pointConstraint -mo -weight 1;
+		//orientConstraint -offset 0 0 0 -weight 1;
+		catch (`deleteAttr -attribute "J_Lbuki_switch" "rig_l_weapon"`);
+
+		$rigVersion = 15;
+		//catchTheSun();
+	}
+	
+	if($rigVersion < 16){
+		select -r Lbuki_weapon_ctrl dummy_J_Lyubi_204 ;
+		orientConstraint -remove;
+		select -r Lbuki_shield_ctrl dummy_J_Lyubi_204 ;
+		orientConstraint -offset 0 0 0 -weight 1;
+		setAttr -l 0 "Lbuki_shield_ctrl.rotateX";
+		setAttr -l 0 "Lbuki_shield_ctrl.rotateY";
+		setAttr -l 0 "Lbuki_shield_ctrl.rotateZ";
+		setAttr "Lbuki_shield_ctrl.rotateY" -90;
+		setAttr "Lbuki_shield_ctrl.rotateZ" -7.5;
+		setAttr "Lbuki_shield_ctrl.translateX" 0.5;
+		setAttr "Lbuki_shield_ctrl.translateY" 4;
+		setAttr -l 1 "Lbuki_shield_ctrl.rotateX";
+		setAttr -l 1 "Lbuki_shield_ctrl.rotateY";
+		setAttr -l 1 "Lbuki_shield_ctrl.rotateZ";
+		setAttr "dummy_J_Lbuki_205_pointConstraint1.offsetX" 0;
+		setAttr "dummy_J_Lbuki_205_pointConstraint1.offsetY" 0;
+		setAttr "dummy_J_Lbuki_205_pointConstraint1.offsetZ" 0;
+		$rigVersion = 16;
+	}
+	if($rigVersion < 17){
+		setAttr -lock false "Lbuki_shield_ctrl.v";
+		setAttr -lock false "Lbuki_weapon_ctrl.v";
+		setAttr "Lbuki_shield_ctrl.visibility" 0;
+		setAttr "Lbuki_weapon_ctrl.visibility" 0;
+		setAttr -lock true "Lbuki_shield_ctrl.tx";
+		setAttr -lock true "Lbuki_weapon_ctrl.tx";
+		setAttr -lock true "Lbuki_shield_ctrl.ty";
+		setAttr -lock true "Lbuki_weapon_ctrl.ty";
+		setAttr -lock true "Lbuki_shield_ctrl.tz";
+		setAttr -lock true "Lbuki_weapon_ctrl.tz";
+		setAttr -lock true "Lbuki_shield_ctrl.rx";
+		setAttr -lock true "Lbuki_weapon_ctrl.rx";
+		setAttr -lock true "Lbuki_shield_ctrl.ry";
+		setAttr -lock true "Lbuki_weapon_ctrl.ry";
+		setAttr -lock true "Lbuki_shield_ctrl.rz";
+		setAttr -lock true "Lbuki_weapon_ctrl.rz";
+		setAttr -lock true "Lbuki_shield_ctrl.sx";
+		setAttr -lock true "Lbuki_weapon_ctrl.sx";
+		setAttr -lock true "Lbuki_shield_ctrl.sy";
+		setAttr -lock true "Lbuki_weapon_ctrl.sy";
+		setAttr -lock true "Lbuki_shield_ctrl.sz";
+		setAttr -lock true "Lbuki_weapon_ctrl.sz";
+		setAttr -lock true "Lbuki_shield_ctrl.v";
+		setAttr -lock true "Lbuki_weapon_ctrl.v";
+		
+		spaceLocator -p 0 0 0 -n "waist_twist_aiming";
+		select -r dummy_jointroot_000 waist_twist_aiming ;
+		parentConstraint -weight 1;
+		select -r waist_twist_aiming_parentConstraint1 ;
+		doDelete;
+		select -r waist_twist_aiming ;
+		setAttr "waist_twist_aiming.translateZ" 50;
+		select -r rig_pelvis waist_twist_aiming ;
+		parentConstraint -weight 1 -mo;
+		select -r waist_twist_aiming ;
+		parent waist_twist_aiming etc ;
+		select -r waist_twist_aiming dummy_jointroot_000 ;
+		aimConstraint -offset 0 0 0 -weight 1 -aimVector 0 0 1 -upVector 0 1 0 -worldUpType "object" -worldUpObject rig_neck;
+		float $getTx = `getAttr dummy_J_hip_295.tx`;
+		setAttr "dummy_J_hip_295.tx" 0;
+		setAttr "dummy_J_hip_295.ty" $getTx;
+		
+		select -r rig_hip dummy_J_hip_295 ;
+		parentConstraint -mo -skipRotate x -skipRotate y -skipRotate z -weight 1;
+		$rigVersion = 17;
+	}
+	if($rigVersion < 18){
+		select -r dummy_jointroot_000_aimConstraint1 ;
+		doDelete;
+		setAttr "dummy_jointroot_000.rotateZ" 0;
+		setAttr "dummy_J_mune_001_orientConstraint1.offsetX" -180;
+		setAttr "dummy_J_mune_001_orientConstraint1.offsetZ" -270;
+		setAttr "*:J_mune_001_orientConstraint1.offsetZ" -270;
+
+		spaceLocator -p 0 0 0 -name "Aim_target";
+		spaceLocator -p 0 0 0 -name "Aimming_Yrot";
+		spaceLocator -p 0 0 0 -name "mune_finalRotation";
+		spaceLocator -p 0 0 0 -name "Up_Vector";
+
+		parent mune_finalRotation Aimming_Yrot;
+		select Aim_target Aimming_Yrot Up_Vector;
+		group -name "Parent";
+
+		select -r dummy_J_mune_001 Parent;
+		pointConstraint -offset 0 0 0 -weight 1;
+		select -r dummy_jointroot_000 Parent;
+		orientConstraint -mo -weight 1;
+
+		select -r waist_twist_aiming Aim_target ;
+		pointConstraint -offset 0 0 0 -skip y -weight 1;
+		
+		select -r waist_twist_aiming Aim_target ;
+		pointConstraint -offset 0 0 0 -skip y -weight 1;
+		setAttr "Up_Vector.translateY" 10;
+
+		select -r Aim_target Aimming_Yrot ;
+		aimConstraint -offset 0 0 0 -weight 1 -aimVector 0 0 1 -upVector 0 1 0 -worldUpType "object" -worldUpObject Up_Vector;
+
+		select -r dummy_J_mune_001 ;
+		select -add mune_finalRotation ;
+		orientConstraint -mo -weight 1;
+		hide Parent;
+		$rigVersion = 17;
+	}
+	return(1);
+}
+
+
+global proc string[] getTgtList(string $tgtPath){
+	string $ret[] = `getFileList -folder $tgtPath -filespec ("chr*0")`;
+	return $ret;
+}
+
+global proc RABackupScene(string $tgtPath){
+	sysFile -copy ($tgtPath + ".bak") $tgtPath;
+}
+
+global proc RALoadCharaScene(string $tgtPath){
+	print ("load " + $tgtPath + ".\r\n");
+	catch( `file -f -ignoreVersion -o $tgtPath`);
+}
+
+
+global proc RASaveCharaScene(string $tgtPath){
+	file -f -s -options "v=0" -type "mayaBinary";
+}
+
+
+global proc rigAdjustExec(string $tgtPath , int $infoFlag){
+	string $tgtCharaList[] = getTgtList($tgtPath);
+	string $tmpPath , $tgtCharaHole;
+	int $res , $i , $j , $rigVersion;
+	string $UnWorkedList[];
+	for($tgtCharaItem in $tgtCharaList){
+		for($j = 0 ; $j < 8 ; $j++){
+			$res = 0;
+			$tgtCharaHole = startString($tgtCharaItem,6);
+			$tmpPath = ($tgtPath + $tgtCharaHole + $j + "\\scenes\\" + $tgtCharaItem + "_rigbase.mb");
+			if( `filetest -r $tmpPath` == 0 ){
+				print ($tmpPath + " をスキップ。\r\n");
+				continue;
+			}
+			RALoadCharaScene($tmpPath);
+			$rigVersion = RACheckRigVersion();
+			if($rigVersion != 18){
+				RABackupScene($tmpPath);
+				$res = AdjustShield($tmpPath , $rigVersion);
+			}
+			if($res == 0){
+				$UnWorkedList[$i] = $tmpPath;
+				$i++;
+			}else{
+				RASaveCharaScene($tmpPath);
+			}
+			if($j==0){$j++;}
+		}
+	}
+	if($infoFlag == 1 ){
+		if($i == 0){
+			$com = `confirmDialog -title "shield rig adjust" -message "調整が完了しました。" -button "OK" -defaultButton "OK" -cancelButton "OK" -dismissString "OK"`;
+		}else{
+			string $resText = "以下のリグデータが処理できませんでした。\r\n";
+			for($UnWoItem in $UnWorkedList){
+				$resText = ( $resText + "\r\n" + $UnWoItem);
+			}
+			$com = `confirmDialog -title "shield rig adjust" -message $resText -button "OK" -defaultButton "OK" -cancelButton "OK" -dismissString "OK"`;
+		}
+	}
+}
+
+
+
+//ロードします--------------------------------------------------------------------------------
+global proc string getMelSaveData(string $saveDataFileName , string $accessedSaveData){
+	string $saveDataFileName = (`getenv "GP_MAYA_ROOT"` + "\\common\\scripts\\GP_mel\\csv\\GPtool_savedata.csv");
+
+	if($accessedSaveData == "RAT_MbPassTf"){ $accessedSaveData = "MbpartsPassTf";}
+
+	if(`filetest -r $saveDataFileName`){
+		int $fileId = `fopen $saveDataFileName "r"`;
+		string $line ;
+		$line = `fgetline $fileId`;
+		int $i=0;
+		string $loadedData;
+
+		while ( size( $line ) > 0 ){
+			string $buffer[];
+			tokenize $line "," $buffer;
+			if( $accessedSaveData == $buffer[0] ){
+				$loadedData = $buffer[1];
+				break;
+			}
+			$line = `fgetline $fileId`;
+			$i++;
+		}
+		fclose $fileId;
+		return( $loadedData );
+	}else{
+		return("");
+	}
+}
+
+
+
+global proc string getMelSaveState(string $fileName , string $fileType ){
+	$fileName = toNativePath($fileName);
+	print $fileName;
+	text -edit -label ($fileName) RAT_SDtext;
+	return($fileName);
+}
+
+
+//セーブします
+global proc RAT_setMelSaveData( string $accessedSaveData ){
+	string $fileName = `fileBrowserDialog -mode 4 -fileType "directory" -actionName "処理するフォルダを選択して下さい。" -fileCommand "getMelSaveState"`;
+	$fileName = toNativePath($fileName);
+	if (endsWith($fileName,"\\") == 0){
+		$fileName = $fileName + "\\";
+	}
+	$fileName = `text -q -label RAT_SDtext`;
+	print $fileName;
+
+	if($accessedSaveData == "RAT_MbPassTf"){ $accessedSaveData = "MbpartsPassTf";}
+
+
+	string $saveDataFileName = (`getenv "GP_MAYA_ROOT"` + "\\common\\scripts\\GP_mel\\csv\\GPtool_savedata.csv");
+	string $loadedData[];
+
+	if(`filetest -r $saveDataFileName`){
+		int $fileId = `fopen $saveDataFileName "r"`;
+		string $line;
+		$line = `fgetline $fileId`;
+		int $i , $savedFlag;
+
+		while ( size( $line ) > 0 ){
+			$loadedData[$i] = $line;
+			string $buffer[];
+			tokenize $line "," $buffer;
+			if( $accessedSaveData == $buffer[0] ){
+				$loadedData[$i] = ($accessedSaveData + "," + $fileName);
+				$savedFlag = 1;
+			}
+			$line = `fgetline $fileId`;
+			$i++;
+		}
+		if( $savedFlag == 0 ){
+			$loadedData[$i] = ($accessedSaveData + "," + $fileName);
+		}
+		fclose $fileId;
+	}else{
+//セーブデータなし
+		$loadedData[0] = ("Mel-tool SettingData");
+		$loadedData[1] = ($accessedSaveData + "," + $fileName);
+	}
+	$fileId=`fopen $saveDataFileName "w"`;
+	print (size($loadedData) + "個のセーブデータ.");
+	for ($loadedItem in $loadedData){
+		if (endsWith($loadedItem,"\n") == 0){
+			$loadedItem = ($loadedItem + "\n");
+		}
+		fprint $fileId ($loadedItem);
+		print ($loadedItem);
+	}
+	fclose $fileId;
+
+	if($accessedSaveData == "MbpartsPassTf"){ $accessedSaveData = "RAT_MbPassTf";}
+
+	setTfData($fileName , $accessedSaveData) ;
+}
+
+//--------------------------------------------------------------------
+global proc setTfData(string $fileName, string $accessedData){
+	if (endsWith($fileName,"\\")){
+		textFieldButtonGrp -e -text ($fileName ) $accessedData;
+	}else{
+		textFieldButtonGrp -e -text ($fileName + "\\") $accessedData;
+	}
+}
+
+
+
+global proc editTfData(string $accessedData){
+	string $fileName = `fileBrowserDialog -mode 4 -fileType "directory" -actionName "エクスポートするフォルダを選択して下さい。" -fileCommand "getMelSaveState"`;
+	$fileName = `text -q -label RAT_SDtext`;	
+	setTfData($fileName , $accessedData) ;
+}
+
+global proc rigAdjustTool(){
+
+	string $title = "rigAdjustTool";
+	string $RAwindow = "RAtool";
+	string $saveDataFileName = (`getenv "GP_MAYA_ROOT"` + "\\common\\scripts\\GP_mel\\csv\\GPtool_savedata.csv");
+	string $expFileName = (`getenv "GP_MAYA_ROOT"` + "\\common\\scripts\\GP_mel\\bmp\\RAT_sample.bmp");
+	string $MbpartsDefPass = getMelSaveData($saveDataFileName , "RAT_MbPassTf");
+
+	if ( `window -exists $RAwindow` )
+	{
+		deleteUI	$RAwindow;
+	}
+
+	string $RATversion = getRATVersion();
+	window  -t ( $title + "   " + $RATversion ) -mnb 0 -mxb 0 -w 800 -h 300 $RAwindow;
+
+	string $formMargin = `formLayout -numberOfDivisions 100 formMargin`;
+		string $RigAdjToolFrame = `frameLayout -label ("指定したフォルダ以下のキャラクターフォルダ-scenes内、リグベースに修正を行います。") -h 90 -w 600 -labelAlign "center" -borderStyle "etchedIn" RAT_Layout`;
+			string $Maya_set = `columnLayout`;
+				string $t0 = `text -vis 0 -align "left" -label ("") RAT_SDtext`;
+				string $t1 = `text -vis 1 -align "left" -label ("\r\n■修正内容：胸部ジョイントの回転値処理を更新しました。\r\n\r\n　※リグ調整を行う際、「chr***_rigbase.mb.bak」としてバックアップが保存されます。") RAT_exptext`;
+				string $may_tf1 = (`textFieldButtonGrp -cl3 left both right -cw3 125 450 100 -label "プロジェクト格納パス" -text $MbpartsDefPass -ann ".mbファイルプロジェクトの保存先を指定して下さい。" -buttonLabel "Edit" RAT_MbPassTf`);
+				string $may_b2 = `button -w 150 -h 25 -l "ヘルプイメージ表示" RAT_HelpBtn`;
+				string $may_b1 = `button -w 600 -h 30 -l "リグデータ修正" RAT_ExecBtn`;
+			setParent ..;
+		setParent ..;
+
+	formLayout -edit
+		-attachForm	$RigAdjToolFrame	"top" 5
+		-attachForm	$RigAdjToolFrame	"left" 10
+		-attachForm	$RigAdjToolFrame	"bottom" 10
+		-attachForm	$RigAdjToolFrame	"right" 10
+		$formMargin;
+	setParent ..;
+		textFieldButtonGrp -edit -bc ("editTfData(\"RAT_MbPassTf\")") RAT_MbPassTf;
+		button -edit -command "rigAdjustExec(`textFieldButtonGrp -q -text RAT_MbPassTf` , 1);" -ann "リグ修正を行います。" RAT_ExecBtn;
+		button -edit -command " callHelpWindow()" -ann "ヘルプイメージを表示します" RAT_HelpBtn;
+
+	window -e -w 635 -h 188 $RAwindow;
+	showWindow $RAwindow;
+}
+
+
+global proc callHelpWindow(){
+	string $expFileName = (`getenv "GP_MAYA_ROOT"` + "\\common\\scripts\\GP_mel\\bmp\\RAT_sample.bmp");
+
+	if ( `window -exists helpWindow` )
+	{
+		deleteUI helpWindow;
+	}
+	window  -t ( "RigAdjustTool_helpImage" ) -mnb 0 -mxb 0 -w 262 -h 281 helpWindow ;
+		string $Maya_set = `columnLayout`;
+		string $helpic = `picture -h 256 -w 256 -vis 1 -image $expFileName RAT_HelpImage` ;
+		setParent ..;
+	window -e -w 262 -h 280 helpWindow;
+	showWindow helpWindow;
+}
+

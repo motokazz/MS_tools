@@ -1,0 +1,25 @@
+{
+	//toroEditorのパス
+	global string $ToroTool="D:/MProject/ToroTool.exe";
+
+	//MP_toolsのパス
+	global string $MP_TOOLS="D:/MS_tools/";
+}
+
+global proc MP_MS_toolpathDefine(string $command){
+	//MP_toolsのパス
+	
+
+	
+	//global string $MP_MATTER_SETUP = "D:/MS_tools/MP_MS_matterSetup.mel";
+	//global string $MP_FRAMESET = "D:/MS_tools/EOJPSP_MEL/s000192_EoJ_Ret_min_max_anim.mel";
+	switch($command){
+		case "MP_MS_Ret_min_max_anim":
+			source "D:/MS_tools/MP_MS_Ret_min_max_anim.mel";
+			break;
+		case "MP_MS_matterSetupUI":
+			source "D:/MS_tools/MP_MS_matterSetup.mel";
+			break;
+	}
+	
+}

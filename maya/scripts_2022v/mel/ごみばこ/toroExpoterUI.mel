@@ -1,0 +1,194 @@
+global proc toroExporterUI_core(){
+	string $path=`textField -q -fileName "filePath"`;
+	string $fname=`textField -q -tx fname`;
+	file -op "" -typ "ToroExporter" -pr -ea ($path+$fname);
+}
+
+global proc toroExporterUI_core_selection(){
+	string $path=`textField -q -fileName "filePath"`;
+	string $fname=`textField -q -tx fname`;
+	file -op "" -typ "ToroExporter" -pr -es ($path+$fname);
+}
+
+global proc MS_toroExporterUI_storeRecallUI ( string $mode ){
+	string $prefix="MS_toroExporterUI__";
+	
+	string $floatFieldList[] = {
+		};
+
+	string $intFieldList[] = {
+		};
+
+	string $floatSliderGrpList[] = {
+		};
+
+	string $intSliderGrpList[] = {
+		};
+
+	string $checkBoxList[] = {
+		};
+
+	string $radioButtonGrpList[] = {
+		};
+
+	string $frameLayoutList[] = {
+		};
+
+	string $textFieldList[] = {
+		"fname"
+		};
+
+	string $textFieldList_file[] = {
+		"filePath"
+		};
+
+	int $cnt;
+
+	if ( $mode == "store" )
+	{
+		for ( $each in $floatFieldList)
+			optionVar -floatValue ($prefix+$each) `floatField -q -value $each`;
+
+		for ( $each in $intFieldList)
+			optionVar -intValue ($prefix+$each) `intField -q -value $each`;
+
+		for ( $each in $floatSliderGrpList)
+			optionVar -floatValue ($prefix+$each) `floatSliderGrp -q -value $each`;
+
+		for ( $each in $intSliderGrpList)
+			optionVar -intValue ($prefix+$each) `intSliderGrp -q -value $each`;
+
+		for ( $each in $checkBoxList)
+			optionVar -intValue ($prefix+$each) `checkBox -q -value $each`;
+
+		for ( $each in $radioButtonGrpList)
+			optionVar -intValue ($prefix+$each) `radioButtonGrp -q -select $each`;
+
+		for ( $each in $frameLayoutList)
+			optionVar -intValue ($prefix+$each) `frameLayout -q -collapse $each`;
+
+		for ( $each in $textFieldList)
+			optionVar -stringValue ($prefix+$each) `textField -q -tx $each`;
+
+		for ( $each in $textFieldList_file)
+			optionVar -stringValue ($prefix+$each) `textField -q -fileName $each`;
+	}
+
+	if ( $mode == "recall" )
+	{
+		for ( $each in $floatFieldList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				floatField -e -value `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $intFieldList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				intField -e -value `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $floatSliderGrpList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				floatSliderGrp -e -value `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $intSliderGrpList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				intSliderGrp -e -value `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $checkBoxList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				checkBox -e -value `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $radioButtonGrpList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				radioButtonGrp -e -select `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $frameLayoutList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				frameLayout -e -collapse `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $textFieldList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				textField -e -tx `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $textFieldList_file)
+			if ( `optionVar -exists ($prefix+$each)` )
+				textField -e -fileName `optionVar -q ($prefix+$each)` $each;
+
+	}
+
+	if ( $mode == "reset" )
+	{
+		for ( $each in $floatFieldList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $intFieldList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $floatSliderGrpList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $intSliderGrpList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $checkBoxList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $radioButtonGrpList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $frameLayoutList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $textFieldList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $textFieldList_file)
+			optionVar -remove ($prefix+$each);
+	}
+}
+
+global proc MS_toroExporterUI_get_dir(string $exp_dir,string $dummy){
+	textField -e -fileName ($exp_dir+"/") "filePath";
+}
+
+global proc MS_toroExporterUI_fileBrowser(){
+	global string $gDefaultFileBrowserDir;
+	string $orgpath=$gDefaultFileBrowserDir;
+	string $path=`textField -q -fileName "filePath"`;
+	eval("global string $gDefaultFileBrowserDir=\""+$path+"\"");
+	fileBrowser "MS_toroExporterUI_get_dir" "Select Directory" "" 4 ;
+	MS_toroExporterUI_storeRecallUI store;
+	eval("global string $gDefaultFileBrowserDir=\""+$orgpath+"\"");
+}
+
+global proc toroExporterUI(){
+	if (`window -q -ex toroExporterUI`){
+		deleteUI toroExporterUI;
+	}
+	window toroExporterUI;
+	
+	columnLayout;
+	
+		rowLayout -nc 3 -cw3 50 110 50;
+			text -label "filePath";
+			textField -w 110 -fileName "D:/eoj_psp_tool/" "filePath" ;
+			button -w 50 -label "Brouse" -c "MS_toroExporterUI_fileBrowser" "Brouse";
+		setParent..;
+		
+		rowLayout -nc 2 -cw2 50 160;
+			text -label "fileName";
+			textField -w 160 -cc "MS_toroExporterUI_storeRecallUI store" "fname";
+		setParent..;
+		
+		button -w 210 -l "exprot All" -bgc 1.0 0.8 0.8  -c "toroExporterUI_core";
+		button -w 210 -l "exprot selection" -bgc 0.8 1.0 0.8  -c "toroExporterUI_core_selection";
+		
+	setParent..;
+	
+	MS_toroExporterUI_storeRecallUI recall;
+	
+	window -e -wh 217 114 toroExporterUI;
+	
+	showWindow toroExporterUI;
+}
+
+
+

@@ -1,0 +1,10 @@
+
+Version 1.1.0
+Corrected error which caused spring offset in Maya 8.0 onwards 
+(due to way Maya generates PolyHelix i.e. now center of rotation at center of
+Helix and it was at bottom edge previously)
+Also script will now generate the spring automatically for a Piston built
+by Davvey's Piston Generator once Top Nod eof Piston has been loaded)
+
+Version 1.0
+First Release

@@ -1,0 +1,35 @@
+cathegory,exec,label,annotation,image,command
+chara,melc,Weight,Weight調整ツール,YAM_WeightCheckTool.bmp,YAM_WeightCheckTool
+chara,melc,Weight,Weightコピペ,s002170_sntSkinExport.bmp,s002170_sntSkinExport
+enemy,py,ShadowRig,ShadowRig 3軸に色分けされたボックスを追加してジョイントの軸と回転を見易くする,s7553_QtShadowRig.bmp,from s7553_RigTools.s7553_QtShadowRig import s7553_QtShadowRigWindow\nimport s7553_RigTools.s7553_QtShadowRig as s7553_shadowrig\ns7553_shadowrig.do()
+enemy,py,jntCtrl,JointController ストレッチ、IKFK切り替え可能な1ジョイントIKコントローラを作成する 親→子の順にジョイントを選択して実行,s7553_QtjointController.bmp,from s7553_RigTools.s7553_QtJointController2 import QtjointControllerWindow\nimport s7553_RigTools.s7553_QtJointController2 as s7553_jc\ns7553_jc.do()
+enemy,py,SSIK,softStretchIKControlle IKがソフトに動くコントローラを作成する ソフトストレッチも対応 １.スタートジョイント 2.エンドジョイント 3.（必要なら）任意のコントローラオブジェクトを選択して実行,s7553_QtSsikController.bmp,from s7553_RigTools.s7553_QtSsikController import QtSsikControllerWindow\nimport s7553_RigTools.s7553_QtSsikController as s7553_ssik\ns7553_ssik.do()
+enemy,py,reName,QtRenamer 置換、挿入/削除　連番　重複名のスキップ　機能を持ったシンプルなリネーマー,s7553_QtRenamer.bmp,from s7553_RigTools.s7553_QtRenamer import QtRenamerWindow\nimport s7553_RigTools.s7553_QtRenamer\ns7553_RigTools.s7553_QtRenamer.do()
+chara,py,chunkTools,NIKO2chunkTools,NIKO2chunkTools.bmp,import NIKO2chunkTools\nNIKO2chunkTools.main()
+chara,py,partsRename,NIKO2partsRename,NIKO2partsRename.bmp,import NIKO2renameTool\nNIKO2renameTool.NIKO2renameTool().UI()
+chara,py,resetPivot,NIKO2resetPivot,NIKO2resetPivot.bmp,import NIKO2resetPivot\nNIKO2resetPivot.main().UI()
+enemy,py,移Piv,オブジェクトPivotをバウンディングボックスのセンター位置へ移動,,import pymel.core as pm\nimport s7553_RigTools.modules.rigToolCommon as comm\nsels = pm.selected()\ncomm.transPivot(sels)
+enemy,py,尻尾,尻尾リグを作成,s7553_tailController.bmp,from s7553_RigTools.s7553_QtTailController import QtTailControllerWindow\nimport s7553_RigTools.s7553_QtTailController\ns7553_RigTools.s7553_QtTailController.do()
+chara,melc,UVEdit,投影君,s001897_autoPlanarMap.bmp,s001897_autoPlanarMap
+enemy,py,揺れ,外付け揺れものリグ作成と制御,s7553_shakeController.bmp,from s7553_RigTools.s7553_shakeController import QtShakeControllerWindow\nimport s7553_RigTools.s7553_shakeController\ns7553_RigTools.s7553_shakeController.do()
+chara,py,軸リセット,NIKO2ModifyJointOrient,NIKO2ModifyJointOrient.bmp,import NIKO2ModifyJointOrient\nNIKO2ModifyJointOrient.main()
+chara,py,軸向き修正,NIKO2correctJointAxis,NIKO2correctJointAxis.bmp,import NIKO2correctJointAxis\nNIKO2correctJointAxis.correctJointAxis().UI()
+enemy,py,軸抽出,３軸回転から任意の一軸を抽出するリグを構築,s7553_exAxis.bmp,from s7553_RigTools.s7553_extractionAxisRig import QtExtractionAxisRotWindow\nimport s7553_RigTools.s7553_extractionAxisRig\ns7553_RigTools.s7553_extractionAxisRig.do()
+chara,melc,charaChecer,キャラクターに仕様に沿うように修正するツール,s002170_charaChecker.bmp,s002170_charaChecker
+chara,melc,sSM,スケルトンにモーション流すツール,,s002170_setSkeltonMotion
+chara,melc,TexPath,テクスチャファイルパスの操作,,FileTextureManager
+enemy,py,toCompo,選択コンポーネント毎/平均へ任意のオブジェクトを配置,s7553_setObjToComponent.bmp,from s7553_RigTools.s7553_setObjectToComponent import QtSetObjToComponentWindow\nimport s7553_RigTools.s7553_setObjectToComponent\ns7553_RigTools.s7553_setObjectToComponent.do()
+enemy,py,bCon,ブランチコンストレイント　開始から終端ノード間にあるノードを連続してコンスト＆スケール接続,s7553_branchConstraint.bmp,from s7553_RigTools.s7553_QtBranchConstraint import QtBranchConstraintWindow\nimport s7553_RigTools.s7553_QtBranchConstraint\ns7553_RigTools.s7553_QtBranchConstraint.do()
+enemy,py,Color,インデックスカラーパレット,s7553_setIndexColor.bmp,from s7553_RigTools.s7553_QtsetIndexColor import QtsetIndexColorWindow\nimport s7553_RigTools.s7553_QtsetIndexColor\ns7553_RigTools.s7553_QtsetIndexColor.do()
+chara,melc,toggleIsolate,toggleIsolate,s001879_toggleIsolate.bmp,s001879_toggleIsolate
+chara,melc,locTop,locTopExAttr,,s002170_locTopAttr
+chara,melc,charLOD,simpolygonでLODを作る,s002170_charaLODUI.bmp,s002170_charaLODUI
+chara,melc,MagUV,UV Utility,s001093_MagnetUvs.bmp,s001093_MagnetUvs
+chara,py,拘情,コンストレイントとスケールリンクの状態を外部ファイルに保存/読み込み,,from s7553_RigTools.s7553_QtConstAndScaleMem import QtConstAndScaleMemWindow\nimport s7553_RigTools.s7553_QtConstAndScaleMem as s7553_cnst\ns7553_cnst.do()
+enemy,py,中間,破片から半自動で中間破壊オブジェクト群を作成,,from s7553_RigTools.s7553_QtsetMidBreakable import QtSetMidBKWindow\nimport s7553_RigTools.s7553_QtsetMidBreakable as s7553_setMidBk\ns7553_setMidBk.do()
+chara,melc,addRefTilingAttr,親シェーダーノードに特定の孫ノードのアトリビュートをリンクする,,s002170_addRefTilingAttr
+chara,py,骨道,カーブに沿って骨を入れたり斜めジョイントの方向付けを楽にしたり,,from s7553_RigTools.s7553_QtJointToolset import QtJointToolsetWindow\nimport s7553_RigTools.s7553_QtJointToolset\ns7553_RigTools.s7553_QtJointToolset.do()
+chara,melc,FaceTexPath,JFtStrSeqNode_faceTextureのパスを書き換える,,s002170_setTexturePath
+chara,py,肌重み,スキンウェイトを保存・読み込み　API1.0でちょっと高速,,from s7553_RigTools.s7553_QtSkinWeightMem import QtSkinWeightMemWindow\nimport s7553_RigTools.s7553_QtSkinWeightMem as s7553_QtskinWeightMem\ns7553_QtskinWeightMem.do()
+chara,melc,batch,人型モデル用バッチチェックツール,,s002170_batchTool_model
+chara,py,逆積,ジョイントのセグメントスケールを強制的に接続する　ジョイントUI側は無視される,,import pymel.core as pm\nimport s7553_RigTools.modules.rigToolCommon as comm\nsels = pm.selected()\ncomm.forciblyInvScaleConnect(sels[0])

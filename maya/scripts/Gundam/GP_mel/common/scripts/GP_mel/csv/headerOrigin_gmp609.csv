@@ -1,0 +1,27 @@
+#ifdef GR_FILE_LINKED
+
+GR_FILE_LINKED( _basepose )
+GR_FILE_LINKED( motion_c100_gmp609_gatlinggun_00_start )
+GR_FILE_LINKED( motion_c100_gmp609_gatlinggun_01_shot )
+GR_FILE_LINKED( motion_c100_gmp609_gatlinggun_02_end )
+GR_FILE_LINKED( motion_c100_gmp609_gatlinggun_sky_00_start )
+GR_FILE_LINKED( motion_c100_gmp609_gatlinggun_sky_01_shot )
+GR_FILE_LINKED( motion_c100_gmp609_gatlinggun_sky_02_end )
+GR_FILE_LINKED( motion_c100_gmp609_gatlinggun_wide_00_start )
+GR_FILE_LINKED( motion_c100_gmp609_gatlinggun_wide_01_shot )
+GR_FILE_LINKED( motion_c100_gmp609_gatlinggun_wide_02_end )
+GR_FILE_LINKED( motion_c100_gmp609_gatlinggun_UP_00_start )
+GR_FILE_LINKED( motion_c100_gmp609_gatlinggun_UP_01_shot )
+GR_FILE_LINKED( motion_c100_gmp609_gatlinggun_UP_02_end )
+GR_FILE_LINKED( motion_c100_gmp609_gatlinggun_DOWN_00_start )
+GR_FILE_LINKED( motion_c100_gmp609_gatlinggun_DOWN_01_shot )
+GR_FILE_LINKED( motion_c100_gmp609_gatlinggun_DOWN_02_end )
+GR_FILE_LINKED( motion_c100_gmp609_gatlinggun_sky_UP_00_start )
+GR_FILE_LINKED( motion_c100_gmp609_gatlinggun_sky_UP_01_shot )
+GR_FILE_LINKED( motion_c100_gmp609_gatlinggun_sky_UP_02_end )
+GR_FILE_LINKED( motion_c100_gmp609_gatlinggun_sky_DOWN_00_start )
+GR_FILE_LINKED( motion_c100_gmp609_gatlinggun_sky_DOWN_01_shot )
+GR_FILE_LINKED( motion_c100_gmp609_gatlinggun_sky_DOWN_02_end )
+
+#undef GR_FILE_LINKED
+#endif // GR_FILE_LINKED

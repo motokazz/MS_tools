@@ -1,0 +1,116 @@
+//#############################################################################
+//MS_megabool
+//Created by Motokazz
+//2005/8/17
+//たくさんのオブジェクトを一気にブーリアンする。
+//#############################################################################
+
+
+global proc MS_megabool_core(int $bl_flag){
+	//
+	string $obj[]=`ls -sl`;
+	string $bool_source;
+	string $bool_destination;
+	string $temp[];
+	
+	int $CH=`checkBox -q -v "keepCH"`;
+	
+	for($each in $obj){
+		if ($each == $obj[0]){
+			if(`checkBox -q -v "keepSource"`){
+				$temp=`duplicate $each`;
+				$bool_source=$temp[0];
+			}else{
+				$bool_source=$each;
+			}
+			continue;
+		}
+		
+		if(`checkBox -q -v "keepDestination"`){
+			$temp=`duplicate $each`;
+			$bool_destination=$temp[0];
+		}else{
+			$bool_destination=$each;
+		}
+		
+		$resultname=`polyBoolOp -op $bl_flag -ch $CH $bool_source $bool_destination`;
+		$bool_source=$resultname[0];
+	}
+	
+	rename $bool_source "MS_megabooled";
+}
+
+
+global proc MS_bools_core(){
+	
+	string $objz[]=`ls -sl`;
+	string $dupA[];
+	string $dupB[];
+	string $boolsSeed=$objz[size($objz)-1];
+	
+	int $CH=`checkBox -q -v "keepCH"`;
+	
+	for ($i=0;$i<(size($objz)-1);$i++){
+		$dupA=`duplicate $objz[$i]`;
+		$dupB=`duplicate $boolsSeed`;
+		print $dupA[0];
+		print $dupB[0];
+		polyBoolOp -op 2 -ch $CH -useThresholds 1 -preserveColor 0 $dupA[0] $dupB[0];
+		//delete $dupA[0];
+		$dupA=`duplicate $objz[$i]`;
+		$dupB=`duplicate $boolsSeed`;
+		print $dupA[0];
+		print $dupB[0];
+		polyBoolOp -op 3 -ch $CH -useThresholds 1 -preserveColor 0 $dupA[0] $dupB[0];
+		//delete $dupA[0];
+		delete $objz[$i];
+	}
+}
+
+
+
+
+
+global proc MS_boolset(){
+	if(`window -q -ex MyTools_MS_boolset`)deleteUI MyTools_MS_boolset;
+	window MyTools_MS_boolset;
+	formLayout myUIFormLayout;
+	//--DataPart--//
+	checkBox -label "keep destination" -width 120 "keepDestination" ;//Data//
+	checkBox -label "keep source" -width 120 "keepSource" ;//Data//
+	checkBox -label "keep constructionHistory" -width 120 "keepCH" ;//Data//
+	
+	button -label "union" -recomputeSize 0 -width 60 -command "MS_megabool_core(1)" "union" ;//Data//
+	button -label "difference"  -width 60 -command "MS_megabool_core(2)" "difference" ;//Data//
+	button -label "intercect" -recomputeSize 0 -width 60 -command "MS_megabool_core(3)" "intersect" ;//Data//	
+	button -label "MS_bools" -recomputeSize 0 -width 60 -command "MS_bools_core" "MS_bools" ;//Data//	
+
+	button -width 44 -label "exit" -recomputeSize 0 "exit" ;//Data//
+	button -recomputeSize 0 -label "undo" -width 44 -command "undo" "undo" ;//Data//
+	
+	formLayout -e
+		-af "exit" "left" 192//Data//
+		-af "exit" "top" 128//Data//
+		-af "undo" "left" 128//Data//
+		-af "undo" "top" 128//Data//
+		-af "keepDestination" "left" 16//Data//
+		-af "keepDestination" "top" 32//Data//
+		-af "keepSource" "left" 16//Data//
+		-af "keepSource" "top" 16//Data//
+		-af "keepCH" "left" 16//Data//
+		-af "keepCH" "top" 48//Data//
+		-af "intersect" "left" 176//Data//
+		-af "intersect" "top" 80//Data//
+		-af "difference" "left" 96//Data//
+		-af "difference" "top" 80//Data//
+		-af "union" "left" 16//Data//
+		-af "union" "top" 80//Data//
+		-af "MS_bools" "left" 16//Data//
+		-af "MS_bools" "top" 128//Data//
+	//--DataPart--//
+	myUIFormLayout;
+	showWindow MyTools_MS_boolset;
+}
+
+//MS_boolset;
+

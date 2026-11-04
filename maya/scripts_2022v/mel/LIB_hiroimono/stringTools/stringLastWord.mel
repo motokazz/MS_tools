@@ -1,0 +1,20 @@
+//stringLastWord, by Julian Love, julian@lightmail.com. Part of the StringTools set.
+//
+//description:	returns the last word in the supplied string based on the word character
+//
+//usage:		stringLastWord string[source string] string[character that separates words];
+//
+//examples:		stringLastWord "hello world." " ";
+//				// Result: world. //
+//
+//				stringLastWord "left_wrist_controller" "_";
+//				// Result: controller//
+
+
+global proc string stringLastWord (string $item, string $wordChar){
+	string $wordList[];
+	
+	tokenize $item $wordChar $wordList;
+	
+	return $wordList[(size($wordList) -1)];
+}

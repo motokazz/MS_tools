@@ -1,0 +1,24 @@
+#ifdef GR_FILE_LINKED
+
+GR_FILE_LINKED( _basepose )
+GR_FILE_LINKED( motion_c100_gmp101_chargeshot_00_start )
+GR_FILE_LINKED( motion_c100_gmp101_chargeshot_01_shot )
+GR_FILE_LINKED( motion_c100_gmp101_chargeshot_02_end )
+GR_FILE_LINKED( motion_c100_gmp101_chargeshot_sky_00_start )
+GR_FILE_LINKED( motion_c100_gmp101_chargeshot_sky_01_shot )
+GR_FILE_LINKED( motion_c100_gmp101_chargeshot_sky_02_end )
+GR_FILE_LINKED( motion_c100_gmp101_chargeshot_UP_00_start )
+GR_FILE_LINKED( motion_c100_gmp101_chargeshot_UP_01_shot )
+GR_FILE_LINKED( motion_c100_gmp101_chargeshot_UP_02_end )
+GR_FILE_LINKED( motion_c100_gmp101_chargeshot_DOWN_00_start )
+GR_FILE_LINKED( motion_c100_gmp101_chargeshot_DOWN_01_shot )
+GR_FILE_LINKED( motion_c100_gmp101_chargeshot_DOWN_02_end )
+GR_FILE_LINKED( motion_c100_gmp101_chargeshot_sky_UP_00_start )
+GR_FILE_LINKED( motion_c100_gmp101_chargeshot_sky_UP_01_shot )
+GR_FILE_LINKED( motion_c100_gmp101_chargeshot_sky_UP_02_end )
+GR_FILE_LINKED( motion_c100_gmp101_chargeshot_sky_DOWN_00_start )
+GR_FILE_LINKED( motion_c100_gmp101_chargeshot_sky_DOWN_01_shot )
+GR_FILE_LINKED( motion_c100_gmp101_chargeshot_sky_DOWN_02_end )
+
+#undef GR_FILE_LINKED
+#endif // GR_FILE_LINKED

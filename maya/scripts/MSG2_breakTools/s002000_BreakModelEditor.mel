@@ -1,0 +1,1185 @@
+//////////////////////////////////////////////////////////////////////
+//gravity2壊れ物制作用ツール 2014/09/05 茂木
+//////////////////////////////////////////////////////////////////////
+//window -q -wh  s002384_BreakModelEditorWin;
+//////////////////////////////////////////////////////////////////////
+//GUI
+//////////////////////////////////////////////////////////////////////
+
+if(!`pluginInfo -q -loaded "hctMayaSceneExport.mll"`){
+	loadPlugin "hctMayaSceneExport.mll";
+}
+
+global proc MS_copyToCollision(string $COM){
+	string $SEL[] = `ls -sl -l`;
+	if(!`size($SEL)`){
+		return;
+	}
+
+	//テンポラリグループ作成
+	string $TEMP_GROUP;
+	$TEMP_GROUP=`group -name "MS_temp_zzzzz" -empty`;
+
+	//対象トップグループ確認
+	if(`objExists ("top_"+$COM)`){
+		//対象トップグループ有り、グループを削除
+		$SEL=`parent $SEL $TEMP_GROUP`;
+		delete ("top_"+$COM);
+	}
+
+	//グループを作成
+	string $NEWGROUP = `momsBME_createGroup($COM)`;
+	print $NEWGROUP;
+
+	//元オブジェクトを複製
+	string $PARENTED_ROOT[]=`parent $SEL ($NEWGROUP+"|root")`;
+	select -r $PARENTED_ROOT;
+
+	//元モデルを対応するコリジョングループにコピー
+	python("import s2000_tools.s002000_BreakModelEditor.MS_copyToCollision as MS_copyToCollision");
+	python("reload(MS_copyToCollision)");
+	string $PARENTED_COL[]=python("MS_copyToCollision.main()");
+	select -r $PARENTED_COL;
+	momsBME_addHavokAttr;
+
+	//リネーム
+	select -r $PARENTED_ROOT $PARENTED_COL;
+	momsBME_rename;
+
+	//フリーズ
+	momsBME_freeze;
+
+	//コリジョンをHIDE
+	hide ($NEWGROUP+"|col");
+
+	//テンポラリグループを削除
+	delete $TEMP_GROUP;
+
+}
+
+
+global proc s002000_BreakModelEditor()
+{
+	if(`window -exists s002384_BreakModelEditorWin`)deleteUI s002384_BreakModelEditorWin;
+	//windowPref -remove s002384_BreakModelEditorWin;//GUI初期化
+	window -title "s002384_BreakModelEditor" -w 300 -h 619 -menuBar true -minimizeButton false -maximizeButton false s002384_BreakModelEditorWin;
+	menu -label "help" -helpMenu true;
+	menuItem -label "help" -command "momsBME_helpWin";
+
+	columnLayout;
+
+			columnLayout -rowSpacing 0 -adjustableColumn true;
+				frameLayout -cll 1 -label "CreateGroup" -width 160 -marginWidth 5 -marginHeight 5 -borderStyle etchedOut;
+					columnLayout -rowSpacing 3 -adjustableColumn true;
+						button -label "破片" -annotation " [デブリ/db]　すぐに消える" -c "momsBME_createGroup(\"db\")";
+						button -label "残骸" -annotation " [ブロークン/bk]　破壊時出現し、そのまま残り続ける" -c "momsBME_createGroup(\"bk\")";
+						rowLayout -numberOfColumns 2 -adjustableColumn 2;
+							button -w 100 -label "中間破壊モデル" -annotation " [ミドル/md]　破片とは違い、更に壊すことが出来るモデル" -c "momsBME_createGroup(\"md\")";
+							button -label "+1" -annotation " [ミドル]中間破壊モデルは複数持つことが出来ます " -c "momsBME_createGroup(\"md\")";
+							setParent ..;
+						button -label "中間破壊モデル用破片" -annotation " [デブリ/db_md]　中間破壊モデルを壊した時に出る破片" -c "momsBME_createGroup(\"db_md\")";
+						button -label "動的モデル" -annotation " [ダイナミック/dy]　破壊以外の行為で物理挙動させるモデル" -c "momsBME_createGroup(\"dy\")";
+						button -label "中間破壊モデル出現位置" -annotation " [ヌルロケーター]　\n中間破壊モデルを出現させる座標を指定出来ます\nこのロケーターが無い場合は原点から出現します" -c "momsBME_createGroup(\"null\")";
+						separator -h 10 -style "single" -width 105;
+						button -label "吊り橋モデル" -annotation " [橋]" -c "momsBME_createGroup(\"bridge\")";
+						setParent ..;
+					setParent ..;
+				frameLayout -cll 1 -label "Setting" -width 160 -marginWidth 5 -marginHeight 2 -borderStyle etchedOut;
+					columnLayout -rowSpacing 3 -adjustableColumn true;
+						rowLayout -numberOfColumns 2 -adjustableColumn 2;
+							button -w 50 -annotation "root と col 内のオブジェを選択" -label "select" -c "momsBME_selectSameName({\"root\",\"col\"})";
+							iconTextButton -annotation "命名規則に沿ってリネームします" -style "iconAndTextHorizontal" -image "rvIPRRefresh.png" -label"リネーム" -c "momsBME_rename";
+							setParent ..;
+						separator -h 10 -style "single" -width 105;
+						rowLayout -numberOfColumns 2 -adjustableColumn 2;
+							button -w 50 -h 50 -annotation "col 内のオブジェを選択" -label "select" -c "momsBME_selectSameName({\"col\"})";
+							columnLayout -rowSpacing 0 -adjustableColumn true;
+								rowLayout -numberOfColumns 2 -adjustableColumn 2;
+									radioCollection "momsBME_radioCollection_1" ;
+										radioButton -label "hull" -select "momsBME_radioButton_hull";
+										radioButton -label "mesh" "momsBME_radioButton_mesh";
+									setParent ..;
+								separator -h 10 -style "in" -width 105;
+								iconTextButton -annotation "タイプに合わせたHavokの設定をします" -style "iconAndTextHorizontal" -image "shelf_rigidBodies.xpm" -label"Havok設定" -c "momsBME_addHavokAttr";
+								setParent ..;
+							setParent ..;
+						separator -h 10 -style "single" -width 105;
+						setParent ..;
+					columnLayout -rowSpacing 0 -adjustableColumn true;
+						rowLayout -numberOfColumns 2 -adjustableColumn 2;
+							button -w 50 -annotation "root と col 内のオブジェを選択" -label "select" -c "momsBME_selectSameName({\"root\",\"col\"})";
+							iconTextButton -annotation "フリーズ、リセットします" -style "iconAndTextHorizontal" -image "showManip.png" -label"Freeze" -c "momsBME_freeze";
+							setParent ..;
+						setParent ..;
+					setParent ..;
+				frameLayout -cll 1 -label "Other" -width 160 -marginWidth 5 -marginHeight 0 -borderStyle etchedOut;
+					columnLayout -rowSpacing 3 -adjustableColumn true;
+						rowLayout -numberOfColumns 2;
+							iconTextButton -width 65 -style "iconAndTextVertical" -image "polySeparate.xpm" -label "分離" -annotation "分離" -c "momsBME_separate";
+							iconTextButton -width 65 -style "iconAndTextVertical" -image "polyUnite.xpm" -label "結合" -annotation "結合＆マージ" -c "momsBME_combine";
+							setParent ..;
+						rowLayout -numberOfColumns 2;
+							iconTextButton -width 65 -style "iconAndTextVertical" -image "fileOpen.png" -label "OPEN"  -annotation "Placements.xlsx があるディレクトリを開く" -c "momsBME_openDir";
+							iconTextButton -width 65 -style "iconAndTextVertical" -image "out_lattice.png" -label "表示" -annotation "バウンディングボックス" -c "display_bbox";
+							setParent ..;
+					separator -h 10 -style "in" -width 105;
+					iconTextButton -width 65 -style "iconAndTextHorizontal" -image "WireFrameOnShaded.png" -label "BoundingBox制作" -annotation "選択されたオブジェクトのバウンディングボックスを作ります" -c "momsBME_DoIt";
+					setParent ..;
+				setParent ..;
+			//~MS~
+			columnLayout -rowSpacing 0 -adjustableColumn true;
+				frameLayout -label "FullAuto" -width 120 -marginWidth 5 -marginHeight 5 -borderStyle etchedOut;
+					columnLayout -rowSpacing 3 -adjustableColumn true;
+						button -label "db" -annotation " ZZZZZZZ" -c "MS_copyToCollision(\"db\")";//MSMOD
+						button -label "bk" -annotation " ZZZZZZZ" -c "MS_copyToCollision(\"bk\")";//MSMOD
+						button -label "md" -annotation " ZZZZZZZ" -c "MS_copyToCollision(\"md\")";//MSMOD
+						button -label "db_md" -annotation " ZZZZZZZ" -c "MS_copyToCollision(\"db_md\")";//MSMOD
+						button -label "dy" -annotation " ZZZZZZZ" -c "MS_copyToCollision(\"dy\")";//MSMOD
+						separator -w 200;
+						button -label "brk_db" -annotation " ZZZZZZZ" -c "MS_copyToCollision(\"brk_db\")";//MSMOD
+						button -label "brk_bk" -annotation " ZZZZZZZ" -c "MS_copyToCollision(\"brk_bk\")";//MSMOD
+						button -label "brk_md" -annotation " ZZZZZZZ" -c "MS_copyToCollision(\"brk_md\")";//MSMOD
+						button -label "brk_db_md" -annotation " ZZZZZZZ" -c "MS_copyToCollision(\"brk_db_md\")";//MSMOD
+						button -label "brk_dy" -annotation " ZZZZZZZ" -c "MS_copyToCollision(\"brk_dy\")";//MSMOD
+						setParent ..;
+					setParent ..;
+				setParent ..;
+		
+		setParent ..;
+	//~MS~
+
+	showWindow s002384_BreakModelEditorWin;
+}
+
+//////////////////////////////////////////////////////////////////////
+//ヘルプウィンドウ//window -q -wh  momsBME_helpWin;
+//////////////////////////////////////////////////////////////////////
+global proc momsBME_helpWin()
+{
+	if(`window -exists momsBME_elpWin`)deleteUI momsBME_helpWin;
+	window -title "s002384_BreakModelEditor Help" -wh 500 900 momsBME_helpWin;
+	//windowPref -remove moTM_helpWin;//GUI初期化
+	formLayout helpForm;
+		columnLayout -bgc 0.9 0.9 0.9 helpLayoutText;
+			text -align left -font boldLabelFont "================CreateGroup================";
+			text -align left "命名規則に沿ったグループを制作します。 \nrootとcolのグループにエクストラアトリビュートが追加されます。";
+			text -align left -font boldLabelFont "=======================================";
+			text -align left -font boldLabelFont "[破片]";
+			text -align left "物理挙動をしながら飛び散り消えます。\n小さいものはパーティクルエフェクトで代用できる場合があります。\n";
+			text -align left -font boldLabelFont "[残骸]";
+			text -align left "破壊後に残り続けるモデルです。 \n電柱の根元や看板の固定具などです。\n";
+			text -align left -font boldLabelFont "[中間破壊モデル]";	
+			text -align left "破片に似ていますが、更に壊すことができます。 \n段階的に破壊したいものに使います。\n";
+			text -align left -font boldLabelFont "[+1]";
+			text -align left "中間破壊モデルは複数持つことが出来るため、ボタンを押すごとにグループが追加されます。\n";
+			text -align left -font boldLabelFont "[動的モデル]";
+			text -align left "破壊以外の力で物理挙動させる時に使われるモデルです。 \n例えば、木箱をグラブした時に使われるモデルがこれです。\n";
+			text -align left "大抵の場合、破壊前のモデルを流用できるので作る必要はありません。\n流用する場合は破壊前モデルのコリジョンがHullになっていることを確認してください。\n";
+			text -align left "もしMeshを使っていると処理負荷が急激に上がるので注意してください。\n\n";
+			text -align left -font boldLabelFont "================Setting================";
+			text -align left "オブジェクトに対する編集を行います。\nselectボタンを押すと編集が必要なオブジェクトを選択します。";
+			text -align left -font boldLabelFont "=====================================";
+			text -align left -font boldLabelFont "[リネーム]";
+			text -align left "命名規則に沿った名前に変更します。";
+			text -align left "下記のようなルールで名前を取得しています\n\n・シーン名の_(アンダーバー)以上\n　例：barrel_kk_01_brk.mb→ barrel\n・トップグループの_(アンダーバー)以下\n　例：top_db→db\n";
+			text -align left -font boldLabelFont "[Havok設定]";
+			text -align left "Havokのアトリビュートを追加し、適切な重さとコリジョンタイプを割り当てます。\n";
+			text -align left -font boldLabelFont "[フリーズ]";
+			text -align left "MAYA標準のフリーズとリセットを掛けるのと同じです。\n壊れ物はワールド原点に基点がある必要があります。";
+			setParent ..;
+		formLayout helpFormButton;
+			button -label "Close" -command "deleteUI momsBME_helpWin" mcHelpButton;
+			setParent ..;
+		setParent ..;
+	formLayout -edit
+		-attachForm helpLayoutText "top" 0
+		-attachForm helpLayoutText "left" 0 
+		-attachForm helpLayoutText "right" 0
+		-attachControl helpLayoutText "bottom" 0 helpFormButton
+
+		-attachForm helpFormButton "left" 0 
+		-attachForm helpFormButton "right" 0
+		-attachForm helpFormButton "bottom" 0
+	helpForm;
+
+	formLayout -edit
+		-attachPosition mcHelpButton "left"   0 0
+		-attachPosition mcHelpButton "right"  0 100
+	helpFormButton;
+
+	showWindow momsBME_helpWin;
+}
+
+//////////////////////////////////////////////////////////////////////
+//バウンディングボックス表示
+//////////////////////////////////////////////////////////////////////
+global proc display_bbox()
+{
+	string $display = `modelEditor -q -displayAppearance "modelPanel4"`;
+	if("boundingBox" == $display)
+	{
+		modelEditor -edit -displayAppearance "wireframe" "modelPanel1";
+		modelEditor -edit -displayAppearance "wireframe" "modelPanel2";
+		modelEditor -edit -displayAppearance "wireframe" "modelPanel3";
+		modelEditor -edit -displayAppearance "wireframe" "modelPanel4";
+	}
+	else
+	{
+		modelEditor -edit -displayAppearance "boundingBox" "modelPanel1";
+		modelEditor -edit -displayAppearance "boundingBox" "modelPanel2";
+		modelEditor -edit -displayAppearance "boundingBox" "modelPanel3";
+		modelEditor -edit -displayAppearance "boundingBox" "modelPanel4";
+	}
+	
+}
+
+//////////////////////////////////////////////////////////////////////
+//リネーム
+//////////////////////////////////////////////////////////////////////
+global proc momsBME_rename()
+{
+
+	string $select[] =`ls -sl -l`;
+	for($i = 0; $i < size($select); $i++)//重複がないように一旦適当な名前にリネーム
+	{
+		rename $select[$i] "momsBME_dummy_0";
+	}
+
+	$select =`ls -sl -l`;
+	string $sceneName = momsBME_getSceneName();//シーン名
+	string $short_sceneName = `match "^[^\_]*" $sceneName`;//シーン名（ショート）
+	int $error[];//グループが適切な名前じゃない時にエラーを出す
+	if(!size($short_sceneName))//シーン名が取得できなかった場合
+	{
+		$short_sceneName = "scene";
+		$error[size($error)] = 1;
+	}
+	string $parent_all[] = `listRelatives -f -parent`;//一つ上の親
+	string $parent[] = `stringArrayRemoveDuplicates $parent_all`;//重複を削除
+	string $parent_2[];
+	string $children_all[];
+	string $children[];
+	string $newName[];
+	string $main_name;//topグループの”_”以下
+	string $top_node;//topノード
+	string $number;//ナンバリング
+	
+	for($parent_content in $parent)//ナンバリングの為グループごとに処理する
+	{
+		clear $children;
+		$children_all = `listRelatives -f $parent_content`;//グループ内のノード選択
+		for($i = 0; $i < size($children_all); $i++)//グループ内のノードで、しかも選択されているノード（メッシュのみ）を抽出
+		{
+			int $found = stringArrayContains($children_all[$i], $select);
+			if($found)$children[size($children)] = $children_all[$i];
+		}
+
+		for($i = 0; $i < size($children); $i++)
+		{
+			$parent_2 = `listRelatives -parent $parent_content`;//親の親グループ（top_...）;
+			$main_name = momsBME_getUnderName($parent_2[0]);//親の親グループの”_”以下
+
+			if(!size($main_name))//親の親グループの”_”以下が取得できなかった場合
+			{
+				if(!size($main_name))$main_name = "main";
+				$error[size($error)] = 2;
+			}
+
+			$number = momsBME_padding($i + 1);
+			if("bridge" == $main_name)//吊り橋の場合
+			{
+				$newName[$i] = `rename $children[$i] ($main_name + "_" + $number)`;
+			}
+			else//吊り橋以外
+			{
+				$newName[$i] = `rename $children[$i] ($short_sceneName + "_" + $main_name + "_" + $number)`;
+			}
+			if("col" == `match "[^|]*$" $parent_content`)
+			{
+				rename $newName[$i] (`match "[^|]*$" $newName[$i]` + "_hkx");
+			}
+		}
+	}
+	
+	string $confirm1;
+	string $confirm2;
+	if(size($error))
+	{
+		if(intArrayCount(1, $error )) $confirm1 = "・シーン名が取得できませんでした";
+		if(intArrayCount(2, $error )) $confirm2 = "・グループ階層が不正です";
+		confirmDialog -title "警告" -icon "warning" -message ("下記の理由で正規のリネームができなかった可能性があります" + "\n" + $confirm1 + "\n" + $confirm2)
+   					 -button "確認" -defaultButton "確認"	;
+	}
+}
+
+
+//////////////////////////////////////////////////////////////////////
+//桁を揃える(２桁)
+//////////////////////////////////////////////////////////////////////
+global proc string momsBME_padding(int $number_int)
+{
+	string $number_str = string($number_int);
+	for($i = size($number_str); $i < 2; $i++)
+	{
+		$number_str = ("0" + $number_str);
+	}
+	return $number_str;
+}
+
+//////////////////////////////////////////////////////////////////////
+//ノードを制作
+//////////////////////////////////////////////////////////////////////
+global proc string momsBME_createGroup(string $type)
+{ 
+	if(!`size(momsBME_getSceneName())`)error "シーン名を取得できませんでした";
+
+	string $groupName[];
+	switch($type)
+	{
+		case "db" :
+			if(!`objExists "top_db"`)
+			{
+				$groupName[0] = `group -name "top_db" -empty`;
+				$groupName[1] = `group -name "root" -empty -parent $groupName[0]`;
+				$groupName[2] = `group -name "col" -empty -parent $groupName[0]`;
+				momsBME_addAttr({$groupName[1],$groupName[2]});
+			}
+			else
+			{
+				error"既に同名のグループが存在しているので制作できませんでした";
+			}
+			break;
+		case "dy" :
+			if(!`objExists "top_dy"`)
+			{
+				$groupName[0] = `group -name "top_dy" -empty`;
+				$groupName[1] = `group -name "root" -empty -parent $groupName[0]`;
+				$groupName[2] = `group -name "col" -empty -parent $groupName[0]`;
+				momsBME_addAttr({$groupName[1],$groupName[2]});
+			}
+			else
+			{
+				error"既に同名のグループが存在しているので制作できませんでした";
+			}
+			break;
+		case "bk" :
+			if(!`objExists "top_bk"`)
+			{
+				$groupName[0] = `group -name "top_bk" -empty`;
+				$groupName[1] = `group -name "root" -empty -parent $groupName[0]`;
+				$groupName[2] = `group -name "col" -empty -parent $groupName[0]`;
+				momsBME_addAttr({$groupName[1],$groupName[2]});
+			}
+			else
+			{
+				error"既に同名のグループが存在しているので制作できませんでした";
+			}
+			break;
+		case "md" :
+				int $number_int = momsBME_top_md_count("top_md");//top_mdの欠けている番号を取得
+				string $number_str = momsBME_padding($number_int);//２桁に整形
+				$groupName[0] = `group -name ("top_md" + $number_str) -empty`;
+				$groupName[1] = `group -name "root" -empty -parent $groupName[0]`;
+				$groupName[2] = `group -name "col" -empty -parent $groupName[0]`;
+				momsBME_addAttr({$groupName[1],$groupName[2]});
+			break;
+		case "db_md" :
+				string $md_group[] = momsBME_search_group("top_md[0-9][0-9]$");//既に作られているtop_md**のリスト
+				if(!size($md_group))error"中間破壊モデル用グループがありません";
+				string $db_group[] = momsBME_search_group("top_md[0-9][0-9]_db");//既に作られているtop_md**_dbのリスト
+				for($i = 0; $i < size($md_group); $i++)
+				{
+					if(!stringArrayContains( ($md_group[$i]+"_db"), $db_group) )
+					{
+						$groupName[0] = `group -name ($md_group[$i] + "_db") -empty`;
+						$groupName[1] = `group -name "root" -empty -parent $groupName[0]`;
+						$groupName[2] = `group -name "col" -empty -parent $groupName[0]`;
+						momsBME_addAttr({$groupName[1],$groupName[2]});
+					}
+					else
+					{
+						print($md_group[$i]+"_db"+"は既に存在するのでスキップしました\n");
+					}
+				}
+				break;
+		case "null" :
+			string $sceneName = `momsBME_getSceneName`;//シーン名
+			string $md[] = momsBME_search_group("top_md[0-9][0-9]$");//既にある中間破壊モデルグループ名
+			string $md_short;
+			if(size($md))//mdグループがあった場合
+			{
+				for($i = 0; $i < size($md); $i++)
+				{
+					$md_short = momsBME_getUnderName($md[$i]);
+					string $count = momsBME_top_md_count($sceneName + "_" + $md_short+ "_");//欠けてるナンバリング
+					$count = momsBME_padding($count);
+					spaceLocator -p 0 0 0 -name ($sceneName + "_" + $md_short + "_" + $count);
+				}
+			}
+			else//無かった場合
+			{
+				spaceLocator -p 0 0 0 -name ($sceneName + "_md01_01");	
+			}
+			break;
+		case "bridge" :
+			if(!`objExists "top_bridge"`)
+			{
+				$groupName[0] = `group -name "top_bridge" -empty`;
+				$groupName[1] = `group -name "root" -empty -parent $groupName[0]`;
+				$groupName[2] = `group -name "col" -empty -parent $groupName[0]`;
+				momsBME_addAttr({$groupName[1],$groupName[2]});
+			}
+			else
+			{
+				error"既に同名のグループが存在しているので制作できませんでした";
+			}
+			break;
+		//MSMOD-----------------------------------
+		case "brk_db" :
+			if(!`objExists "top_brk_db"`)
+			{
+				$groupName[0] = `group -name "top_brk_db" -empty`;
+				$groupName[1] = `group -name "root" -empty -parent $groupName[0]`;
+				$groupName[2] = `group -name "col" -empty -parent $groupName[0]`;
+				momsBME_addAttr({$groupName[1],$groupName[2]});
+			}
+			else
+			{
+				error"既に同名のグループが存在しているので制作できませんでした";
+			}
+			break;
+		case "brk_bk" :
+			if(!`objExists "top_brk_bk"`)
+			{
+				$groupName[0] = `group -name "top_brk_bk" -empty`;
+				$groupName[1] = `group -name "root" -empty -parent $groupName[0]`;
+				$groupName[2] = `group -name "col" -empty -parent $groupName[0]`;
+				momsBME_addAttr({$groupName[1],$groupName[2]});
+			}
+			else
+			{
+				error"既に同名のグループが存在しているので制作できませんでした";
+			}
+			break;
+		case "brk_dy" :
+			if(!`objExists "top_brk_dy"`)
+			{
+				$groupName[0] = `group -name "top_brk_dy" -empty`;
+				$groupName[1] = `group -name "root" -empty -parent $groupName[0]`;
+				$groupName[2] = `group -name "col" -empty -parent $groupName[0]`;
+				momsBME_addAttr({$groupName[1],$groupName[2]});
+			}
+			else
+			{
+				error"既に同名のグループが存在しているので制作できませんでした";
+			}
+			break;
+		case "brk_md" :
+				int $number_int = momsBME_top_md_count("top_brk_md");//top_brk_mdの欠けている番号を取得
+				string $number_str = momsBME_padding($number_int);//２桁に整形
+				$groupName[0] = `group -name ("top_brk_md" + $number_str) -empty`;
+				$groupName[1] = `group -name "root" -empty -parent $groupName[0]`;
+				$groupName[2] = `group -name "col" -empty -parent $groupName[0]`;
+				momsBME_addAttr({$groupName[1],$groupName[2]});
+			break;
+		case "brk_db_md" :
+				string $md_group[] = momsBME_search_group("top_brk_md[0-9][0-9]$");//既に作られているtop_brk_md**のリスト
+				if(!size($md_group))error"中間破壊モデル用グループがありません";
+				string $db_group[] = momsBME_search_group("top_brk_md[0-9][0-9]_db");//既に作られているtop_brk_md**_dbのリスト
+				for($i = 0; $i < size($md_group); $i++)
+				{
+					if(!stringArrayContains( ($md_group[$i]+"_db"), $db_group) )
+					{
+						$groupName[0] = `group -name ($md_group[$i] + "_db") -empty`;
+						$groupName[1] = `group -name "root" -empty -parent $groupName[0]`;
+						$groupName[2] = `group -name "col" -empty -parent $groupName[0]`;
+						momsBME_addAttr({$groupName[1],$groupName[2]});
+					}
+					else
+					{
+						print($md_group[$i]+"_db"+"は既に存在するのでスキップしました\n");
+					}
+				}
+				break;
+		case "null" :
+
+
+
+		//MSMOD-----------------------------------
+	}
+
+	return $groupName[0];//MSMOD-----------------------------------
+
+}
+
+//////////////////////////////////////////////////////////////////////
+//ルートノードを返す($sceneName + "_md_任意の番号_01")
+//////////////////////////////////////////////////////////////////////
+global proc string momsBME_get_root(string $node)
+{
+	string $longname[] = ls("-l", $node);
+	string $tokens[];
+	tokenize($longname[0], "|", $tokens);
+	return $tokens[0];
+}
+
+//////////////////////////////////////////////////////////////////////
+//ノードを正規表現で検索して返す
+//////////////////////////////////////////////////////////////////////
+global proc string[] momsBME_search_group(string $match)
+{
+	string $top_group[] = `ls -type transform`;
+	string $group[];
+	string $check; 
+	for($i = 0; $i < size($top_group); $i++)
+	{
+		$check = `match $match $top_group[$i]`;
+		if(size($check))
+		{
+			$group[size($group)] = $top_group[$i];
+		}
+	
+	}
+	return $group;
+}
+
+//////////////////////////////////////////////////////////////////////
+//階層一番上のグループ名を返す
+//////////////////////////////////////////////////////////////////////
+global proc string[] momsBME_getTopGroup()
+{
+	select "*";
+	string $all_tops[] = `ls -sl -as`;
+	select -cl;
+	select $all_tops;
+	string $tops_group[] = momsBME_getGroupName();
+	select -cl;
+	return $tops_group;
+}
+
+//////////////////////////////////////////////////////////////////////
+//エクスポート用アトリビュートを追加
+//////////////////////////////////////////////////////////////////////
+global proc momsBME_addAttr(string $groupName[])
+{
+	string $top_node[];//親グループ
+	string $type;//壊れモデルのタイプ
+	string $sceneName = momsBME_getSceneName();//シーンの名前
+	for($i = 0; $i < size($groupName); $i++)
+	{
+		$top_node = `listRelatives -p $groupName[$i]`;
+		$type = momsBME_getUnderName($top_node[0]);
+		if(!`attributeExists "export_top" $groupName[$i]`)//アトリビュート追加
+		{
+			addAttr -longName "export_top" -at bool $groupName[$i];
+		}
+		if(!`attributeExists "export_name" $groupName[$i]`)
+		{
+			addAttr -longName "export_name" -dt "string" $groupName[$i];
+		}
+		if($type == "bridge")//アトリビュート編集　橋の場合
+		{
+			setAttr -type "string" ($groupName[$i] +  ".export_name") ($sceneName) ;
+			setAttr ($groupName[$i] +  ".export_top") 1;
+		}
+		else//アトリビュート編集　橋以外
+		{
+			setAttr -type "string" ($groupName[$i] +  ".export_name") ($sceneName + "_" + $type) ;
+			setAttr ($groupName[$i] +  ".export_top") 1;
+		}
+	}
+}
+
+//////////////////////////////////////////////////////////////////////
+//シーン名を取得
+//////////////////////////////////////////////////////////////////////
+global proc string momsBME_getSceneName()
+{
+	string $sceneName = `file -q -sceneName -shortName`;
+	string $no_componentSceneName = `match "^[^\.]*" $sceneName`;
+	return $no_componentSceneName ;
+}
+
+//////////////////////////////////////////////////////////////////////
+//最初の"_"以下の文字列を取得
+//////////////////////////////////////////////////////////////////////
+global proc string momsBME_getUnderName(string $path)
+{
+//string $underName = `match "[^_]*$" $path`;//最後の"_"以下
+
+	// 文字列の最初のアンダーバーまで取得
+	string $pref = `match "[a-zA-Z0-9]*_" $path`;
+	// 文字列の最初のアンダーバーまでの長さ
+	int $prefSize = `size $pref`;
+	// _ の次の位置が欲しいので１足す
+	$prefSize = $prefSize + 1;
+	// 文字列の全体の長さ
+	int $totalSize = `size $path`;
+	// 開始位置から文字列の最後までを切り出す
+	string $result = `substring $path $prefSize $totalSize`;
+
+	return $result;
+}
+
+//////////////////////////////////////////////////////////////////////
+//選択ノードのgroup名だけを取得
+//////////////////////////////////////////////////////////////////////
+global proc string[] momsBME_getGroupName()
+{
+	string $selectNode[] = `ls -sl`;
+	string $groupName[];
+	int $count = `size($selectNode)`;
+	
+	for($i = 0; $i < $count; $i++)
+	{
+		if ( size( `listRelatives -shapes $selectNode[$i]` ) == 0 )
+		{
+			$groupName[`size($groupName)`] = $selectNode[$i];
+		}
+		/*
+		else
+		{
+			error("please select group node only.");
+		}
+		*/
+	}
+	return $groupName;
+}
+
+//////////////////////////////////////////////////////////////////////
+//設定ファイルのあるディレクトリを開く
+//////////////////////////////////////////////////////////////////////
+global proc momsBME_openDir()
+{
+	string $path = "D:\\Projects\\Gravite2\\planning\\datasheets\\Placements.xlsx";
+	string $syscmd = "start explorer /n,/e,/select, " + $path; 
+	system( $syscmd );
+}
+
+//////////////////////////////////////////////////////////////////////
+//havokアトリビュート設定 
+//shapeType 1;hull,2;box,3;sohere,4;cylinder,5;capsule,6;mesh,
+//////////////////////////////////////////////////////////////////////
+global proc momsBME_addHavokAttr()
+{
+	momsBME_check_ColCount;
+	string $type;
+	string $all_colPath[] = `ls -sl -l`;
+	string $type = `radioCollection -q -select "momsBME_radioCollection_1"`;
+	string $parent[];
+	string $shortName;
+	if($type == "momsBME_radioButton_hull")
+	{
+		for($colPath in $all_colPath)
+		{
+			$shortName = `match "[^|]*$" $colPath`;
+			$parent = `listRelatives -p $colPath`;//親グループ名
+			$type = `match "[^_]*$" $parent[0]`;//壊れのタイプ
+			if("bk" == $type)
+			{
+				select $colPath;
+				momsBME_havok(0,1);//BGの破片---重さ；0、形状；hull
+				print ("\n" + $shortName + "-- 重さ；0、形状；hull\n");
+			}
+			else
+			{
+				select $colPath;
+				momsBME_havok(1,1);//BGの破片---重さ；1、形状；hull
+				print ("\n" +$shortName + "-- 重さ；1、形状；hull\n");
+			}
+	
+		}
+	}
+	if($type == "momsBME_radioButton_mesh")
+	{
+		for($colPath in $all_colPath)
+		{
+			$shortName = `match "[^|]*$" $colPath`;
+			select $colPath;
+			momsBME_havok(0,6);//BGの破片---重さ；0、形状；mesh
+			print ("\n" +$shortName + "-- 重さ；0、形状；mesh\n");
+		}	
+	}
+
+	
+}
+
+//////////////////////////////////////////////////////////////////////
+//havokアトリビュート設定 (本体) 
+//////////////////////////////////////////////////////////////////////
+global proc momsBME_havok(float $mass,int $shapeType)
+{
+	string $dagPath[] = `ls -sl -l`;
+	hkProcPhysics_removeNodes;
+	hkProcPhysics_createRigidBodies;
+	string $shortName = `match "[^|]*$" $dagPath[0]`;
+	setAttr ($dagPath[0] + "|" + $shortName + "_hkRigidBody1.mass") $mass;
+	setAttr ($dagPath[0]  + "|" + $shortName + "_hkShape1.shapeType") $shapeType;
+	setAttr ($dagPath[0]  + "|" + $shortName + "_hkShape1.changeExtraRadius") 1;
+}
+
+//////////////////////////////////////////////////////////////////////
+//フリーズ
+//////////////////////////////////////////////////////////////////////
+global proc momsBME_freeze()
+{
+	makeIdentity -apply true -t 1 -r 1 -s 1 -n 0 -pn 1;
+	ResetTransformations;
+	print "フリーズ完了!";
+}
+
+//////////////////////////////////////////////////////////////////////
+//セパレート
+//////////////////////////////////////////////////////////////////////
+global proc momsBME_separate()
+{
+	string $dagPath[] = `ls -sl -o`;
+	if(size($dagPath)>1)error "複数のオブジェクトが選択されています";
+	string $shortName = `match "[^|]*$" $dagPath[0]`;//セパレートした後の名前をこれにする
+	string $parentGrp[] = `listRelatives -parent -fullPath $dagPath[0]`;//親グループ
+	polySeparate;
+	CenterPivot;
+	string $separatedObjName[] = `ls -sl -l`;//セパレート後のオブジェ名取得
+	string $parentGrp2[] = `listRelatives -parent -fullPath`;//セパレート後のグループ
+
+	if(size($parentGrp))
+	{
+		parent($separatedObjName,$parentGrp[0]);//元のグループに移動
+	}
+	else
+	{
+		parent -world;
+	}
+	DeleteHistory;
+	//delete $parentGrp2[0];//作られたグループ削除
+	$separatedObjName = `ls -sl -o -l`;//移動されたオブジェ名取得
+
+	string $suffixTemp = `match "[0-9]+$" $shortName`;//語尾の番号を抽出
+	string $noSuffixTemp = `match ".*[^0-9]" $shortName`;//語尾の番号以外
+	string $noSuffix = `match "[^|]*$" $noSuffixTemp`;
+	int $suffix = int($suffixTemp);//型変換
+
+	for($i = 0; $i < size($separatedObjName); $i++)
+	{
+
+		rename $separatedObjName[$i] ($noSuffix + ($suffix + $i));
+	}
+
+}
+
+//////////////////////////////////////////////////////////////////////
+//コンバイン
+//////////////////////////////////////////////////////////////////////
+global proc momsBME_combine()
+{
+	string $type[] = `ls -sl -l`;
+	for($i = 0; $i < size($type); $i++)
+	{
+		if("mesh" != momsBME_currentSelectTypeChecker($type[$i])) error"オブジェクト以外が選択されています";
+	}
+	string $dag[] = `ls -sl`;
+	string $parentGrp[] = `listRelatives -parent -fullPath`;//親グループ
+	string $tempGroup = `group`;
+	if(size($dag)>=2)CombinePolygons;//二つ以上のオブジェクトが選択されていたら結合
+	momsBME_selectModeObjectChanger;
+	CenterPivot;
+	string $combinedObjName[] = `ls -sl -l`;//コンバイン後のオブジェ名取得
+
+	if(size($parentGrp))
+	{
+		string $parentGrp2[] = `listRelatives -parent -fullPath $combinedObjName[0]`;//今のグループが
+		if($parentGrp2[0] != $parentGrp[0])//元のグループから外れてたら
+			{
+				parent($combinedObjName[0],$parentGrp[0]);//元のグループに移動
+			}
+	}
+	else if(size(`listRelatives -parent $combinedObjName`))//グループに入ってたら
+	{
+		parent -world $combinedObjName[0];//グループから外す
+	}
+
+	DeleteHistory;//履歴削除して
+	if(`objExists $tempGroup`)delete $tempGroup;//履歴削除しても消えなかったグループ削除
+	rename $dag[0];//元の名前に変更
+}
+
+
+//////////////////////////////////////////////////////////////////////
+//グループ以下のオブジェ名取得 meshのみ
+//////////////////////////////////////////////////////////////////////
+global proc string[] momsBME_childrenName(string $group)
+{
+	string $nameList[];//結果を入れる配列
+	string $names[] = `listRelatives -fullPath -allDescendents -type "mesh" $group`;//選択階層以下のメッシュ名取得
+	string $getParentName[];
+	for($name in $names)
+	{
+		if(!`getAttr ($name + ".intermediateObject")`)//中間オブジェクトかどうかチェック。ヒストリ対応
+		{
+			$getParentName = `listRelatives -parent -fullPath $name`;//中間オブジェクトでなければmeshの親のtransformの名前を取得
+			$nameList[`size $nameList`] = $getParentName[0];//配列に結果を格納
+		}
+	}
+	return $nameList;
+}
+
+//////////////////////////////////////////////////////////////////////
+//特定の名前のグループをシーン全体から検索し、その子供を選択
+//////////////////////////////////////////////////////////////////////
+global proc momsBME_selectSameName(string $name[])
+{
+	string $group_all[] = `ls -l $name`;
+	string $children[];
+	string $children_all[];
+	for($i = 0; $i < size($group_all); $i++)
+	{
+		$children = momsBME_childrenName($group_all[$i]);
+		$children_all = stringArrayCatenate($children_all,$children);
+	}
+
+	select $children_all;
+}
+
+//////////////////////////////////////////////////////////////////////
+//グループに含まれるメッシュの数を取得
+//////////////////////////////////////////////////////////////////////
+global proc int momsBME_meshCounter(string $path)
+{
+	string $transform[] = `listRelatives -f -type "transform" $path`;
+	string $mesh[];
+	int $count;
+	for($i = 0; $i < size($transform); $i++)
+	{
+		if (!size( `listRelatives -f -shapes $transform[$i]` ) == 0 )
+		{
+			$mesh[size($mesh)] = $transform[$i];
+		}
+	}
+	$count = size($mesh);
+	return $count;
+}
+
+//////////////////////////////////////////////////////////////////////
+//シーンにある全てのグループ名を取得
+//////////////////////////////////////////////////////////////////////
+global proc string[] momsBME_getGroup()
+{
+	string $getTrs[] = `ls -l -type "transform"`;
+	int $i = 0;
+	string $getGroup[];
+	for ($i = 0; `size $getTrs` > $i; $i++) 
+	{
+		string $getShape[] = `listRelatives -s $getTrs[$i]`;
+		if (! `size $getShape` ) 
+		{
+			$getGroup[`size $getGroup`] = $getTrs[$i] ;
+		}
+
+	}
+	return $getGroup;
+}
+
+//////////////////////////////////////////////////////////////////////
+//_dbと_bridge以外のcol以下に複数メッシュがあったらエラー
+//////////////////////////////////////////////////////////////////////
+global proc momsBME_check_ColCount()
+{
+	string $all_group[] = momsBME_getGroup();
+	string $top_node;
+	string $type;
+	string $parent[] ;
+	int $i;
+	string $shortName;
+
+	for($group in $all_group) 
+	{
+		$shortName = `match "[^|]*$" $group`;
+		if("col" == $shortName)//colで、、
+		{
+			$parent = `listRelatives -p $group`;//親グループ名
+			$type = `match "[^_]*$" $parent[0]`;//親グループの最後の"_"以下
+			if("db" != $type && "bridge" != $type && "dy" != $type)//親グループが_dbもしくは_bridge以外の場合
+			{
+				$i = momsBME_meshCounter($group);
+				if ($i > 1)
+				{
+					error($group + " 以下に複数のメッシュが存在します");
+				}
+
+			}
+		}
+	}
+}
+
+//////////////////////////////////////////////////////////////////////
+//選択されているもののタイプを返す
+//////////////////////////////////////////////////////////////////////
+global proc string momsBME_currentSelectTypeChecker(string $firstSelected)
+{
+	string $firstSelectedShape[] = `listRelatives -fullPath -shapes $firstSelected`;
+	string $firstSelectedShapeNodeType;
+	if (size($firstSelectedShape))
+	{
+		$firstSelectedShapeNodeType = `nodeType $firstSelectedShape`;
+	}
+	if (`gmatch $firstSelected "*.vtx*"`)return "vertex";
+	if (`gmatch $firstSelected "*.f*"`)return "face";
+	if (`gmatch $firstSelected "*.e*"`)return "edge";
+	if (`gmatch $firstSelected "*.map*"`)return "uv";
+	if($firstSelectedShapeNodeType == "mesh")return "mesh";//←オブジェクト
+	if($firstSelectedShapeNodeType == "locator")return "locator";
+	return "other";
+}
+
+//////////////////////////////////////////////////////////////////////
+//オブジェクトモードに切り替える
+//////////////////////////////////////////////////////////////////////
+global proc momsBME_selectModeObjectChanger()
+{
+	if (`selectMode -q -object`)
+	{
+		setSelectMode("components", "Components");//オブジェモードなのに頂点選択してしまってる場合用
+		selectMode -object;
+	}
+	else
+	{
+		selectMode -object;
+	}
+}
+
+//////////////////////////////////////////////////////////////////////
+//ノード名の欠けているナンバリングを取得 (２桁)
+//////////////////////////////////////////////////////////////////////
+global proc int momsBME_top_md_count(string $name)
+{
+
+	float $number;
+	string $md_group[] = `momsBME_search_group($name + "[0-9][0-9]$")`;//中間破壊モデル用グループ取得
+	for($i=0; $i< (size($md_group)+1); $i++ )
+	{
+		string $number = momsBME_padding($i + 1);
+		int $found = stringArrayContains(($name + $number), $md_group);
+		if(!$found)return ($i +1);
+	}
+}
+
+//////////////////////////////////////////////////////////////////////
+//バウンディングボックスを作るツール
+//
+//頂点、フェース、エッジ選択にも対応
+//「移動地を保持」を追加
+//
+//茂木大典 2013/10/29
+//////////////////////////////////////////////////////////////////////
+//window -q -wh  moBoundingBoxWin;
+//////////////////////////////////////////////////////////////////////
+//GUI
+//////////////////////////////////////////////////////////////////////
+/*
+global proc moBoundingBox()
+{
+	if(`window -exists moBoundingBoxWin`)deleteUI moBoundingBoxWin;
+	//windowPref -remove moPivotMoverWin;//GUI初期化
+	window -title "moBounding Box Ver1.2" -minimizeButton false -maximizeButton false moBoundingBoxWin;
+	columnLayout -adjustableColumn true;
+		checkBox -label "元のオブジェクトを削除" momsBME_checkBoxDelete;
+		checkBox -label "階層構造を維持"  momsBME_checkBoxParent;
+		checkBox -label "移動値を保持" momsBME_checkBoxTransform;
+		button -label "バウンディングボックス制作" -command "momsBME_DoIt";
+	showWindow moBoundingBoxWin;
+}
+*/
+
+//////////////////////////////////////////////////////////////////////
+//バウンディングボックスを作る
+//////////////////////////////////////////////////////////////////////
+global proc momsBME_DoIt()
+{
+	string $dagPath[];
+	if(momsBME_componentChecker()){
+		$dagPath = momsBME_componentToObjName();
+	}
+	else{
+		$dagPath = `ls -sl -o -l`;
+	}
+	if(!size($dagPath))error"何も選択されていません";
+
+	//string $dagPath[] = momsBME_componentChecker() ? momsBME_componentToObjName() : `ls -sl -o -l`;
+	//コンポーネントならmomsBME_componentToObjName()で、それ以外ならls-slでオブジェ名を代入
+	//行数短くなるけど何も選択されてないときにエラーが出るので辞めた
+
+	string $shortName = `match "[^|]*$" $dagPath[0]`;//バウンディングボックスの名前をこれにする
+
+	string $parentGrp[] = `listRelatives -parent -fullPath $dagPath[0]`;//親グループ
+
+	vector $bbCenter = momsBME_getCenter();//移動先の座標を求めて
+	float $valx = $bbCenter.x;
+	float $valy = $bbCenter.y;
+	float $valz = $bbCenter.z;
+	string $bboxName = momsBME_createBbox();//バウンディングボックスを作り
+	move -worldSpace -moveXYZ $valx $valy $valz;//移動する
+
+//	int $momsBME_checkBoxDelete = `checkBox -q -value momsBME_checkBoxDelete`;
+//	int $momsBME_checkBoxParent = `checkBox -q -value momsBME_checkBoxParent`;
+//	int $momsBME_checkBoxTransform = `checkBox -q -value momsBME_checkBoxTransform`;
+//	if($momsBME_checkBoxDelete)delete $dagPath;//元のオブジェクトを削除
+//	if(!$momsBME_checkBoxTransform)makeIdentity -apply true -translate true $bboxName;//移動値を保持(デフォルトが保持なので、チェックが入ってなかったらフリーズする)
+	parent($bboxName,$parentGrp[0]);//元のオブジェクトがあったグループに移動
+	
+	string $newBboxName[] = `ls -sl -o`;
+	rename $newBboxName[0] $shortName;//リネーム
+}
+
+//////////////////////////////////////////////////////////////////////
+//オブジェクトの大きさのバウンディングボックスを作る
+//////////////////////////////////////////////////////////////////////
+global proc string momsBME_createBbox()
+{
+	float $bBox[] = momsBME_boxXYZ();
+	polyCube -width ($bBox[3]-$bBox[0]) -height ($bBox[4]-$bBox[1]) -depth ($bBox[5]-$bBox[2]);
+	string $bboxName[] = `ls -sl -l`;	
+	return $bboxName[0];
+}
+
+//////////////////////////////////////////////////////////////////////
+//選択オブジェクトのバウンディングボックス座標を返す
+//
+//(当初exactWorldBoundingBoxコマンドを使っていたけど
+//アトリビュートに回転値が入ってると正確に値が取れないので変更した)
+//////////////////////////////////////////////////////////////////////
+global proc float[] momsBME_boxXYZ()
+{
+	float $VertexXYZ[];
+	float $temp[];
+	float $val;
+	int $i;
+	string $currentSelect[] = `ls -sl`;
+	string $names[] = momsBME_groupChecker() ? momsBME_getNameList() : `ls -sl -l`;
+	//グループならmomsBME_getNameList()で、それ以外ならls-slでオブジェ名を代入
+	
+	float $bboxXYZ[6];//バウンディングボックス座標（xmin、ymin、zmin、xmax、ymax、zmax）
+
+	for($name in $names)//選択オブジェクト、もしくは選択頂点の全ての座標を$VertexXYZに代入
+	{
+		select $name;
+		PolySelectConvert 3;//選択ノードを頂点に変換
+		$temp = `xform -query -ws -t`;
+		for($val in $temp)
+		{
+			$VertexXYZ[size($VertexXYZ)] = $val;
+		}
+		clear $temp;
+	}
+
+	$bboxXYZ[0] = $VertexXYZ[0];//X最小値
+	$bboxXYZ[1] = $VertexXYZ[1];//X最小値
+	$bboxXYZ[2] = $VertexXYZ[2];//Z最小値
+	$bboxXYZ[3] = $VertexXYZ[0];//X最大値 １頂点しか選択してない時用に初期値代入
+	$bboxXYZ[4] = $VertexXYZ[1];//Y最大値 １頂点しか選択してない時用に初期値代入
+	$bboxXYZ[5] = $VertexXYZ[2];//Z最大値 １頂点しか選択してない時用に初期値代入
+
+	for ($i = 0; $i < size($VertexXYZ); $i += 3)
+	{
+		$bboxXYZ[0] = `min $bboxXYZ[0] $VertexXYZ[$i]`;
+		$bboxXYZ[3] = `max $bboxXYZ[3] $VertexXYZ[$i]`;
+		$bboxXYZ[1] = `min $bboxXYZ[1] $VertexXYZ[($i + 1)]`;
+		$bboxXYZ[4] = `max $bboxXYZ[4] $VertexXYZ[($i + 1)]`;
+		$bboxXYZ[2] = `min $bboxXYZ[2] $VertexXYZ[($i + 2)]`;
+		$bboxXYZ[5] = `max $bboxXYZ[5] $VertexXYZ[($i + 2)]`;
+	}
+
+	select $currentSelect;
+	return $bboxXYZ;
+}
+
+//////////////////////////////////////////////////////////////////////
+//選択範囲のセンターを求める
+//////////////////////////////////////////////////////////////////////
+global proc vector momsBME_getCenter()
+{
+	float $bbox[] = momsBME_boxXYZ();
+	float $CenterX = ($bbox[3] - (($bbox[3] - $bbox[0])/2));//xの最大値からxの最小値を引いて一片の長さを求め、２分の一にして最大値から引く
+	float $CenterY = ($bbox[4] - (($bbox[4] - $bbox[1])/2));
+	float $CenterZ = ($bbox[5] - (($bbox[5] - $bbox[2])/2));
+	vector $centerXYZ = <<$CenterX, $CenterY, $CenterZ>>;
+	return $centerXYZ;
+}
+
+//////////////////////////////////////////////////////////////////////
+//選択オブジェクトの名前を取得
+//グループ以下の階層（グループ名を含めない)
+//////////////////////////////////////////////////////////////////////
+global proc string[] momsBME_getNameList()
+{
+	string $nameList[];//結果を入れる配列
+	string $names[] = `listRelatives -fullPath -allDescendents -type mesh`;//選択階層以下のメッシュ名取得
+	string $getParentName[];
+	for($name in $names)
+	{
+		if(!`getAttr ($name + ".intermediateObject")`)//中間オブジェクトかどうかチェック。ヒストリ対応
+		{
+			$getParentName = `listRelatives -parent -fullPath $name`;//中間オブジェクトでなければmeshの親のtransformの名前を取得
+			$nameList[`size $nameList`] = $getParentName[0];//配列に結果を格納
+		}
+	}
+	return $nameList;
+}
+
+//////////////////////////////////////////////////////////////////////
+//選択コンポーネントのオブジェクト名を返す
+//////////////////////////////////////////////////////////////////////
+global proc string[] momsBME_componentToObjName()
+{
+	string $nameList[];//結果を入れる配列
+	string $names[] = `ls -sl -o -l`;
+	string $getParentName[];
+	for($name in $names)
+	{
+		if(!`getAttr ($name + ".intermediateObject")`)//中間オブジェクトかどうかチェック。ヒストリ対応
+		{
+			$getParentName = `listRelatives -parent -fullPath $name`;//中間オブジェクトでなければmeshの親のtransformの名前を取得
+			$nameList[`size $nameList`] = $getParentName[0];//配列に結果を格納
+		}
+	}
+	return $nameList;
+}
+
+//////////////////////////////////////////////////////////////////////
+//選択されているものがグループなら1を返す
+//////////////////////////////////////////////////////////////////////
+global proc int momsBME_groupChecker()
+{
+	if (!size( `listRelatives -shapes` ))
+	{
+		if(momsBME_componentChecker())
+		{
+			return 0;
+		}
+		else
+		{
+			return 1;
+		}
+	}
+	else
+	{
+		return 0;
+	}
+}
+
+//////////////////////////////////////////////////////////////////////
+//選択されているものがコンポーネントなら1を返す
+//////////////////////////////////////////////////////////////////////
+global proc int momsBME_componentChecker()
+{
+	string $componentNames[] = `filterExpand -sm 31 -sm 32 -sm 34 -sm 35`;//頂点、エッジ、フェース、ＵＶ
+	if(size($componentNames))
+	{
+		return 1;
+	}
+	else
+	{
+		return 0;
+	}
+}
+
+s002000_BreakModelEditor;

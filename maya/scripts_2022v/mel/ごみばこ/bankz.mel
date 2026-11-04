@@ -1,0 +1,380 @@
+global proc MS_valueChaser(){
+/*
+一番親から、移動値を加算してグローバル値を求める
+*/
+
+	string $top[]=`ls -l -sl`;
+	string $test[];
+	tokenize $top[0] "|" $test;
+	float $tx=0;
+	$i=0;
+	string $name="";
+	for($i=0;$i<size($test);$i++){
+		$name=($name+"|"+$test[$i]);
+		$tx+=`getAttr ($name+".tx")`;
+		print ($name+"\n");
+	}
+	print $tx;
+}
+
+
+global proc MS_set_opposite(){
+	for($obj_name in `ls -sl`)
+	{
+	setAttr ($obj_name+".opposite") 1;
+	
+	}
+}
+
+
+global proc MStextureSwitch(int $switch_a){
+//texture wo rendering sinaiyounisuru
+//
+
+//0 = texture is able to render
+//1 = texture is disable to render
+	
+	string $mat_name[]=`ls -mat`;
+	
+	$i=0;
+	for($i=0;$i<size($mat_name);$i++){
+		$dst_name=$mat_name[$i]+".color";
+		print ($dst_name+"\n");
+		int $check=`shadingConnection -e -cs $switch_a $dst_name`;
+		if($check==false){
+			print ($dst_name+"has no tex !\n");
+			continue;
+		}
+	}
+}
+
+
+global proc MS_takimaker(){
+//takimaker v1
+//erannda ejjiwo sitani extrude suru
+
+	duplicateCurve -ch 0 -rn 0 -local 0;
+	string $obj_name[]=`ls -sl`;
+	extrude -ch false -rn false -po 1 -et 0 -upn 0 -d 0 1 0 -length -500 -rotation 0 -scale 1 -dl 3 $obj_name[0];
+	
+	delete $obj_name[0];
+	
+	sets -e -forceElement _m_magma_cSG;
+}
+
+
+global proc qwerqwer(){
+string $obj_name[]=`ls -sl`;
+$i=0;
+for($i=0;$i<size($obj_name);$i++){
+string $obj_name_str=$obj_name[$i];
+setAttr ($obj_name_str+".initialSampleRate") 8;
+setAttr ($obj_name_str+".extraSampleRate") 4;
+displacementToPoly $obj_name[$i];
+polyReduce -percentage 95 -uvWeights 0 -colorWeights 0 -keepBorder 1 -keepMapBorder 0 -keepHardEdge 0 -compactness 0 -triangulate 1 -replaceOriginal 1 -ch 0;
+delete -ch ;
+}
+}
+
+
+global proc bump(){
+toggleSelMode;
+
+polyNormalPerVertex -ufn true;
+polySoftEdge -a 180 -ch 0;
+
+toggleSelMode;
+
+setAttr .initialSampleRate 8;
+setAttr .extraSampleRate 4;
+displacementToPoly;
+polyReduce -percentage 95 -uvWeights 0 -colorWeights 0 -keepBorder 1 -keepMapBorder 0 -keepHardEdge 0 -compactness 0 -triangulate 1 -replaceOriginal 1 -ch 1 ;
+delete -ch;
+}
+
+
+global proc vertexBake1(){
+//Global Illmination
+setAttr initialVertexBakeSet.colorMode 2;
+setAttr initialVertexBakeSet.normalDirection 1;
+setAttr "initialVertexBakeSet.orthogonalReflection" 0;
+
+setAttr "initialVertexBakeSet.bakeColor" 1;
+setAttr "initialVertexBakeSet.bakeAlpha" 0;
+
+setAttr "initialVertexBakeSet.scaleRgba" 1;
+setAttr "initialVertexBakeSet.clampMin" 1;
+setAttr "initialVertexBakeSet.minColor" -type double3 0 0 0 ;
+setAttr "initialVertexBakeSet.clampMax" 1;
+setAttr "initialVertexBakeSet.maxColor" -type double3 1 1 1 ;
+
+setAttr initialVertexBakeSet.colorBlending 0;
+
+
+setAttr "initialVertexBakeSet.filterSize" 0.001;
+setAttr "initialVertexBakeSet.filterNormalTolerance" 5.000;
+
+cmd : convertLightmapSetup  -camera persp -vm -bakeSetOverride tmpVerticesBakeSet -showcpv;
+
+//Occlusion
+
+setAttr initialVertexBakeSet.colorMode 3;
+setAttr "initialVertexBakeSet.occlusionRays" 64;
+setAttr "initialVertexBakeSet.occlusionFalloff" 128;
+setAttr initialVertexBakeSet.normalDirection 1;
+setAttr "initialVertexBakeSet.orthogonalReflection" 0;
+
+setAttr "initialVertexBakeSet.bakeColor" 1;
+setAttr "initialVertexBakeSet.bakeAlpha" 0;
+
+setAttr "initialVertexBakeSet.scaleRgba" 1;
+setAttr "initialVertexBakeSet.clampMin" 1;
+setAttr "initialVertexBakeSet.minColor" -type double3 0 0 0 ;
+setAttr "initialVertexBakeSet.clampMax" 1;
+setAttr "initialVertexBakeSet.maxColor" -type double3 1 1 1 ;
+
+setAttr initialVertexBakeSet.colorBlending 3;
+
+
+setAttr "initialVertexBakeSet.filterSize" 0.001;
+setAttr "initialVertexBakeSet.filterNormalTolerance" 5.000;
+
+cmd : convertLightmapSetup  -camera persp -vm -bakeSetOverride tmpVerticesBakeSet -showcpv;
+
+}
+
+
+global proc borderSelect(){
+PolySelectConvert 4;
+polySelectBorderShell 0;
+PolySelectConvert 1;
+}
+
+global proc autoProjection(){
+PolySelectConvert 4;
+polySelectBorderShell 0;
+PolySelectConvert 1;
+polyProjection -ch 0 -type Planar -ibd on -icx 0.5 -icy 0.5 -ra 0 -isu 1 -isv 1 -md b ;
+}
+
+global proc polySelectFace(){
+polySelectConstraint -wholeSensitive on;
+polyOptions -np -dc false;
+}
+
+global proc polySelectCenter(){
+polySelectConstraint -wholeSensitive off;
+polyOptions -np -dc true;
+}
+
+
+global proc copyTransform(string $source,string $dist){
+
+	float $tx,$ty,$tz,$rx,$ry,$rz,$sx,$sy,$sz;
+
+	$tx =	getAttr ($dist + ".tx");
+		setAttr ($source+ ".tx") $tx;
+	$ty =	getAttr ($dist + ".ty");
+		setAttr ($source+ ".ty") $ty;
+	$tz =	getAttr ($dist + ".tz");
+		setAttr ($source+ ".tz") $tz;
+
+	$rx =	getAttr ($dist + ".rx");
+		setAttr ($source+ ".rx") $rx ;
+	$ry =	getAttr ($dist + ".ry");
+		setAttr ($source+ ".ry") $ry;
+	$rz =	getAttr ($dist + ".rz");
+		setAttr ($source+ ".rz") $rz;
+
+	$sx =	getAttr ($dist + ".sx");
+		setAttr ($source+ ".sx") $sx;
+	$sy =	getAttr ($dist + ".sy");
+		setAttr ($source+ ".sy") $sy;
+	$sz =	getAttr ($dist + ".sz");
+		setAttr ($source+ ".sz") $sz ;
+}
+
+//------------------------------------------------------------
+
+
+string $objz[]=`ls -type transform -sl`;
+
+int $i;
+int $last=size($objz);
+
+for($i=0;$i<$last;$i++){
+	
+	string $name="ms_transformer_"+$i;
+	
+	//duplicate -n $name $objz[$last-1];
+	duplicate -ilf -n $name $objz[$last-1];
+	
+	copyTransform $name $objz[$i];
+	
+	select -r $objz[$i];
+	
+	doDelete;
+	
+	rename $name "MS_TransFormer";
+	
+	
+	
+};
+
+
+global proc remainBorder(){
+PolySelectConvert 4;
+SelectUVBorder;
+PolySelectConvert 3;
+InvertSelection;
+polyDeleteVertex;
+}
+
+
+global proc cameraNormalize(){
+setAttr "top.translateY" 100000;
+setAttr "front.translateZ" 100000;
+setAttr "side.translateX" 100000;
+
+setAttr "topShape.farClipPlane" 1000000;
+setAttr "frontShape.farClipPlane" 1000000;
+setAttr "sideShape.farClipPlane" 1000000;
+setAttr "perspShape.farClipPlane" 1000000;
+
+setAttr "topShape.nearClipPlane" 10;
+setAttr "frontShape.nearClipPlane" 10;
+setAttr "sideShape.nearClipPlane" 10;
+setAttr "perspShape.nearClipPlane" 10;
+}
+
+
+global proc breakInstance()
+{
+string $selObj[] = `ls -sl`;
+for($obj in $selObj)
+{
+
+string $duplicateObj[] = `duplicate -rr $obj`;
+delete $obj;
+rename $duplicateObj[0] $obj;
+}
+}
+breakInstance;
+
+
+global proc MS_particle2curve(){
+/*
+パーティクルを元にNURBSカーブを作成する。
+*/
+
+$sel = `ls -sl -sn -o`;
+print $sel;
+$part = $sel[0];
+int $count = `getAttr ($part+".count")`;
+print $count;
+int $i = 0;
+
+$pos_v0 = `particle -at position -id 0 -q $part`;
+$pos_v1 = `particle -at position -id 1 -q $part`;
+curve -d 1 -p $pos_v0[0] $pos_v0[1] $pos_v0[2] -p $pos_v1[0] $pos_v1[1] $pos_v1[2] -k 0 -k 1 -n curvez;
+
+for($i=2;$i<$count;$i++){
+$pos = `particle -at position -id $i -q $part`;
+extendCurve -cos 0 -ch 0 -em 2 -px $pos[0] -py $pos[1] -pz $pos[2] -s 0 -jn true -rmk true -rpo on "curvez" ;
+}
+
+rename curvez particle2curve;
+
+}
+
+global proc qwerqwer(){
+
+}
+
+global proc qwerqwer(){
+
+}
+
+global proc qwerqwer(){
+
+}
+
+global proc qwerqwer(){
+
+}
+
+global proc qwerqwer(){
+
+}
+
+global proc qwerqwer(){
+
+}
+
+global proc qwerqwer(){
+
+}
+
+global proc qwerqwer(){
+
+}
+
+global proc qwerqwer(){
+
+}
+
+global proc qwerqwer(){
+
+}
+
+global proc qwerqwer(){
+
+}
+
+global proc qwerqwer(){
+
+}
+
+global proc qwerqwer(){
+
+}
+
+global proc qwerqwer(){
+
+}
+
+global proc qwerqwer(){
+
+}
+
+global proc qwerqwer(){
+
+}
+
+global proc qwerqwer(){
+
+}
+
+global proc qwerqwer(){
+
+}
+
+global proc qwerqwer(){
+
+}
+
+global proc qwerqwer(){
+
+}
+
+global proc qwerqwer(){
+
+}
+
+global proc qwerqwer(){
+
+}
+
+
+
+

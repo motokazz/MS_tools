@@ -1,0 +1,44 @@
+global proc MP_MS_addAttr_enum(string $TORO_ATTR,string $ENUM,float $VALUE,string $OBJ){
+	if(`attributeExists $TORO_ATTR $OBJ`){
+		deleteAttr -at $TORO_ATTR $OBJ;
+	}
+	addAttr -k false -at "enum" -en $ENUM -hidden false -ln $TORO_ATTR $OBJ;
+	setAttr -channelBox true ($OBJ+"."+$TORO_ATTR) $VALUE;
+}
+{
+	string $OBJ[]=`ls -typ lambert -sl`;
+	for ($each in $OBJ){
+		MP_MS_addAttr_enum("SetStage","0:1:2:3:4:5:6:7:",0,$each);
+		MP_MS_addAttr_enum("SetPrio","0:1:2:3:4:5:6:7:",0,$each);
+		MP_MS_addAttr_enum("SetMultPass","0:castshadow_mate:",1,$each);
+    	MP_MS_addAttr_enum("SetLayer0","0:castshadow_mate:",1,$each);
+    	MP_MS_addAttr_enum("SetLayer1","0:castshadow_mate:",0,$each);
+    	MP_MS_addAttr_enum("SetLayer2","0:castshadow_mate:",0,$each);
+    	MP_MS_addAttr_enum("SetLayer3","0:castshadow_mate:",0,$each);
+    	MP_MS_addAttr_enum(
+			 "anisoFilter",
+			"NEAREST:LINEAR:NEAREST_NEAREST:LINEAR_NEAREST:NEAREST_LINEAR:LINEAR_LINEAR:",
+			2.0,
+			$each
+		);
+		
+        MP_MS_addAttr_enum(
+			"anisoFilter",
+			"NEAREST:LINEAR:NEAREST_NEAREST:LINEAR_NEAREST:NEAREST_LINEAR:LINEAR_LINEAR:",
+			2.0,
+			$each
+		);
+        MP_MS_addAttr_enum(
+			"SetShader",	
+			"bloom_f:blur:BuildLUTPass:castshadow_v:castshadowsk_v:ColorTweakPass:Decal:DecalSkin:DecodeNormalPass:DefaultVS:DefaultVSA:dof_f:dofy_f:gauss_f:gaussy_f:LightPass:LinearSkyBox:shadowgauss_f:shadowgaussy_f:shadowlight_v:shadowlights_v:shadowlightsk_v:Shiba:sRGBSkyBox:ssaogauss_f:ssaogaussy_f:SsaoPass:tonemap_f:ZtoDepthPass:",
+			2.0,
+			$each
+		);
+		
+		
+		
+		
+	}
+}
+
+

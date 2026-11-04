@@ -1,0 +1,276 @@
+//Creation	Co,
+//day		2005.10.28
+//version	2.1
+//WEB		http://www.d4.dion.ne.jp/~mosquito/index.html
+//mail		mosquito@d4.dion.ne.jp
+
+/*バージョン履歴
+ver1.1=Setを選択して使用できるようにした。
+ver1.2=計算を大幅に変更
+       処理window変更
+       処理時間表示(おまけ)
+ver2.0=xyz軸固定オプション追加
+ver2.1=windowの配置修正。
+       MaxDistanceが半強制的だったので0で∞にした。一応Maxも増やした。
+       作業終了後Setを削除してたので、残すオプション追加
+*/
+
+/*バグ
+・今のとこ無し
+*/
+
+/*使い方
+１:MEL実行。Window起動
+２:｢SelectTragetVertexList｣で吸着先のバーテックスを選択(※1
+３:｢SelectSnapVertexList｣で移動して吸着するバーテックスを選択(※1
+４:｢SnapVertex｣ボタンでSnapを開始
+５:処理後一番近くのバーテックスに吸着
+※1 Set選択対応してます。
+*/
+
+
+//Create Window------------------------------------------------------------------------------------------------
+global proc SnapVertex(){
+ if((`window -ex SnapVertexWindow`) == true)deleteUI SnapVertexWindow;
+ if((`windowPref -ex SnapVertexWindow`) == 1)windowPref -e -wh 310 206 SnapVertexWindow;
+ window -wh 310 206 -t "SnapVertex Ver2.1" -maximizeButton 0 -resizeToFitChildren 0 -menuBar true -menuBarVisible true -retain SnapVertexWindow;
+ menu -label "Edit" -tearOff false;
+ menuItem -label "Reset Settings" -c "deleteUI SnapVertexWindow; SnapVertex";
+ menu -label "Help" -tearOff 0;
+ menuItem  -label "HomePeage"  -c "UnitBus" -ann "http://www.d4.dion.ne.jp/~mosquito/index.html";
+ columnLayout;
+  separator -w 310;
+ setParent ..; 
+
+ columnLayout -cat "both" 5 -adjustableColumn true -rs 5 -cw 320 buttonLayout;
+ 
+  columnLayout;
+    checkBox -label "delete HistorySet" -v 1 sCheck;
+  setParent ..;
+ 
+  rowLayout  -numberOfColumns 2  -cat 1 "left" 5  -columnWidth 1 130  -columnWidth 2 210;
+   button -al "center"  -l "SelectTragetVertexList" -w 120 -c "ClickTragetList";
+   textFieldGrp -en 0 -cw 1 160  fGetName;
+  setParent ..;
+ 
+  rowLayout  -numberOfColumns 2 -cat 1 "left" 5  -columnWidth 1 130  -columnWidth 2 210;
+   button -al "center"  -l "SelectSnapVertexList" -w 120 -c "ClickSnapList";
+   textFieldGrp -en 0 -cw 1 160  sGetName;
+  setParent ..;
+
+  rowLayout  -numberOfColumns 4 -cat 1 "left" 5  -cw 1 80  -cw 2 50 -cw 3 50 -cw 4 50;
+    text -l "Move";
+    checkBox -label "X" -v 1 xCheck;
+    checkBox -label "Y" -v 1 yCheck;
+    checkBox -label "Z" -v 1 zCheck;
+  setParent ..;
+
+  columnLayout;
+   floatSliderGrp -label "MaxDistance" -s 1 -fs 1 -field true -fieldMinValue 0 -fieldMaxValue 10000 -minValue 0 -maxValue 100 -cw 1 80 -cw 2 40 -value 0 maxVolu;	
+  setParent ..;
+ setParent ..;
+ 
+ columnLayout;
+  separator -w 300;
+ setParent ..; 
+ 
+ columnLayout -columnAttach "both" 5 -adjustableColumn true -rs 5 -cw 300;
+  gridLayout -nc 2 -cellWidth 146 -cellHeight 20;
+   button -label "SnapVertex" -align "center" -c "SnapVertexButton";
+   button -label "- Close -" -align "center" -c ("deleteUI -window SnapVertexWindow");
+  setParent ..; 
+ setParent ..; 
+
+ showWindow SnapVertexWindow;
+};
+
+
+//URL------------------------------------------------------------------------------------------------
+global proc UnitBus(){
+ string $link = "start explorer \"http://www.d4.dion.ne.jp/~mosquito/index.html\"";
+ system($link);
+};
+
+
+//--------処理ウインド
+global proc OriginalProgress(){
+ if((`window -ex OriginalProgressWindow`) == true)deleteUI OriginalProgressWindow;
+ if(`windowPref -ex OriginalProgressWindow`){ windowPref -r OriginalProgressWindow; }
+ window -wh 248 70 -tlc 414 516 -tlb true -s true -t "Calculating" OriginalProgressWindow;
+  columnLayout;
+   progressBar -maxValue 10 -width 246 Number;
+   progressBar -maxValue 10 -width 246 Count;
+  setParent ..;
+ showWindow OriginalProgressWindow;
+};
+
+
+//--------処理時間ウインドウ
+global proc outTimer(){
+ if((`window -ex outTimerWindow`) == true)deleteUI outTimerWindow;
+ if(`windowPref -ex outTimerWindow`){ windowPref -r outTimerWindow; }
+ window -wh 160 40 -tlc 414 516 -tlb true -s true -t "ProcessingTime" outTimerWindow;
+  columnLayout;
+   rowLayout -ad2 2 -numberOfColumns 2  -columnWidth2 85 75;
+   text -label "ProcessingTime : ";
+   text -label "" inputTime;
+   setParent ..;
+  setParent ..;
+ showWindow outTimerWindow;
+};
+
+
+//ClickTragetList-------------------------------------------
+global proc ClickTragetList(){
+ string $selectSet[] = `ls -sl`;
+ select -r $selectSet;
+
+ if (objExists("SnapVertex_TargetSet")) {
+  delete SnapVertex_TargetSet;
+ }
+	
+ string $verF[] = `ls -sl -fl`;
+ sets -name SnapVertex_TargetSet;
+
+ int $rp = 1;
+ int $nu = `size $verF`;
+
+ textFieldGrp -e -tx $verF[0] fGetName;
+
+ while ($rp < $nu) { 
+  string $allNameF = `textFieldGrp -q -text fGetName`;
+  string $textNameF = $verF[$rp] +" "+ $allNameF;
+  textFieldGrp -e -tx $textNameF fGetName;
+  $rp++;
+ };
+};
+
+
+//ClickSnapList-------------------------------------------
+global proc ClickSnapList(){
+ string $selectSet[] = `ls -sl`;
+ select -r $selectSet;
+
+ if (objExists("SnapVertex_SnapSet")) {
+  delete SnapVertex_SnapSet;
+ }
+
+ string $verS[] = `ls -sl -fl`;
+ sets -name SnapVertex_SnapSet;
+
+ int $rp = 1;
+ int $nu = `size $verS`;
+
+ textFieldGrp -e -tx $verS[0] sGetName;
+
+ while ($rp < $nu) { 
+  string $allNameS = `textFieldGrp -q -text sGetName`;
+  string $textNameS = $verS[$rp] +" "+ $allNameS;
+  textFieldGrp -e -tx $textNameS sGetName;
+  $rp++;
+ };
+};	
+
+
+//SnapVertexButton-------------------------------------------
+global proc SnapVertexButton(){
+ //開始時間
+ $Timer = `timerX`;
+
+ //windowからTargetList取得
+ select -r SnapVertex_TargetSet;
+ string $verF[] = `ls -sl -fl`;
+
+ //windowからSnapList取得
+ select -r SnapVertex_SnapSet;
+ string $verS[] = `ls -sl -fl`;
+
+ //windowからMaxDistanceを取得
+ float $maxDis = `floatSliderGrp -q -v maxVolu`;
+
+ //windowからMoveCheckを取得
+ int $xCheck=`checkBox -q -v xCheck`;
+ int $yCheck=`checkBox -q -v yCheck`;
+ int $zCheck=`checkBox -q -v zCheck`;
+
+ //windowからMoveCheckを取得
+ int $sCheck=`checkBox -q -v sCheck`;
+
+ OriginalProgress;
+ int $roop = 0;
+ int $num = `size $verS`;
+ while ($roop < $num) { 
+  progressBar -edit -beginProgress -isInterruptable true -maxValue $num Number;
+  float $tempLength = 0.0;
+  float $pointVerF[] = {0.0,0.0,0.0};
+  float $bestLength = $maxDis;
+
+  int $rp = 0;
+  int $nm = `size $verF`;
+  while ($rp < $nm) {
+   progressBar -edit -beginProgress -isInterruptable true -maxValue $nm Count;
+   select -r $verS[$roop] $verF[$rp];
+   $tempLength = `vLength`;
+
+   if($bestLength==0 || $tempLength<$bestLength){
+    $bestLength = $tempLength;
+    $pointVerF = `pointPosition -w $verF[$rp]`;
+   }
+   print $pointVerF;
+   progressBar -edit -pr $rp Count;
+   $rp++;
+  };
+  progressBar -edit -endProgress Count;
+
+  if($maxDis==0 || $bestLength<$maxDis){
+   select -r $verS[$roop];
+   if($xCheck==1){move -ws -x $pointVerF[0];}
+   if($yCheck==1){move -ws -y $pointVerF[1];}
+   if($zCheck==1){move -ws -z $pointVerF[2];}
+  }
+  progressBar -edit -pr $roop Number;
+  $roop++;
+ };
+ progressBar -edit -endProgress Number;
+ deleteUI -window OriginalProgressWindow;
+
+ //deleteHistory
+ if($sCheck==1){
+  if (objExists("SnapVertex_TargetSet")) {delete SnapVertex_TargetSet;}
+  if (objExists("SnapVertex_SnapSet")) {delete SnapVertex_SnapSet;}
+  textFieldGrp -e -tx "" fGetName;
+  textFieldGrp -e -tx "" sGetName;
+ }else{
+  textFieldGrp -e -tx "SnapVertex_TargetSet" fGetName;
+  textFieldGrp -e -tx "SnapVertex_SnapSet" sGetName;
+ }
+  
+ $totalTime = `timerX -startTime $Timer`;
+ outTimer;
+ text -e -l $totalTime inputTime;
+};
+
+
+//バーテックスの距離を測る-------------------------------------------
+global proc float vLength()
+{
+ float $verticesLength = 0.000;
+
+ string $vertices[] = `filterExpand -sm 31`;
+ float $v1[3] = `pointPosition $vertices[0]`;
+ float $v2[3] = `pointPosition $vertices[1]`;
+ float $edgeFloat[];
+
+ int $i = 0;
+ while($i<3){
+  $edgeFloat[$i] = $v1[$i] - $v2[$i];
+  $i++;
+ }
+ 
+ vector $edgeVector = $edgeFloat;
+ float $verticesLength = `mag $edgeVector`;
+ return $verticesLength;
+};
+
+
+SnapVertex;

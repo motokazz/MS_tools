@@ -1,0 +1,11 @@
+//¬”“_ˆÈ‰º2Œ…‚ÅØ‚èã‚°
+global proc float MS_roundUp(float $val){
+	float $ret;
+	if($val!=0){
+		$ret=(`ceil ($val*100)`/100);
+	}else{
+		$ret=0;
+	}
+	return $ret;
+}
+

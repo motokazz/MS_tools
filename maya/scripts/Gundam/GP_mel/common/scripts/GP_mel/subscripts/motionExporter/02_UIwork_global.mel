@@ -1,0 +1,128 @@
+//GP2モーションエクスポータ
+//2,汎用UI挙動
+
+global proc string getVer(){
+	string $ver = "1_11_140421";
+	return $ver;
+}
+
+global proc string getSDpos(){
+	string $pos = (`getenv "GP_MAYA_ROOT"` + "\\common\\scripts\\GP_mel\\csv\\GP2_motExpGlobalSave.csv");
+	return $pos;
+}
+
+global proc string[] GP2_motExp_getSaveDataTemplate(){
+	string $saveDataList[] = {"exportFolder","multiExportSwitch","resetRootPosSwitch","multiTabMayaDataFolder","BookMarks"};
+	return $saveDataList;
+}
+
+global proc GP2_motExp_globalSave(string $accessed){
+
+	string $saveDataFileName = getSDpos();
+
+	string $newSaveData;
+	int $i = 0;
+	int $temp;
+	string $bookmarkList[];
+	string $text;
+
+
+	switch($accessed){
+		case "exportFolder" :
+			$newSaveData = `textFieldButtonGrp -q -text eFT_exportTgtTf`;
+			break;
+
+		case "multiExportSwitch" :
+			$newSaveData = `radioCollection -q -sl eFT_divModeRadCol`;
+			break;
+
+		case "resetRootPosSwitch" :
+			$newSaveData = "off";
+			if(`checkBox -q -v eFT_resetPosChk`){
+				$newSaveData = "on";
+			}
+			break;
+
+		case "multiTabMayaDataFolder" :
+			$newSaveData = `textFieldButtonGrp -q -text eFT_sourcePathTf`;
+			break;
+
+		case "BookMarks":
+			$bookmarkList = `textScrollList -q -ai eFT_BrBookmark_tsl`;
+			for($books in $bookmarkList){
+				$text = $text + $books + "@";
+			}
+			$newSaveData = $text;
+			break;
+	}
+
+
+	string $loadedData[];
+
+	if(`filetest -r $saveDataFileName`){
+		int $fileId = `fopen $saveDataFileName "r"`;
+		string $line;
+		$line = `fgetline $fileId`;
+		int $i , $savedFlag;
+
+		while ( size( $line ) > 0 ){
+			$loadedData[$i] = $line;
+			string $buffer[];
+			tokenize $line "," $buffer;
+			if( $accessed == $buffer[0] ){
+				$loadedData[$i] = ($accessed + "," + $newSaveData);
+				$savedFlag = 1;
+			}
+			$line = `fgetline $fileId`;
+			$i++;
+		}
+		if( $savedFlag == 0 ){
+			$loadedData[$i] = ($accessed + "," + $newSaveData);
+		}
+		fclose $fileId;
+	}else{
+//セーブデータなし
+		$loadedData[0] = ("Mel-tool SettingData");
+		$loadedData[1] = ($accessed + "," + $newSaveData);
+	}
+
+	$fileId=`fopen $saveDataFileName "w"`;
+
+	for ($loadedItem in $loadedData){
+		if (endsWith($loadedItem,"\n") == 0){
+			$loadedItem = ($loadedItem + "\n");
+		}
+		fprint $fileId ($loadedItem);
+//		print ($loadedItem);
+	}
+	fclose $fileId;
+}
+
+global proc string GP2_motExp_globalLoad(string $accessed){
+	string $saveDataFileName = getSDpos();
+
+	if(`filetest -r $saveDataFileName`){
+		int $fileId = `fopen $saveDataFileName "r"`;
+		string $line ;
+		$line = `fgetline $fileId`;
+		int $i=0;
+		string $loadedData;
+
+		while ( size( $line ) > 0 ){
+			string $buffer[];
+			tokenize $line "," $buffer;
+			if( $accessed == $buffer[0] ){
+				$loadedData = $buffer[1];
+				break;
+			}
+			$line = `fgetline $fileId`;
+			$i++;
+		}
+		fclose $fileId;
+		$loadedData = startString($loadedData , size($loadedData)-1);
+		return( $loadedData );
+	}else{
+		return("");
+	}
+}
+

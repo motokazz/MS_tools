@@ -1,0 +1,797 @@
+//--------------------------------------------------------------------------
+//
+// ScriptName : AriSceneOpener
+// Contents   : シーンを開く手間を最小限にします。
+// Author     : Arinosu
+// LastUpdate : 2014/07
+// Note       : 
+//
+//--------------------------------------------------------------------------
+
+global proc AriSceneOpener()
+{
+	global string $pathBookMark[10];
+	global string $pathBookMarkButton[10];
+	global string $AriSceneOpener_history[];
+	global int $AriSceneOpener_hisNum;
+	string $defPath=`internalVar -uad`;
+	$defPath=startString($defPath,size($defPath)-1);
+	$pathBookMark[0]=$defPath;
+	$pathBookMark[1]=$defPath;
+	$pathBookMark[2]=$defPath;
+	$pathBookMark[3]=$defPath;
+	$pathBookMark[4]=$defPath;
+	$pathBookMark[5]=$defPath;
+    $pathBookMark[6]=$defPath;
+    ARISceneOpenLoad();
+	string $rootPath;
+	global string $AriFixLeftSL; 
+	global string $AriFixRightSL; 
+	global string $AriFixLeftPathTX;
+	global string $AriFixRightPathTX;
+	global string $AriFixCurrentProj;
+	global string $AriFixRootPathTF; 
+	global string $AriFixProjsetCB;
+	global string $AriFixExistsCB;
+	global string $AriFixProjSarchTF;
+	global string $AriBookmarkSL;
+	global string $AriFixProj_FileTypeRadio[];
+	global string $AriSceneOpenYajirushiIcon[];
+	string $workspace=`workspace -q -rd`;
+	if((`window -ex AriSceneOpener`)==true)deleteUI AriSceneOpener;
+	window -title "AriSceneOpener"  -w 500 -h 400  AriSceneOpener;
+	string $form=`formLayout`;
+		$AriFixPL=	`paneLayout -configuration "top3" -ps 1 50 85 -ps 3 50 20 `;
+		$formLeft=`formLayout`;
+			$AriFixLeftPathTX=`text -h 24 -l ""`;
+			$AriFixLeftSL=`textScrollList  -selectCommand ARILDFixLeftBoxS -dcc ARILDFixLeftBoxW`; 
+			$AriFixProjSarchTF=`textField  -text "" -aie true -ec "ARIscenesViewerPathEnter(0)"`;
+			$AriSceneOpenYajirushiIcon[1]=`nodeIconButton -w 26 -h 20 -style "iconOnly" -vis 0 -command "ARIscenesViewerPathEnter(2)" -image1 "SP_FileDialogBack.xpm"`;
+			$AriSceneOpenYajirushiIcon[0]=`nodeIconButton -w 26 -h 20 -style "iconOnly" -en 0 -command "ARILDFixLeftBoxUpDirectory" -image1 "SP_FileDialogToParent.xpm"`;
+			$currentProjButton =`button -l "CurrentProj" -command "ARIleftProjectDirectry"`;
+			string $sarchB=`button -l "絞り込み" -c "ARIscenesViewerPathEnter(0)"`;
+		setParent..;
+		$formRight=`formLayout`;
+			$AriSceneOpenYajirushiIcon[3]=`nodeIconButton -w 26 -h 20 -style "iconOnly" -en 1 -command "ARILDFixRightBoxPushUpButton()" -image1 "SP_FileDialogToParent.xpm"`;
+			$AriFixRightPathTX=`textField -ed 0 -text "scenes/"`;
+			string $openFolderBT_right =`button  -h 24 -label "dir" -command  ARILDFixDirectoryOpen`;
+	$AriFixRightSL=`textScrollList -ams true -selectCommand ARILDFixRightBoxS -dcc "ARILDFixRightBoxW()"`;
+			string $radioRow=`rowLayout -m 0 -nc 3 -cw3 45 45 45`;
+				$AriFixProj_FileTypeRadio[2]=`checkBox -v 1 -label "dir" -cc "ARILDFixRightReload()"`;
+			    $AriFixProj_FileTypeRadio[0]=`checkBox -v 1 -label "mb" -cc "ARILDFixRightReload()"`;
+	    		$AriFixProj_FileTypeRadio[1]=`checkBox -v 1 -label "ma"  -cc "ARILDFixRightReload()"`;
+			setParent..;
+			$AriFixProjsetCB = `checkBox  -label "プロジェクトSET" -value true`;
+			string $openfileBT =`button   -label "開く" -command  "ARILDFixRightBoxW()"`;
+			string $allCloseBT =`button   -label "UI閉" -command  "AriSceneOpenAllCloseWindow()"`;
+		setParent..;
+		$formBookmark=`formLayout`;
+		string $bookmarkText=`text -label "ブックマーク"`;
+		$AriBookmarkSL=`textScrollList  -selectCommand "ARISceneOpenMakeBookmarkListCrick()" -dcc ARILDFixLeftBoxW `;
+		string $bookmarkAppend=`button -l "追加" -c "ARISceneOpenLoad_BookMarkApp"`;
+		string $bookmarkDelete=`button -l "削除" -c "ARISceneOpenLoad_BookMarkDel"`;
+		string $bookmarkUp=`button -l "↑" -c "ARISceneOpenLoad_BookMarkMove(\"up\")"`;
+		string $bookmarkDown=`button -l "↓" -c "ARISceneOpenLoad_BookMarkMove(\"down\")"`;
+		string $bookmarkSave=`button -l "Save" -c "ARISceneOpenLoad_BookMarkSave"`;
+		setParent..;
+	setParent..;
+		formLayout -e
+		-af $bookmarkText "top" 0
+		-af $bookmarkText "right" 0
+		-af $bookmarkText "left" 0
+		-af $bookmarkAppend "bottom" 0
+		-ap $bookmarkAppend "right" 0 25
+		-af $bookmarkAppend "left" 0
+		-af $bookmarkDelete "bottom" 0
+		-ap $bookmarkDelete "right" 0 50
+		-ac $bookmarkDelete "left" 0 $bookmarkAppend
+		-af $bookmarkUp "bottom" 0
+		-ap $bookmarkUp "right" 0 62
+		-ap $bookmarkUp "left" 0 50
+		-af $bookmarkDown "bottom" 0
+		-ap $bookmarkDown "right" 0 75
+		-ap $bookmarkDown "left" 0 62
+		-af $bookmarkSave "bottom" 0
+		-af $bookmarkSave "right" 0
+		-ap $bookmarkSave "left" 0 75
+		-ac $AriBookmarkSL "top" 0 $bookmarkText
+		-ac $AriBookmarkSL "bottom" 0 $bookmarkAppend
+		-af $AriBookmarkSL "right" 0
+		-af $AriBookmarkSL "left" 0
+		$formBookmark;
+		formLayout -e
+		-af $AriFixLeftPathTX "top" 0
+		-af $AriSceneOpenYajirushiIcon[1] "top" 0
+		-af $AriSceneOpenYajirushiIcon[1] "left" 0
+		-af $AriSceneOpenYajirushiIcon[0] "top" 0
+		-ac $AriSceneOpenYajirushiIcon[0] "left" 0 $AriSceneOpenYajirushiIcon[1]
+		-af $currentProjButton "top" 0
+		-ac $currentProjButton "left" 0 $AriSceneOpenYajirushiIcon[0]
+		-af $sarchB "bottom" 0
+		-af $sarchB "right" 0
+		-af $sarchB "left" 0
+		-ac $AriFixProjSarchTF "bottom" 0  $sarchB
+		-af $AriFixProjSarchTF "right" 0
+		-af $AriFixProjSarchTF "left" 0
+		-ac $AriFixLeftSL "top" 0 $AriFixLeftPathTX
+		-ac $AriFixLeftSL "bottom" 0 $AriFixProjSarchTF
+		-af $AriFixLeftSL "right" 0
+		-af $AriFixLeftSL "left" 0
+		$formLeft;
+		formLayout -e
+		-af $AriFixProjsetCB "bottom" 0
+		-af $AriFixProjsetCB "left" 0
+		-af $openFolderBT_right "top" 0
+		-af $openFolderBT_right "right" 0
+		-af $AriSceneOpenYajirushiIcon[3] "left" 0
+		-af $AriSceneOpenYajirushiIcon[3] "top" 0
+		-af $AriFixRightPathTX "top" 0
+		-ac $AriFixRightPathTX "left" 0  $AriSceneOpenYajirushiIcon[3]
+		-ac $AriFixRightPathTX "right" 0 $openFolderBT_right
+		-ac $AriFixRightSL "top" 0 $openFolderBT_right
+		-ac $openfileBT "bottom" 0 $AriFixProjsetCB
+		-af $openfileBT "left" 0 
+		-ap $openfileBT "right" 0 65
+		-ac $allCloseBT "bottom" 0 $AriFixProjsetCB
+		-af $allCloseBT "right" 0
+		-ap $allCloseBT "left" 0 65
+		-ac $radioRow "bottom" 0 $openfileBT
+		-af $radioRow "left" 0 
+		-af $radioRow "right" 0
+		-ac $AriFixRightSL "bottom" 0  $radioRow
+		-af $AriFixRightSL "right" 0
+		-af $AriFixRightSL "left" 0
+		$formRight;
+		$AriFixRootPathTF = `textField  -text "" -aie true -enterCommand "ARIscenesViewerPathEnter(0)"`;
+		string $currentProjText =`text -h 20 -l "Project: "`;
+		string $fileDialogButton=`nodeIconButton -w 26 -h 20 -style "iconOnly" -command "AriFixFileDialog" -image1 "navButtonBrowse.xpm"`;
+	if(!`exists "fileDialog2"`){
+		nodeIconButton -e -m 0 $fileDialogButton;
+	}
+		$AriFixCurrentProj=`textField -ed 0 -text $workspace`;
+		setParent..;
+		formLayout -e
+		-af $currentProjText "top"    0
+		-af $currentProjText "left" 0
+		-af $AriFixCurrentProj "top"    0
+		-ac $AriFixCurrentProj "left" 0 $currentProjText
+		-af $AriFixCurrentProj "right" 0
+		-ac $fileDialogButton "top"    0 $currentProjText
+		-af $fileDialogButton "right" 0
+		-ac $AriFixRootPathTF "top"    0 $currentProjText
+		-af $AriFixRootPathTF "left" 0
+		-ac $AriFixRootPathTF "right" 0 $fileDialogButton
+		-af $AriFixPL "bottom" 0
+		-ac $AriFixPL "top" 0 $fileDialogButton
+		-af $AriFixPL "right" 0
+		-af $AriFixPL "left" 0
+		$form;
+	ARISceneOpenMakeBookmarkList();
+	showWindow;
+	ARIleftProjectDirectry();
+}
+global proc AriFixFileDialog(){
+	global string $AriFixRootPathTF;
+	string $defPath=`textField -q -text $AriFixRootPathTF`;
+	string $path[] =`fileDialog2 -cap "select directory" -dir $defPath -ds 2 -fm 3 -okc "フォルダ"`;
+	if($path[0]!="")ARIscenesViewerColorChange($path[0]);
+}
+global proc ARISceneOpenLoad(){
+	global string $pathBookMark[100];
+	global string $pathBookMarkButton[10];
+	clear $pathBookMark;
+	string $bookMarkPath[];
+	$pathBookMark=AriSettingLoad("AriSceneOpen");
+}
+global proc string[] AriSettingLoad(string $melName){
+	string $loadText[];
+	string $allText[]=ARISceneOpen_AllLoad();
+	int $getFrag=0;
+	string $get;
+	int $i=0;
+	int $j=0;
+	for($i=0;$i<size($allText);$i++){
+		$get = $allText[$i];
+		if($get==($melName+"_end------------------------------"))break;
+		if($getFrag==1){
+			$getPath = substituteAllString($get, "\\", "/");
+			$loadText[$j]= $getPath;
+			$j++;
+		}
+		if($get==($melName+"_start------------------------------"))$getFrag=1;
+	}
+	return $loadText;
+}
+global proc string[] ARISceneOpen_AllLoad(){
+	string $allText[];
+	string $scriptPath=`internalVar -usd`;
+	string $LoadPath=$scriptPath+"AriToolData.mel";
+	if(`filetest -f $LoadPath`){
+		int $fpid = `fopen $LoadPath "r"`;
+		string $get;
+		int $i=0;
+		do{
+			$get = `fgetline $fpid`;
+			$allText[$i]= startString($get,size($get)-1);
+			$i++;
+		}
+		while(size($get));
+		fclose $fpid;
+	}
+	else print ("AriToolData.mal  なし");	
+	return $allText;
+}
+global proc ARISceneOpenLoad_BookMarkSave(){
+	global string $AriBookmarkSL;
+	string $bookmarkList[]=`textScrollList -q -allItems $AriBookmarkSL`;
+	string $remove[]={"カレントプロジェクト"};
+	$bookmarkList = stringArrayRemove($remove, $bookmarkList);
+	AriSettingSave("AriSceneOpen",$bookmarkList);
+}
+global proc AriSettingSave(string $melName,string $saveArray[]){
+	string $saveAllArray[];
+	string $saveString;
+	string $allText[]=ARISceneOpen_AllLoad();
+	int $saveFlag=1;
+	int $j=0;
+	for($i=0;$i<size($allText)-1;$i++){
+		if($allText[$i]==($melName+"_end------------------------------")){
+			$saveFlag=3;
+		}
+		if($allText[$i]==($melName+"_start------------------------------")){
+			$saveFlag=2;
+			$saveAllArray[$j]=($melName+"_start------------------------------");
+			$j++;
+		}
+		if($saveFlag==1 || $saveFlag==3){
+			$saveAllArray[$j]=$allText[$i];	
+			$j++;
+		}
+		if($saveFlag==2){
+			for($array in $saveArray){
+				$saveAllArray[$j]=$array;
+				$j++;
+			}
+			$saveFlag=0;
+		}
+	}
+	if($saveFlag==1){
+		print "AriSceneOpen_startなし";
+		$saveAllArray[$j]=($melName+"_start------------------------------");
+		$j++;
+		for($array in $saveArray){
+			$saveAllArray[$j]=$array;
+			$j++;
+		}
+		$saveAllArray[$j]=($melName+"_end------------------------------");
+		$j++;
+	}
+	for($j=0;$j<size($saveAllArray);$j++){
+		$saveString=$saveString+$saveAllArray[$j]+"\n";
+	}
+	string $scriptPath=`internalVar -usd`;
+	string $LoadPath=$scriptPath+"AriToolData.mel";
+	int $fpid = `fopen $LoadPath "w"`;
+	fprint $fpid($saveString);
+	fclose $fpid;
+}
+global proc ARISceneOpenMakeBookmarkList(){
+	global string $pathBookMark[100];
+	global string $AriBookmarkSL;
+	string $stBookmarkList;
+	for($i=0;$i<100;$i++){
+		if($pathBookMark[$i]!=""){
+			$stBookmarkList=($stBookmarkList+" -a \""+$pathBookMark[$i]+"\"");
+		}
+	}
+	eval("textScrollList -e  -removeAll   "+$stBookmarkList+" $AriBookmarkSL");
+}
+global proc ARISceneOpenMakeBookmarkListCrick(){
+	global string $pathBookMark[100];
+	global string $pathBookMarkButton[10];
+	global string $AriFixRootPathTF;
+	global string $AriBookmarkSL;
+	string $select[]=`textScrollList -q -selectItem $AriBookmarkSL`; 
+	int $selectIndex[]=`textScrollList -q -sii $AriBookmarkSL`; 
+	ARIscenesViewerColorChange($select[0]);
+	textScrollList -e -sii $selectIndex[0] $AriBookmarkSL;
+	string $selectAfter[]=`textScrollList -q -selectItem $AriBookmarkSL`; 
+	if($select[0]!=$selectAfter[0]){
+		string $newPath=`textField -q  -text $AriFixRootPathTF`;
+		textScrollList -e -rii $selectIndex[0] $AriBookmarkSL;
+		textScrollList -e -ap $selectIndex[0] $newPath $AriBookmarkSL;
+		textScrollList -e -selectItem $newPath $AriBookmarkSL;
+	}
+}
+global proc ARISceneOpenLoad_BookMarkDel(){
+	global string $AriBookmarkSL;
+	int $selectIndex[]=`textScrollList -q -sii $AriBookmarkSL`; 
+	textScrollList -e -rii $selectIndex[0] $AriBookmarkSL; 
+	textScrollList -e -da $AriBookmarkSL; 
+}
+global proc ARISceneOpenLoad_BookMarkApp(){
+	global string $AriFixRootPathTF; 
+	string $path =`textField -q -text  $AriFixRootPathTF`;
+	global string $AriBookmarkSL;
+	textScrollList -e -append $path $AriBookmarkSL; 
+}
+global proc ARISceneOpenLoad_BookMarkMove(string $updown){
+	global string $AriBookmarkSL;
+	string $select[]=`textScrollList -q -selectItem $AriBookmarkSL`; 
+	int $selectIndex[]=`textScrollList -q -sii $AriBookmarkSL`; 
+	int $moveIndex;
+	int $totalIndex=`textScrollList -q -ni $AriBookmarkSL`;
+	if($updown=="up")$moveIndex=$selectIndex[0]-1;
+	if($updown=="down")$moveIndex=$selectIndex[0]+1;
+	if($moveIndex<=$totalIndex && $moveIndex>0){
+		textScrollList -e -rii $selectIndex[0] $AriBookmarkSL;
+		textScrollList -e -ap  $moveIndex $select[0] $AriBookmarkSL;
+		textScrollList -e -sii $moveIndex $AriBookmarkSL;
+	}
+}
+global proc ARIscenesViewerColorChange(string $directory){
+	global string $AriFixRootPathTF;
+ 	textField -e  -text $directory $AriFixRootPathTF;
+	ARIscenesViewerPathEnter(0);
+}
+global proc ARIleftProjectDirectry(){
+	global string $AriFixLeftSL; 
+	global string $AriFixRightSL; 
+	global string $AriFixRootPathTF; 
+	string $workspace=`workspace -q -rd`;
+	string $scenes=`file -q -shortName -sceneName`;
+	string $wsName;	
+	string $rootPath;
+	string $sepa[];
+	int $size = `tokenize $workspace "/" $sepa`;
+	$rootPath=$workspace+"/";
+	$wsName=$sepa[$size-1];
+	if(endsWith($rootPath, "/" )){
+		$rootPath=startString($rootPath,size($rootPath)-1);
+	}
+	ARIscenesViewerColorChange($rootPath);
+	textScrollList -e -si $wsName $AriFixLeftSL;
+	ARILDFixLeftBoxS();
+	if(stringArrayContains($scenes,`textScrollList -q -ai $AriFixRightSL`))	textScrollList -e -si $scenes $AriFixRightSL;
+}
+global proc ARIscenesViewerPathEnter(int $plusmode){
+	string $inputPath;
+	string $rootPath;
+	string $rightPath;
+	global string $AriSceneOpener_history[];
+	global int $AriSceneOpener_hisNum;
+	global string $AriFixLeftSL;
+	global string $AriFixRightSL;
+	global string $AriFixRootPathTF;
+	global string $AriFixProjSarchTF;
+	global string $AriFixExistsCB;
+	global string $AriFixRightPathTX;
+	global string $AriSceneOpenYajirushiIcon[];
+	if($plusmode==2){
+		$AriSceneOpener_hisNum--;
+		if($AriSceneOpener_hisNum<0)$AriSceneOpener_hisNum=0;
+		string $hisPath=$AriSceneOpener_history[$AriSceneOpener_hisNum];
+		if(`textField -q -text $AriFixRootPathTF` == $hisPath){
+			if($AriSceneOpener_hisNum-1>=0)	$hisPath=$AriSceneOpener_history[$AriSceneOpener_hisNum-1];
+		}		
+		textField -e -text $hisPath  $AriFixRootPathTF;
+	}
+	$inputPath = `textField -q -text $AriFixRootPathTF`;
+	$rootPath = substituteAllString($inputPath, "\\", "/");
+	$rightPath = `textField -q -text $AriFixRightPathTX`;
+	if(!endsWith($rootPath,"/")){
+		$rootPath=$rootPath+"/";
+	}
+	string $sepa[];
+	tokenize $rootPath "/" $sepa;
+	string $fldPath;
+	int $i=0;
+	for($i=0;$i<size($sepa);$i++){
+		$fldPath=$fldPath+$sepa[$i]+"/";
+		if($i<size($sepa)-1){
+			string $fldList[]=`getFileList -fld  ($fldPath+"/")`;
+			if(!stringArrayContains($sepa[$i+1],$fldList)){
+				for($fld in $fldList){
+					if(tolower($sepa[$i+1])==tolower($fld)){
+						$sepa[$i+1]=$fld;
+						break;
+					}
+				}
+			}
+		}
+	}
+	$rootPath=$fldPath;
+	if($inputPath != $rootPath){
+		print($inputPath+"\n"+$rootPath+" path修正\n");
+	}
+	textField -e -text $rootPath  $AriFixRootPathTF;
+	tokenize $rootPath "/" $sepa;
+	$rootPath = startString($rootPath,(size($rootPath)-size($sepa[size($sepa)])));
+	string $getPath;
+	string $selectPath;
+	if($plusmode==1){
+		$getPath=$rootPath;
+	}
+	else{
+		$getPath = startString($rootPath,(size($rootPath)-size($sepa[size($sepa)-1])-1));
+		$selectPath = endString($rootPath,(size($rootPath)-size($getPath)));
+		$selectPath = startString($selectPath,size($selectPath)-1);
+	}
+	if($getPath!=""){
+		string $list[]=`getFileList -fld  $getPath`; 
+		string $listSt; 
+		$listSt=$listSt+" -append \""+ ".." +"\"";	
+		for($folder in $list){
+			if(`filetest -d ($getPath+"/"+$folder)`){ 
+				string $searchTex =`textField -q -text $AriFixProjSarchTF`;
+				if($searchTex =="" || `gmatch $folder ("*"+$searchTex+"*")` ){
+					if(`filetest -d ($getPath+"/"+$folder+$rightPath)`){ 
+						$listSt=$listSt+" -a \""+$folder+"\"";
+					}
+					else	$listSt=$listSt+" -a \""+$folder+"\"";
+				}
+			}
+		}
+		eval("textScrollList -e  -removeAll -selectCommand ARILDFixLeftBoxS "+$listSt+" $AriFixLeftSL");
+		nodeIconButton -e -en 1  $AriSceneOpenYajirushiIcon[0];
+	}
+	else{
+		textField -e -text ""  $AriFixRootPathTF;
+		string $driveList[]={"A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"};
+		string $listSt; 
+		for($drive in $driveList){
+			if(`filetest -d ($drive+":")`){
+				$listSt += (" -a \""+$drive+":\" ");
+			}
+		}
+		eval("textScrollList -e  -removeAll "+$listSt+" $AriFixLeftSL");
+		nodeIconButton -e -en 0  $AriSceneOpenYajirushiIcon[0];
+	}
+	if(`textScrollList -q -ni $AriFixLeftSL`>=2){
+		if($rootPath != ""){
+			if($plusmode==1)$rootPath=$rootPath+"__/";
+			textField -e -text ($rootPath)  $AriFixRootPathTF;
+			textScrollList -e -sii 2 $AriFixLeftSL;
+		}
+		else textScrollList -e -sii 1 $AriFixLeftSL;	
+		if(stringArrayContains($selectPath,`textScrollList -q -ai $AriFixLeftSL`)){
+			textScrollList -e -si $selectPath $AriFixLeftSL;
+		}
+		ARILDFixLeftBoxS();
+	}
+	else{
+		ARILDFixRightReload();
+	}
+	if($plusmode!=2){
+		$AriSceneOpener_history[$AriSceneOpener_hisNum]=`textField -q -text $AriFixRootPathTF`;
+		$AriSceneOpener_hisNum++;
+		while($AriSceneOpener_hisNum<size($AriSceneOpener_history)){
+			stringArrayRemoveAtIndex($AriSceneOpener_hisNum,$AriSceneOpener_history);
+		}
+	}
+	/*
+	print("his____________________________________________  \n\n");
+	print($AriSceneOpener_hisNum+"\n");
+	$i=0;
+	for($his in $AriSceneOpener_history){
+		if($i==$AriSceneOpener_hisNum)print(">");
+		print($i+"  "+$his+"\n");
+		$i++;
+	}
+	print("\n___________________________________________\n");
+	*/
+	if($AriSceneOpener_hisNum==0)nodeIconButton -e -en 0  $AriSceneOpenYajirushiIcon[1];
+	else nodeIconButton -e -en 1 $AriSceneOpenYajirushiIcon[1];
+	if($AriSceneOpener_hisNum>100){
+		for($i=0;$i<100;$i++){
+			$AriSceneOpener_history[$i]=$AriSceneOpener_history[$i+1];
+		}
+		$AriSceneOpener_hisNum=100;
+	}
+}
+global proc ARILDFixReset(){
+	global string $AriFixLeftSL;
+	global string $AriFixRightSL;
+	global string $AriFixRightPathTX;
+	textScrollList -e -en false -removeAll $AriFixRightSL;
+	textField -e -text ""  $AriFixRightPathTX;
+	ARILDFixLeftBoxS;
+}
+global proc ARILDFixLeftBoxS(){
+	global string $AriFixRootPathTF;
+	global string $AriFixLeftPathTX;
+	global string $AriFixRightPathTX;
+	global string $AriFixLeftSL;
+	global string $AriFixRightSL;
+	global string $AriBookmarkSL;
+	string $leftPath;
+	string $rootPath = `textField -q -text $AriFixRootPathTF`;
+	string $rightPath= `textField -q -text $AriFixRightPathTX`;
+	$select=`textScrollList -q -selectItem $AriFixLeftSL`;
+	$leftPath = $select[0]+"/";
+	string $sepa[];
+	tokenize $rootPath "/" $sepa;
+	$rootPath = startString($rootPath,(size($rootPath)-size($sepa[size($sepa)-1])-1));
+	$rootPath=$rootPath+$leftPath;
+	textField -e -text $rootPath $AriFixRootPathTF;
+	string $bookmarkList[]=`textScrollList -q -allItems $AriBookmarkSL`;
+	if(stringArrayContains($rootPath,$bookmarkList))textScrollList -e -si $rootPath $AriBookmarkSL;
+	else textScrollList -e -da $AriBookmarkSL;
+	ARILDFixRightReload();
+}
+global proc ARILDFixRightReload(){
+	string $fullPathSet[]=AriSO_DirectryMarge("right");
+	global string $AriFixLeftPathTX;
+	global string $AriFixRightPathTX;
+	global string $AriFixRightSL;
+	global string $AriFixProj_FileTypeRadio[];
+	string $leftPath=`text -q -l $AriFixLeftPathTX`;
+	string $rightPath=`textField -q -text $AriFixRightPathTX`;
+	string $sarch=$fullPathSet[0];
+	if(`filetest -d $sarch`){
+		string $listAll[]=`getFileList -fld $sarch`;
+		string $list_All[];
+		string $list_mb[];
+		string $list_ma[];
+		string $list_directly[];
+		int $i=1,$j=1,$k=1;
+		if(`checkBox -q -v $AriFixProj_FileTypeRadio[2]`) $list_directly[0]="------------directory------------";
+		else $list_directly[0]="|--directory---";
+		if(`checkBox -q -v $AriFixProj_FileTypeRadio[1]`) $list_ma[0]="------------.ma-----------------";
+		else $list_ma[0]="|--.ma--------";
+		if(`checkBox -q -v $AriFixProj_FileTypeRadio[0]`) $list_mb[0]="------------.mb-----------------";
+		else $list_mb[0]="|--.mb--------";
+		for($list in $listAll){
+			if(`checkBox -q -v $AriFixProj_FileTypeRadio[0]` && endsWith($list,".mb")){
+				$list_mb[$i]=$list;
+				$i++;
+			}
+			if(`checkBox -q -v $AriFixProj_FileTypeRadio[1]` && endsWith($list,".ma")){
+				$list_ma[$j]=$list;
+				$j++;
+			}
+			if(`checkBox -q -v $AriFixProj_FileTypeRadio[2]` && `filetest -d ($sarch+$list)`){
+				$list_directly[$k]=$list;
+				$k++;
+			}
+		}
+		appendStringArray($list_All,$list_directly,size($list_directly));
+		appendStringArray($list_All,$list_mb,size($list_mb));
+		appendStringArray($list_All,$list_ma,size($list_ma));
+		string $listSt;
+		if($rightPath != "")	$listSt=$listSt+" -append \""+ ".." +"\"";
+		for($folder in $list_All){
+			$listSt=$listSt+" -append \""+$folder+"\"";
+		}
+		eval("textScrollList -e -en true -removeAll "+$listSt+" $AriFixRightSL");
+	}
+	else	textScrollList -e  -removeAll -append ".." -append ($rightPath+"フォルダ無")   $AriFixRightSL;
+ 	/*
+	if($mode=="clear"){
+		textScrollList -e -en true -removeAll  $AriFixRightSL;
+	}
+	*/
+}
+global proc ARILDFixLeftBoxW(){
+	global string $AriFixLeftSL;
+	global string $AriFixRightSL;
+	global string $AriFixRootPathTF;
+	global string $AriFixRightPathTX;
+	string $rootPath = `textField -q -text $AriFixRootPathTF`;
+	string $rightPath= `textField -q -text $AriFixRightPathTX`;
+	string $select[]=`textScrollList -q -selectItem $AriFixLeftSL`;
+	string $sarch;
+	string $lastPath="";
+	if($select[0]==".."){
+		ARILDFixLeftBoxUpDirectory();
+	}
+	else{
+		if($rootPath!="")$sarch=$rootPath;
+		else $sarch=$select[0];
+		print $sarch;
+		if(`filetest -d ($sarch+"/")`){  
+			$rootPath=$sarch;
+			string $list[]=`getFileList -fld ( $sarch+"/")`;
+			string $listSt;
+			textField -e  -text $rootPath  $AriFixRootPathTF;
+			ARIscenesViewerPathEnter(1);
+		}
+	}
+}
+global proc ARILDFixLeftBoxUpDirectory(){
+	global string $AriFixRootPathTF;
+	global string $AriFixLeftSL;
+	string $rootPath = `textField -q -text $AriFixRootPathTF`;
+	string $select[]=`textScrollList -q -selectItem $AriFixLeftSL`;
+	$rootPath=startString($rootPath,size($rootPath)-size($select[0])-1);
+	textField -e  -text $rootPath  $AriFixRootPathTF;
+	ARIscenesViewerPathEnter(0);
+}
+global proc ARILDFixRightBoxW(){
+	global string $AriFixRightPathTX;
+	global string $AriFixProjsetCB;
+	global string $AriFixCurrentProj;
+	global string $AriFixProj_FileTypeRadio[];
+	global string $AriSceneOpenYajirushiIcon[];
+	string $fullPathSet[]=AriSO_DirectryMarge("full");
+	string $projPath[1]=AriSO_DirectryMarge("left");
+	string $scenesPath[1]=AriSO_DirectryMarge("right");
+	string $select[]=AriSO_DirectryMarge("select");
+	string $rightPath=`textField -q -text $AriFixRightPathTX`;
+	if(size($select)==0)return;
+	if(size($select)>=2)return;
+	if(endsWith ($select[0],"---") ){
+		if(startsWith ($select[0],"------------.mb"))checkBox -e -v 0 $AriFixProj_FileTypeRadio[0];
+		if(startsWith ($select[0],"------------.ma"))checkBox -e -v 0 $AriFixProj_FileTypeRadio[1];
+		if(startsWith ($select[0],"------------directory"))checkBox -e -v 0 $AriFixProj_FileTypeRadio[2];
+		if(startsWith ($select[0],"|--.mb"))checkBox -e -v 1 $AriFixProj_FileTypeRadio[0];
+		if(startsWith ($select[0],"|--.ma"))checkBox -e -v 1 $AriFixProj_FileTypeRadio[1];
+		if(startsWith ($select[0],"|--directory"))checkBox -e -v 1 $AriFixProj_FileTypeRadio[2];
+		ARILDFixRightReload();
+		return;
+	}
+	string $fullPath;
+	string $workLocal;
+	if($select[0]==".."){
+		string $parentD[];
+		tokenize $rightPath "/" $parentD;
+		string $lastD=$parentD[size($parentD)-1];
+		$workLocal=startString($rightPath,size($rightPath)-size($lastD)-1);
+		$fullPath=$projPath[0]+$workLocal;
+		if($workLocal=="")nodeIconButton -e -en 0 $AriSceneOpenYajirushiIcon[3];
+	}
+	else{
+		$workLocal=$rightPath+$select[0]+"/";
+		$fullPath=$fullPathSet[0];
+	}
+	if(`filetest -d $fullPath`){
+		$rightPath=$workLocal;
+		textField -e -text $rightPath $AriFixRightPathTX;
+		ARILDFixRightReload();
+		if($rightPath=="")	nodeIconButton -e -en 0 $AriSceneOpenYajirushiIcon[3];
+		else nodeIconButton -e -en 1 $AriSceneOpenYajirushiIcon[3];
+	}
+	if(endsWith($fullPath,".ma") || endsWith($fullPath,".mb")){
+		if(`checkBox -q -value $AriFixProjsetCB`){
+			string $proj;
+			$proj=$projPath[0];
+			setProject ($proj);
+			print("projectset   "+$proj);
+			/*
+			if(endsWith($rightPath,"scenes/")){
+				$proj=$projPath[0];
+				$proj=$proj+startString($rightPath,(size($rightPath)-7));
+				setProject ($proj);
+			}
+			else{
+				confirmDialog -m "プロジェクトセット行えませんでした";
+			}
+			*/
+		}
+		file -f -options "v=0"  -o $fullPath;
+		string $workspace=`workspace -q -rd`;
+		textField -e -text $workspace $AriFixCurrentProj;
+	}
+}
+global proc ARILDFixRightBoxPushUpButton(){
+	global string $AriFixRightSL;
+	textScrollList -e -da $AriFixRightSL; 
+	textScrollList -e -selectItem ".." $AriFixRightSL; 
+	ARILDFixRightBoxW();
+}
+global proc ARILDFixDirectoryOpen()
+{
+	global string $AriFixRootPathTF;
+	global string $AriFixRightPathTX;
+	global string $AriFixLeftPathTX;
+	string $rootPath = `textField -q -text $AriFixRootPathTF`;
+	string $leftPath=`text -q -l $AriFixLeftPathTX`;
+	string $rightPath=`textField -q -text $AriFixRightPathTX`;
+	system ("load "+ $rootPath+$leftPath+$rightPath);
+}
+global proc ARILDFixRightBoxS(){
+	string $fullPathSet[]=AriSO_DirectryMarge("full");
+	string $rightPath[1]=AriSO_DirectryMarge("right");
+	string $select[]=AriSO_DirectryMarge("select");
+	/*
+	string $baseName = `basename $fullPathSet[0] "" `;
+	string $prevPng=$rightPath[0]+"prev/"+$baseName+".png";
+	if (`filetest -f $prevPng`){
+		if((`window -ex ARISceneOpenPreview`)==true)deleteUI ARISceneOpenPreview;
+		window -title "ARISceneOpenPreview"  -w 500 -h 400  ARISceneOpenPreview;		
+		paneLayout;
+		string $form=`formLayout`;
+		string $image=`image -image $prevPng`;
+		setParent..;
+		formLayout -e
+		-af $image "bottom" 0
+		-af $image "left" 0
+		-af $image "right" 0
+		-af $image "top" 0
+		$form;
+		showWindow;
+		showWindow ARISceneOpen;
+	}
+	else{
+		if((`window -ex ARISceneOpenPreview`)==true)deleteUI ARISceneOpenPreview;
+	}
+	*/
+}
+global proc AriSO_PushMakePreviewButton(){
+	string $fullPathSet[]=AriSO_DirectryMarge("full");
+	for($fullPath in $fullPathSet){
+		AriMakePreview($fullPath,"");
+	}
+}
+global proc string[] AriSO_DirectryMarge(string $mode){
+	global string $AriFixRootPathTF;
+	global string $AriFixRightPathTX;
+	global string $AriFixLeftPathTX;
+	global string $AriFixLeftSL;
+	global string $AriFixRightSL;
+	string $fullPath;
+	string $fullPathSet[];
+	string $rootPath = `textField -q -text $AriFixRootPathTF`;
+	string $leftPath=`text -q -l $AriFixLeftPathTX`;
+	string $rightPath=`textField -q -text $AriFixRightPathTX`;
+	string $selects[]=`textScrollList -q -selectItem $AriFixRightSL`; 
+	if($mode=="select"){
+		$fullPathSet=$selects;
+	}
+	if($mode=="left"){
+		$fullPathSet[0]=$rootPath+$leftPath;	
+	}
+	if($mode=="right"){
+		$fullPathSet[0]=$rootPath+$leftPath+$rightPath;	
+	}
+	if($mode=="full"){
+		$fullPath=$rootPath+$leftPath+$rightPath;	
+		int $i=0;
+		for($sel in $selects){
+			$fullPathSet[$i]=$fullPath+$sel;
+			$i++;
+		}
+	}
+	return $fullPathSet;
+}
+global proc AriMakePreview(string $mbPath,string $savePath){
+	string $currentScene=`file -q -sceneName`;
+	print $mbPath;
+	if(!endsWith($mbPath,".mb") && !endsWith($mbPath,".ma"))return;
+	if($currentScene != $mbPath){
+		file -f -options "v=0"  -o $mbPath;
+		$currentScene=`file -q -sceneName`;
+		string $selectPanel =`getPanel -wf`;
+		lookThroughModelPanel persp $selectPanel;
+		viewFit -f 1;
+		DisplayShadedAndTextured;
+	}
+	string $sepa[];
+	tokenize $currentScene "/" $sepa;
+	string $senesName=$sepa[size($sepa)-1];
+	int $fileNameSize=size($senesName);
+	$savePath = startString($mbPath,(size($mbPath)-$fileNameSize));
+	$savePath=$savePath+"prev";
+	string $saveName=$savePath+"/"+$senesName+".png";
+	string $saveName_s=$savePath+"/"+$senesName+"_s.png";
+	print $saveName;
+	if(!`filetest -d $savePath`){
+		print `sysFile -md $savePath`;
+	}
+	setAttr "defaultRenderGlobals.imageFormat" 32;
+	playblast -frame `currentTime -q` -wh 600 400 -orn false  -rfn  -fmt "image" -viewer false  -cf  $saveName;
+	playblast -frame `currentTime -q` -wh 200 200 -orn false  -rfn  -fmt "image" -viewer false  -cf  $saveName_s;
+}
+global proc AriSceneOpenAllCloseWindow()
+{	
+	string $window[] =`lsUI -windows`;
+	for($loop in $window) if($loop != "scriptEditorPanel1Window" 
+							&& $loop != "learningMoviesLaunchWnd"
+							&& $loop != "ColorEditor"
+							&& $loop != "MayaWindow"
+							&& $loop != "AriSceneOpener"
+							&& $loop != "CommandWindow"
+							&& $loop != "gozwin"
+							&& $loop != "nexFloatWindow"
+							&& $loop != "AriEditorScript")deleteUI $loop;
+}

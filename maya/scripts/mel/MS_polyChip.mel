@@ -1,0 +1,58 @@
+global proc MS_polyChip(){
+	string $obj[]=`ls -sl`;
+	int $kft=`checkBox -q -v "kft"`;
+	float $off=`floatField -q -v "off"`;
+	float $ltz=`floatField -q -v "ltz"`;
+	
+	for ($each in $obj){
+		polyChipOff -kft $kft -dup 0 -off $off $each;
+		polyExtrudeFacet -kft 1 -ltz $ltz $each;
+	}
+}
+
+
+global proc MS_polyChipUI()
+{
+	
+	//Window Check
+	if(`window -exists MS_polyChipUI`){
+		deleteUI MS_polyChipUI;
+	}
+	
+	//Create Window
+	
+	window -title "MS_polyChipUI" MS_polyChipUI;
+	
+	columnLayout ;
+	checkBox -l "keep face together" -v 0 "kft";
+	text -l "offset";
+	floatField -v 0.1 "off";
+	text -l "local trans z" ;
+	floatField -v 0.5 "ltz";
+	
+	//---------------
+	//Execute Buttons
+	//---------------
+	separator -w 600 -h 40 -st "doubleDash";
+	
+	button -l "MS_polyChip" -command "MS_polyChip" ;
+	
+	separator -w 600 -h 40 -st "double";
+	
+	button -l "undo" -command "Undo" ;
+	
+	button -l "exit" -command "deleteUI MS_polyChipUI" ;
+	
+	
+	//Footer
+	showWindow MS_polyChipUI;
+	
+}
+
+MS_polyChipUI;
+
+
+
+
+
+

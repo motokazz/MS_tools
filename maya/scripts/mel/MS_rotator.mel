@@ -1,0 +1,109 @@
+
+global proc MS_rotator_core(int $set_a,int $flg_rev)
+{
+
+	float $smp_x=`floatSliderGrp -q -v smp_x`;
+	float $smp_y=`floatSliderGrp -q -v smp_y`;
+	float $smp_z=`floatSliderGrp -q -v smp_z`;
+	
+	switch($set_a){
+	case 1:
+		$smp_y=0;
+		$smp_z=0;
+		break;
+	case 2:
+		$smp_x=0;
+		$smp_z=0;
+		
+		break;
+		
+	case 3:
+		$smp_x=0;
+		$smp_y=0;
+		break;
+	case 4:
+		$smp_z=0;
+		break;
+	case 5:
+		$smp_y=0;
+		break;
+	case 6:
+		$smp_x=0;
+		break;
+	case 7:
+		break;
+	}
+	
+	if($flg_rev==1){
+		$smp_x=-($smp_x);
+		$smp_y=-($smp_y);
+		$smp_z=-($smp_z);
+	}
+	
+	rotate -r -eu $smp_x $smp_y $smp_z;
+
+}
+
+
+global proc MS_rotator()
+{
+	
+	//Window Check
+	if(`window -exists MS_rotator`){
+		deleteUI MS_rotator;
+	}
+	
+	
+	//Create Window
+	
+	window -title "MS_rotator" MS_rotator;
+	
+	columnLayout ;
+	
+	//Contents	
+	
+	
+	//text
+	text -label "Easy Rotate Button";
+	separator -w 600 -h 40 -st "single";
+	
+	
+	//floatSilder
+	button -bgc 1.0 0.5 0.5 -l "x" -command "MS_rotator_core 1 0" ;
+	button -bgc 1.0 0.5 0.5 -l "-x" -command "MS_rotator_core 1 1" ;
+	floatSliderGrp -l "floatSlider" -field true -min 0 -max 360 -v 0 smp_x;
+	button -bgc 1.0 0.5 0.5 -l "y" -command "MS_rotator_core 2 0" ;
+	button -bgc 1.0 0.5 0.5 -l "-y" -command "MS_rotator_core 2 1" ;
+	floatSliderGrp -l "floatSlider" -field true -min 0 -max 360 -v 0 smp_y;
+	button -bgc 1.0 0.5 0.5 -l "z" -command "MS_rotator_core 3 0" ;
+	button -bgc 1.0 0.5 0.5 -l "-z" -command "MS_rotator_core 3 1" ;
+	floatSliderGrp -l "floatSlider" -field true -min 0 -max 360 -v 0 smp_z;
+	
+	separator -w 600 -h 40 -st "single";
+	
+	
+	
+	
+	
+	
+	
+	
+	//---------------
+	//Execute Buttons
+	//---------------
+	separator -w 600 -h 40 -st "doubleDash";
+	
+	separator -w 600 -h 40 -st "double";
+	
+	button -l "undo" -command "Undo" ;
+	
+	button -l "exit" -command "deleteUI MS_rotator" ;
+	
+	
+	//Footer
+	showWindow MS_rotator;
+	
+}
+
+MS_rotator;
+

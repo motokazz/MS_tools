@@ -1,0 +1,17 @@
+//stringNthChar, by Julian Love, julian@lightmail.com. Part of the StringTools set.
+//
+//description:	returns the character from the specified position in the source string
+//				positions start with 1.
+//
+//usage:		stringNthChar string[source string] int[position];
+//
+//examples:		stringNthChar "hello world." 3;
+//				// Result: l //
+//
+//				stringNthChar "left_wrist_controller" 5;
+//				// Result: _ //
+
+
+global proc string stringNthChar (string $item, int $position){
+	return `substring $item $position $position`;
+}

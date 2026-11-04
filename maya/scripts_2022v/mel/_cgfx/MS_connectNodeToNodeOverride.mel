@@ -1,0 +1,66 @@
+global proc MS_connectNodeToNodeOverride_core()
+{
+	
+	int $smp_isg=`intSliderGrp -q -v smp_isg`;
+	string $file_name=("C:/Documents and Settings/s002000/デスクトップ/My_mel/_cgfx/MS_connectNodeToNodeOverride"+$smp_isg+".mel");
+	eval $file_name;
+	//print $file_name;
+}
+
+
+global proc MS_connectNodeToNodeOverride()
+{
+	
+	//Window Check
+	if(`window -exists MS_connectNodeToNodeOverride`){
+		deleteUI MS_connectNodeToNodeOverride;
+	}
+	
+	
+	//Create Window
+	
+	window -title "MS_connectNodeToNodeOverride" MS_connectNodeToNodeOverride;
+	
+	columnLayout ;
+	
+	//Contents	
+	
+	
+	//text
+	text -label "ThisWindowIsWindowFormatSample";
+	separator -w 600 -h 40 -st "single";
+	
+	
+	
+	//intSilder
+	intSliderGrp -l "intSlider" -field true -min 0 -max 4 -v 0 smp_isg;
+	separator -w 600 -h 40 -st "single";
+	
+	
+	
+	
+	
+	
+	
+	//---------------
+	//Execute Buttons
+	//---------------
+	separator -w 600 -h 40 -st "doubleDash";
+	
+	button -l "do" -command "MS_connectNodeToNodeOverride_core" ;
+	
+	separator -w 600 -h 40 -st "double";
+	
+	button -l "undo" -command "Undo" ;
+	
+	button -l "exit" -command "deleteUI MS_connectNodeToNodeOverride" ;
+	
+	
+	//Footer
+	showWindow MS_connectNodeToNodeOverride;
+	
+}
+
+MS_connectNodeToNodeOverride;
+
+

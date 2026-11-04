@@ -1,0 +1,60 @@
+global proc MS_transformAnimToSkinAnim(){
+	int $autokey=`autoKeyframe -q -st`;
+	autoKeyframe -st 0;
+	currentTime 1;
+	string $obj[]=`ls -sl`;
+	for($each in $obj){
+		select -cl;
+		string $joint=`joint`;
+		string $PARENT[]=`listRelatives -f -p $each`;
+		string $dup[]=`duplicate $each`;
+		
+		parent -w $dup[0];
+		
+		setAttr ($dup[0]+".tx") 0;
+		setAttr ($dup[0]+".ty") 0;
+		setAttr ($dup[0]+".tz") 0;
+		setAttr ($dup[0]+".rx") 0;
+		setAttr ($dup[0]+".ry") 0;
+		setAttr ($dup[0]+".rz") 0;
+		setAttr ($dup[0]+".sx") 1;
+		setAttr ($dup[0]+".sy") 1;
+		setAttr ($dup[0]+".sz") 1;
+		setAttr ($dup[0]+".visibility") 1;
+		
+		//string $tmpObj[]=`listRelatives -f -ad -typ mesh $dup[0]`;
+		
+		select -r $dup[0];
+		select -add $joint;
+		//bindSkin -ts ;
+		//string $SKINCLUSTER[]=`SmoothBindSkin`;
+		string $SKINCLUSTER[]=`skinCluster $joint $dup[0]`;
+		skinPercent -resetToDefault -transformValue $joint 1.0 $SKINCLUSTER[0] $dup[0];
+		
+		if (`cutKey -t ":" -f ":" -at "tx" -at "ty" -at "tz" -at "rx" -at "ry" -at "rz" -at "sx" -at "sy" -at "sz" -at "v" $each`){
+		//pasteKey -connect true -time 1 -at "tx" -at "ty" -at "tz" -at "rx" -at "ry" -at "rz" -at "sx" -at "sy" -at "sz" -at "v" $joint;
+		pasteKey -connect false -at "tx" -at "ty" -at "tz" -at "rx" -at "ry" -at "rz" -at "sx" -at "sy" -at "sz" -at "v" $joint;
+		}
+		delete $each;
+		print $PARENT;
+		parent $joint $PARENT[0];
+	}
+	autoKeyframe -st $autokey;
+}
+
+global proc MS_transformAnimToSkinAnimUI(){
+	if(`window -exists MS_transformAnimToSkinAnimUI`){deleteUI "MS_transformAnimToSkinAnimUI";}
+	window -t MS_transformAnimToSkinAnimUI MS_transformAnimToSkinAnimUI;
+	columnLayout;
+	button -l go -c "MS_transformAnimToSkinAnim";
+	
+	setParent ..;
+	showWindow MS_transformAnimToSkinAnimUI;
+}
+
+MS_transformAnimToSkinAnimUI;
+
+
+
+
+

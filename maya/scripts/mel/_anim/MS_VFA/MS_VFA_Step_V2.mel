@@ -1,0 +1,59 @@
+global proc MS_VFA_Step_V2(
+	int $strtm,
+	int $endtm,
+	float $threshold,
+	float $ground,
+	string $target,
+	string $obj[],
+	string $tgtAttr[])
+{
+	
+	
+	currentTime -u 1 ($strtm-1);
+	float $ff[]=`xform -q -ws -t $target`;
+	int $val,$fval;
+	for($i=$strtm;$i<$endtm;$i++){
+		currentTime -u 1 $i;
+
+		float $cf[] = `xform -q -ws -t $target`;
+		
+		for($each in $obj){
+			for($eachAttr in $tgtAttr){
+				
+				float $len = sqrt(($ff[0]-$cf[0])*($ff[0]-$cf[0])+($ff[1]-$cf[1])*($ff[1]-$cf[1])+($ff[2]-$cf[2])*($ff[2]-$cf[2]));
+				
+				if($len>$threshold && $cf[1]<=$ground){
+					$val=1;
+				}
+				
+				if($len<$threshold || $cf[1]>$ground){
+					$val=0;
+				}
+				/*
+				if ($val!=$fval){
+					setKeyframe -at $eachAttr -t ($i-1) -v $fval $each;
+					setKeyframe -at $eachAttr -t $i -v $val $each;
+				}
+				*/
+				setKeyframe -at $eachAttr -t $i -v $val $each;
+			}
+
+		}
+
+		print $val;
+		$fval=$val;
+		$ff= $cf;
+	}
+	
+	//ï‚äÆïœçX
+	for($each in $obj){
+		if(`objExists ($each+"_EmitterVolume")`){
+			selectKey -add -k ($each+"_EmitterVolume") ;
+			keyTangent -ott step;
+		}
+	}
+}
+
+
+
+

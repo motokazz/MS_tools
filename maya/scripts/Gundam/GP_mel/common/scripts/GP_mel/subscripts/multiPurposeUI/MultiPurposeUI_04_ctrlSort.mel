@@ -1,0 +1,150 @@
+//---------------------------------------------------------------------------------------------------------
+//ボタンによるUI一斉再配置
+//---------------------------------------------------------------------------------------------------------
+//引数は0～11
+//0:	top揃え
+//1:	mid揃え
+//2:	btm揃え
+//3:	lft揃え
+//4:	ctr揃え
+//5:	rgt揃え
+//6:	top分布
+//7:	mid分布
+//8:	btm分布
+//9:	lft分布
+//10:	ctr分布
+//11:	rgt分布
+
+global proc dMPU_editCtrlSortExec(int $mode){
+	string $tgt[] = `textScrollList -q -si editCtrlSrtList`;
+	string $activeTab = `tabLayout -q -st dMPU_globalTab`;
+	int $TposX[], $TposY[], $MposX[], $MposY[], $BposX[], $BposY[], $sizeX[], $sizeY[], $rankX[], $rankY[];
+	int $i;
+
+	for($i=0 ; $i<size($tgt) ; $i++){
+		$TposX[$i] = `intField -q -v ($tgt[$i] + "_posX")`;
+		$TposY[$i] = `intField -q -v ($tgt[$i] + "_posY")`;
+		$sizeX[$i] = `control -q -w $tgt[$i]`;
+		$sizeY[$i] = `control -q -h $tgt[$i]`;
+		$MposX[$i] = $TposX[$i] + ($sizeX[$i] * 0.5) ;
+		$MposY[$i] = $TposY[$i] + ($sizeY[$i] * 0.5) ;
+		$BposX[$i] = $TposX[$i] + $sizeX[$i] ;
+		$BposY[$i] = $TposY[$i] + $sizeY[$i] ;
+	}
+	int $newInt,$whFlag;
+	switch($mode){
+		case 0 :
+			$whFlag = 1;
+			$TposY = `sort $TposY`;
+			for($i=0 ; $i<size($tgt) ; $i++){$TposY[$i] = $TposY[0];}
+			break;
+		case 1 :
+			$whFlag = 1;
+			$MposY = `sort $MposY`;
+			$newInt = (($MposY[0] + $MposY[size($tgt)-1]) * 0.5);
+			for($i=0 ; $i<size($tgt) ; $i++){$TposY[$i] = ($newInt - ($sizeY[$i] * 0.5));}
+			break;
+		case 2 :
+			$whFlag = 1;
+			$BposY = `sort $BposY`;
+			$newInt = $BposY[size($tgt)-1];
+			for($i=0 ; $i<size($tgt) ; $i++){$TposY[$i] = $newInt - $sizeY[$i];}
+			break;
+		case 3 :
+			$whFlag = 0;
+			$TposX = `sort $TposX`;
+			for($i=0 ; $i<size($tgt) ; $i++){$TposX[$i] = $TposX[0];}
+			break;
+		case 4 :
+			$whFlag = 0;
+			$MposX = `sort $MposX`;
+			$newInt = (($MposX[0] + $MposX[size($tgt)-1]) * 0.5);
+			for($i=0 ; $i<size($tgt) ; $i++){$TposX[$i] = ($newInt - ($sizeX[$i] * 0.5));}
+			break;
+		case 5 :
+			$whFlag = 0;
+			$BposX = `sort $BposX`;
+			$newInt = $BposX[size($tgt)-1];
+			for($i=0 ; $i<size($tgt) ; $i++){$TposX[$i] = $newInt - $sizeX[$i];}
+			break;
+
+		case 6 :
+			$whFlag = 1;
+			$tgt = dMPU_sortUINameByAtt($tgt,$TposY);
+			$TposY = `sort $TposY`;
+			$newInt = (($TposY[size($tgt)-1] - $TposY[0]) / (`size($tgt)`-1));
+			for($i=0 ; $i<size($tgt) ; $i++){$TposY[$i] = $TposY[0] + ($newInt * $i);}
+			break;
+
+		case 7 :
+			$whFlag = 1;
+			$tgt = dMPU_sortUINameByAtt($tgt,$MposY);
+			$MposY = `sort $MposY`;
+			$newInt = (($MposY[size($tgt)-1] - $MposY[0]) / (`size($tgt)`-1));
+			for($i=0 ; $i<size($tgt) ; $i++){$TposY[$i] = (($MposY[0] + ($newInt * $i)) - ($sizeY[$i] * 0.5));}
+			break;
+
+		case 8 :
+			$whFlag = 1;
+			$tgt = dMPU_sortUINameByAtt($tgt,$BposY);
+			$BposY = `sort $BposY`;
+			$newInt = (($BposY[size($tgt)-1] - $BposY[0]) / (`size($tgt)`-1));
+			for($i=0 ; $i<size($tgt) ; $i++){$TposY[$i] = $BposY[0] + ($newInt * $i) - $sizeY[$i];}
+			break;
+
+		case 9 :
+			$whFlag = 0;
+			$tgt = dMPU_sortUINameByAtt($tgt,$TposX);
+			$TposX = `sort $TposX`;
+			$newInt = (($TposX[size($tgt)-1] - $TposX[0]) / (`size($tgt)`-1));
+			for($i=0 ; $i<size($tgt) ; $i++){$TposX[$i] = $TposX[0] + ($newInt * $i);}
+			break;
+
+		case 10 :
+			$whFlag = 0;
+			$tgt = dMPU_sortUINameByAtt($tgt,$MposX);
+			$MposX = `sort $MposX`;
+			$newInt = (($MposX[size($tgt)-1] - $MposX[0]) / (`size($tgt)`-1));
+			for($i=0 ; $i<size($tgt) ; $i++){$TposX[$i] = (($MposX[0] + ($newInt * $i)) - ($sizeX[$i] * 0.5));}
+			break;
+
+		case 11 :
+			$whFlag = 0;
+			$tgt = dMPU_sortUINameByAtt($tgt,$BposX);
+			$BposX = `sort $BposX`;
+			$newInt = (($BposX[size($tgt)-1] - $BposX[0]) / (`size($tgt)`-1));
+			for($i=0 ; $i<size($tgt) ; $i++){$TposX[$i] = $BposX[0] + ($newInt * $i) - $sizeX[$i];}
+			break;
+	}
+	for($i=0 ; $i<size($tgt) ; $i++){
+		if( $whFlag == 1 ){
+			formLayout -e -attachForm $tgt[$i] "top" $TposY[$i] $activeTab;
+			intField -e -v $TposY[$i] ($tgt[$i] + "_posY");
+		}else{
+			formLayout -e -attachForm $tgt[$i] "left" $TposX[$i] $activeTab;
+			intField -e -v $TposX[$i] ($tgt[$i] + "_posX");
+		}
+	}
+}
+
+//複数UIの名前を、伴うアトリビュート値を元に並べ替え
+global proc string[] dMPU_sortUINameByAtt(string $name[] , int $att[]){
+	string $captName;
+	int $captNum;
+	int $i,$j;
+	
+	for($j=(size($name)-1) ; $j>1 ; $j--){
+		for($i=0 ; $i<$j ; $i++){
+			if($att[$i] > $att[$i+1]){
+				$captName	= $name[$i];
+				$name[$i] = $name[$i+1];
+				$name[$i+1] = $captName;
+
+				$captNum	= $att[$i];
+				$att[$i] = $att[$i+1];
+				$att[$i+1] = $captNum;
+			}
+		}
+	}
+	return($name);
+}

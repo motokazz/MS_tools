@@ -1,0 +1,21 @@
+cathegory,exec,label,annotation,image,command
+motion,melx,set_gene,エクスポートセットを生成,s000535_motionexportset_1gene,s000535_motionexportset_1gene
+motion,melx,set_modi,エクスポートセットを編集,s000535_motionexportset_3modi,s000535_motionexportset_3modi
+motion,melx,set_expo,開いているシーンの選択したエクスポートセットから.toro出力,s000535_motionexportset_5expo,s000535_motionexportset_5expo
+motion,melx,set_expofolder,指定したフォルダにある.mbファイルからエクスポートセットに従って.toro出力,s000535_motionexportset_5expofolder,s000535_motionexportset_5expofolder
+motion,melx,refepath,"リファレンスパスを修正します。　""D:/Mproject/graphic""　→　""$Mproject_graphic_PATH""",s000535_referencepath,s000535_referencepath
+motion,mel,RWC,コントローラーを生成するためのツール,rwc,rig101wireControllers
+motion,mel,serectManip,アニメーションカーブを選択するツール,select_manip,select_manip
+motion,melx,caterpillar,キャタピラーツクール,s000535_caterpillargene,s000535_caterpillargene
+motion,melx,traveling,なんでも車輪,s000535_traveling,s000535_traveling
+motion,mel,Facial,FacialUtility,s002170_facialTool.mel,s002170_facialTool
+motion,mel,recPose,汎用RecordPose,s000535_recpose,s000535_recpose
+motion,melx,MYAM_graphEditorPlus,高機能版グラフエディター,MYAM_graphEditorPlus,MYAM_graphEditorPlusEXE
+motion,mel,utility,モーションツール集,s002170_MUtility.mel,s002170_MUtility
+motion,melx,MYAM_graphEditorPlus,DAGノードのフィッティングを支援するツール群,MYAM_DAGFitTools,MYAM_DAGFitToolsEXE
+motion,melx,resize,チャンクマンモーションリサイズ,s000535_chunkmotiontransp,s000535_chunkmotiontransp
+motion,melx,cc,エネミーモーション移植,s000535_enemymotiontransp,s000535_enemymotiontransp
+motion,mel,face,facialUI,s002170_facialTool_LE,s002170_facialTool_LE
+motion,mel,FBX,FBX loader,s002170_loadFBX,s002170_loadFBX
+motion,melx,軸向,軸向き修正補助ツール,s000535_jikumuki,s000535_jikumuki
+oldver,melx,resize,チャンクマンモーションリサイズ_130606版,s000535_chunkmotiontransp_old,s000535_chunkmotiontransp_130606

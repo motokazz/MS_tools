@@ -1,0 +1,18 @@
+/*!
+		@file		GPInitializeMenu.mel
+		@brief		メニューの初期化
+*/
+
+
+////////////////////////////////////////////////////////////////////////////////
+//	メニューの初期化
+global proc GPInitializeMenu()
+{
+	//	トップメニュー生成
+	global string $gMainWindow;
+	setParent $gMainWindow;
+	menu -label "GP Tools" GPToolsMenu;
+	
+	//	シェルフ設定ツール
+	menuItem -label "Shelf Setup" -command "GPSetupShelfUI";
+}

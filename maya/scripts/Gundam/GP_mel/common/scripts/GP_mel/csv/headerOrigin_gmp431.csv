@@ -1,0 +1,18 @@
+#ifdef GR_FILE_LINKED
+
+GR_FILE_LINKED( _basepose )
+GR_FILE_LINKED( motion_c100_gmp431_ex_arrowform_00_start )
+GR_FILE_LINKED( motion_c100_gmp431_ex_arrowform_01_loop )
+GR_FILE_LINKED( motion_c100_gmp431_ex_arrowform_02_shoot )
+GR_FILE_LINKED( motion_c100_gmp431_ex_arrowform_03_end )
+GR_FILE_LINKED( motion_c100_gmp431_ex_arrowform_UP_00_start )
+GR_FILE_LINKED( motion_c100_gmp431_ex_arrowform_UP_01_loop )
+GR_FILE_LINKED( motion_c100_gmp431_ex_arrowform_UP_02_shoot )
+GR_FILE_LINKED( motion_c100_gmp431_ex_arrowform_UP_03_end )
+GR_FILE_LINKED( motion_c100_gmp431_ex_arrowform_DOWN_00_start )
+GR_FILE_LINKED( motion_c100_gmp431_ex_arrowform_DOWN_01_loop )
+GR_FILE_LINKED( motion_c100_gmp431_ex_arrowform_DOWN_02_shoot )
+GR_FILE_LINKED( motion_c100_gmp431_ex_arrowform_DOWN_03_end )
+
+#undef GR_FILE_LINKED
+#endif // GR_FILE_LINKED

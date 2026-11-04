@@ -1,0 +1,62 @@
+global proc MS_deleteConstraint(){
+	string $obj[]=`ls -sl`;
+	for($each in $obj){
+		
+		if (`checkBox -q -v "point"          `){
+			string $connect[]=`listConnections -t pointConstraint $each`;
+			if ($connect[0]!="")
+			delete $connect[0];
+		}
+		
+		if (`checkBox -q -v "aim"       `){
+			string $connect[]=`listConnections -t aimConstraint $each`;
+			if ($connect[0]!="")
+			delete $connect[0];
+		}
+		
+		if (`checkBox -q -v "orient"        `){
+			string $connect[]=`listConnections -t orientConstraint $each`;
+			if ($connect[0]!="")
+			delete $connect[0];
+		}
+		
+		if (`checkBox -q -v "scale"          `){
+			string $connect[]=`listConnections -t scaleConstraint $each`;
+			if ($connect[0]!="")
+			delete $connect[0];
+		}
+		
+		if (`checkBox -q -v "parent"       `){
+			string $connect[]=`listConnections -t parentConstraint $each`;
+			if ($connect[0]!="")
+			delete $connect[0];
+		}
+		
+		if (`checkBox -q -v "geometry"     `){
+			string $connect[]=`listConnections -t geometryConstraint $each`;
+			if ($connect[0]!="")
+			delete $connect[0];
+		}
+		
+		if (`checkBox -q -v "normal"       `){
+			string $connect[]=`listConnections -t normalConstraint $each`;
+			if ($connect[0]!="")
+			delete $connect[0];
+		}
+		
+		if (`checkBox -q -v "tangent"      `){
+			string $connect[]=`listConnections -t tangentConstraint $each`;
+			if ($connect[0]!="")
+			delete $connect[0];
+		}
+		
+		if (`checkBox -q -v "poleVector"   `){
+			string $connect[]=`listConnections -t poleVectorConstraint $each`;
+			if ($connect[0]!="")
+			delete $connect[0];
+		}
+	}
+	
+}
+
+

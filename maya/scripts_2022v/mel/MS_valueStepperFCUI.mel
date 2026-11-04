@@ -1,0 +1,147 @@
+global proc MS_valueStepperFCUI(){
+		
+	//Window Check
+	if(`window -exists MS_valueStepperFCUI`){
+		deleteUI MS_valueStepperFCUI;
+	}
+	
+	
+	//Create Window
+	
+	window -title "MS_valueStepperFCUI" MS_valueStepperFCUI;
+	
+	columnLayout;
+	
+	floatField -w 80 -v 0 step;
+	radioButtonGrp
+        -numberOfRadioButtons 3
+        	-label "radio"
+        	-labelArray3 "step" "multiply" "divide"
+		-sl 1 smp_radio;
+	
+	button -l "goStep" -c "MS_valueStepperFC" ;
+	button -l "goRand" -c "MS_valueStepperFC_Random" ;	
+	
+	button -l "GroupStep" -c "MS_valueStepperFC_Group";
+	setParent ..;
+	
+	showWindow MS_valueStepperFCUI;
+	
+	
+	
+}
+global proc MS_valueStepperFC_Group(){
+	string $obj[]=`ls -sl`;
+	float $frame[]=`keyframe -q -sl`;
+	string $option;
+	for ($each in $frame){
+		$option=($option+"-t "+$each);
+	}
+	float $b=`floatField -q -v step`;
+	int $smp_radio=`radioButtonGrp -q -sl smp_radio`;
+	//get main channel box
+	
+	int $i=1;
+	
+	for($eachobj in $obj){
+		//get main channel box
+		string $sma[]=`channelBox -q  -sma mainChannelBox`;
+		string $ssa[]=`channelBox -q  -ssa mainChannelBox`;
+		string $attrMainChannel[]=`stringArrayCatenate $sma $ssa`;
+		
+		for($eachattr in $attrMainChannel){
+			//float $a=`getAttr ($eachobj+"."+$eachattr)`;
+			float $a=0;
+			if($smp_radio==1)
+				$c=($a+($b*$i));
+			if($smp_radio==2)
+				$c=($a*($b*$i));
+			if($smp_radio==3)
+				$c=($a/($b*$i));
+			
+			string $functionCurveName[]=`listConnections -t animCurve ($eachobj+"."+$eachattr)`;
+			for($eachFunctionCurveName in $functionCurveName){
+				string $command=("keyframe -e -iub true -r -o over -vc "+$c+" "+$option+" "+$eachFunctionCurveName);
+				eval $command;
+				print $command;
+			}
+		}
+
+		$i++;
+	}
+}
+
+global proc MS_valueStepperFC_Random(){
+	string $obj[]=`ls -sl`;
+	float $frame[]=`keyframe -q -sl`;
+	string $option;
+	for ($each in $frame){
+		$option=($option+"-t "+$each);
+	}
+	float $b=`floatField -q -v step`;
+	int $smp_radio=`radioButtonGrp -q -sl smp_radio`;
+	for($eachobj in $obj){
+		float $rnd=rand(-$b,$b);
+		//get main channel box
+		string $sma[]=`channelBox -q  -sma mainChannelBox`;
+		string $ssa[]=`channelBox -q  -ssa mainChannelBox`;
+		string $attrMainChannel[]=`stringArrayCatenate $sma $ssa`;
+		
+		for($eachattr in $attrMainChannel){
+			float $a=`getAttr ($eachobj+"."+$eachattr)`;
+			if($smp_radio==1)
+				$c=$a+$rnd;
+			if($smp_radio==2)
+				$c=$a*$rnd;
+			if($smp_radio==3)
+				$c=$a/$rnd;
+			
+			string $functionCurveName[]=`listConnections -t animCurve ($eachobj+"."+$eachattr)`;
+			for($eachFunctionCurveName in $functionCurveName){
+				string $command=("keyframe -e -iub true -r -o over -vc "+$c+" "+$option+" "+$eachFunctionCurveName);
+				eval $command;
+				print $command;
+			}
+		}
+	}
+}
+
+global proc MS_valueStepperFC(){
+	string $obj[]=`ls -sl`;
+	float $frame[]=`keyframe -q -sl`;
+	string $option;
+	for ($each in $frame){
+		$option=($option+"-t "+$each);
+	}
+	float $b=`floatField -q -v step`;
+	int $smp_radio=`radioButtonGrp -q -sl smp_radio`;
+	
+	for($eachobj in $obj){
+		//get main channel box
+		string $sma[]=`channelBox -q  -sma mainChannelBox`;
+		string $ssa[]=`channelBox -q  -ssa mainChannelBox`;
+		string $attrMainChannel[]=`stringArrayCatenate $sma $ssa`;
+		
+		for($eachattr in $attrMainChannel){
+			float $a=`getAttr ($eachobj+"."+$eachattr)`;
+			
+			if($smp_radio==1)
+				$c=$a+$b;
+			if($smp_radio==2)
+				$c=$a*$b;	
+			if($smp_radio==3)
+				$c=$a/$b;
+			
+			string $functionCurveName[]=`listConnections -t animCurve ($eachobj+"."+$eachattr)`;
+			for($eachFunctionCurveName in $functionCurveName){
+				string $command=("keyframe -e -iub true -a -o over -vc "+$c+" "+$option+" "+$eachFunctionCurveName);
+				eval $command;
+				print $command;
+			}
+		}
+	}
+}
+
+//MS_valueStepperFCUI;
+
+

@@ -1,0 +1,42 @@
+
+{	
+	string $KML;
+	string $TRANS[]=`ls -typ transform -sl`;
+	float $WS=0.00001;
+	float $HIGHT=120000;
+	$KML+=("\n");
+	
+
+
+	$KML+=("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+	$KML+=("<kml xmlns=\"http://earth.google.com/kml/2.0\">\n");
+	
+	
+	for($each in $TRANS){
+		string $SHAPE[]=`listRelatives -s $each`;	
+		float $BOUNDINGBOX[]=`xform -q -ws -bb $each`;
+		float $POSITION[]={($BOUNDINGBOX[0]+$BOUNDINGBOX[3])*0.5*$WS,($BOUNDINGBOX[1]+$BOUNDINGBOX[4])*0.5*$WS*$HIGHT,($BOUNDINGBOX[2]+$BOUNDINGBOX[5])*0.5*$WS};
+		$KML+=("<Placemark id=\""+$each+"\">\n");
+			$KML+=("<name>"+$each+"</name>");
+			$KML+=("<visibility>1</visibility>");
+			$KML+=("<open>1</open>");
+			$KML+=("<ExtendedData>\n");
+				$KML+=("<Data name=\"gvd\">gvd/"+$SHAPE[0]+"@00.gvd</Data>\n");
+				$KML+=("<Data name=\"gvd\">gvd/"+$SHAPE[0]+"@01.gvd</Data>\n");
+				$KML+=("<Data name=\"gvd\">gvd/"+$SHAPE[0]+"@02.gvd</Data>\n");
+				$KML+=("<Data name=\"gvd\">gvd/"+$SHAPE[0]+"@03.gvd</Data>\n");
+				$KML+=("<Data name=\"gvd\">gvd/"+$SHAPE[0]+"@04.gvd</Data>\n");
+				$KML+=("<Data name=\"gvd\">gvd/"+$SHAPE[0]+"@05.gvd</Data>\n");
+			$KML+=("</ExtendedData>\n");
+			$KML+=("<Point><coordinates>"+$POSITION[0]+","+$POSITION[2]+","+$POSITION[1]+"</coordinates></Point>");
+			$KML+=("<TimeStamp><when>2010-11-16T13:00:00-9:00</when></TimeStamp>\n");
+			$KML+=("<description><![CDATA[<img src = \"thumbnail/"+$SHAPE[0]+"_thumbnail.jpg\">]]></description>\n");
+		$KML+=("</Placemark>\n");
+	}
+		$KML+=("</kml>");
+	print $KML;
+}
+
+
+
+

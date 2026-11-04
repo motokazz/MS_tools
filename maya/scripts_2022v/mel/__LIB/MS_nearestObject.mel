@@ -1,0 +1,36 @@
+global proc float MS_nearestObject_distance(string $target_a,string $target_b){
+	
+	float $a[] = `xform -q -ws -t $target_a`;
+	float $b[] = `xform -q -ws -t $target_b`;
+	//2“_ŠÔ‚ÌˆÚ“®‹——£‚ðŒvŽZ
+	float $len = sqrt(($a[0]-$b[0])*($a[0]-$b[0])+($a[1]-$b[1])*($a[1]-$b[1])+($a[2]-$b[2])*($a[2]-$b[2]));
+	
+	return $len;
+	
+}
+
+global proc string[] MS_nearestObject(string $targetObj){
+	string $sceneObj[]=`ls -typ transform`;
+	string $entryObj[]=stringArrayRemove ({$targetObj},$sceneObj);
+	string $dists[];
+	
+	$i=0;
+	for($each in $entryObj){
+		float $ftemp=`MS_nearestObjectV2_distance $targetObj $each`;
+		$dists[$i]=((1000000+$ftemp)+"<>"+$each);
+		$i++;
+	}
+	string $result[]=`sort $dists`;
+	
+	string $final[];
+	$j=0;
+	for($each in $result){
+		string $stemp[];
+		tokenize($each,"<>",$stemp);
+		$final[$j]=$stemp[1];
+		$j++;
+	}
+	return $final;
+}
+
+

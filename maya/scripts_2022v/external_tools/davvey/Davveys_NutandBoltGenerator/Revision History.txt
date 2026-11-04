@@ -1,0 +1,21 @@
+Version 1.50
+
+Improved design of Bolt Head and Nut chamfer to give a radius to edge. Also corrected error in scripts that produced eight sided instead six sided Hexagon Heads, Also added simple shader options for Steel, Stainless,  Blacke, Aluminium, Barss and Copper shaders.
+
+
+Version 1.40
+
+Increased options for Bolt Heads to include "Coach" Bolt, Panhead and Cheesehead style Bolts. Also added Flanged, Domed and Castellated (use with split pins) and Wing Nuts.
+
+Version 1.30
+Minor correction to script to correct error when generating a slotted round head Bolt which left a small section of top of head behind after Boolean op.
+
+Also included Icon for Shelf Button (thanks to Jeff Lovering for image)
+
+ 
+Version 1.20
+(minor correction to script to cure error on round head bolt)
+
+ 
+Version 1.10
+Scale settings now working in all Maya Unit settings i.e mm, cm, m, in, ft, yd.

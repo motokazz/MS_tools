@@ -1,0 +1,4 @@
+title,shieldJointEditer
+use_BGImage,BG/UIbg.bmp:640:640,end
+addAction
+end of addAction

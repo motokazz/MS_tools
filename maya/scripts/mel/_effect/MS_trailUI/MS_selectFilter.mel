@@ -1,0 +1,16 @@
+global proc string[] MS_selectFilter(){
+
+	/*
+	‚æ‚è•ª‚¯‘I‘ð
+	*/
+	
+	string $objz[]=`ls -typ transform -sl`;
+	if(!size($objz)){
+		$objz=`filterExpand -sm 12 -sm 22 -sm 31 -sm 32 -sm 34 -sm 46 `;
+	}
+	return $objz;
+	
+}
+
+
+

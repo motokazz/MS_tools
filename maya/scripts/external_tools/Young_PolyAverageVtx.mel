@@ -1,0 +1,1501 @@
+//Update in 12/15/2005
+//improve Loop Funtion
+
+//////////////////////////////////////main Proc////////////////////////////////////////////
+global proc Young_PolyAverageVtx(int $mode)
+{
+	//mode 0 = normal move//
+	//mode 1 = inverse normal move//
+	global string $loseVtx[];
+	string $get[] = `ls -fl -sl`;
+	int $type;
+
+	string $buffer_comp[];
+	string $buffer_comp_A[];
+	
+	clear $buffer_comp;
+	clear $buffer_comp_A;
+	
+	tokenize $get[0] "*.*[" $buffer_comp;
+	tokenize $get[1] "*.*[" $buffer_comp_A;
+
+	if(`size $loseVtx` != 0)
+	{
+		string $shorterList[] = stringArrayRemoveDuplicates ($loseVtx);
+		print "================================================================\n";
+		print "==                    Didn't Processece Vtx List              ==\n================================================================\n";
+
+		for ($ShorterList in $shorterList)
+		{
+			print ("Warning!!   " + $ShorterList + "  does't processeced!!\n");
+		}
+		print "================================================================\n)";
+		clear $shorterList;
+	}
+	
+	
+	if ($buffer_comp[1] == "vtx" && $mode == 0)
+	{
+		$type = 0;
+	}
+	else if ($buffer_comp[1] == "e" && $mode == 0)
+	{
+		$type = 1;
+	}
+	
+	else if ($buffer_comp[1] == "f" && $mode == 0)
+	{
+		$type = 2;
+	}
+	
+	else if ($buffer_comp[1] == "e" && `size $get` != 1  && $mode == 0)
+	{
+		$type = 3;
+	}
+	
+	else if ($buffer_comp[1] == "vtx" && $mode == 1)
+	{
+		$type = 4;
+	}	
+	
+	else if ($buffer_comp[1] == "e" && $mode == 1)
+	{
+		$type = 5;
+	}		
+	
+	
+	switch($type){
+	
+	case 0:
+			for ($GET in $get)
+			{
+				select -r $GET;
+				singleVtx;
+			}
+			for ($LoseVtx in $loseVtx)
+			{
+				select -r $LoseVtx;
+			}
+			clear $loseVtx;
+			select -cl;
+
+
+		 break;
+	case 1:
+	        seqVtx;
+			for ($LoseVtx in $loseVtx)
+			{
+				select -add $LoseVtx;
+			}
+			clear $loseVtx;
+			//select -cl;
+			
+		 break;
+	case 2:
+	        print "~building~  face funtion!!\n";
+		 break;
+	case 3:
+			for ($GET in $get)
+			{
+				select -r $GET;
+				seqVtx;
+				for ($LoseVtx in $loseVtx)
+				{
+					select -add $LoseVtx;
+				}
+				clear $loseVtx;
+			}
+			select -cl;
+		 break;
+		 
+	case 4:
+			for ($GET in $get)
+			{
+				select -r $GET;
+				invSeqVtx;
+				for ($LoseVtx in $loseVtx)
+				{
+					select -add $LoseVtx;
+				}
+				clear $loseVtx;
+			}
+			select -cl;
+		 break;	
+		 
+	case 5:
+	        invSeqVtx;
+			for ($LoseVtx in $loseVtx)
+			{
+				select -add $LoseVtx;
+			}
+			clear $loseVtx;
+			select -cl;
+		 break;
+	default:
+		print("out of range\n");
+	       break;
+	}
+}
+
+
+
+global proc Young_connect_1()
+{
+	string $get[] =`ls -fl -sl`;
+	if (`size $get` == 1)
+	{
+		SelectEdgeRing;
+		string $cut[]=`ls -fl -sl`;
+		polySplitRing -ch on -weight 0.5 -absoluteWeight 0 -smoothingAngle 0 $cut;
+		select -r $get[0];
+		getLoop;
+		SelectEdgeLoop;
+		polySoftEdge -a 180 -ch 1;
+		select -r $get[0];
+		getLoop;
+	}
+	else
+	{
+		polySplitRing -ch on -weight 0.5 -absoluteWeight 0 -smoothingAngle 0 $get;
+		select -r $get[0];
+		getLoop;
+	}
+}
+
+global proc Young_connect_2()
+{
+	global string $allRingEdge[];
+	clear $allRingEdge;
+	float $edgeLenth[];
+	string $edge_buf[];
+	float $edgeLenthAbs[];
+	vector $firstEdgeVec[];
+	clear $edgeLenth;
+	clear $edge_buf;
+	clear $edgeLenthAbs;
+	clear $firstEdgeVec;
+
+	//needs check 2 edge vector//
+	string $get[] = `ls -fl -sl`;
+	string $shape[] = `listTransforms $get[0]`;
+	string $trans[] = `listTransforms $shape[0]`;
+
+	$firstEdgeVec = `edge2Vector`;
+	if (`size $get` == 1)
+	{
+		SelectEdgeRing;
+	}
+	string $firstRing[] = `ls -fl -sl`;
+	//split edge//
+	polySplitRing -ch on -weight 0.5 -absoluteWeight 0 -smoothingAngle 0 $firstRing;
+
+	string $history[] = `listHistory $trans`;
+	setAttr ($history[1]+".weight") 0.3333;
+	//get first spilt Edge//
+	select -r $get[0];
+	getLoop;
+	string $edgeFirst[]=`ls -fl -sl`;
+	
+	//////////////////////////////////////////
+	//compare spilt Edge//
+	select -r $get[0];
+	string $edge_tmp[]=`ls -fl -sl`;
+	
+	$edge_buf[0] = $edge_tmp[0];
+	$edgeLenth[0] = `edgeLength`;
+	$edgeLenthAbs[0] = `abs $edgeLenth[0]`;
+	
+	select -r $get[0];
+	get180Edge;
+	string $edge_tmp[]=`ls -fl -sl`;
+	$edge_buf[1] =$edge_tmp[0];
+	$edgeLenth[1] = `edgeLength`;
+	$edgeLenthAbs[1] = `abs $edgeLenth[1]`;
+
+	if ($edgeLenthAbs[0] > $edgeLenthAbs[1])
+	{
+		select -r $get[0];
+	}
+		else 
+		{
+			select -r $edge_buf[1];
+		}
+	string $edgeSecond[]=`ls -fl -sl`;
+	
+	//get second edge//
+	if (`size $get` == 1)
+	{
+		Young_ring $edgeSecond[0];
+		select -r $allRingEdge;
+	}
+	else
+	{
+		SelectEdgeRing;
+	}
+		
+	string $cut[]=`ls -fl -sl`;
+	polySplitRing -ch on -weight 0.5 -absoluteWeight 0 -smoothingAngle 0 $cut;
+	//soft Edge//
+	select -r $edgeSecond[0];
+	getLoop;
+	select -add $edgeFirst[0];
+	
+	//get loop edge
+	select -r $edgeSecond[0];
+	getLoop;
+	select -add $edgeFirst[0];
+	string $buffer_1[] = `ls -fl -sl`;
+}
+
+global proc Young_PlyAvgVtx_connect_1(int $type)
+{
+	string $get[] =`ls -fl -sl`;
+	if (`size $get` == 1)
+	{
+		Young_connect_1;
+		SelectEdgeLoop;
+		PolySelectConvert 3;
+		Young_PolyAverageVtx $type;
+	}
+	else
+	{
+		Young_connect_1;
+		SelectEdgeLoop;
+		Young_PolyAverageVtx $type;
+	}
+}
+
+global proc Young_PlyAvgVtx_connect_2(int $type)
+{
+	global string $allRingEdge[];
+	clear $allRingEdge;
+	float $texField = `floatSliderGrp -q -v distance`;
+	floatSliderGrp -e -v ($texField*1.5) distance;
+	//needs check 2 edge vector//
+	string $get[] = `ls -fl -sl`;
+	string $shape[] = `listTransforms $get[0]`;
+	string $trans[] = `listTransforms $shape[0]`;
+	select -r $get[0];
+	$firstEdgeVec = `edge2Vector`;
+	if (`size $get` == 1)
+	{
+		SelectEdgeRing;
+	}
+	
+	if (`size $get` != 1)
+	{
+		select -r $get;
+	}
+	string $firstRing[] = `ls -fl -sl`;
+	//split edge//
+	polySplitRing -ch on -weight 0.5 -absoluteWeight 0 -smoothingAngle 0 $firstRing;
+	string $egeCenter[] =`ls -fl -sl`;
+	
+	select -r $get[0];
+	string $ege1st[]=`ls -fl -sl`;
+	get180Edge;
+	string $ege2nd[] =`ls -fl -sl`;
+	select -r $egeCenter[0];
+
+	
+	select -r $egeCenter;
+	Young_PolyAverageVtx 0;
+	if ($type == 0)
+	{
+		select -r $ege1st;
+		SelectEdgeRing;	
+	}
+	else if ($type == 1)
+	{
+		select -r $ege1st;
+		Young_ring $ege1st[0];
+		select -r $allRingEdge;
+	}
+
+	string $cut[]=`ls -fl -sl`;
+	polySplitRing -ch on -weight 0.5 -absoluteWeight 0 -smoothingAngle 0 $cut;
+	
+	select -r $ege2nd;
+	SelectEdgeRing;
+	string $cut[]=`ls -fl -sl`;
+	polySplitRing -ch on -weight 0.5 -absoluteWeight 0 -smoothingAngle 0 $cut;
+
+	select -r $get[0];
+	get180Edge;
+	SelectEdgeRing;
+	string $ege_01[] =`ls -fl -sl`;
+	
+	select -r $ege2nd;
+	SelectEdgeRing;
+	
+	string $ege_02[] =`ls -fl -sl`;
+	
+	for ($EGE_01 in $ege_01)
+	{
+		string $vtx_01[] =`convertComp 3 $EGE_01`;
+		for ($EGE_02 in $ege_02)
+		{
+			string $vtx_02[] =`convertComp 3 $EGE_02`;
+			if ($vtx_02[0] == $vtx_01[0] || $vtx_02[0] == $vtx_01[1] || $vtx_02[1] == $vtx_01[0] || $vtx_02[1] == $vtx_01[1])
+			{
+				float $pos01[] = `xform -q -ws -t $EGE_01`;
+				float $pos02[] = `xform -q -ws -t $EGE_02`;
+				select -r $EGE_01;
+				select -add $EGE_02;
+				scale -r -p (($pos01[0]+$pos02[0])/2) (($pos01[1]+$pos02[1])/2) (($pos01[2]+$pos02[2])/2) 0.75 0.75 0.75;
+			}
+		}
+	}
+	
+	select -r $egeCenter;
+	polyDelEdge -cv true -ch 1;
+	
+	select -cl  ;
+	floatSliderGrp -e -v $texField distance;
+}
+
+
+
+//////////////////////////////////////////second proc/////////////////////////////////////////////////////////////////////
+global proc singleVtx()
+{
+	//- Get first -//
+	global string $loseVtx[];
+	string $getFirst[] = `ls -fl -sl`;
+	string $shape[] = `listTransforms $getFirst[0]`;
+	string $transform[] = `listTransforms $shape[0]`;
+	float $posFirst[] = `pointPosition -w $getFirst[0]`;
+	
+	//- get lev 1 Edge -//
+	PolySelectConvert 2;
+	string $lev_1_4edgeToVtx[];
+	vector $lev_1_edgeVector[];
+	string $vtx_num[4];
+	int $loop_size = 0;
+	
+	clear $lev_1_4edgeToVtx;
+	clear $lev_1_edgeVector;
+	clear $vtx_num;	
+	
+	string $lev_1_4edge[] = `ls -fl -sl`;
+	select -cl ;
+
+	for ($i=0 ; $i<`size $lev_1_4edge` ; $i++)
+	{
+		//get level 1 vtx per edge//
+		string $lev_1_4edgeToVtx[] = `polyListComponentConversion -fe -tv $lev_1_4edge[$i]`;
+		
+		//if level1 vtx per edge have ":" separate it//
+		if (`gmatch $lev_1_4edgeToVtx[0] "*:*"` == 1)
+		{
+			string $buffers[];   
+			clear $buffers; 
+			tokenize $lev_1_4edgeToVtx[0] "[*:*]" $buffers;
+			$lev_1_4edgeToVtx[0] = ($transform[0] + ".vtx[" + $buffers[1] + "]");
+			$lev_1_4edgeToVtx[1] = ($transform[0] + ".vtx[" + $buffers[2] + "]");
+		}
+		//get unit vector per edge//
+		float $pos_A[] = `pointPosition -w $lev_1_4edgeToVtx[0]`;
+		float $pos_B[] = `pointPosition -w $lev_1_4edgeToVtx[1]`;
+		$lev_1_edgeVector[$i] = `unit <<$pos_A[0]-$pos_B[0] , $pos_A[1]-$pos_B[1] , $pos_A[2]-$pos_B[2]>>`;
+	}
+	
+	//- Select dot -1 edge and loop to 4Edge -//
+	float $dot[];
+	string $ls[];
+	clear $dot;
+	clear $ls;
+
+	for ($x=0 ; $x<(`size $lev_1_edgeVector`) ; $x++)
+	{
+		for ($y=0 ; $y<(`size $lev_1_edgeVector`) ; $y++)
+		{
+			if ($x != $y)
+			{
+				float $dotVaule = dot ($lev_1_edgeVector[$x] , $lev_1_edgeVector[$y]);
+				if ($dotVaule <= -0.99)
+				{
+					select -add $lev_1_4edge[$x];
+				}
+				$ls = `ls -l -sl`;
+				if (`size $ls` == 2) break;
+			}
+		}
+	}
+	string $lev_2_edge[] = `ls -fl -sl`;
+
+	if (`size $lev_1_4edge` == 4 || `size $lev_1_4edge` == 3)
+	{		
+		//get loop edge//
+		string $lev2_edge_loop[] = `loop2step`;
+
+
+		if ($lev2_edge_loop[0] == "none" ||`size $lev2_edge_loop` != 4)
+		{
+			$loseVtx[`size $loseVtx`] = $getFirst[0];
+			return;
+		}
+		
+		//get outline edge//
+		string $out_line[] = stringArrayRemove($lev_2_edge, $lev2_edge_loop);
+	
+		//edge to vtx//
+		string $lev_2_vtX2[];
+		clear $lev_2_vtX2;
+		for($j=0 ; $j<2 ;$j++)
+		{
+			string $lev_2_vtX2_temp[]= `polyListComponentConversion -fe -tv $lev_2_edge[$j]`;
+			$lev_2_vtX2[`size $lev_2_vtX2`] = $lev_2_vtX2_temp[0];
+			$lev_2_vtX2[`size $lev_2_vtX2`] = $lev_2_vtX2_temp[1];
+		}
+		//remove first vtx//
+		string $grow_01[] = stringArrayRemove($getFirst , $lev_2_vtX2);
+		string $lev_2_vt[] = `polyListComponentConversion -fe -tv $out_line[0]`;
+		
+		//if string has ":" case//
+		if (`gmatch $lev_2_vt[0] "*:*"` == 1)
+		{
+			string $buffers_lev_2_vt[];   
+			clear $buffers_lev_2_vt; 
+			tokenize $lev_2_vt[0] "[*:*]" $buffers_lev_2_vt;
+			$lev_2_vt[0] = ($transform[0] + ".vtx[" + $buffers_lev_2_vt[1] + "]");
+			$lev_2_vt[1] = ($transform[0] + ".vtx[" + $buffers_lev_2_vt[2] + "]");
+		}	
+		
+		if (`size $lev_2_vt` != 0)
+		{
+			
+			string $lev_2_vt_4[] = `polyListComponentConversion -fe -tv $out_line[1]`;
+			//if string has ":" case//
+			if (`gmatch $lev_2_vt_4[0] "*:*"` == 1)
+			{
+				string $buffers_lev_2_vt_4[];   
+				clear $buffers_lev_2_vt_4; 
+				tokenize $lev_2_vt_4[0] "[*:*]" $buffers_lev_2_vt_4;
+				$lev_2_vt_4[0] = ($transform[0] + ".vtx[" + $buffers_lev_2_vt_4[1] + "]");
+				$lev_2_vt_4[1] = ($transform[0] + ".vtx[" + $buffers_lev_2_vt_4[2] + "]");
+			}
+			
+			//get sequenc vertex//
+			string $vtx_num[4];
+			clear $vtx_num;
+			for ($k=0 ; $k<2 ;$k++)
+			{
+				if ($lev_2_vt[$k] == $grow_01[0])
+				{
+					$vtx_num[1] = $grow_01[0];
+					
+					if ($k == 0)
+						$vtx_num[0] = $lev_2_vt[1];
+					else
+						$vtx_num[0] = $lev_2_vt[0];
+					$vtx_num[2] =$grow_01[1];
+					
+				}
+				else if ($lev_2_vt[$k] == $grow_01[1])
+				{
+					$vtx_num[1] = $grow_01[1];
+					
+					if ($k == 0)
+						$vtx_num[0] = $lev_2_vt[1];
+					else
+						$vtx_num[0] = $lev_2_vt[0];
+					$vtx_num[2] =$grow_01[0];
+				}
+			}
+			string $vtx_num4_tempA[] = stringArrayRemove($vtx_num, $lev_2_vt_4);
+			$vtx_num[3] = $vtx_num4_tempA[0];
+	
+			moveVtx $getFirst[0] $vtx_num;
+		}
+		
+		else
+		{
+			select -cl;
+			for ($Lev2_edge_loop in $lev2_edge_loop)
+			{
+				select -add $Lev2_edge_loop;
+			}
+			string $loop_3vtx[] = `ls -fl -sl`;
+			select -r $getFirst[0];
+			select -add $loop_3vtx[0];
+			select -add $loop_3vtx[1];
+			select -add $loop_3vtx[2];
+			select -add $loop_3vtx[3];
+			special;
+		}
+	}
+	else //lost vtx//
+	{
+		$loseVtx[`size $loseVtx`] = $getFirst[0];
+	}
+}
+
+
+///////////////////////////////////////Move vtx//////////////////////////////////////////////////////////////////
+global proc moveVtx(string $getfirst , string $vtx_num[])
+{
+		float $texField = `floatSliderGrp -q -v distance`;
+		string $shape[] = `listTransforms $getfirst`;
+		string $transform[] = `listTransforms $shape[0]`;
+		float $posFirst[] = `xform -q -ws -t $getfirst`;
+		string $curveP[];
+		for($l=0 ; $l<`size $vtx_num` ;$l++)
+		{
+			string $string = "";
+			float $xyz[] = `pointPosition -w $vtx_num[$l]`;
+			$string = ($string + " " + $xyz[0] + " " + $xyz[1] + " " + $xyz[2]);
+			$string = ( "-p" + $string );
+			$curveP[$l] = $string ;
+		}
+	
+		//create align EPcurve//
+		string $CC=("curve -d 1");
+		float $wst[];
+		string $WST;
+		for ($i=0;$i<`size $vtx_num`;$i++ ){
+			$wst=`xform -q -ws -t $vtx_num[$i]`;
+			$WST=(" -p"+" "+$wst[0]+" "+$wst[1]+" "+$wst[2]);
+			$CC = $CC + $WST+" ";
+		}
+		string $curve= `eval $CC`;
+		string $BSpline[] = `fitBspline -ch 1 -tol 0.01 -name "Y_AlignCurve"`;
+		xform -ws -piv $posFirst[0] $posFirst[1] $posFirst[2] "Y_AlignCurve";
+		setAttr "Y_AlignCurve.scaleX" $texField;
+		setAttr "Y_AlignCurve.scaleY" $texField;
+		setAttr "Y_AlignCurve.scaleZ" $texField;
+		string $null=`group -em -n "Y_AlignNull"`;
+		
+		//move null to first VTX//
+		xform -ws -t $posFirst[0] $posFirst[1] $posFirst[2] "Y_AlignNull";
+		//geometryConstraint null to curve//
+		delete `geometryConstraint "Y_AlignCurve" $null`;
+		float $Null_pos[] = `xform -q -ws -t $null`;
+		//mov vtx to null//
+		xform -ws -t $Null_pos[0] $Null_pos[1] $Null_pos[2]  $getfirst;
+
+		delete $null;
+		delete $curve;
+		delete "Y_AlignCurve";
+		//select first comp//
+		select -tgl $getfirst;
+		changeSelectMode -component;
+		hilite -r $transform;
+}
+
+global proc moveSecondVtx(string $getfirst , string $get2 , string $get3 , string $vtx_num[])
+{
+		float $texField = `floatSliderGrp -q -v distance`;
+		string $shape[] = `listTransforms $getfirst`;
+		string $transform[] = `listTransforms $shape[0]`;
+		
+		float $posFirst[] = `xform -q -ws -t $getfirst`;
+		float $get2_pos[] = `xform -q -ws -t $get2`;
+		float $get3_pos[] = `xform -q -ws -t $get3`;
+		
+		string $curveP[];
+		for($l=0 ; $l<`size $vtx_num` ;$l++)
+		{
+			string $string = "";
+			float $xyz[] = `pointPosition -w $vtx_num[$l]`;
+			$string = ($string + " " + $xyz[0] + " " + $xyz[1] + " " + $xyz[2]);
+			$string = ( "-p" + $string );
+			$curveP[$l] = $string ;
+		}
+	
+		//create align EPcurve//
+		string $CC=("curve -d 1");
+		float $wst[];
+		string $WST;
+		for ($i=0;$i<`size $vtx_num`;$i++ ){
+			$wst=`xform -q -ws -t $vtx_num[$i]`;
+			$WST=(" -p"+" "+$wst[0]+" "+$wst[1]+" "+$wst[2]);
+			$CC = $CC + $WST+" ";
+		}
+		string $curve= `eval $CC`;
+		string $BSpline[] = `fitBspline -ch 1 -tol 0.01 -name "Y_AlignCurve"`;
+		xform -ws -piv $posFirst[0] $posFirst[1] $posFirst[2] "Y_AlignCurve";
+		setAttr "Y_AlignCurve.scaleX" $texField;
+		setAttr "Y_AlignCurve.scaleY" $texField;
+		setAttr "Y_AlignCurve.scaleZ" $texField;
+		
+		string $null=`group -em -n "Y_AlignNull"`;
+		string $null_1=`group -em -n "Y_AlignNull_1"`;
+		string $null_2=`group -em -n "Y_AlignNull_2"`;
+		
+		//move null to first VTX//
+		xform -ws -t $posFirst[0] $posFirst[1] $posFirst[2] "Y_AlignNull";
+		xform -ws -t $get2_pos[0] $get2_pos[1] $get2_pos[2] "Y_AlignNull_1";
+		xform -ws -t $get3_pos[0] $get3_pos[1] $get3_pos[2] "Y_AlignNull_2";
+		//geometryConstraint null to curve//
+		delete `geometryConstraint "Y_AlignCurve" $null`;
+		delete `geometryConstraint "Y_AlignCurve" $null_1`;
+		delete `geometryConstraint "Y_AlignCurve" $null_2`;
+		
+		float $Null_pos[] = `xform -q -ws -t $null`;
+		float $Null_pos_1[] = `xform -q -ws -t $null_1`;
+		float $Null_pos_2[] = `xform -q -ws -t $null_2`;
+		//mov vtx to null//
+		xform -ws -t $Null_pos[0] $Null_pos[1] $Null_pos[2]  $getfirst;
+		xform -ws -t $Null_pos_1[0] $Null_pos_1[1] $Null_pos_1[2]  $get2;
+		xform -ws -t $Null_pos_2[0] $Null_pos_2[1] $Null_pos_2[2]  $get3;
+		
+		delete $null;
+		delete $null_1;
+		delete $null_2;
+		delete $curve;
+		delete "Y_AlignCurve";
+		//select first comp//
+		select -tgl $getfirst;
+		changeSelectMode -component;
+		hilite -r $transform;
+}
+
+
+global proc special ()
+{
+	string $get[] = `ls -fl -sl`;
+	float $posFirst[] = `xform -q -ws -t $get[0]`;
+	createCrv_fix;
+	string $Curve[] = `ls -fl -sl`;
+	delete ($Curve[0] + ".cv[2]");
+	string $Bspline[] = `fitBspline -ch 1 -tol 0.01 -name $Curve[0]`;
+	string $null=`group -em -n "Y_AlignNull"`;
+	//move null to first VTX//
+	xform -ws -t $posFirst[0] $posFirst[1] $posFirst[2] $null;
+	
+	//geometryConstraint null to curve//
+	delete `geometryConstraint $Bspline[0] $null`;
+	
+	float $Null_pos[] = `xform -q -ws -t $null`;
+	xform -ws -t $Null_pos[0] $Null_pos[1] $Null_pos[2] $get[0];
+	
+	delete $null;
+	delete $Curve[0];
+	delete $Bspline[0];
+}
+
+
+
+//////////////////////////////////////create curve from edge -> bgCreateCurveFromEdges.mel/////////////////////////////////////////////////////////////////////////
+global proc createCrv_fix()
+{ 
+int $error = 0;
+string $attach[];
+string $crvs[];
+string $edgeList[] = `filterExpand -sm 32` ;
+int $size = `size $edgeList`;
+if ($size < 1)
+	{
+	print ("\n\n\/\/ERROR: Nothing valid selected.\/\/");
+	$error = 1;
+	}
+escapeCurrentTool; 
+int $c = 0;
+for ($edge in $edgeList)
+	{
+	string $tmpCrv[] = `duplicateCurve -name tmpCrv -ch 1 -rn 0 -local 0 $edge`;
+	$crvs[$c] = $tmpCrv[0];
+	$c ++; 	
+	}
+if ($error)
+	{
+	$size = 0;
+	}
+else 
+	{
+	$size = `size  $crvs` - 1;
+	rename $crvs[`size  $crvs` - 1] tmpAttach;
+	}
+while ($size > 0)
+	{
+	$sizein = $size;
+	for ($c = 0; $c < $size; $c++)
+		{
+		select -r "tmpAttach.cv[*]";
+		string $cvList[] = `filterExpand -sm 28`;
+		int $c1_lastCV = (`size($cvList)` - 1);
+		string $tmp = $crvs[$c]+".cv[*]";		
+		select -r $tmp;
+		string $cvList[] = `filterExpand -sm 28`;
+		int $c2_lastCV = (`size($cvList)` - 1);
+		string $tmp = "tmpAttach.cv[0]";
+		float $c1p1[] = `xform -q -t $tmp`;  //attach curve endpoint1
+		string $tmp = "tmpAttach.cv["+$c1_lastCV+"]";
+		float $c1p2[] = `xform -q -t $tmp`;  //attach curve endpoint2
+		string $tmp = $crvs[$c]+".cv[0]";
+		float $c2p1[] = `xform -q -t $tmp`;  //curve2 endpoint1
+		string $tmp = $crvs[$c]+".cv["+$c2_lastCV+"]";
+		float $c2p2[] = `xform -q -t $tmp`;  //curve2 endpoint2
+		int $match = ptCmp($c1p1,$c2p1);
+		if ($match)
+			{
+			$attach = `attachCurve  -ch 1 -rpo 1 -kmk 1 -m 1 -bb 0.5 -bki 0 -p 0.1 tmpAttach $crvs[$c] `;
+			rename $crvs[$c] TMPCRV;
+			}
+		else 
+			{
+			int $match = ptCmp($c1p1,$c2p2);
+			if ($match)
+				{
+				$attach = `attachCurve  -ch 1 -rpo 1 -kmk 1 -m 1 -bb 0.5 -bki 0 -p 0.1 tmpAttach $crvs[$c] `;
+				rename $crvs[$c] TMPCRV;
+				}
+			else 
+				{
+				int $match = ptCmp($c1p2,$c2p1);
+				if ($match)
+					{
+					$attach = `attachCurve  -ch 1 -rpo 1 -kmk 1 -m 1 -bb 0.5 -bki 0 -p 0.1 tmpAttach $crvs[$c] `;
+					rename $crvs[$c] TMPCRV;
+					}
+				else 
+					{
+					int $match = ptCmp($c1p2,$c2p2);
+					if ($match)
+						{
+						$attach = `attachCurve  -ch 1 -rpo 1 -kmk 1 -m 1 -bb 0.5 -bki 0 -p 0.1 tmpAttach $crvs[$c] `;
+						rename $crvs[$c] TMPCRV;
+						}
+						
+					}
+				}	
+			} // close nested if statements
+			
+		} // close for statement
+	select -cl;
+	string $sel[] = `ls "tmpCrv*"`;
+	if (`size($sel)`)
+		{
+		select -r $sel;
+		select -d "tmpCrv*Shape"; //remove shape nodes from selection list	
+		}
+	string $sel[] = `ls -sl`;
+	$crvs = $sel; //remaining curves
+	$sizeout = (`size($crvs)`);
+	if (($sizeout == $sizein) && ($sizeout > 0))
+		{
+		print ("\n\n\/\/ERROR: All edges must be contiguous.\/\/");
+		$error = 1;
+		delete "tmpCrv*";
+		if( `objExists tmpAttach`)
+			delete "tmpAttach"; 
+		if( `objExists TMPCRV`) 
+			delete "TMPCRV*";
+		select $edgeList;
+		$size = 0;
+		break;
+		}
+	else
+		$size = $sizeout;
+
+	} // close while
+	if ($error != 1)
+		{
+		select -cl;
+		string $sel[] = `ls "TMPCRV*"`;
+		if (`size($sel)`)
+			{
+			select -r $sel;
+			select -d "TMPCRV*Shape"; //remove shape nodes from selection list	
+			}
+			
+		string $sel[] = `ls -sl`;
+			for ($tmp in $sel)
+				{
+				rename $tmp "dupEdge";
+				}
+			if( `objExists edgeHistGrp`)
+				ungroup edgeHistGrp;
+			if( `objExists dupEdge`)
+				{
+				hide "dupEdge*";
+				select -r "dupEdge*";
+				group -name edgeHistGrp;
+				}	
+			select -r "tmpAttach";
+			DeleteHistory;
+		select -r "tmpAttach.cv[*]";
+		string $cvs[] = `filterExpand -sm 28`;
+
+
+		}
+		select -r "tmpAttach";
+		rename "tmpAttach" "edgeCurve";
+		delete "edgeHistGrp";
+}
+
+
+global proc int ptCmp(float $p1[], float $p2[])
+{
+	float $distance;
+	float $v[3];
+	$v[0] = $p1[0] - $p2[0];
+	$v[1] = $p1[1] - $p2[1];
+	$v[2] = $p1[2] - $p2[2];
+	$distance = $v[0]*$v[0] + $v[1]*$v[1] + $v[2]*$v[2];
+	$distance = sqrt( $distance );				
+	if ($distance == 0) 
+		{
+		return 1;
+		}
+	else
+		{
+		return 0;
+		}
+}
+
+
+
+/////////////////////////////////ancillary proc/////////////////////////////////////////
+global proc seqVtx()
+{
+	loopToVtx;
+	string $get[] = `ls -fl -sl`;
+	
+	for ($GET in $get)
+	{
+		select -r $GET;
+		singleVtx;
+	}
+}
+
+global proc invSeqVtx()
+{
+	loopToVtx;
+	string $get[] = `ls -fl -sl`;
+	
+	for ($GET in $get)
+	{
+		select -r $GET;
+		invMoveVtx;
+	}
+}
+
+global proc string[] loopToVtx()
+{
+	SelectEdgeLoop;
+	PolySelectConvert 3;
+	string $vtx[] = `ls -fl -sl`;
+	return $vtx;
+}
+
+
+////////////////////////////////////////
+// funtion : Young Loop               //
+// input   : select comp              //
+// output  : select comp              //
+////////////////////////////////////////
+global proc string[] loop2step ()
+{
+	string $sel[] = `ls -fl -sl`;
+	if (`size $sel`== 2)
+	{
+		string $shape[] = `listTransforms $sel[0]`;
+		string $trans[] = `listTransforms $shape[0]`;
+		
+		string $vtxNum[];
+		string $vtx_4[];
+		string $vtx[];
+		string $face_1[];
+		string $faceNum[];
+		string $edgeNum[];
+		string $PinfoEdge[];
+		string $face[];
+		string $compareEdge_0_buffer[];
+		string $compareEdge_1_buffer[];
+		string $compareEdge_2_buffer[];
+		string $compareEdge_3_buffer[];
+		string $edge_loop[];
+		
+		clear $vtxNum;
+		clear $vtx_4;
+		clear $vtx;
+		clear $face_1;
+		clear $faceNum;
+		clear $PinfoEdge;
+		clear $edgeNum;
+		clear $face;
+		clear $compareEdge_0_buffer;
+		clear $compareEdge_1_buffer;
+		clear $compareEdge_2_buffer;
+		clear $compareEdge_3_buffer;
+		clear $edge_loop;
+		
+		for ($i=0 ; $i<2 ;$i++ )
+		{
+			string $PinfoVtx[] = `polyInfo -ev $sel[$i]`;
+			$numTokens = `tokenize $PinfoVtx[0] " " $vtxNum`;
+			$vtx_4[`size $vtx_4`] = $vtxNum[2];
+			$vtx_4[`size $vtx_4`] = $vtxNum[3];
+		}
+	
+		//get face lev 1//
+		for ($j=0 ; $j<2 ;$j++ )
+		{
+			string $PinfoFace_1[] = `polyInfo -ef $sel[$j]`;
+			$numTokens = `tokenize $PinfoFace_1[0] " " $faceNum`;
+			$face_1[`size $face_1`] = $trans[0]+(".f["+$faceNum[2]+"]");
+			$face_1[`size $face_1`] = $trans[0]+(".f["+$faceNum[3]+"]");
+		}
+		//remove common vtx at 2edges//s
+		$vtx[0] = $vtx_4[0];
+		$vtx[1] = $vtx_4[3];
+		$vtx[2] = $vtx_4[1];//common vtx//
+		select -r ($trans[0] + ".vtx[" + $vtx[0] + "]");
+		select -tgl ($trans[0] + ".vtx[" + $vtx[1] + "]");
+		
+		//get face lev 2//
+		PolySelectConvert 1;
+		string $faceAll[] = `ls -fl -sl`;
+		if (`size $faceAll` ==8)
+		{
+			string $face_2[] = stringArrayRemove($face_1, $faceAll);
+			
+			select -r $face_2[0];
+			$face[0] = $face_2[0];
+			
+			//grow face//
+			PolySelectConvert 2;
+			PolySelectConvert 1;
+			
+			string $growFaceTemp[] = `ls -fl -sl`;
+			string $growFace[] = stringArrayRemove($face, $growFaceTemp);
+			
+			for ($k=1 ; $k<4 ; $k++)
+			{
+				for ($l=0 ; $l<`size $growFace` ; $l++)
+				{
+					if ($face_2[$k] == $growFace[$l])
+					{
+						$face[`size $face`] = $growFace[$l];
+					}
+				}
+			}
+			string $otherFace[] = stringArrayRemove($face, $face_2);
+			
+			$face[`size $face`] = $otherFace[0];
+			$face[`size $face`] = $otherFace[1];
+			
+			if (`size $face` >= 5)
+			{
+				print ("Illegal face!!\n");
+				$edge_loop[0] = "none";
+				$edge_loop[1] = "none";
+				$edge_loop[2] = "none";
+				$edge_loop[3] = "none";
+				return $edge_loop;
+			}
+			else 
+			{
+				string $compareEdge_0[] = `polyInfo -fe $face[0]`;
+				string $compareEdge_1[] = `polyInfo -fe $face[1]`;
+				string $compareEdge_2[] = `polyInfo -fe $face[2]`;
+				if (`size $face[3]` == 0)
+				{
+					print ("Illegal face!!\n");
+					$edge_loop[0] = "none";
+					$edge_loop[1] = "none";
+					$edge_loop[2] = "none";
+					$edge_loop[3] = "none";
+					return $edge_loop;
+				}
+				string $compareEdge_3[] = `polyInfo -fe $face[3]`;
+		
+				tokenize $compareEdge_0[0] " " $compareEdge_0_buffer;
+				tokenize $compareEdge_1[0] " " $compareEdge_1_buffer;
+				tokenize $compareEdge_2[0] " " $compareEdge_2_buffer;
+				tokenize $compareEdge_3[0] " " $compareEdge_3_buffer;
+				
+				$edge_loop[1] = $sel[0];
+				$edge_loop[2] = $sel[1];
+				
+				for ($m=1 ; $m<(`size $compareEdge_0_buffer`-1) ; $m++)
+				{
+					for ($n=1 ; $n<(`size $compareEdge_1_buffer`-1) ; $n++)
+					{
+						if ($compareEdge_0_buffer[$m] == $compareEdge_1_buffer[$n])
+						{
+							$edge_loop[0] = ($trans[0] + ".e[" + $compareEdge_0_buffer[$m] + "]");
+						}
+					}
+				}
+				for ($o=1 ; $o<(`size $compareEdge_2_buffer`-1) ; $o++)
+				{
+					for ($p=1 ; $p<(`size $compareEdge_3_buffer`-1) ; $p++)
+					{
+						if ($compareEdge_2_buffer[$o] == $compareEdge_3_buffer[$p])
+						{
+							$edge_loop[3] = ($trans[0] + ".e[" + $compareEdge_2_buffer[$o] + "]");
+						}
+					}
+				}
+				select -cl;
+				return $edge_loop;
+			}
+		}
+		else
+		{
+			select -cl;
+			for ($Sel in $sel)
+			{
+				select -add $Sel;
+			}
+			polySelectConstraint -pp 4  -m2a 180 -m3a 180 -ed 1;
+			string $loopCmd[] = `ls -fl -sl`;
+			$edge_loop[0] = $loopCmd[0];
+			$edge_loop[1] = $loopCmd[1];
+			$edge_loop[2] = $loopCmd[2];
+			$edge_loop[3] = $loopCmd[3];
+			select -cl;
+			return $edge_loop;
+		}
+	}
+	else
+	{
+		$edge[0] = "none";
+		$edge[1] = "none";
+		$edge[2] = "none";
+		$edge[3] = "none";
+		return $edge;
+	}
+}
+
+////////////////////////////////////////
+// funtion : ring edge                //
+// input   : edge compoent (array)    //
+// output  : edge ring     (array)    //
+////////////////////////////////////////
+global string $allRingEdge[];
+clear $allRingEdge;
+global proc Young_ring (string $edge)
+{
+	global string $allRingEdge[];
+	string $edgeFirst[] = `growRing $edge`;
+	
+	if (`size $edgeFirst` != 1)
+	{
+		$allRingEdge[`size $allRingEdge`] = $edge;
+		if (stringArrayCount($edgeFirst[0], $allRingEdge) == 0)
+		{
+			Young_ring $edgeFirst[0] ;
+		}
+			
+		if (stringArrayCount($edgeFirst[1], $allRingEdge) == 0)
+		{
+			Young_ring $edgeFirst[1] ;
+		}
+	}
+	else if (`size $edgeFirst` == 1)
+	{
+		$allRingEdge[`size $allRingEdge`] = $edge;
+	}
+}
+
+
+////////////////////////////////////////
+// funtion : grow ring edge           //
+// input   : edge compoent (array)    //
+// output  : 2 edge        (array)    //
+////////////////////////////////////////
+global proc string[] growRing (string $get)
+{
+	string $buffer[];
+	string $output[];
+	clear $buffer;
+	clear $output;
+	select -r $get;
+	PolySelectConvert 3;
+	PolySelectConvert 2;
+	string $edge[] =`ls -fl -sl`;
+	select -r $get;
+
+	PolySelectConvert 1;
+	string $face[] =`ls -fl -sl`;	
+	for ($FACE in $face)
+	{
+		if (`checkTriangle $FACE` == 0)
+		{
+			string $list[] =`convertComp 2 $FACE`;
+			string $diff[] = stringArrayRemove($edge, $list);
+			$buffer[`size $buffer`] = $diff[0];
+		}
+	}
+
+	for ($BUFFER in $buffer)
+	{
+		if (`size $BUFFER` != 0)
+		{
+			$output[`size $output`] = $BUFFER;
+		
+		}
+	}
+	select -cl;
+	return $output;
+}
+
+////////////////////////////////////////
+// funtion : to check to triangle face//
+// input   : face compoent            //
+// output  : true / false             //
+////////////////////////////////////////
+global proc int checkTriangle (string $face)
+{
+	float $texField = `floatSliderGrp -q -v distance`;
+	float $abs = `abs $texField`;
+	float $range = -1*((-0.04444*$abs)+0.7777);
+		
+	int $result = 0;
+	string $edge[] =`convertComp 2 $face`;
+	
+	if (`size $edge` ==4)
+	{
+		for($i = 0 ; $i < 4; $i++)
+		{
+			for($j = 0 ; $j < 4; $j++)
+			{
+				if ($j != $i)
+				{
+					select -r $edge[$i];
+					vector $vector_0[]=`edge2Vector`;
+					string $vtx_0[] =`convertComp 3 $edge[$i]`;
+		
+					select -r $edge[$j];
+					vector $vector_1[]=`edge2Vector`;
+					string $vtx_1[] =`convertComp 3 $edge[$j]`;					
+					if (dot($vector_0[0] , $vector_1[0]) < $range)
+					{					
+						for($l = 0 ; $l < 2; $l++)
+						{
+							for($m = 0 ; $m < 2; $m++)
+							{
+								if($vtx_0[$l] == $vtx_1[$m])
+								{
+									$result = 1;
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	select -cl;
+	return $result;
+}
+
+////////////////////////////////////////
+// funtion : convert Compoent         //
+// input   : mode ,  compoent         //
+// output  : compoent (array)         //
+////////////////////////////////////////
+global proc string[] convertComp (int $mode , string $ls)
+{
+	//mode1 : to face
+	//mode2 : to edge
+	//mode3 : to vtx
+	string $vtx[];
+	string $vtxBuffer[];
+	string $edge[];
+	string $edgeBuffer[];
+	string $face[];
+	string $faceBuffer[];
+	string $buffer_comp[];
+	clear $vtx;
+	clear $vtxBuffer;
+	clear $edge;
+	clear $edgeBuffer;
+	clear $face;
+	clear $faceBuffer;
+	clear $buffer_comp;
+	select -r $ls;
+	string $get[] =`ls -fl -sl`;
+	tokenize $get[0] "*.*[" $buffer_comp;
+	string $shape[] = `listTransforms $get[0]`;
+	string $trans[] = `listTransforms $shape[0]`;
+	
+	if ($buffer_comp[1] == "vtx")
+	{
+		switch($mode)
+		{
+		case 1:
+		    //to face mode//
+			clear $face;
+			string $pface[] = `polyInfo -vf $get[0]`;
+			int $numTokenface = `tokenize $pface[0] " " $faceBuffer`;
+			for ($i=2 ; $i<($numTokenface-1) ;$i++)
+			{
+				$face[`size $face`] = ($trans[0]+".f["+$faceBuffer[$i]+"]");
+			}
+			return $face;
+			break;
+			 
+		case 2:
+			//to edge mode//
+			clear $edge;
+			string $pedge[] = `polyInfo -ve $get[0]`;
+			int $numTokenedge = `tokenize $pedge[0] " " $edgeBuffer`;
+			for ($i=2 ; $i<($numTokenedge-1) ;$i++)
+			{
+				$edge[`size $edge`] = ($trans[0]+".e["+$edgeBuffer[$i]+"]");
+			}
+			return $edge;
+			break;
+			 
+		case 3:
+			print("Don't need convert!!\n");
+			return $get;
+	
+			break;
+			
+		default:
+			print("out of range\n");
+			return $get;
+		    break;
+		}
+	}
+	
+	
+	else if ($buffer_comp[1] == "e")
+	{
+		switch($mode)
+		{
+		case 1:
+		    //to face mode//
+			clear $face;
+			string $pface[] = `polyInfo -ef $get[0]`;
+			int $numTokenface = `tokenize $pface[0] " " $faceBuffer`;
+			$face[`size $face`] = ($trans[0]+".f["+$faceBuffer[2]+"]");
+			$face[`size $face`] = ($trans[0]+".f["+$faceBuffer[3]+"]");
+			return $face;
+			break;
+			 
+		case 2:
+		    print("Don't need convert!!\n");
+			return $get;
+			break;
+			 
+		case 3:
+		    //to vtx mode//
+			clear $vtx;
+			string $pvtx[] = `polyInfo -ev $get[0]`;
+			int $numTokenVtx = `tokenize $pvtx[0] " " $vtxBuffer`;
+			$vtx[`size $vtx`] = ($trans[0]+".vtx["+$vtxBuffer[2]+"]");
+			$vtx[`size $vtx`] = ($trans[0]+".vtx["+$vtxBuffer[3]+"]");
+			return $vtx;
+			break;
+			
+		default:
+			print("out of range\n");
+			return $get;
+		    break;
+		}
+	}
+	
+	else if ($buffer_comp[1] == "f")
+	{
+		switch($mode)
+		{
+		case 1:
+ 			print("Don't need convert!!\n");
+			return $get;
+			break;
+			 
+		case 2:
+		    //to edge mode//
+			clear $edge;
+			string $pedge[] = `polyInfo -fe $get[0]`;
+			int $numTokenedge = `tokenize $pedge[0] " " $edgeBuffer`;
+			for ($i=2 ; $i<($numTokenedge-1) ;$i++)
+			{
+				$edge[`size $edge`] = ($trans[0]+".e["+$edgeBuffer[$i]+"]");
+			}
+			return $edge;
+			break;
+			 
+		case 3:
+		    //to vtx mode//
+			clear $vtx;
+			string $pvtx[] = `polyInfo -fv $get[0]`;
+			int $numTokenVtx = `tokenize $pvtx[0] " " $vtxBuffer`;
+			$vtx[`size $vtx`] = ($trans[0]+".vtx["+$vtxBuffer[2]+"]");
+			$vtx[`size $vtx`] = ($trans[0]+".vtx["+$vtxBuffer[3]+"]");
+			return $vtx;
+			break;
+			
+		default:
+			print("out of range\n");
+			return $get;
+		    break;
+		}
+	}
+}
+
+
+
+////////////////////////////////////////
+// funtion : get edgeLength           //
+// input   : select edge              //
+// output  : edge lenth (float)       //
+////////////////////////////////////////
+global proc float edgeLength ()
+{
+	PolySelectConvert 3;
+	string $get[] =`ls -fl -sl`;
+	float $first[] = `xform -q -ws -t $get[0]`;
+	float $second[] = `xform -q -ws -t $get[1]`;
+	float $x = $first[0] - $second[0];
+	float $y = $first[1] - $second[1];
+	float $z = $first[2] - $second[2];
+	float $xyz = $x*$y*$z;
+	select -cl;
+	return $xyz;
+}
+
+////////////////////////////////////////
+// funtion : get edge vector          //
+// input   : select edge              //
+// output  : edge vector (vector)     //
+////////////////////////////////////////
+global proc vector[] edge2Vector ()
+{
+	vector $lev_1_edgeVector[];
+	clear $lev_1_edgeVector;
+	string $getFirst[] =`ls -fl -sl`;
+	
+	string $shape[] = `listTransforms $getFirst[0]`;
+	string $transform[] = `listTransforms $shape[0]`;
+	
+	for ($i=0 ; $i<`size $getFirst` ; $i++)
+		{
+			//get level 1 vtx per edge//
+			string $lev_1_4edgeToVtx[] = `polyListComponentConversion -fe -tv $getFirst[$i]`;
+			
+			//if level1 vtx per edge have ":" separate it//
+			if (`gmatch $lev_1_4edgeToVtx[0] "*:*"` == 1)
+			{
+				string $buffers[];   
+				clear $buffers; 
+				tokenize $lev_1_4edgeToVtx[0] "[*:*]" $buffers;
+				$lev_1_4edgeToVtx[0] = ($transform[0] + ".vtx[" + $buffers[1] + "]");
+				$lev_1_4edgeToVtx[1] = ($transform[0] + ".vtx[" + $buffers[2] + "]");
+			}
+			//get unit vector per edge//
+			float $pos_A[] = `pointPosition -w $lev_1_4edgeToVtx[0]`;
+			float $pos_B[] = `pointPosition -w $lev_1_4edgeToVtx[1]`;
+			$lev_1_edgeVector[$i] = `unit <<$pos_A[0]-$pos_B[0] , $pos_A[1]-$pos_B[1] , $pos_A[2]-$pos_B[2]>>`;
+	}
+	return $lev_1_edgeVector;
+}
+
+
+////////////////////////////////////////
+// funtion : switch to mirror edge    //
+// input   : select edge              //
+// output  :                          //
+////////////////////////////////////////
+global proc get180Edge()
+{
+	string $buf[];
+	clear $buf;
+	string $get[] = `ls -fl -sl`;
+	vector $firstEdgeVec[] = `edge2Vector`;
+	PolySelectConvert 3;
+	PolySelectConvert 2;
+	
+	string $allEdge[]=`ls -fl -sl`;
+	for ($i = 0 ; $i <`size $allEdge` ; $i++)
+	{
+		select -r $allEdge[$i];
+		vector $ALLEdgeVec[] = `edge2Vector`;
+		if (dot ($firstEdgeVec[0] , $ALLEdgeVec[0]) < -0.999999)
+		{
+			$buf[`size $buf`] = $allEdge[$i];
+		}
+	}
+	select -r $buf;
+}
+
+
+
+////////////////////////////////////////
+// funtion : get one loop edge        //
+// input   : select edge              //
+// output  :                          //
+////////////////////////////////////////
+global proc getLoop()
+{
+	string $edge_Buf[];
+	clear $edge_Buf; 
+	
+	string $firstEdge[] = `ls -fl -sl`;
+	get180Edge;
+	string $mirrorEdge[] = `ls -fl -sl`;
+	if (`size $mirrorEdge` != 0)
+	{
+		//first Edge Info//
+		select -r $firstEdge[0];
+		PolySelectConvert 3;
+		string $firstEdgetoVtx[] = `ls -fl -sl`;
+	
+		//Mirror Edge Info//
+		select -r $mirrorEdge[0];
+		PolySelectConvert 3;
+		string $mirrorEdgetoVtx[] = `ls -fl -sl`;
+		
+		//add Array//
+		$edge_Buf[0] = $firstEdge[0];
+		$edge_Buf[1] = $mirrorEdge[0];
+	
+		//get Center Edge//
+		for ($i = 0 ; $i < 2 ; $i++)
+		{
+			for ($j = 0 ; $j < 2 ; $j++)
+			{
+				if ($firstEdgetoVtx[$i] == $mirrorEdgetoVtx[$j])
+				{
+					select -r $firstEdgetoVtx[$i];
+				}
+			}
+		}
+		
+		PolySelectConvert 2;
+		string $edgeAll[] = `ls -fl -sl`;
+		string $diff[] = stringArrayRemove($edge_Buf, $edgeAll);
+		select -r $diff[0];
+	}
+}
+
+
+global proc PowSlEgeLoop ()
+{
+	string $ls[] = `ls -fl -sl`;
+	string $buffer[];
+	clear $buffer;
+	for ($LS in $ls)
+	{
+		select -r $LS;
+		PolySelectConvert 1;
+		string $face[] = `ls -fl -sl`;
+		select -r $LS;
+		if (`size $face` == 1)
+		{
+			polySelectConstraint -pp 4  -m2a 180 -m3a 180;
+			string $temp[] = `ls -fl -sl`;
+			for ($TEMP in $temp)
+			{
+				$buffer[`size $buffer`] = $TEMP;
+			}
+		}
+		else
+		{
+			SelectEdgeLoop;
+			string $temp[] = `ls -fl -sl`;
+			for ($TEMP in $temp)
+			{
+				$buffer[`size $buffer`] = $TEMP;
+			}
+		}
+	}
+	select -r $buffer;
+}

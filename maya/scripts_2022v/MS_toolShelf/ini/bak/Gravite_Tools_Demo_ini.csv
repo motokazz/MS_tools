@@ -1,0 +1,5 @@
+cathegory,exec,label,annotation,image,command
+cdemo,py,TexPlaneWithCam,コマ初期設定ツール（カメラ有）,Gravite_ComicDemo_CreateTexturedPlane_WithCam.bmp,import Gravite_ComicDemo_CreateTexturedPlane\nGravite_ComicDemo_CreateTexturedPlane.do_WithCam()
+cdemo,py,TexPlaneNoCam,コマ初期設定ツール（カメラ無）,Gravite_ComicDemo_CreateTexturedPlane_NoCam.bmp,import Gravite_ComicDemo_CreateTexturedPlane\nGravite_ComicDemo_CreateTexturedPlane.do_NoCam()
+cdemo,melc,CamSw,カメラスイッチャー,JFtCamSwitcher.bmp,JFtCamSwitcher_win7
+cdemo,melc,AttrAnim,Anim自動設定,cdemoAddAttrAnim.bmp,cdemoAddAttrAnim

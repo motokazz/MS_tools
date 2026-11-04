@@ -1,0 +1,75 @@
+cathegory,exec,label,annotation,image,command
+common,mel,MS_mayaAscii_ExportUI,MS_mayaAscii_ExportUI,MS_mayaAscii_ExportUI,MS_mayaAscii_ExportUI
+common,pyex,MP_MS_extraAttrSetupUI_V2,MP_MS_extraAttrSetupUI_V2,MP_MS_extraAttrSetupUI_V2,MP_MS_extraAttrSetupUI_V2
+common,mel,MP_MS_startJamTools,MP_MS_startJamTools,MP_MS_startJamTools,MP_MS_startJamTools
+common,pyex,MP_MS_toroExporter_V2_UI,python版、坂井版ToroExporter,MP_MS_toroExporter_V2_UI,MP_MS_toroExporter_V2_UI
+matter,pyex,extraAttrSetupUI,MPRO固有のエクストラアトリビュートをセットアップ,MP_MS_extraAttrSetupUI,MP_MS_extraAttrSetupUI
+uv,mel,BakeLeadTinyUI,（太さん作）,s001329_BakeLeadTinyUI,s001329_BakeLeadTinyUI
+launch,mel,Mpsetup,Mプロジェクトのツールを使うためのセットアップ,MP_MS_userSetupUI,MP_MS_userSetupUI
+launch,pyex,GTShelf,Mプロジェクトツールシェルフ,MP_MS_GToolsShelf,MP_MS_GToolsShelf
+model,pyex,valueStepperUI,MS_valueStepperUI,MS_valueStepperUI,MS_valueStepperUI
+common,melmel,mpMayaAnimCurveUI,レベル班で使用するツールです。,mpMayaAnimCurveUI,mpMayaAnimCurve.mel;mpMayaAnimCurveUI
+matter,pyex,ED_paintVertexColorSet,頂点カラー4色セット（レイヤーシェーダー向け）,paintVertexColorSet,ED_paintVertexColorSet
+common,mel,oda_tool(test),尾田のtool群,TO_ODAWIN_mpro,TO_ODAWIN_mpro
+matter,pyex,yu_texVaccine,欠落テクスチャーを事前登録辞書を元に探し出す,yu_texVacc,yu_texVaccine
+matter,pyex,yu_delLocalTex,テクスチャーを事前登録辞書を元に削除,yu_delLocalTex,yu_delLocalTex
+beta,mel,mpCamInfoImport,mpCamInfoImport,mpCamInfoImportIcon,mpCamInfoImportUI
+model,mel,AT_normalAlign,法線編集ツール（トリコ寺田さん）,AT_normalAlign,AT_normalAlign
+matter,pyex,yu_dds2tiff,ddsが貼られたノードをtiffに貼替,yu_dds2tiff,yu_dds2tiff
+matter,pyex,yu_lodColSet,BG班向けLOD、コリジョン、Zプリパス用ロケータ作成,lodLocatorSet,yu_lodColSet
+matter,pyex,yu_instanceVaccine,シーン中のトロインスタンスを辞書データをもとに置き換える,yu_instanceVacc,yu_instanceVaccine
+model,pyex,yu_toroSwapper,選択したトロインスタンスを元のmbファイルで差し替える,yu_toroSwapper,yu_toroSwapper
+beta,mel,mpNyaUtil,nyaファイルに関するUtilツール,mpNyaUtil,mpNyaUtilExe
+model,pyex,yu_entityLoader,ギミック配置ファイル等（エンティティー）をロード/リロードする,yu_entityLoader,yu_entityLoader
+beta,mel,mpObjImportFromRef,シーン内のリファレンスオブジェクトをインポートする,mpObjImportFromRef,mpObjImportFromRef
+motion,pyex,yu_gimmickAnimInfo,mayaのプレイバックオプション情報を保持して切り替えできる,yu_gimmickAnimInfo,yu_gimmickAnimInfo
+matter,pyex,yu_gimmickAttr,ギミック作成時アトリビュートプリセット,yu_gimmickAttr,yu_gimmickAttr
+common,py,yu_mpSaveChecker,データセーブの補助+各種データチェック,yu_mpSaveChecker,"import sys; sys.argv = ''; execfile(""d:/Mproject/gtools/scripts/yu_mpSaveChecker.py"")"
+common,py,yu_mpSaveChecker,選択出力版　データセーブの補助+各種データチェック,yu_mpSaveChecker4Sep,"import sys; sys.argv = 'selExport'; execfile(""d:/Mproject/gtools/scripts/yu_mpSaveChecker.py"")"
+model,mel,dg_voro,ポリゴンモデルをボロノイ分割する,dg_voroPy,dg_voro_py_UI
+uv,pyex,yu_zebraWrapper,UVアイランドボーダーを選択とゼブラUVのアンラップを実行,yu_zebraWrapper,yu_zebraWrapper
+model,pyex,yu_creaseTools,モデルに折り畳み情報を付ける,yu_creaseTools,yu_creaseTools
+model,pyex,yu_obj2toro,シーン中のオブジェクトを辞書データをもとにToroに置き換える,yu_obj2toro,yu_obj2toro
+common,pyex,yu_toroLoc2csv,シーン中のトロインスタンス名をCSVファイルに書き出す,yu_toroLoc2csv,yu_toroLoc2csv
+beta,py,MP_MS_layoutoroControl,layoutoroのコントローラー,MP_MS_layoutoroControl,import MP_MS_layoutoroControl\nreload(MP_MS_layoutoroControl)\nMP_MS_layoutoroControl.UI()
+beta,py,MP_MS_layoutoroSceneParam,layoutoroのシーンパラメーターのコントローラー,MP_MS_layoutoroSceneParam,import MP_MS_layoutoroSceneParam\nreload(MP_MS_layoutoroSceneParam)\nMP_MS_layoutoroSceneParam.UI()
+common,py,yu_paste2excell,発注書エクセルにイメージ等をペースト,yu_paste2excell,execfile('d:/Mproject/GTools/scripts/yu_paste2excell.py')
+model,pyex,yu_obj2atgi,シーン中のオブジェクトを辞書データをもとにAtgiに置き換える,yu_obj2atgi,yu_obj2atgi
+model,pyex,yu_toro2atgi,シーン中のトロロケーターを辞書データをもとにAtgiに置き換える,yu_toro2atgi,yu_toro2atgi
+model,py,yu_atgi2obj,選択したatgiインスタンスをmayaオブジェクトに変換,yu_atgi2obj,execfile('d:/Mproject/GTools/scripts/yu_atgi2obj.py')
+model,py,yu_shirogumi,白組向け シーン中の全atgi/toroインスタンスをmayaオブジェクトに変換,yu_shirogumi,execfile('d:/Mproject/GTools/scripts/yu_shirogumi.py')
+common,pyex,yu_toroNameFix,シーン中の異常なトロロケーター名をFIX,yu_toroNameFix,yu_toroNameFix
+beta,mel,mpPhysicsUtil,物理関連の設定用ツール,mpPhysicsUtil,mpPhysicsUtilExe
+beta,py,MP_MS_toroLightControl,ToroToolのコントローラー,MP_MS_toroLightControl,import MP_MS_toroLightControl\nreload(MP_MS_toroLightControl)\nMP_MS_toroLightControl.UI()
+common,py,yu_lodRefTool,スタティックLODに必要な位置参照ノードを作成するツール,yu_lodRefTool,execfile('d:/Mproject/GTools/scripts/yu_lodRefTool.py')
+model,py,yu_createEffAtgi,エフェクト参照用のATGIノードを作成、エクスポートするツール,yu_createEffAtgi,execfile('d:/Mproject/GTools/scripts/yu_createEffAtgi.py')
+matter,py,yu_vtxColSwap,頂点カラー4色セット（レイヤーシェーダー向け）を任意にスワップする,yu_vtxColSwap,execfile('d:/Mproject/GTools/scripts/yu_vtxColSwap.py')
+model,py,KM_vtxColorSequence,選択した頂点順に、暗い色から明るい色の頂点カラーを設定する,KM_vtxColorSequence,import KM_vtxColorSequence\nreload(KM_vtxColorSequence)\nKM_vtxColorSequence.KMCreateVtxLogWnd()
+beta,mel,mpRecastNaviMesh,リキャストナビメッシュ用のUI,mpRecastNaviMesh,mpRecastNaviMeshUI_exe
+beta,py,MP_MS_toolBoard,とりあえず版坂井ツールランチャ,MP_MS_toolBoard,import MP_MS_toolBoard\nreload(MP_MS_toolBoard)\nMP_MS_toolBoard.UI()
+patch,py,MP_MS_extraAttrPatch,ExtraAttributes Repair patch for Mproject.,MP_MS_extraAttrPatch,import MP_MS_extraAttrPatch\nreload(MP_MS_extraAttrPatch)\nMP_MS_extraAttrPatch.UI()
+matter,py,m1_UImaterialSetupTool,UI用マテリアルセットアップツール,m1_UImaterialSetupTool,import m1_UImaterialSetupTool\nm1_UImaterialSetupTool.m1_launchUIMaterialSetupTool()
+beta,py,mpDeleteAllColAttr,シーン内にある全てのコリジョンアトリビュートをOFFにする,mpDeleteAllColAttr,import mpDeleteAllColAttr\nmpDeleteAllColAttr.do()
+model,py,yu_PDIloader,プルダウンイットの占有使用を少なくするツール,yu_PDIloader,execfile('d:/Mproject/GTools/scripts/yu_PDIloader.py')
+common,mel,flowBrush,フローブラシ,flowBrush,flowBrushActive
+common,py,yu_listNN,シーン中のエンティティーのニックネームを表示,yu_listNN,execfile('d:/Mproject/GTools/scripts/yu_listNN.py')
+motion,py,yu_mocapFix,誤ったモーションキャプチャーデータを正しいノードへ流し込むアシストツール,yu_mocapFix,execfile('d:/Mproject/GTools/scripts/yu_mocapFix.py')
+model,py,yu_entity2obj,シーン中のエンティティーを実モデルに変換,yu_entity2obj,execfile('d:/Mproject/GTools/scripts/yu_entity2obj.py')
+motion,py,yu_unRef,シーン中のリファレンスノードをコピーしてリファレンスを外す,yu_unRef,import yu_unRef; p=yu_unRef.unRef().unRefWin()
+model,mel,m1_combine,コンバイン時にメッシュが透明になるのを回避する,m1_combineWithoutInvalidComponentLists,m1_combineWithoutInvalidComponentLists
+common,py,yu_windBox,風ボックス配置アシスト,yu_windBox,execfile('d:/Mproject/GTools/scripts/yu_windBox.py')
+common,py,yu_setBgEffect,BGエフェクトアシストツール,yu_setBgEffect,execfile('d:/Mproject/GTools/scripts/yu_setBgEffect.py')
+beta,pyex,createPE,コリジョン作成アシストツール,MP_MS_createPE,MP_MS_createPE
+model,py,yu_checkArea,ポリゴンを面積でフィルターして選択,yu_checkFaceArea,execfile('d:/Mproject/GTools/scripts/yu_checkFaceArea.py')
+launch,pyex,GTShelfV2,Mプロジェクトツールシェルフ,MP_MS_GToolsShelf_V2,MP_MS_GToolsShelf_V2
+common,py,yu_setCamFrame,IGCのカメラCSVからデータを読みこんでフレーム長をセット,yu_setCamFrame,execfile('d:/Mproject/GTools/scripts/yu_setCamFrame.py')
+common,py,MYAM_igcConnector,LayoutoroとMaya間でデータの受け渡しを行うつーる,MYAM_igcConnector,execfile('d:/Mproject/GTools/scripts/MYAM_igcConnector/main.py')
+common,py,MYAM_depotController,シーン内テクスチャのチェックアウト状態を手軽に変更,MYAM_depotController,import MYAM_depotController.main;reload( MYAM_depotController.main );depotControllerWindow = MYAM_depotController.main.DipoControllerWindow();depotControllerWindow.show()
+model,py,MYAM_ZBrushReductionTool,Zbrushを経由するリダクションツールセット,MYAM_ZBrushReductionTool,import MYAM_ZBrushReductionTool.main;reload( MYAM_ZBrushReductionTool.main );zBrushReductionTool = MYAM_ZBrushReductionTool.main.MayaGUI.ZBrushReductionToolWindow();zBrushReductionTool.show()
+common,py,yu_createFilePathXlsx,OS向けファイル収集とリスト作成ツール,yu_createFilePathXlsx,execfile('d:/Mproject/GTools/scripts/yu_createFilePathXlsx.py')
+common,py,MYAM_textureSwitcher,BGテクスチャの形式を、tif形式とjpg形式を手軽に切り替えるツール,MYAM_textureSwitcher,import MYAM_textureSwitcher.main;reload( MYAM_textureSwitcher.main );textureSwitcher = MYAM_textureSwitcher.main.MainWindow();textureSwitcher.show()
+beta,mel,mpUIAttrTool,mpUIAttrTool,mpUIAttrToolIcon,mpUIAttrToolExe
+beta,py,so_MgameUtils,Mesh系ユーティリティツール,MGameUtils,execfile(r'D:\Mproject\gtools\scripts\so_MgameUtils.py')
+beta,mel,mpMGMeshCombineByName,mpMGMeshCombineByName,mpMGMeshCombineByNameIcon,mpMGMeshCombineByNameExe
+common,py,yu_groupingAtgi,選択中のAtgiノード群を新しくグループノードを作って仕分けするツール,yu_groupingAtgi,execfile('D:/Mproject/gtools/scripts/yu_groupingAtgi.py')
+common,mel,checkDuplicates,シーン中の重複配置オブジェクトを発見するツール（社外物）,checkDuplicates,checkDuplicates

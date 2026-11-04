@@ -1,0 +1,385 @@
+//GPMSSceneChecker
+
+//概要：
+//GPのMSモデルシーンのチェッカーです。
+
+//使用方法：
+//1)このスクリプトを実行します。ダイアログが出ます。
+//2)各チェック用ボタンをクリックするとチェックが実行されます。
+
+//チェックボタン詳細：
+//・Reversed Parts
+//partsロケータ以下で、反転が疑われるパーツをピックします。10秒ほど処理にかかります。
+//処理が終了すると、結果ウィンドウが出ると共に、対象パーツが選択状態になります。
+
+//--------------------------------------------------------------
+global proc GPMobileSuitSceneChecker()
+{
+//ダミー
+}
+//-------------------------
+global proc string scanStringArray(string$wordArray[],string$keyWord)
+{
+//文字列配列$wordArrayのどこに文字列$keyWordがあるのかを
+//整数値のアドレスを文字列にした物で返します。
+//存在しない場合は"absence"を返します。
+//二つ以上存在する場合は、最後の物のアドレスが返されます。
+int $count;
+string $position = "absence";
+string $scanedWord;
+int $arraySize = `size $wordArray`;
+for($count=0;$count<$arraySize;$count++)
+{
+$scanedWord=$wordArray[$count];
+if($scanedWord==$keyWord)
+$position = (string)$count;
+}
+return $position;
+}
+//-----------------------------------------------------------------------
+global proc string[] polyInfoElementsStringArray(string $type)
+{
+//polyInfoコマンドを使い、返り値を文字列の配列にします。
+//引数はpolyInfoコマンドの引数を文字列として使います。（例えば"vf"など）
+//要素（バーテックス等）を選択しておいて実行します。
+string $command = "polyInfo -"+$type;
+string $wordList[] = `eval $command`;
+string $elements[];
+$number = `tokenize $wordList[0] " " $elements`;
+string $removeList[] = {"\n"};
+string $fullList[] = `stringArrayRemove $removeList $elements`;
+int $fullListSize = `size $fullList`;
+int $count;
+string $anser[];
+int $secondCount;
+for ($count=2;$count<$fullListSize;$count++)
+{
+$secondCount = $count-2;
+$anser[$secondCount] = $fullList[$count];
+}
+return $anser;
+}
+//-----------------------------------------------------------------------
+global proc int returnEdgeDirection(string$faceName,string$edgeName)
+{
+//$faceNameで指定したフェイスの頂点の回転方向に対して、
+//そのフェイスに属するエッジ$edgeNameの向きが
+//正か逆かを判定します。forwardかreverseのどちらかの文字列が返されます。
+//正なら1、負なら-1が返ります。
+
+int $answer = 0;
+
+//選択リストを保存した後で選択を解除
+string $selectedList[] = `ls -sl`;
+select -cl;
+
+//フェイスの頂点リストを作成
+select $faceName;
+string $feceVtxList[] = `polyInfoElementsStringArray fv`;
+select -cl;
+
+//フェイスの頂点リストのサイズを取得し、文字列にする（後で判定に使う）
+int $faceVtxListSize = `size $feceVtxList`;
+int $maxAddress = ($faceVtxListSize-1);
+$maxAddressWord = (string)$maxAddress;
+
+//エッジの頂点リストを作成し、頂点のナンバーを取得
+select $edgeName;
+string $edgeVtxList[] = `polyInfoElementsStringArray ev`;
+string $edgeVtxFirst = $edgeVtxList[0];
+string $edgeVtxSecond = $edgeVtxList[1];
+select -cl;
+
+//エッジの頂点リストの一番目がフェイスの頂点リストのどこにあるのか調べる
+string$firstVtxAddressString = `scanStringArray $feceVtxList $edgeVtxFirst`;
+//上記値に1を足した値のアドレスの文字列をフェイスの頂点リストから取得する
+
+$tempNum = (int)$firstVtxAddressString;
+int $tempNum2 = ($tempNum+1);
+string$firstVtxAddressPlusOneString = $feceVtxList[$tempNum2];
+
+//以下、判定
+//もしエッジの頂点リストの一番目がフェイスの頂点リストの最後にある場合は最初のケースに、
+//それ以外の場合は次のケースに分岐する
+
+if($firstVtxAddressString == $maxAddressWord)
+{
+	if($edgeVtxSecond == $feceVtxList[0])
+	{
+	$answer=1;
+	}
+	else
+	{
+	$answer=-1;
+	}
+}
+else
+{
+	if($edgeVtxSecond == $firstVtxAddressPlusOneString)
+	{
+	$answer=1;
+	}
+	else
+	{
+	$answer=-1;
+	}
+}
+//選択を復帰
+select -cl;
+select $selectedList;
+
+return $answer;
+}
+//-----------------------------------------------------------------------
+global proc vector getNamedFacePosition(string$face)
+{
+//$faceの全バーテックス位置の平均を返します。
+//非平面ポリゴンであれば、これはフェイスが属する平面上に位置する事になります。
+
+//バーテックスリストを取得
+string $vtxList[] = `polyListComponentConversion -tv $face`;
+$vtxList = `ls -fl $vtxList`;
+int $vtxListSize = `size $vtxList`;
+
+//座標を入れる変数を宣言
+float $x = 0.0;
+float $y = 0.0;
+float $z = 0.0;
+
+//位置を取得
+int $i;
+	for($i=0;$i<$vtxListSize;$i++)
+	{
+	float $pos[] = `xform -q -ws -t $vtxList[$i]`; 
+	$x = $x + $pos[0];
+	$y = $y + $pos[1];
+	$z = $z + $pos[2];
+	}
+$x = $x / $vtxListSize;
+$y = $y / $vtxListSize;
+$z = $z / $vtxListSize;
+
+return <<$x,$y,$z>>;
+}
+//--------------------------------------------------------------------------
+global proc float[] returnAngleBetweenFacesOnEdge(string$obj,int$edgeNum)
+{
+//$objの$edgeNumに属する二つのフェイスの距離と角度を返します。
+//フェイスの位置は各頂点座標の平均です。
+//もしエッジにフェイスが二つ無い場合は0.0と0.0が返ります。
+
+float $faceDistance = 0.0;
+float $angleDeg = 0.0;
+
+//エッジ名を合成
+string $edgeName = $obj + ".e[" + $edgeNum + "]";
+//エッジのフェイスリストを取得
+select $edgeName;
+string $faceNumList[] = `polyInfoElementsStringArray "ef"`;
+	if(`size $faceNumList` == 2)
+	{
+	string $faceList[];
+	$faceList[0] = $obj + ".f[" + $faceNumList[0] + "]";
+	$faceList[1] = $obj + ".f[" + $faceNumList[1] + "]";
+	//エッジのバーテックスリストを取得
+	select $edgeName;
+	string $vtxNumList[] = `polyInfoElementsStringArray "ev"`;
+	string $vtxList[];
+	$vtxList[0] = $obj + ".vtx[" + $vtxNumList[0] + "]";
+	$vtxList[1] = $obj + ".vtx[" + $vtxNumList[1] + "]";
+
+	//両フェイスの座標を取得し距離を測定する
+	vector $faceApos = `getNamedFacePosition $faceList[0]`;
+	vector $faceBpos = `getNamedFacePosition $faceList[1]`;
+	vector $faceDistanceVec = $faceBpos - $faceApos;
+	$faceDistance = `mag $faceDistanceVec`;
+
+	//両フェイスのフェイス法線を取得する
+	string $normalAList[] = `polyInfo -fn $faceList[0]`;
+	string $elementsA[];
+	tokenize $normalAList[0] " " $elementsA;
+
+	$xA = (float)$elementsA[2];
+	$yA = (float)$elementsA[3];
+	$zA = (float)$elementsA[4];
+
+	vector $normalA = <<$xA,$yA,$zA>>;
+
+	string $normalBList[] = `polyInfo -fn $faceList[1]`;
+	string $elementsB[];
+	tokenize $normalBList[0] " " $elementsB;
+
+	$xB = (float)$elementsB[2];
+	$yB = (float)$elementsB[3];
+	$zB = (float)$elementsB[4];
+
+	vector $normalB = <<$xB,$yB,$zB>>;
+
+	//両フェイスの角度を取得する
+	float $angleRad = `angle $normalA $normalB`;
+	$angleDeg = `rad_to_deg $angleRad`;
+
+	//両フェイスの法線の外積を取得する
+	vector $faceCross = `cross $normalA $normalB`;
+	//フェイスの回転方向に沿ったエッジのベクトルを取得する
+	float $edgePosA[] = `xform -q -ws -t $vtxList[0]`; 
+	float $edgePosB[] = `xform -q -ws -t $vtxList[1]`; 
+	float $edgeVecX = $edgePosB[0] - $edgePosA[0];
+	float $edgeVecY = $edgePosB[1] - $edgePosA[1];
+	float $edgeVecZ = $edgePosB[2] - $edgePosA[2];
+	vector $edgeVec = <<$edgeVecX,$edgeVecY,$edgeVecZ>>;
+	$edgeVec = $edgeVec * (`returnEdgeDirection $faceList[0] $edgeName`);
+
+	//法線の外積とエッジのベクトルの角度を比較し、90度未満かどうかを判定し、それによって角度の正負を決める
+	float $tempAngleRad = `angle $faceCross $edgeVec`;
+	float $tempAngleDeg = `rad_to_deg  $tempAngleRad`;
+		if($tempAngleDeg > 90.0)
+		{
+		$angleDeg = $angleDeg * -1;
+		}
+	select -cl;
+	}
+
+return {$faceDistance,$angleDeg};
+}
+//--------------------------------------------------------------------------
+global proc int decideReverseOrNot(string $obj)
+{
+//適当なアルゴリズムで$objが反転しているかどうかをチェックします。
+//反転している（かも知れない）場合は-1が返ります。
+int $edgeNumList[] = `polyEvaluate -e $obj`;
+
+float $param = 1;
+
+int $i;
+	for($i=0;$i<$edgeNumList[0];$i++)
+	{
+	float $result[] = `returnAngleBetweenFacesOnEdge $obj $i`;
+	$param = $param + $result[0] * $result[1];
+	}
+	if($param<0)
+	{
+	$param = (-1);
+	}
+return $param;
+}
+//-------------------------------------------------------------------------
+global proc GPResultWindow(string$line1,string$line2,string$line3,string$line4,string$line5)
+{
+//リザルトウィンドウ
+string $windowTitle = "GPResultWindow";
+string $windowObjName = $windowTitle + "WindowObj";
+
+	if(`window -ex  $windowObjName` == 1)
+	{
+	deleteUI  $windowObjName;
+	}
+
+window -t $windowTitle $windowObjName;
+columnLayout;
+//--------------------------
+text -l $line1;
+text -l $line2;
+text -l $line3;
+text -l $line4;
+text -l $line5;
+//--------------------------
+//ウィンドウサイズを指定
+window -e -w 200 -h 150 $windowObjName;
+showWindow $windowObjName;
+}
+//--------------------------------------------------------------------------
+global proc string[] GPCheckReversedParts()
+{
+//シーンの"parts"以下のオブジェクトで、反転していると思われる物をチェックし返します。
+//実行後は対象が選択されます。
+
+//チェック対象ツリー
+string $partsTree = "parts";
+
+select -cl;
+
+string $parts[] = `listRelatives -c -pa -type "transform" $partsTree`;
+string $item;
+string $cand[];
+clear $cand;
+int $i;
+	for($item in $parts)
+	{
+		if(`decideReverseOrNot $item` < 0)
+		{
+		$cand[$i] = $item;
+		$i++;
+		}
+	}
+
+int $size = `size $cand`;
+	if($size == 0)
+	{
+	GPResultWindow "Result:" "" "Parts may be OK." "" "";
+	}
+	else
+	{
+	string $word = "Selected " + $size + ".";
+	GPResultWindow "Result:" "" $word "" "";
+	}
+select $cand;
+return $cand;
+}
+//--------------------------------------------------------------------------
+//-------------------------------------------------------------------------
+//ヘルプ
+global proc GPMSSceneCheckerHelp()
+{
+string $windowTitle = "GPSceneCheckerHelp";
+string $windowObjName = $windowTitle + "WindowObj";
+
+	if(`window -ex  $windowObjName` == 1)
+	{
+	deleteUI  $windowObjName;
+	}
+
+window -t $windowTitle $windowObjName;
+columnLayout;
+//--------------------------
+text -l "Overview:";
+text -l "This script checks a GP ";
+text -l "scene.";
+separator -w 110;
+text -l "-- Reversed Parts";
+text -l "   checks reversed parts.";
+
+//--------------------------
+//ウィンドウサイズを指定
+window -e -w 150 -h 230 $windowObjName;
+showWindow $windowObjName;
+}
+//-------------------------------------------------------------------------
+//-------------------------------------------------------------------------
+//ダイアログウィンドウ作成
+{
+//ウィンドウタイトルとウィンドウオブジェクト名
+string $windowTitle = "GPMSSceneChecker";
+string $windowObjName = $windowTitle + "WindowObj";
+
+	if(`window -ex  $windowObjName` == 1)
+	{
+	deleteUI  $windowObjName;
+	}
+
+window -t $windowTitle $windowObjName;
+string $layoutName = $windowObjName + "Layout";
+columnLayout $layoutName;
+//--------------------------
+text -l "GP MS SceneChecker";
+button -w 50 -c "GPMSSceneCheckerHelp"  -l "Help";
+separator -w 110;
+button -w 100 -c "GPCheckReversedParts"  -l "Reversed Parts";
+
+//--------------------------
+//ウィンドウサイズを指定
+window -e -w 110 -h 150 $windowObjName;
+showWindow $windowObjName;
+}
+//-------------------------------------------------------------------------
+//終了

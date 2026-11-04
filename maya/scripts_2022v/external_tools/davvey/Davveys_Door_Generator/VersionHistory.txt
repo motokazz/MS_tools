@@ -1,0 +1,12 @@
+
+
+Version 1.1.1
+
+ Corrected error in script to set Door Frame sizes when using 2032mm (80") Doors.
+ 
+Version 1.1.0
+
+ Modified to stop error when adding Panels to Exterior Door frame. Script now checks for a minimum width depending on single or double Panels.
+
+Version 1.0.0
+First Release

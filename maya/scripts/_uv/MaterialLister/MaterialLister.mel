@@ -1,0 +1,114 @@
+//【更新履歴】
+//　2013/02/11　複数マテリアルの選択に対応
+//　2013/03/14　オブジェクトにアサインした単一マテリアルが選択されない不具合に対応
+//
+global proc MaterialLister()
+{
+	//変数定義
+	global string $TransNode[];
+	string $ShapeNode[];
+	string $SGlist[];
+	string $Temp[];
+	string $Matlist[];
+	string $ButtonName;
+	int $Cont;
+	int $Dw;
+	int $SGSize = 0;
+	
+	//選択オブジェクトの取得
+	$TransNode=`ls -sl -tr`;
+	$SoT = `size $TransNode`;
+	
+	//オブジェクト選択ボタン名の設定
+	if ($SoT == 1)
+	{
+		$ButtonName = $TransNode[0];
+	} else if ($SoT > 1) {
+		$ButtonName = "Multi Objects";
+	} else {
+		$ButtonName = "None";		
+	}
+	
+	//マテリアルリストの取得
+	if ($SoT > 0)
+	{
+		//オブジェクトのシェイプからSG一覧を作成
+		clear $Temp;
+		for ($i=0;$i<$SoT;$i++)
+		{
+			clear $ShapeNode;
+			$ShapeNode=`listRelatives -s -pa $TransNode[$i]`;
+			if (`size $ShapeNode` != 0)
+			{
+				appendStringArray($Temp, (`listConnections -t shadingEngine  $ShapeNode[0]`), size(`listConnections -t shadingEngine  $ShapeNode[0]`));
+			}
+		}
+		$TmpSize=`size $Temp`;
+		
+		//マテリアルリストの作成
+		$SGSize = 0;
+		if ($TmpSize >0)
+		{
+			//重複SGを整理
+			for ($i=0;$i<$TmpSize;$i++)
+			{
+				$Dw=0;
+				for ($j=0;$j<=$i;$j++)
+				{
+					if ($Temp[$i] == $Temp[$j])
+					{
+						$Dw +=1;
+					}
+				}
+				if ($Dw ==1)
+				{
+					$SGlist[$Cont]=$Temp[$i];
+					$Cont +=1;
+				}
+			}
+			$SGSize=`size $SGlist`;
+
+			//SGリストから対応するマテリアルのリストの作成
+			for ($i=0;$i<$SGSize;$i++)
+			{
+				clear $Temp;
+				select -r `listConnections $SGlist[$i]`;
+				$Temp =`ls -sl -mat`;
+				$Matlist[$i] =$Temp[0];
+			}
+			select -r $TransNode;
+		} 
+	}
+	//ウィンドウの設定
+	if((`window -ex Material_Lister`)==true) deleteUI Material_Lister;
+	string $windowName = `window -wh 400 200 -title "Material Lister" Material_Lister`;
+	string $form = `formLayout`;
+	string $SelectMeshButton = `button -label $ButtonName -command "select -r $TransNode"`;
+	string $MatScList=`textScrollList -nr 8 -ams true -sc "MaterialLister_E($TransNode)" -dcc "select -r `textScrollList -q -selectItem MatWinList`; openAEWindow" MatWinList`;
+	string $SelectAgainButton = `button -label "Select Again" -command "MaterialLister()"`;
+	string $CloseButton = `button -label "Close" -command ("deleteUI " + $windowName)`;
+	
+	//UIの配置設定
+	formLayout -edit
+	-attachForm $SelectMeshButton "top"    10
+	-attachForm $SelectMeshButton "left"   10
+	-attachForm  $SelectMeshButton "right"  10 
+	-attachControl $MatScList "top" 1 $SelectMeshButton
+	-attachForm $MatScList "left"   10
+	-attachForm $MatScList "right"  10
+	-attachControl $MatScList "bottom" 10 $SelectAgainButton
+	-attachForm $SelectAgainButton "left"   10
+	-attachForm  $SelectAgainButton "right"  10 
+	-attachControl $SelectAgainButton "bottom" 5 $CloseButton
+	-attachForm $CloseButton "bottom" 10
+	-attachForm $CloseButton "left"   10
+	-attachForm $CloseButton "right"  10
+	$form;
+	
+	//ウィンドウにマテリアルリストを追加
+	for ($i=0;$i<$SGSize;$i++)
+	{
+		textScrollList -e -append $Matlist[$i] $MatScList;
+	}
+	showWindow;
+}

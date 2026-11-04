@@ -1,0 +1,24 @@
+global proc MS_polyUnite(){
+	string $obj_name[]=`ls -sl`;
+	string $parent[]=`pickWalk -d up`;
+	
+	string $full_path[0]=`ls -l $parent[0]`;
+	
+	polyUnite -ch 0 -n "MS_polyUnite_XXXX" $obj_name;
+	
+	for($name in $obj_name){
+		if(`objExists $name`){
+			delete $name;
+		}
+	}
+	
+	print $full_path;
+	
+	parent -a "MS_polyUnite_XXXX" $full_path[0];
+	
+	rename "MS_polyUnite_XXXX" $obj_name[0];
+}
+
+
+//MS_polyUnite;
+

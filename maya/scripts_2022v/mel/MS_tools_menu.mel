@@ -1,0 +1,46 @@
+global proc MS_tools_menu_items(){
+	string $MS_mel_path="D:/MS_tools/";
+	
+	
+	string $Animation[]={
+		"MS_VFAUI",
+		"MS_constraintMasterUI",
+		"MS_MFCUI",
+		"MS_bakeAnimUI",
+		"MS_functionCurveSliderUI",
+		"MS_copyAnimEachSelfUI",
+		"MS_valueStepperFCUI",
+		"MS_poseList"
+	};
+	//ANIMMenu
+	menuItem -p "MS_tools_localMenu" -subMenu true -tearOff true -label "Anim" "MS_tools_localMenu_Anim";
+	for ($each in $Animation){
+		menuItem -p "MS_tools_localMenu_Anim" 
+		-label $each
+		-annotation $each
+		-ctrlModifier true
+		-i ($MS_mel_path+"MS_icons/"+$each+".bmp")
+		-c ("source \""+$MS_mel_path+$each+".mel\";"+$each+";");
+	}
+}
+
+
+
+global proc MS_tools_menu(){
+	if (`window -q -ex MS_tools_menu`){
+		deleteUI MS_tools_menu;
+	}
+	window -menuBar true MS_tools_menu;
+	string $MS_tools_menu_local = "MS_tools_localMenu";
+	
+	columnLayout;
+		menu -l "MS_tools" -tearOff true $MS_tools_menu_local; 
+	setParent..;
+	
+	//window -e -wh 217 290 MS_tools_menu;
+	MS_tools_menu_items();
+	showWindow MS_tools_menu;
+}
+
+
+MS_tools_menu;

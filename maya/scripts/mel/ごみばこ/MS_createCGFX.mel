@@ -1,0 +1,115 @@
+/*
+ -------------------
+MS_replace_BG_1.mel
+-------------------
+◆概要
+CGFXシェーダーが新規作成のみなので、BG-1シェーダーに関してのCGFXシェーダー差込みスクリプトを作ってみた。
+
+◆使用方法
+１・BG-1シェーダーを差し込みたいマテリアルを選ぶ。
+２・スクリプトを実行する
+
+◆詳細
+テクスチャー関連の情報をBG1シェーダーを挟んだ状態で自動的にコネクションしなおして再現する。
+今のところBG1シェーダにしか対応してない。
+
+※注意
+・コネクションしなおしてもテクスチャー自体の差し替えが無いので、DDS以外のフォーマットで作業をする場合は、そのままエキスポートできない。
+
+ */
+ 
+global proc MS_replace_BG_1()
+{
+	/*MS_情報取得*/
+	$sel_mat=`ls -sl`;
+	$con_color=`listConnections -d off -s on .color`;
+	string $defaultShader =$sel_mat[0];
+	string $tex_node_name=($con_color[0]);
+	string $con_p2d[]=`listConnections -d off -s on ($tex_node_name+".uvCoord")`;
+	string $place2dtexture = $con_p2d[0];
+
+	/* cgfxシェーダーノードと、SGノードを作成する */
+	string $cgfxMaterialNode = `shadingNode -asShader cgfxShader`;
+	string $cgfxMaterialSG   = $cgfxMaterialNode + string("SG");
+	string $cgfxMaterialSGNode = `sets -renderable true -noSurfaceShader true -empty -name $cgfxMaterialSG`;
+
+	/* シェーダー間をコネクトする */
+	connectAttr -f ($cgfxMaterialNode+".outColor") ($defaultShader+".hardwareShader");
+	connectAttr -f ($defaultShader+".outColor") ($cgfxMaterialSGNode+".surfaceShader");
+	
+	addAttr -ln Priority -at long  -min -5 -max 5 $cgfxMaterialSGNode;
+	setAttr ($cgfxMaterialSGNode+".Priority") 0;
+	
+	/* エフェクト用のcgfxファイルを読み込む */
+	eval(" cgfxShader -e -fx \"D:/cubic_maya/media/cgfx/01_constant.cgfx\"" + $cgfxMaterialNode );
+	string $con_def_tmp0[]=`listConnections -d off -s on ( $cgfxMaterialNode+".ColorSampler0")`;
+	string $con_def_tmp1[]=`listConnections -d off -s on ( $con_def_tmp0[0]+".uvCoord")`;
+	delete $con_def_tmp1[0];
+	delete $con_def_tmp0[0];
+
+	/* テクスチャフィルタの設定 */
+	eval( "setSamplerUserData " + $tex_node_name );
+
+	connectAttr -f ($tex_node_name+".outColor") ( $cgfxMaterialNode+".ColorSampler0");
+
+	/* Textureスクロール用のアトリビュートをシェーダーのアトリビュートに接続する */
+	connectAttr -f ($place2dtexture+".offsetU")  ($cgfxMaterialNode+".texOffset0X");
+	connectAttr -f ($place2dtexture+".offsetV")  ($cgfxMaterialNode+".texOffset0Y");
+	connectAttr -f ($place2dtexture+".repeatU")  ($cgfxMaterialNode+".texScale0X");
+	connectAttr -f ($place2dtexture+".repeatV")  ($cgfxMaterialNode+".texScale0Y");
+
+	/* expressionでrotateUVの値をradianに変換する */
+	expression -s ($cgfxMaterialNode+".texRotate0 = "+$place2dtexture+".rotateUV * 3.1415926535 / 180.0") -o cgfxShader1 -ae 1 -uc all;
+	
+	/* テクスチャUV以外は頂点アトリビュートを設定しない */
+	eval("setAttr " + $cgfxMaterialNode + ".cs -type stringArray 1 \"colorSet1\" ");
+	eval("setAttr " + $cgfxMaterialNode + ".tcs -type stringArray 3 \"map1\" \"\" \"\" ");
+	
+	/* デフォルトシェーダにテクスチャノードを接続する */
+	connectAttr -f ($tex_node_name+".outColor") ($defaultShader+".color");
+
+	select -r $defaultShader;
+
+}
+
+
+
+
+global proc MS_createCGFX()
+{
+	
+	//Window Check
+	if(`window -exists MS_createCGFX`){
+		deleteUI MS_createCGFX;
+	}
+	
+	
+	//Create Window
+	
+	window -title "MS_createCGFX" MS_createCGFX;
+	
+	columnLayout ;
+	
+	//Contents	
+	
+	
+	//text
+	text -label "ThisWindowIsMS_createCGFX";
+	separator -w 600 -h 40 -st "single";
+	
+	button -bgc 1.0 0.5 0.5 -l "simpleTexture" -command "MS_replace_BG_1" ;
+	
+	separator -w 600 -h 40 -st "double";
+	
+	button -l "undo" -command "Undo" ;
+	
+	button -l "exit" -command "deleteUI MS_createCGFX" ;
+	
+	
+	//Footer
+	showWindow MS_createCGFX;
+	
+}
+
+MS_createCGFX;
+

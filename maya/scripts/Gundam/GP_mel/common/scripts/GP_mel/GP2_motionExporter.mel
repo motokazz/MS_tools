@@ -1,0 +1,15 @@
+//GP2用モーションエクスポータ
+//メンテナンス性を考え、スクリプトを機能毎に分割し、別ファイルとしている。
+//当スクリプトでロードを行い、実行コマンドを叩く。
+
+global proc GP2_motionExporter(){
+	//GP_MAYA_ROOT = C:\maya
+	string $scp = (`getenv GP_MAYA_ROOT` + "/common/scripts/GP_mel/subscripts/motionExporter");
+	string $dividedFileList[] = {"01_window","02_UIwork_global","03_UIwork_singleFile","04_UIwork_multiFile","05_Exporting","06_Logging","07_UIwork_motionInfo"};
+
+	for($item in $dividedFileList){
+		string $scriptFileName = ($scp + "/" + $item + ".mel");
+		eval( "source \"" + $scriptFileName + "\"" );
+	}
+	GP2_motionExporterUI();
+}

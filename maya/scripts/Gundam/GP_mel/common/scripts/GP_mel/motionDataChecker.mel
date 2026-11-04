@@ -1,0 +1,656 @@
+
+//GPFileExistsUnderTrunk
+
+//trunkの下のキャラIDフォルダの中に必要なファイルがあるかどうかと、不必要なファイルがあるかどうかを同時にチェックします。
+
+//使用方法：
+//1)このスクリプトの一番下のリストにキャラIDを記入し、実行すると、スクリプトエディタに調査結果が表示されます。
+//ホールモデルのキャラIDを入れるだけで、各パーツ（2～7)もチェックします。
+//尚、現在のところ武器には対応していません。
+
+//注意点：
+//「必要なファイルが足りず、不必要なファイルがある」という場合は「必要なファイルが足りない」という結果が返ります。
+//
+//20121129:対になるMMEと共に、ダミーチェック機能実装
+//20121101:リリース用に改造完了
+//20120524:モーション用に改造
+
+
+
+
+//--------------------------------------------------------------------------------
+global proc string[] MDC_loadFillList(string $settingFile){
+
+	string $loadedData[];
+	if(`filetest -r $settingFile`){
+		int $fileId = `fopen $settingFile "r"`;
+		string $line ;
+		$line = `fgetline $fileId`;
+		int $i=0;
+		while ( size( $line ) > 0 ){
+			$loadedData[$i] = $line;
+			$line = `fgetline $fileId`;
+			$i++;
+		}
+		fclose $fileId;
+	}
+	return( $loadedData );
+
+}
+
+
+
+//---------------------------------------------------------------------------------------
+//	ダミーデータ混入チェック
+//	0:問題なし
+//	1:ダミーあり
+//	2:ダミーリストなし
+global proc int GPCheckFileExistsInTrunkForMSPartsMotion_Dummy(string$charaID , string $gmpID , string $dummyList[]){
+	int $res = 0;
+/*
+	if(`filetest -r ($elPath + "filledMotionList.csv")`){
+		int $fileId = `fopen $settingFile "r"`;
+		string $line ;
+		$line = `fgetline $fileId`;
+		int $i=0;
+		string $loadedData;
+		string $checker = ("motion_chr" + $charaID + "_gmp" + $gmpID + "_");
+
+		while ( size( $line ) > 0 ){
+			if( startsWith($line , $checker) ){
+				$res = 1;
+				break;
+			}
+			$line = `fgetline $fileId`;
+		}
+		fclose $fileId;
+	}else{
+		res = 2;
+	}
+*/
+
+	string $checker = ("motion_chr" + $charaID + "_gmp" + $gmpID + "_");
+	for($dummyItem in $dummyList){
+		if( startsWith($dummyItem , $checker) ){
+			$res = 1;
+			break;
+		}
+	}
+	return($res);
+}
+
+//---------------------------------------------------------------------------------------
+global proc int GPCheckFileExistsInTrunkForMsPartMotionHeader(string $charaID,string $gmpID,string $path){
+	int $res = 1;
+
+	string $charaHeaderData[];
+	string $line ;
+	string $headerFile = $path + "chr" + $charaID + "_gmp" + $gmpID + ".h";
+	int $fileHExists = `file -q -ex $headerFile`;
+	int $fileId = `fopen $headerFile "r"`;
+	$line = `fgetline $fileId`;
+	int $i=0;
+	while ( size( $line ) > 0 ){
+		if(startsWith($line,"GR_FILE_LINKED")){
+//			print ("chara " + $i + ":\t" + $line + "]\r\n");
+			$charaHeaderData[$i] = $line;
+			$i++;
+		}
+		$line = `fgetline $fileId`;
+	}
+	fclose $fileId;
+
+	$path = `textFieldButtonGrp -q -text MDC_MasTf`;
+	$headerFile = $path + "headerOrigin_gmp" + $gmpID + ".csv";
+	int $fileId = `fopen $headerFile "r"`;
+	$line = `fgetline $fileId`;
+	$i=0;
+	while ( size( $line ) > 0 ){
+		if(startsWith($line,"GR_FILE_LINKED")){
+			$line = `substitute "_c100_" $line ("_chr" + $charaID + "_")`;
+			if($charaHeaderData[$i] != $line){
+//				print ("master" + $i + ":\t" + $line + "]\r\n");
+//				print ("chara " + $i + ":\t" + $charaHeaderData[$i] + "]\r\n");
+				$res = 2;
+				break;
+			}
+			$i++;
+		}
+		$line = `fgetline $fileId`;
+	}
+	fclose $fileId;
+	if ($i != size($charaHeaderData)){
+		$res = 2;
+	}
+	clear $charaHeaderData;
+	return( $res );
+}
+
+
+//---------------------------------------------------------------------------------------
+global proc GPCheckFileExistsInTrunkForMSPart_clean(string$charaID , string $gmpID , string $path){
+	string $currentFileBList[] = `getFileList -folder ($path + "BigEndian/") -filespec ("motion_chr" + $charaID + "_gmp" + $gmpID + "*.mot")`;
+	for($currentFileItem in $currentFileBList){
+		print ($currentFileItem + "deleted.\r\n");
+		sysFile -delete ($path + "BigEndian/" + $currentFileItem);
+	}
+	string $currentFileLList[] = `getFileList -folder ($path + "LittleEndian/") -filespec ("motion_chr" + $charaID + "_gmp" + $gmpID + "*.mot")`;
+	for($currentFileItem in $currentFileLList){
+		print ($currentFileItem + "deleted.\r\n");
+		sysFile -delete ($path + "LittleEndian/"+ $currentFileItem);
+	}
+	string $currentFileBigList[] = `getFileList -folder ($path + "BigEndian/") -filespec "_basepose.bpi"`;
+	for($currentFileItem in $currentFileBigList){
+		sysFile -delete ($path + "BigEndian/" + $currentFileItem);
+	}
+	string $currentFileLitList[] = `getFileList -folder ($path + "LittleEndian/") -filespec "_basepose.bpi"`;
+	for($currentFileItem in $currentFileLitList){
+		sysFile -delete ($path + "LittleEndian/"+ $currentFileItem);
+	}
+	clear $currentFileBList;
+	clear $currentFileLList;
+	clear $currentFileBigList;
+	clear $currentFileLitList;
+}
+
+
+//---------------------------------------------------------------------------------------
+global proc int GPCheckFileExistsInTrunkForMSPartModel(string$charaID , string $gmpID , string $path){
+//trunkの下のキャラIDフォルダの中に必要なファイルがあるかどうかをチェックします。
+//バラバラパーツ専用です。
+//$charaID（0100等）と$part（2～7までの数値）を組み合わせて指定します。例えば
+//charaIDが0100でpartが2の場合、chr0102が調査対象になります。
+
+//全部揃っている場合は1が、揃っていない場合は0が返ります。
+
+	int $result = 0;
+
+	//必要なファイルのリスト
+	string $file1 = $path + "chr" + $charaID + "_gmp" + $gmpID + ".h";
+	string $file2 = $path + "chr" + $charaID + "_gmp" + $gmpID + ".csv";
+	string $file3 = $path + "/BigEndian/chr" + $charaID + "_gmp" + $gmpID + ".gmp";
+	string $file4 = $path + "/LittleEndian/chr" + $charaID + "_gmp" + $gmpID + ".gmp";
+
+	GPCheckFileExistsInTrunkForMSPart_clean($charaID , $gmpID , $path);
+
+	//フォルダに存在するファイルを取得しサイズをチェック
+	string $currentFileList[] = `getFileList -folder $path -filespec "*"`;
+	int $currentFileListSize = `size $currentFileList`;
+	clear $currentFileList;
+
+	//必要なファイルがあるかチェック
+/*
+	int $file1Exists = `file -q -ex $file1`;
+	int $file2Exists = `file -q -ex $file2`;
+	int $file3Exists = `file -q -ex $file3`;
+	int $file4Exists = `file -q -ex $file4`;
+*/
+	int $file1Exists = `filetest -r $file1`;
+	int $file2Exists = `filetest -r $file2`;
+	int $file3Exists = `filetest -r $file3`;
+	int $file4Exists = `filetest -r $file4`;
+
+	$file1Ex = (string)$file1Exists;
+	$file2Ex = (string)$file2Exists;
+	$file3Ex = (string)$file3Exists;
+	$file4Ex = (string)$file4Exists;
+
+	string $ex = $file1Ex + $file2Ex + $file3Ex + $file4Ex;
+	if($ex == "1111"){
+		$result = 1;
+		//フォルダの内容の数が18で無い時は、不要なファイルが存在するとみなす
+		if($currentFileListSize != 4){
+			$result = 2;
+		}
+	}else{
+		//print ($ex + "\r\n");
+	}
+	return $result;
+}
+
+//---------------------------------------------------------------------------------------
+global proc GPPrintFileExistsUnderTrunkForMSModels(string$charaID , string $gmpID , string $part , string $basePath , string $dummyList[]){
+//trunkの下のキャラIDフォルダの中に必要なファイルがあるかどうかをチェックします。
+//charaIDを指定すると、ホールモデルと各バラバラパーツそれぞれの状況をプリントします。
+
+	string $unusedList[] = {
+		"0133","0134","0135","0136","0137",
+		"0142","0143","0144","0146",
+		"0152","0153","0154","0156","0157",
+		"0162","0163","0164","0165","0167",
+
+		"0192","0193","0194","0197",
+		"0202","0203","0204","0206","0207",
+
+		"0262","0266","0267",
+		"0292","0293","0294","0295","0297",
+		"0332","0333","0334","0335","0336","0337",
+		"0372","0373","0374","0375","0377",
+		"0432","0433","0434","0437",
+		"0467",
+		"0503","0504","0505","0506","0507",
+		"0573","0574","0575","0576","0577",
+		"0583","0584","0585","0586","0587",
+		"0593","0594","0595","0596","0597",
+		"0622","0625","0627",
+		"0632","0635","0637",
+		"0642","0643","0644","0645","0647",
+		
+		"0733","0734","0735","0736","0737",
+		"0803","0804","0805","0806","0807",
+		"0812","0813","0814","0815","0816","0817",
+		"0822","0825","0826","0827",
+		"0832","0835","0836","0837",
+		"0842","0845","0846","0847",
+		"0852","0853","0854","0855","0857",
+		"0862","0863","0864","0865","0866","0867",
+		"0872","0873","0874","0876","0877",
+		"0892","0893","0894","0896","0897",
+		"0912","0913","0914","0915","0916","0917"
+	};
+
+	string $IDTemp = `substring $charaID 1 3`;
+	$partID = (string)$part;
+	$charaID = $IDTemp + $partID;
+
+	if((stringArrayContains( $charaID , $unusedList )) == 0){
+		string $path = ($basePath + "chr" + $charaID + "/chr" + $charaID + "_gmp" + $gmpID + "/");
+		
+		int $whole = `GPCheckFileExistsInTrunkForMSPartModel $charaID $gmpID $path`;
+		int $header = 0;
+		if($whole != 0){
+			$header = `GPCheckFileExistsInTrunkForMsPartMotionHeader $charaID $gmpID $path`;
+		}
+
+		int $dummy = 0;
+		if($header != 0 ){
+			if(size($dummyList) != 0){
+				$dummy = `GPCheckFileExistsInTrunkForMSPartsMotion_Dummy $charaID $gmpID $dummyList`;
+			}else{
+				$dummy = 2;
+			}
+		}
+
+		int $checkList[] = {$whole};
+
+		//$checkList[0]	:ファイルの有無・余剰の存在
+		//$header		:ヘッダの状態
+		if($checkList[0] == 0){
+			print "▲";
+		}else if($checkList[0] == 2){
+			print "▼";
+		}else if($checkList[0] == 1){
+			if($header == 2){
+				print "■";
+			}else{
+				if($dummy == 0){
+					print "○";
+				}else if($dummy == 1){
+					print "●";
+				}else{
+					print "★";
+				}
+			}
+		}
+		print ("\t");
+	}else{
+		print "\t";
+	}
+	clear $unusedList;
+}
+//---------------------------------------------------------------------------------------
+
+global proc GPCheckFileExistsInTrunkExec(){
+	string $mes = mdc_printCheckSample();
+	print ("\r\n\r\n------------------------------------------\r\n\r\n" + $mes + "\r\n------------------------------------------\r\n");
+	string $temp = `scrollField -q -text MDC_charaList`;
+	$temp = `substituteAllString $temp "\r" ""`;
+	$temp = `substituteAllString $temp "\n" ""`;
+	$temp = `strip $temp`;
+	string $checkList[];
+	$checkList = stringToStringArray($temp, ",");
+
+	string $temp = `scrollField -q -text MDC_gmpList`;
+	$temp = `substituteAllString $temp "\r" ""`;
+	$temp = `substituteAllString $temp "\n" ""`;
+	$temp = `strip $temp`;
+	string $checkGmpList[] = stringToStringArray($temp, ",");
+
+
+	string $basePath = `textFieldButtonGrp -q -text MDC_MotTf`;
+	string $masterPath = `textFieldButtonGrp -q -text MDC_MasTf`;
+
+	print ("\t");
+	for($gmpItem in $checkGmpList){
+		print ("\tgmp" + $gmpItem);
+	}
+
+	//チェック
+	int $size = `size $checkList`;
+	int $gmpsize = `size $checkGmpList`;
+	int $i,$j,$k;
+	for($i=0;$i<$size;$i++){
+		print ("\r\nchr" + $checkList[$i]);
+		for($k=0 ; $k<8;$k++){
+
+			string $fillList[];
+			string $IDTemp = `substring $checkList[$i] 1 3`;
+			string $partID = (string)$k;
+			string $tempCharaID = $IDTemp + $partID;
+			string $FillListFile = ($basePath + "/chr" + $tempCharaID + "/filledMotionList.csv");
+			$fillList = MDC_loadFillList($FillListFile);
+
+			print("\r\n\t");
+			switch($k){
+			case 0 : 
+				print "全身";
+				break;
+			case 2 : 
+				print "頭部";
+				break;
+			case 3 : 
+				print "右腕";
+				break;
+			case 4 : 
+				print "左腕";
+				break;
+			case 5 : 
+				print "下半身";
+				break;
+			case 6 : 
+				print "背中";
+				break;
+			case 7 : 
+				print "上半身";
+				break;
+			}
+			print("\t");
+			for($j=0;$j<$gmpsize;$j++){
+				GPPrintFileExistsUnderTrunkForMSModels $checkList[$i] $checkGmpList[$j] $k $basePath $fillList;
+			}
+			if($k==0){
+				$k++;
+			}
+		}
+	}
+	clear $checkList;
+	clear $checkGmpList;
+	print ("\r\n\r\n------------------------------------------\r\n\r\n" + $mes + "\r\n------------------------------------------\r\n");
+	confirmDialog -title "MotionDataChecker" -message "チェックが完了しました。スクリプトエディタのログを確認してください。" -button "OK";
+}
+
+
+
+//半霊表示--------------------------------------------------------------------
+global proc string mdc_printCheckSample(){
+	string $ret;
+	string $samples[] = {"○:正常","★:ヘッダ正常、ダミーモーションリスト無し","●:ヘッダ正常、ダミーデータ使用","■:ヘッダの並びに異常あり","▲:ファイル数不足","▼:ファイル数過剰"};
+
+	for($sampleItem in $samples){
+		$ret = ($ret + $sampleItem + "\r\n");
+	}
+	return($ret);
+}
+
+
+//テキストフィールドのボタンから、データを指定された時の動作--------------------------------------------------------------------
+global proc rtd_setTextfData(string $textf , string $fileName, string $fileType){
+	$fileName = `toNativePath( $fileName )`;
+	switch($textf){
+		case "MDC_MotTf":
+			$fileName = ($fileName + "\\");
+			break;
+		case "MDC_MasTf":
+			$fileName = ($fileName + "\\");
+			break;
+	}
+	textFieldButtonGrp -e -text $fileName $textf;
+
+}
+//---------------------------------------------------------------------------------------
+global proc MDC_setText(string $tgt){
+	string $checkList[],$checkGmpList[];
+	if($tgt == "HG"){
+		$checkList = {
+			"0100","0110","0120","0130","0140","0150","0160","0170","0180","0190",
+			"\r\n0200","0210","0220","0230","0240","0250","0260","0270","0280","0290",
+			"\r\n0300","0310","0320","0330","0340","0360","0370","0380","0390",
+			"\r\n0400","0420","0430","0440","0460","0470","0490",
+			"\r\n0500","0510","0530","0540","0550","0560","0570","0580","0590",
+			"\r\n0610","0620","0630","0640","0670","0680","0690",
+			"\r\n0720","0730","0760",
+			"\r\n0800","0820","0830","0840","0850","0870","0890",
+			"\r\n0990"
+		};
+		$checkGmpList = {
+			"000","001","002","003","004",
+			"\r\n100","101","102","103","104","105","106","107","108","109","110","111",
+			"\r\n200","201","202","203","204","205","206","207",
+			"\r\n300","301","302","304","305","306","307",
+			"\r\n310","312","313","314","315","316","317","318","319",
+			"\r\n320","321","322","323","324","325","326","327","328","329",
+			"\r\n330","331","333",
+			"\r\n400","401","402","403","404","405","406","407","408","409",
+			"\r\n410","411","412","413","414","415","416","417","418","419",
+			"\r\n420","421","422","423","424","425","426","427","428","429",
+			"\r\n430","431","432","433","434","435","436","437","438","439",
+			"\r\n440","441","999"
+		};
+	
+	}else{
+		$checkList = {
+			"4090","4100",
+			"\r\n4110","4120","4170","4180",
+			"\r\n4210","4220","4280","4290",
+			"\r\n4360","4370","4380","4390",
+			"\r\n4400","4410","4440","4450","4470","4480",
+			"\r\n4580","4590",
+			"\r\n4600","4610","4620","4630"
+		};
+		$checkGmpList = {
+			"500","501","502","503","504",
+			"\r\n550","551","552","553","554","555","556","557","558","559","560","561",
+			"\r\n600","601","602","603","604","606","607","609","610","611",
+			"\r\n700","702","703","704","706","707",
+			"\r\n800","801","804","805",
+			"\r\n813","814","820",
+			"\r\n821","822","823","824","825",
+			"\r\n830","831",
+			"\r\n900","902","906","908",
+			"\r\n910","913","916",
+			"\r\n920","922","925","926","927","928","929",
+			"\r\n930","931","933","935"
+		};
+	}
+
+	string $charaCode = stringArrayToString($checkList,",");
+	string $gmpCode = stringArrayToString($checkGmpList,",");
+
+	string $tx_MDC_2 = `scrollField -e -text $charaCode MDC_charaList`;
+	string $tx_MDC_3 = `scrollField -e -text $gmpCode -h 200 MDC_gmpList`;
+
+
+	clear $checkList;
+	clear $checkGmpList;
+}
+
+
+
+global proc motionDataChecker(){
+
+	string $basePath = ("C:\\GP\\trunk\\resource\\original\\GP\\motion\\");
+//	string $masterPath = ("C:\\GP\\trunk\\plan\\リスト類\\gmp_headerOrigin_csv\\");
+	string $masterPath = (`getenv "GP_MAYA_ROOT"` + "\\common\\scripts\\GP_mel\\csv\\");
+	$masterPath = `toNativePath $masterPath`;
+	
+	//チェックするキャラIDのリスト
+	string $checkList[] ={
+		"0100","0110","0120","0130","0140","0150","0160","0170","0180","0190",
+		"\r\n0200","0210","0220","0230","0240","0250","0260","0270","0280","0290",
+		"\r\n0300","0310","0320","0330","0340","0360","0370","0380","0390",
+		"\r\n0400","0420","0430","0440","0460","0470","0490",
+		"\r\n0500","0510","0530","0540","0550","0560","0570","0580","0590",
+		"\r\n0610","0620","0630","0640","0670","0680","0690",
+		"\r\n0720","0730","0760",
+		"\r\n0800","0820","0830","0840","0850","0870","0890",
+		"\r\n0990"
+		/*,
+		"4090","4100",
+		"4110","4120","4170","4180",
+		"4210","4220","4280","4290",
+		"4340","4350","4360","4370","4380","4390",
+		"4400","4410","4440","4450","4470","4480",
+		"4510","4520","4580","4590",
+		"4600","4610","4620","4630"
+		*/
+	};
+
+	//チェックするgmpのリスト
+	string $checkGmpList[] ={
+		"000","001","002","003","004",
+		//"050","051",
+		"\r\n100","101","102","103","104","105","106","107","108","109","110","111",
+		"\r\n200","201","202","203","204","205","206","207",
+		"\r\n300","301","302","304","305","306","307",
+		"\r\n310","312","313","314","315","316","317","318","319",
+		"\r\n320","321","322","323","324","325","326","327","328","329",
+		"\r\n330","331","333",
+		"\r\n400","401","402","403","404","405","406","407","408","409",
+		"\r\n410","411","412","413","414","415","416","417","418","419",
+		"\r\n420","421","422","423","424","425","426","427","428","429",
+		"\r\n430","431","432","433","434","435","436","437","438","439",
+		"\r\n440","441","999"//,
+		/*
+		"500","501","502","503","504",
+		"510","511","512","513","514",
+		"550","551","552","553","554","555","556","557","558","559","560","561",
+		"580","585","590","595",
+		"600","601","602","603","604","605","606","607","608","609","610","611",
+		"700","701","702","703","704","705","706","707",
+		"800","801","802","804","805","807",
+		"812","813","814","815","816","817","818",
+		"821","822","823","824","825","826","827","829",
+		"830","831","833",
+		"900","901","902","903","904","905","906","907","908","909",
+		"910","911","912","913","914","915","916","917","918","919",
+		"920","921","922","923","924","925","926","927","928","929",
+		"930","931","932","933","934","935","936","937","938","939",
+		"940","999"
+		*/
+	};
+
+	string $title = "MotionDataCheckTool";
+	string $MDCwindow = "MDCtool";
+
+	if ( `window -exists $MDCwindow` )
+	{
+		deleteUI	$MDCwindow;
+	}
+
+	window  -t ($title) -menuBar true -w 640 -h 590 $MDCwindow;
+
+
+	//---------------------------------------------------------------------------------------------
+		string $MDC_frame = `frameLayout -labelAlign "top" -label "" -borderStyle "etchedIn" MDC_frame`;
+			string $MDC_forms = `formLayout -numberOfDivisions 100`;
+				string $mes = mdc_printCheckSample();
+				$mes = ("指定したフォルダ内のモーションヘッダファイルから、正常・不正・欠落状態をチェックします。\r\n" + $mes);
+				string $tx_MDC_0 = `text -label $mes -ann ""`;
+				string $tf_MDC_1 = (`textFieldButtonGrp -cl3 left both right -cw3 120 440 100 -label "モーションフォルダ" -text $basePath -ann "" -buttonLabel "Edit" MDC_MotTf`);
+				string $tf_MDC_2 = (`textFieldButtonGrp -cl3 left both right -cw3 120 440 100 -label "ヘッダマスターデータ" -text $masterPath -ann "" -buttonLabel "Edit" MDC_MasTf`);
+				string $text_of_shortCutLabel_MDC_2 = `text -label "プリセット"`;
+				string $radioCollection1 = `radioCollection MDC_rC1`;
+				string $radioLayout = `rowLayout -numberOfColumns 2 -cw2 50 50 MDC_rLo`;
+					radioButton -label "HG" -select MDC_rb1;
+					radioButton -label "PG" MDC_rb2;
+					setParent ..;
+				string $tx_MDC_1 = `text -label "■対象キャラID(chr～)" -ann ""`;
+
+				string $charaCode = stringArrayToString($checkList,",");
+				string $gmpCode = stringArrayToString($checkGmpList,",");
+
+				string $tx_MDC_2 = `scrollField -text $charaCode MDC_charaList`;
+				string $tx_MDC_4 = `text -label "■対象モーションID(gmp～)" -ann ""`;
+				string $tx_MDC_3 = `scrollField -text $gmpCode -h 200 MDC_gmpList`;
+
+				string $MDC_b1 = `button -w 420 -h 30 -l "モーションデータチェック" motCheckBtn`;
+
+				formLayout -edit
+
+					-attachForm $tx_MDC_0 "top"    5
+					-attachForm $tx_MDC_0 "left"   10
+					-attachNone $tx_MDC_0 "bottom"
+					-attachForm $tx_MDC_0 "right"  10
+
+					-attachControl $tf_MDC_1 "top"    5 $tx_MDC_0
+					-attachForm $tf_MDC_1 "left"   10
+					-attachNone $tf_MDC_1 "bottom"
+					-attachForm $tf_MDC_1 "right"  10
+
+					-attachControl $tf_MDC_2 "top"  5 $tf_MDC_1
+					-attachForm $tf_MDC_2 "left"   10
+					-attachNone $tf_MDC_2 "bottom"
+					-attachForm $tf_MDC_2 "right"  10
+
+					-attachControl $text_of_shortCutLabel_MDC_2 "top"  20 $tf_MDC_2
+					-attachForm $text_of_shortCutLabel_MDC_2 "left"   10
+					-attachNone $text_of_shortCutLabel_MDC_2 "bottom"
+					-attachNone $text_of_shortCutLabel_MDC_2 "right"
+
+					-attachControl $radioLayout "top" 20 $tf_MDC_2
+					-attachControl $radioLayout "left" 80 $text_of_shortCutLabel_MDC_2
+					-attachNone $radioLayout "bottom"
+					-attachForm $radioLayout "right"  10
+
+					-attachControl $tx_MDC_1 "top"  5 $text_of_shortCutLabel_MDC_2
+					-attachForm $tx_MDC_1 "left"   10
+					-attachNone $tx_MDC_1 "bottom"
+					-attachForm $tx_MDC_1 "right"  10
+
+					-attachControl $tx_MDC_2 "top"    0 $tx_MDC_1
+					-attachForm $tx_MDC_2 "left"      10
+					-attachControl $tx_MDC_2 "bottom" 10 $tx_MDC_4
+					-attachForm $tx_MDC_2 "right"     10
+
+					-attachNone $tx_MDC_4 "top"
+					-attachForm $tx_MDC_4 "left"   10
+					-attachControl $tx_MDC_4 "bottom" 5 $tx_MDC_3
+					-attachForm $tx_MDC_4 "right"  10
+
+					-attachNone $tx_MDC_3 "top"
+					-attachForm $tx_MDC_3 "left"   10
+					-attachControl $tx_MDC_3 "bottom" 10 $MDC_b1
+					-attachForm $tx_MDC_3 "right"  10
+
+					-attachNone $MDC_b1 "top"
+					-attachForm $MDC_b1 "left"   10
+					-attachForm $MDC_b1 "bottom" 10
+					-attachForm $MDC_b1 "right"  10
+				$MDC_forms;
+				setParent ..;
+			setParent ..;
+
+	//---------------------------------------------------------------------------------------------
+
+
+	button -edit -command "GPCheckFileExistsInTrunkExec();" -ann "指定フォルダ内のモーションヘッダファイルチェックを行います。" motCheckBtn;
+	string $tfc0 = `textFieldButtonGrp -edit -bc ("fileBrowserDialog -mode 4 -fileType \"directory\" -actionName \"select Folder\" -fileCommand \"rtd_setTextfData(\\\"MDC_MotTf\\\")\" ") MDC_MotTf`;
+	string $tfc1 = `textFieldButtonGrp -edit -bc ("fileBrowserDialog -mode 4 -fileType \"directory\" -actionName \"select Folder\" -fileCommand \"rtd_setTextfData(\\\"MDC_MasTf\\\")\" ") MDC_MasTf`;
+
+	radioButton -edit -onCommand "MDC_setText(\"HG\")" MDC_rb1;
+	radioButton -edit -onCommand "MDC_setText(\"PG\")" MDC_rb2;
+
+	window -e -w 640 -h 620 $MDCwindow;
+	showWindow $MDCwindow;
+}
+
+
+
+
+
+
+
+
+
+
+motionDataChecker();

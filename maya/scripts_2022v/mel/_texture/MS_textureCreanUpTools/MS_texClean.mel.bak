@@ -1,0 +1,48 @@
+
+global proc MS_texClean(string $tex[]){
+	//$texの先頭（クリーンナップ後の残るテクスチャー）を取り除いた配列を作成
+	string $cleanTex[]=stringArrayRemove({$tex[0]}, $tex) ;
+	//
+	string $p2d[]=`listConnections -t place2dTexture $tex[0]`;
+	
+	for($each in $cleanTex){
+		string $checkp2d[]=`listConnections -t place2dTexture $each`;
+		
+		int $check=`MS_p2dAnimCheck $checkp2d[0]`;
+		if($check){continue;}
+		
+		//CGFXノードと、fileノードのコネクション
+		string $connectORG_d[]=`listConnections -d 1 -s 0 -c 1 -p 1 $each`;
+		for($i=0;$i<size($connectORG_d);$i=$i+2){
+			
+			string $attrName[];
+			tokenize ($connectORG_d[$i],".",$attrName);
+			if(`isConnected ($tex[0] + "." + $attrName[1]) $connectORG_d[$i+1]`){
+				disconnectAttr ($tex[0] + "." + $attrName[1]) $connectORG_d[$i+1];
+			}
+			connectAttr -f ($tex[0] + "." + $attrName[1]) $connectORG_d[$i+1];
+		}
+		
+		//fileノードの子p2dノードと親のCGFXノードをコネクトする
+		string $p2d2[]=`listConnections -t place2dTexture $each`;
+		string $connectORG_p2d[]=`listConnections -s 0 -d 1 -c 1 -p 1 -t cgfxShader $p2d2[0]`;
+		
+		for($k=0;$k<(size($connectORG_p2d));$k=$k+2){
+			string $attrName[];
+			tokenize ($connectORG_p2d[$k],".",$attrName);
+			if(`isConnected ($p2d[0] + "." + $attrName[1]) $connectORG_p2d[$k+1]`){
+				disconnectAttr ($p2d[0] + "." + $attrName[1]) $connectORG_p2d[$k+1];
+			}
+			connectAttr -f ($p2d[0] + "." + $attrName[1]) $connectORG_p2d[$k+1];
+		}
+	}
+
+}
+
+
+global proc int MS_p2dAnimCheck(string $p2d){
+	
+	$con=`listConnections -d 0 -s 1 -c 1 -p 1 $p2d`;
+	print $con;
+	return size($con);
+}

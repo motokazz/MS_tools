@@ -1,0 +1,290 @@
+/*  This file downloaded from Highend3d.com
+''  
+''  Highend3d.com File Information:
+''  
+''    Script Name: rockGenerator v1.0
+''    Author: xaebhal
+''    Last Updated: January 31, 2005
+''    Update/Change this file at:
+''    http://www.highend3d.com/maya/mel/?section=modeling#3368
+''  
+''  Please do not alter any information above this line
+''  it is generated dynamically by Highend3d.com and will
+''  be changed automatically on any updates.
+*/
+
+
+
+//********************************************************************************************
+//********************************************************************************************
+//***                                                                                      ***
+//***                          ROCKGENERATOR v1.0       © XAEBHAL 2005                     ***
+//***                                                                                      ***
+//***                                                                                      ***
+//********************************************************************************************
+//********************************************************************************************
+//
+//
+// DESCRIPTION:
+// it takes the selected polygonal object, then "randomize" it and smooth it, 
+// but without adding or removing any vertex/edge/face. 
+// use it on a mere sphere, and you get something that looks like a rock. 
+// It enables you to make surfaces less regular, but without being too sharp
+//
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+//
+// AUTHOR : 
+// Xaebhal (Xavier Gouchet)
+// http://www.geocities.com/xaebhal
+// xaebhal@hotmail.com
+//
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+//
+// INSPIRATION :
+// I needed this kind of script while modeling something
+//
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+//
+// INSTALLATION:
+// 
+// place the "rockGenerator.mel" script in your script directory
+// defaults :
+//     OSX :		~/Library/Preferences/AliasWavefront/maya/scripts/
+//     Windows	: 	My Documents/maya/scripts/
+//
+//
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+// 
+// USAGE:
+// Select the object you want to make rockalize and run the command
+// rockGenerator
+// 
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+//
+// v1.0 (January 31, 2004)
+// - Initial release.
+//
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+//
+// Please report bugs, suggestions, comments or others at 
+// xaebhal@hotmail.com
+//
+
+
+global proc fractalize(string $initObject, float $int){
+	$vc = `polyEvaluate -v $initObject`;
+	int $vtxCount = $vc[0];
+	int $i;
+	float $rX, $rY, $rZ;
+	string $selVtx;
+	for ($i=0; $i<$vtxCount; $i++){
+		$rX = rand(-$int, $int);
+		$rY = rand(-$int, $int);
+		$rZ = rand(-$int, $int);
+		$selVtx = $initObject + ".vtx[" + $i + "]";
+		move -r $rX $rY $rZ $selVtx;
+		
+	}
+}
+	
+
+global proc relax(string $initObject, float $cont){
+
+	$dupli = `duplicate $initObject`;
+	string $copyObject = $dupli[0];
+	// then we must know the number of vertices the object has...
+	$vc = `polyEvaluate -v $initObject`;
+	int $vtxCount = $vc[0];
+	int $i;
+	float $posX,$posY, $posZ;
+	for ($i=0;$i<$vtxCount;$i++){
+		$orgs = $initObject+".vtx["+$i+"]";
+		$s = $copyObject+".vtx["+$i+"]";
+		$x = `xform -q -ws -t $s`;
+		$posX = $x[0];
+		$posY = $x[1];
+		$posZ = $x[2];
+		clear $x;
+		select -r $s;
+		GrowPolygonSelectionRegion;
+		// we average the position of all the vertices selected. 
+		$tempsel = `ls -sl -fl`;
+		string $temp;
+		int $neighbours = 0;
+		float $averageX, $averageY, $averageZ;
+		$averageX = 0;
+		$averageY = 0;
+		$averageZ = 0;
+		for ($temp in $tempsel){
+			if ($temp != $s){
+				select -r $temp;
+				$x = `xform -q -ws -t $temp`;
+				$averageX += $x[0];
+				$averageY += $x[1];
+				$averageZ += $x[2];
+				$neighbours++;
+				clear $x;
+			}
+		}
+		$averageX /= $neighbours;
+		$averageY /= $neighbours;
+		$averageZ /= $neighbours;
+		move -r (($averageX-$posX)*$cont) (($averageY-$posY)*$cont) (($averageZ-$posZ)*$cont) $orgs;
+	}
+	
+	delete $copyObject;
+	select -r $initObject;
+	print "// Result : Polygon clean-smoothed //\n";
+}
+
+
+global proc rock(){
+	float $continuity;
+	float $int;
+	
+	if (`control -exists rgRandomize`)
+		{
+			$int = (`floatSliderGrp -q -v rgRandomize`);
+	}
+	if (`control -exists rgContinuity`)
+		{
+			$continuity = (`floatSliderGrp -q -v rgContinuity`);
+	}
+
+	$sel = `ls -sl -fl`;
+	for ($o in $sel){
+	fractalize ($o, $int);
+	relax($o, $continuity);
+	}
+	
+}
+
+global proc rghelp(){
+	launch -web "www.geocities.com/xaebhal/mel/rghelp.html";
+}
+
+global proc rgAboutWindow(){
+	// first if a window already exists we delete it
+	if ((`window -ex rgAbout`) == true) deleteUI -window rgAbout;
+	
+	// we create te window
+	window
+		-title "About AlignVertices v1.0"	// name
+		-rtf true				// resize to fit children
+		-s false
+		-w 300					// width
+		-h 100
+		-mnb false
+		-mxb false
+		-menuBar false 
+	rgAbout;
+	
+	$colabout = `columnLayout -cat "both" 10 -adj true -cal "left"`;
+	
+	text -l "Rock Generator v1.0" -fn "boldLabelFont" -al "center";
+	
+	separator -style "none" -h 10;
+	
+	text -l "© Xaebhal 2005" -al "center";
+	
+	separator -style "in" -w 300 -h 10;
+	
+	text -l "Release : v1.0" -al "left" -fn "fixedWidthFont";
+	text -l "          January 2005" -al "left" -fn"fixedWidthFont";
+	
+	separator -style "none" -h 15;
+	
+	text -l "Informations : http://www.geocities.com/xaebhal/rghelp.html" -al "left";
+	text -l "Report bugs at xaebhal@hotmail.com" -al "left";	
+	separator -style "none" -h 10;
+	
+	showWindow rgAbout;
+}
+
+
+global proc rgWindow(){
+	// first if a window already exists we delete it
+	if ((`window -ex rockGenerator`) == true) deleteUI -window rockGenerator;
+	
+	// we create te window
+	window
+		-title "RockGenerator v1.0"	// name
+		-rtf true			// resize to fit children
+		-s false
+		-w 250				// width
+		-h 100
+		-menuBar true 
+		rockGenerator;
+
+	$col = `columnLayout -cat "both" 10 -adj true -cal "left"`;
+	
+	// the help menu
+	menu 
+		-helpMenu true
+		-l "?"
+		csHelp;
+		
+	menuItem -label "Help on RockGenerator v1.0" -c "cshelp" ;
+	menuItem -label "About RockGenerator v1.0..." -c "csAboutWindow";
+	
+	separator -style "none" -h 10;
+		
+	// the randomize value setting
+	floatSliderGrp
+		-label "Randomize :"
+		-columnAlign3 "right" "left" "left"
+		-columnWidth3 80 40 140
+		-min 0 -max 1.0			// min and max values
+		-fmn 0 -fmx 100.0		// boundaries to the field value
+		-value 0.5
+		-field true
+		rgRandomize;
+		
+	// the continuity value setting
+	floatSliderGrp
+		-label "Continuity :"
+		-columnAlign3 "right" "left" "left"
+		-columnWidth3 80 40 140
+		-min 0 -max 1.0			// min and max values
+		-fmn 0 -fmx 1.0		// boundaries to the field value
+		-value 0.5
+		-field true
+		rgContinuity;
+		
+	
+	// create the Butns "Apply&close" "Apply" and "Close"
+	separator -style "none" -height 15;
+		
+	rowLayout
+		-numberOfColumns 3
+		-columnAttach3 "both" "both" "both"
+		-columnAlign3 "center" "center" "center"
+		buttons;
+		
+	button
+		-label "Apply and Close"
+		-command "rock; deleteUI -window rockGenerator"
+	;
+	
+	button
+		-label "Apply"
+		-command "rock;"
+	;
+	
+	button
+		-label "Close Window"
+		-command "deleteUI -window rockGenerator"
+	;
+	setParent ..;
+	
+	separator -style "none" -h 10;
+	
+	setParent ..;
+
+	
+	showWindow rockGenerator;
+}
+
+global proc rockGenerator(){
+	rgWindow;
+}

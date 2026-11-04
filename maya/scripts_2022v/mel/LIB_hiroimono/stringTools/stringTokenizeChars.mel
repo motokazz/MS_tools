@@ -1,0 +1,20 @@
+//stringTokenizeChars, by Julian Love, julian@lightmail.com. Part of the StringTools set.
+//
+//description:	Similar to the regular tokenize command but it works at the character level.
+//				Splits the source string into an array of individual characters
+//
+//usage:		stringTokenizeChars string[source string]
+//
+//examples:		stringTokenizeChars "hello world.";
+//				Result: {"H", "e", "l", "l", "o", " ", "w", "o", "r", "l", "d", "."}
+
+
+global proc string[] stringTokenizeChars (string $item){
+	string 	$charList[];
+	int		$x;
+	
+	for ($x=1; $x<(size($item) + 1); $x++)
+		{$charList[size($charList)] = `substring $item $x $x`;}
+	
+	return $charList;
+}

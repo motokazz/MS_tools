@@ -1,0 +1,189 @@
+//GPGetValueForHG
+
+//概要：
+//GP用のモデルスケールユーティリティです。
+//Mayaで選択している二つのバーテックスの間の距離を測定し、それをGPモデルの寸法と比較して、
+//適切なサイズにするためのスケール値を表示します。
+//そのままダイアログ上でスケールも行えます。
+
+//使用方法：
+//1)このスクリプトを実行します。ダイアログが出ます。
+//2)頂点を二つ選択します。
+//Get selectedボタンをクリックするとダイアログに距離が表示されます。
+//[Vtxs Maya size(mm)]はMaya上での距離です。一番上のカラムが二頂点の直線距離、
+//その下の3つのカラムにXYZ各座標の差が表示されます。
+//[Vtxs 144/1 size(mm)]は、144/1模型に当てはめた場合の寸法です。
+//4)HG模型（144/1）でパーツのサイズを測ります。
+//3)[HG(144/1)size(mm)]に、測ったパーツサイズを入力します。
+//5)Get scaleボタンをクリックすると、パーツサイズと頂点距離の比率がダイアログに表示されます。
+//この比率の値でMayaのパーツをスケールすると、正しいモデルサイズになります。
+//6)[Adjust]カラムのボタンをクリックすると、[Scale Value]の数値でスケーリングが実行されます。
+//-------------------------------------------------------------------------------------
+global proc GPGetValueForHG()
+{
+//ダミー
+}
+//-------------------------------------------------------------------------------------
+global proc GPGetValueFor144SizeGetDistanceExec()
+{
+//現在選択している二つのバーテックスの距離を計測し、Maya上でのサイズと
+//HGモデルに当てはめたサイズそれぞれをダイアログに表示します。
+
+float $mayaDistance = `getDistanceFromSelected2vertices` * 10;
+float $mayaXYZDistance[] = `getXYZDistanceFromSelected2vertices`;
+
+float $HGDistance = $mayaDistance * 10 / 144;
+
+float $HGXDistance = $mayaXYZDistance[0] * 10 / 144;
+float $HGYDistance = $mayaXYZDistance[1] * 10 / 144;
+float $HGZDistance = $mayaXYZDistance[2] * 10 / 144;
+
+floatField -e -v  $mayaDistance "GPGetValueFor144SizeObject|layout|vtx10Distance";
+floatField -e -v  $mayaXYZDistance[0] "GPGetValueFor144SizeObject|layout|vtx10XDistance";
+floatField -e -v  $mayaXYZDistance[1] "GPGetValueFor144SizeObject|layout|vtx10YDistance";
+floatField -e -v  $mayaXYZDistance[2] "GPGetValueFor144SizeObject|layout|vtx10ZDistance";
+
+floatField -e -v  $HGDistance "GPGetValueFor144SizeObject|layout|vtx144Distance";
+
+floatField -e -v  $HGXDistance "GPGetValueFor144SizeObject|layout|vtx144XDistance";
+floatField -e -v  $HGYDistance "GPGetValueFor144SizeObject|layout|vtx144YDistance";
+floatField -e -v  $HGZDistance "GPGetValueFor144SizeObject|layout|vtx144ZDistance";
+}
+//-------------------------------------------
+global proc GPGetValueFor144SizeGetScaleExec()
+{
+//GPプロジェクトでモデルを作る際のサイズ(1/10)が、1/144サイズのプラモデルで
+//どの位にあたるかを換算しダイアログに表示します。
+float $scale = 1.0;
+
+float $HGDistance = `floatField -q -v "GPGetValueFor144SizeObject|layout|vtx144Distance"`;
+float $HGSize = `floatField -q -v "GPGetValueFor144SizeObject|layout|HGValue"`;
+	if($HGDistance!=0)
+	{
+	$scale = $HGSize / $HGDistance;
+	}
+floatField -e -v  $scale "GPGetValueFor144SizeObject|layout|scaleValue";
+}
+//-------------------------------------------
+global proc GPGetValueFor144SizeScaleExec(int$dir)
+{
+//ダイアログから数値を取得し、
+//選択中の複数のバーテックスをスケールします。
+//$dirでスケール方向を指定します。
+//0→XYZ
+//1→X
+//2→Y
+//3→Z
+
+//バウンディングボックスを取得
+float $boundingBox[] = `polyEvaluate -bc`;
+//スケール値を取得
+float $scaleValue = `floatField -q -v "GPGetValueFor144SizeObject|layout|scaleValue"`;
+//スケール
+	if($dir == 0)
+	{
+	scale -r -p (($boundingBox[0]+$boundingBox[1])/2) (($boundingBox[2]+$boundingBox[3])/2) (($boundingBox[4]+$boundingBox[5])/2) $scaleValue $scaleValue $scaleValue;
+	}
+	else if($dir == 1)
+	{
+	scale -r -p (($boundingBox[0]+$boundingBox[1])/2) (($boundingBox[2]+$boundingBox[3])/2) (($boundingBox[4]+$boundingBox[5])/2) $scaleValue 1.0 1.0;
+	}
+	else if($dir == 2)
+	{
+	scale -r -p (($boundingBox[0]+$boundingBox[1])/2) (($boundingBox[2]+$boundingBox[3])/2) (($boundingBox[4]+$boundingBox[5])/2) 1.0 $scaleValue 1.0;
+	}
+	else if($dir == 3)
+	{
+	scale -r -p (($boundingBox[0]+$boundingBox[1])/2) (($boundingBox[2]+$boundingBox[3])/2) (($boundingBox[4]+$boundingBox[5])/2) 1.0 1.0 $scaleValue;
+	}
+}
+//-------------------------------------
+global proc float getDistanceFromSelected2vertices()
+{
+//現在選択している二つのバーテックスの距離を返します。
+float $result = 0.0;
+string $list[] = `ls -sl -fl`;
+	if(`size $list` == 2)
+	{
+	float $pos1[] = `xform -q -ws -t $list[0]`;
+	float $pos2[] = `xform -q -ws -t $list[1]`;
+	float $posX = $pos2[0] - $pos1[0];
+	float $posY = $pos2[1] - $pos1[1];
+	float $posZ = $pos2[2] - $pos1[2];
+	vector $vec = <<$posX,$posY,$posZ>>;
+	$result = `mag $vec`;
+	}
+return $result;
+}
+//--------------------------------------------
+global proc float[] getXYZDistanceFromSelected2vertices()
+{
+//現在選択している二つのバーテックスのXYZ距離をリストで返します。
+float $result[];
+clear $result;;
+string $list[] = `ls -sl -fl`;
+	if(`size $list` == 2)
+	{
+	float $pos1[] = `xform -q -ws -t $list[0]`;
+	float $pos2[] = `xform -q -ws -t $list[1]`;
+	float $posX = $pos2[0] - $pos1[0];
+	float $posY = $pos2[1] - $pos1[1];
+	float $posZ = $pos2[2] - $pos1[2];
+	$posX = abs($posX);
+	$posY = abs($posY);
+	$posZ = abs($posZ);
+	$result[0] = $posX;
+	$result[1] = $posY;
+	$result[2] = $posZ;
+	}
+return $result;
+}
+//-------------------------------------
+//Make a window.
+{
+string $title = "GPGetValueFor144Size";
+string $object = "GPGetValueFor144SizeObject";
+	if(`window -ex $object` == 1)
+	{
+	deleteUI $object;
+	}
+
+window -t $title $object;
+columnLayout -p $object "layout";
+//-----
+text -l "GPGetValueForHG";
+separator -w 110;
+//-----
+text -l "[Vtxs Maya size(mm)]";
+floatField -ann "test" -w 100 -v 0.0 vtx10Distance;
+floatField -w 50 -v 0.0 vtx10XDistance;
+floatField -w 50 -v 0.0 vtx10YDistance;
+floatField -w 50 -v 0.0 vtx10ZDistance;
+text -l "[Vtxs 144/1 size(mm)]";
+floatField -w 100 -v 0.0 vtx144Distance;
+floatField -w 50 -v 0.0 vtx144XDistance;
+floatField -w 50 -v 0.0 vtx144YDistance;
+floatField -w 50 -v 0.0 vtx144ZDistance;
+button -w 105 -c "GPGetValueFor144SizeGetDistanceExec" -l "Get selected";
+separator -w 110;
+text -l "[HG(144/1) size(mm)]";
+floatField -v 0.0 HGValue;
+
+separator -w 110;
+text -l "[Scale Value]";
+floatField -v 1.0 scaleValue;
+button -w 105 -c "GPGetValueFor144SizeGetScaleExec" -l "Get scale";
+separator -w 110;
+text -l "[Adjust]";
+button -w 105 -c "GPGetValueFor144SizeScaleExec 0" -l "Scale XYZ";
+button -w 105 -c "GPGetValueFor144SizeScaleExec 1" -l "Scale X";
+button -w 105 -c "GPGetValueFor144SizeScaleExec 2" -l "Scale Y";
+button -w 105 -c "GPGetValueFor144SizeScaleExec 3" -l "Scale Z";
+
+
+window -e -w 110 -h 500 $object;
+showWindow $object;
+}
+//-------------------------------------
+
+//The end of the script.

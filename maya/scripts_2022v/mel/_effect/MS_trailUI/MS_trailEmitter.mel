@@ -1,0 +1,53 @@
+global proc MS_trailEmitter(
+	int $curvedegree,
+	int $curveStep,
+	int $bspline,
+	int $revCurve,
+	int $jointPartsQuantity,
+	float $jointLength
+){
+	int $tm[]=`MS_selectTime`;
+	
+	string $obj[]=`MS_selectFilter`;
+	
+	string $cname=`MS_motionCurve $tm[0] $tm[1] $curvedegree $curveStep $obj $bspline $revCurve `;
+	
+	string $jname=`MS_createJoint $jointPartsQuantity $jointLength `;
+	
+	string $iknul[]=`MS_IKspline $jname $cname 1`;
+	
+	string $check[]=`ls -typ transform $obj`;
+	if(size($check)){
+		MS_constraint  1 "" 0 0 0 0 0 0 0 0 $obj {$iknul[1]} ;
+	}else{
+		MS_trail_vertexpointConstraint $obj $iknul[1];
+	}
+	
+	MS_jointscaleFromAnimation $tm[0] $tm[1] $jname ;
+	
+	
+	
+	
+//==========================================================================
+	
+	string $target[];
+	
+	$target=`listRelatives -ad -f -typ joint $jname`;
+	
+	float $threshold=0.5;
+	
+	string $newLocz[];
+	int $i=0;
+	for($each in $target){
+		string $newLoc[]=`spaceLocator`;
+		MS_setEmitter "sak_traildef" 0 0 0 0 0 1 ;
+		MS_constraint  1 "" 0 1 0 0 0 0 0 0 {$each} $newLoc ;
+		$newLocz[$i]=$newLoc[0];
+		$i++;
+	}
+	
+	MS_VFA_Switch $tm[0] $tm[1] $threshold $target[0] $newLocz {"EmitterVolume"} ;
+	
+}
+
+

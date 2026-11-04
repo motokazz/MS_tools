@@ -1,0 +1,21 @@
+//stringWordCount, by Julian Love. Part of the StringTools set.
+//
+//description:	returns the number of words in the source string as an int.
+//
+//usage:		stringWordCount string[source string] string[character that separates words];
+//
+//examples:		stringWordCount "hello world." " ";
+//				// Result: 2 //
+//
+//				stringWordCount "left_wrist_controller" "_";
+//				// Result: 3 //
+
+global proc int stringWordCount (string $item, string $wordChar){
+	string	$tokenList[];
+	int		$returnInt;
+	
+	tokenize $item $wordChar $tokenList;
+	$returnInt = size($tokenList);
+	
+	return $returnInt;
+}

@@ -1,0 +1,168 @@
+/*
+-------------------
+MS_dynagareki.mel
+-------------------
+
+◆概要
+瓦礫かなにかが床にごろごろと転がっている状態を作る。
+ダイナミクス環境を構築してシミュレートすると、とりあえずちゃんと床に落ちた瓦礫になるのではないだろうか？
+という発想から生まれている。
+
+
+◆使用方法
+・スクリプトを実行するとダイアログが出る。
+・床に転がしたいオブジェクトを用意する（MS_Krashシリーズとかで作ると良いつもり）
+・床を用意する
+・床を最初に選んで
+・転がしたいアイテムたちを選ぶ
+・「dggo」を押す
+
+
+
+◆詳細
+
+最初に選んだものを静的rigidbodyに、その後に選んだもの全てを動的rigidbodyに。
+ダイナミクス環境を構築してシミュレートする。
+
+
+ダイアログの説明
+fram	落下シミュレート時のトータルフレーム数。瓦礫がちゃんと床に落ちるように調節してあげよう。
+skip	フレームスキップ。精度の高い計算が必要ないときは数値を上げてあげよう。
+grav	重力を設定できるようにしてある。
+
+
+
+※注意
+何がおきても知りません。
+
+
+
+*/
+
+
+
+proc MS_dynagareki_core(string $plane,string $fall){	
+	int $mcheck=`checkBox -q -v "Marge"`;
+	int $fram=`intSliderGrp -q -v fram`;
+	int $skip=`intSliderGrp -q -v skip`;
+	int $grav=`intSliderGrp -q -v grav`;
+	
+	$newname="temp";
+	currentTime 0 ;
+	
+	//ダイナミクスの種作成
+	gravity -pos 0 0 0 -m $grav -att 0 -dx 0 -dy -1 -dz 0  -mxd -1  -vsh none -vex 0 -vof 0 0 0 -vsw 360 -tsr 0.5 ;
+	
+	rigidBody -passive -m 10000 -dp 0 -sf 1 -df 0 -b 0 -l 0 -tf 2000 -iv 0 0 0 -iav 0 0 0 -c 0 -pc 0 -i 0 0 0 -imp 0 0 0 -si 0 0 0 -sio none $plane;
+	
+	rigidBody -active -m 10000 -dp 0 -sf 1 -df 0 -b 0 -l 0 -tf 2000 -iv 0 0 0 -iav 0 0 0 -c 0 -pc 0 -i 0 0 0 -imp 0 0 0 -si 0 0 0 -sio none $fall;
+	
+	connectDynamic -f gravityField1  $fall;
+	
+	int $t_fram=$fram/$skip;
+	
+	//アニメーション再生
+	$j=0;
+	for ($j=0;$j<$t_fram;$j++){
+	currentTime ($j*$skip) ;
+	}
+	
+	//結果と後処理
+	if($mcheck==1){
+		polyUnite -ch 0 -n $newname $fall $plane;
+		
+		delete $plane;
+		delete $fall;
+		rename $newname $plane;
+	}else{
+		select -r $plane $fall;
+		deleteSelectRigidBodies;
+	}
+	
+
+	delete "gravityField*" ;
+
+}
+
+
+global proc MS_dggo(){
+	$objz=`ls -sl`;
+	int $i;
+	for($i=1;$i<size($objz);$i++){
+		MS_dynagareki_core $objz[0] $objz[$i];
+	}
+}
+
+
+global proc MS_dynagareki()
+{
+	if(`window -exists MS_dynagareki`){
+		deleteUI MS_dynagareki;
+	}
+	
+	window -title "MS_dynagareki" MS_dynagareki;	
+	
+	$form = `formLayout`;
+
+	setParent $form;
+	$sep=`separator`;
+	$com_fram=`intSliderGrp -l "fram" -field true -min 1 -max 1000 -v 300 fram`;
+	$com_skip=`intSliderGrp -l "skip" -field true -min 1 -max 100 -v 10 skip`;
+	$com_grav=`intSliderGrp -l "grav" -field true -min 1 -max 10000 -v 1000 grav`;
+	
+	$com_mcheck=`checkBox -recomputeSize 0 -v 0 -label "Marge" -width 128 "Marge"` ;//Data//
+	
+	$com_dggo=`button -l "dggo" -command "MS_dggo" `;
+	$com_und=`button -l "undo" -command "Undo" `;
+	$com_ext=`button -l "exit" -command "deleteUI MS_dynagareki" `;
+
+	formLayout -e
+	-af $com_fram "top" 10
+        -af $com_fram "left" 5
+        -an $com_fram "right"
+        -an $com_fram "bottom"
+
+	-af $com_skip "top" 30
+        -af $com_skip "left" 5
+        -an $com_skip "right"
+        -an $com_skip "bottom"
+
+	-af $com_grav "top" 50
+        -af $com_grav "left" 5
+        -an $com_grav "right"
+        -an $com_grav "bottom"
+
+	-af $com_mcheck "top" 70
+        -af $com_mcheck "left" 60
+        -an $com_mcheck "right"
+        -an $com_mcheck "bottom"
+
+	-af $sep "top" 90
+	-af $sep "left" 5
+	-af $sep "right" 5
+	-an $sep "bottom"
+
+        -af $com_dggo "top" 100
+        -ap $com_dggo "left" 0 25
+        -ap $com_dggo "right" 0 50
+        -an $com_dggo "bottom"
+
+        -af $com_und "top" 100
+        -ap $com_und "left" 0 50
+        -ap $com_und "right" 0 75
+        -an $com_und "bottom"
+
+        -af $com_ext "top" 100
+        -ap $com_ext "left" 0 75
+        -af $com_ext "right" 5
+        -an $com_ext "bottom"
+	$form;
+	
+	showWindow MS_dynagareki;
+	
+
+}
+
+
+MS_dynagareki;
+

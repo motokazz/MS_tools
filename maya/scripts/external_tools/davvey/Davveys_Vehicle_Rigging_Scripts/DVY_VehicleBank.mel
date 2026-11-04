@@ -1,0 +1,223 @@
+/* This file downloaded from Highend3d.com
+''  
+''  Highend3d.com File Information:
+''  
+''    Script Name: Davveys Vehicle Rigging Scripts
+''    Author:  
+''    Last Updated: Jul 21, 2007
+''    Update/Change this file at:
+''    http://Highend3d.com/maya/downloads/mel_scripts/animation/4109.html
+''  
+''  Please do not alter any information above this line
+''  it is generated dynamically by Highend3d.com and will
+''  be changed automatically on any updates.
+*/
+
+
+/////////////////////////////////////////////////////////////////////////////////
+/*			
+	Copyright © 2006 DVY_VehicleBank. All rights reserved davvey@ntlworld.com
+
+						- DVY_VehicleBank -
+
+///////////////////////////////////////////////////////////////////////////////
+						  
+	This script is called by DVY_RigVehicle to set the suspension and Vehicle
+	Rig to allo the vehicle to "Bank" upto 10 degrees in both the X and Z axis.
+	The wheels and suspesnion will maintain contact with the `Ground` or the
+	`Ground Plane` (if set up). The "Bank" limit can be set by adjusting the
+	Bank Controllers rotation limits in the Attribute Editor.
+
+*/
+/////////////////////////////////////////////////////////////////////////////////
+//					DVY_VehicleBank Procedure
+/////////////////////////////////////////////////////////////////////////////////
+
+//===============================================================================
+//	GLOBAL VARIABLES
+//===============================================================================
+	global int $DVYDebug;
+
+// Integer Flag that allows print statements to be output to
+// message field for tracking purposes.
+	
+//===============================================================================
+
+global proc DVY_VehicleBank()
+{
+	 
+// ******************************************************************************//	
+//	Global Variables
+
+	global string $RigControlsA[], $GroupV_A[];
+	global string $DVY_VehName;
+	global float $DVYdata[];
+	
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+//	Local Variables
+
+	string $BankVehAngleN[]; string $BankConvertN[]; string $BankCondN[];
+	string $BankAverageN[]; string $BankSuspMultiDblN[]; string $AddBankN[0];
+	string $Prefix[] = {"Fr", "Rr", "Lf", "Rt"};
+	
+	int $a, $b, $c, $i, $j, $k;
+	
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+
+	$a = $DVYdata[1]; 	$b = $DVYdata[2]; $c = $DVYdata[1]*2;
+	
+	$LfFrAverageN = `createNode plusMinusAverage -name ($DVY_VehName + "LfFr_AngAvgN_1")`;
+		setAttr ($LfFrAverageN + ".op") 3;
+		for ($q=1; $q< $DVYdata[1]+1; $q++) 
+			{connectAttr -f  ($DVY_VehName + "LfFr_Susp_LocGrd_" + $q + ".translateY ") ($LfFrAverageN + ".i1[" + $q + "]");}
+							
+	$RtFrAverageN = `createNode plusMinusAverage -name ($DVY_VehName + "RtFr_AngAvgN_1")`;
+		setAttr ($RtFrAverageN + ".op") 3;
+		for ($q=1; $q< $DVYdata[1]+1; $q++)
+			{connectAttr -f ($DVY_VehName + "RtFr_Susp_LocGrd_" + $q + ".translateY ") ($RtFrAverageN + ".i1[" + $q + "]");}
+		
+	$LfRrAverageN = `createNode plusMinusAverage -name ($DVY_VehName + "LfRr_AngAvgN_1")`;
+		setAttr ($LfRrAverageN + ".op") 3;
+		for ($q=1; $q< $DVYdata[1]+1; $q++) 
+			{connectAttr -f ($DVY_VehName + "LfRr_Susp_LocGrd_" + $q + ".translateY ") ($LfRrAverageN + ".i1[" + $q + "]");}
+							
+	$RtRrAverageN = `createNode plusMinusAverage -name ($DVY_VehName + "RtRr_AngAvgN_1")`;
+		setAttr ($RtRrAverageN + ".op") 3;
+		for ($q=1; $q< $DVYdata[1]+1; $q++)
+			{connectAttr -f ($DVY_VehName + "RtRr_Susp_LocGrd_" + $q + ".translateY ") ($RtRrAverageN + ".i1[" + $q + "]");}
+	
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+
+	for ($i=0; $i<2; $i++)
+		{
+		$BankVehAngleN[$i] = `createNode angleBetween -name ($DVY_VehName + "Bank_" + $Prefix[$i] + "_AngleNA_1")`;
+			setAttr ($BankVehAngleN[$i] + ".v1") 1 1 1;
+			setAttr ($BankVehAngleN[$i] + ".v2") 1 1 1;
+			connectAttr -f ($DVY_VehName + $Prefix[2] + $Prefix[$i] + "_AngAvgN_1" + ".o1") ($BankVehAngleN[$i] + ".v1y");
+			connectAttr -f ($DVY_VehName + $Prefix[3] + $Prefix[$i] + "_AngAvgN_1" + ".o1") ($BankVehAngleN[$i] + ".v2y");	
+			
+		$BankConvertN[$i] = `createNode unitConversion -name ($DVY_VehName + "Bank_" + $Prefix[$i] + "_ConvertN_1")`;
+			setAttr ($BankConvertN[$i] + ".conversionFactor") (-57.221/$c);
+			connectAttr -f ($BankVehAngleN[$i] +".eulerY") ($BankConvertN[$i] + ".input");
+			
+		$BankCondN[$i] = `createNode condition -name ($DVY_VehName + $Prefix[$i] + "_BankCondN_1")`;
+			setAttr ($BankCondN[$i] + ".op") 3;
+			connectAttr -f ($DVY_VehName + $Prefix[2] + $Prefix[$i] + "_AngAvgN_1" + ".o1") ($BankCondN[$i] + ".ft");
+			connectAttr -f ($DVY_VehName + $Prefix[3] + $Prefix[$i] + "_AngAvgN_1" + ".o1") ($BankCondN[$i] + ".st");
+			setAttr ($BankCondN[$i] + ".cfr") 1;
+			setAttr ($BankCondN[$i] + ".ctr") -1;
+			
+		$BankSuspMultiDblN[$i] = `createNode multDoubleLinear -name ($DVY_VehName + "Bank_" + $Prefix[$i] + "_SuspMultDblNA_l")`;
+			connectAttr -f ($BankCondN[$i] + ".ocr") ($BankSuspMultiDblN[$i] + ".input1");
+			connectAttr -f ($BankConvertN[$i] + ".output")($BankSuspMultiDblN[$i] + ".input2");
+		$a = $b;
+		}
+	
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+
+	$j = 2; 	$a = $DVYdata[1]; 	$b = $DVYdata[2]; $c = 0;
+
+	for ($i=2; $i<4; $i++)
+		{
+		$BankVehAngleN[$i] = `createNode angleBetween -name ($DVY_VehName + "Bank_" + $Prefix[$i] + "_AngleNA_1")`;
+			setAttr ($BankVehAngleN[$i] + ".v1") 1 1 1;
+			setAttr ($BankVehAngleN[$i] + ".v2") 1 1 1;
+			connectAttr -f ($DVY_VehName + $Prefix[$i] + $Prefix[0] + "_AngAvgN_1" + ".o1") ($BankVehAngleN[$i] + ".v1y");
+			connectAttr -f ($DVY_VehName + $Prefix[$i] + $Prefix[1] + "_AngAvgN_1" + ".o1") ($BankVehAngleN[$i] + ".v2y");	
+
+		$BankConvertN[$i] = `createNode unitConversion -name ($DVY_VehName + "Bank_" + $Prefix[$i] + "_ConvertN_1")`;
+			setAttr ($BankConvertN[$i] + ".conversionFactor") (-57.221/($b*2));
+			connectAttr -f ($BankVehAngleN[$i] +".eulerY") ($BankConvertN[$i] + ".input");
+				
+		$BankCondN[$i] = `createNode condition -name ($DVY_VehName + "Bank_" + $Prefix[$i] + "_CondN_1")`;
+			setAttr ($BankCondN[$i] + ".op") 3;
+			connectAttr -f ($DVY_VehName + $Prefix[$i] + $Prefix[0] + "_AngAvgN_1" + ".o1") ($BankCondN[$i] + ".ft");
+			connectAttr -f ($DVY_VehName + $Prefix[$i] + $Prefix[1] + "_AngAvgN_1" + ".o1") ($BankCondN[$i] + ".st");
+			setAttr ($BankCondN[$i] + ".cfr") -1;
+			setAttr ($BankCondN[$i] + ".ctr") 1;
+			
+		$BankSuspMultiDblN[$i] = `createNode multDoubleLinear -name ($DVY_VehName + "Bank_" + $Prefix[$i] + "_SuspMultDblNA_l")`;
+			connectAttr -f ($BankCondN[$i] + ".ocr") ($BankSuspMultiDblN[$i] + ".input1");
+			connectAttr -f ($BankConvertN[$i] + ".output")($BankSuspMultiDblN[$i] + ".input2");
+		}
+	
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+
+	$BankAverageN[0] = `createNode plusMinusAverage -name ($DVY_VehName + "Bank_LfRt_AngAvgN_1")`;
+		setAttr ($BankAverageN[0] + ".op") 3;
+		connectAttr -f ($BankSuspMultiDblN[0] + ".output") ($BankAverageN[0] + ".i1[1]");
+		connectAttr -f ($BankSuspMultiDblN[1] + ".output") ($BankAverageN[0] + ".i1[2]");	
+		
+	$AddBankN[0] = `createNode plusMinusAverage -name ($DVY_VehName + "Bank_ZAddN_1")`;
+		setAttr ($AddBankN[0] + ".op") 1;
+		connectAttr -f ($RigControlsA[3] + ".rotateZ") ($AddBankN[0] + ".i1[1]");
+		connectAttr -f ($BankAverageN[0] + ".o1") ($AddBankN[0] + ".i1[2]");
+		connectAttr -f ($AddBankN[0] + ".o1") ($GroupV_A[2] + ".rotateZ");
+		
+	$BankAverageN[1] = `createNode plusMinusAverage -name ($DVY_VehName + "Bank_FrRr_AngAvgN_1")`;
+		setAttr ($BankAverageN[1] + ".op") 3;
+		connectAttr -f ($BankSuspMultiDblN[2] + ".output") ($BankAverageN[1] + ".i1[1]");
+		connectAttr -f ($BankSuspMultiDblN[3] + ".output") ($BankAverageN[1] + ".i1[2]");
+		
+	$AddBankN[1] = `createNode plusMinusAverage -name ($DVY_VehName + "Bank_XAddN_1")`;
+		setAttr ($AddBankN[1] + ".op") 1;
+		connectAttr -f ($RigControlsA[3] + ".rotateX") ($AddBankN[1] + ".i1[1]");
+		connectAttr -f ($BankAverageN[1] + ".o1") ($AddBankN[1] + ".i1[2]");
+		connectAttr -f ($AddBankN[1] + ".o1") ($GroupV_A[2] + ".rotateX");
+	
+	$AddBankN[2] = `createNode multiplyDivide -name ($DVY_VehName + "Bank_DamperN_1")`;
+		connectAttr -f ($AddBankN[1] + ".o1") ($AddBankN[2] + ".input2X");	
+		connectAttr -f ($AddBankN[0] + ".o1") ($AddBankN[2] + ".input2Z");	
+	
+		connectAttr -f ($RigControlsA[0] + ".Damping") ($AddBankN[2] + ".input1X");
+		connectAttr -f ($RigControlsA[0] + ".Damping") ($AddBankN[2] + ".input1Z");
+		
+		
+		connectAttr -f ($AddBankN[2] + ".outputX") ($GroupV_A[2] + ".rotateX");
+		connectAttr -f ($AddBankN[2] + ".outputZ") ($GroupV_A[2] + ".rotateZ");
+		
+// -------------------------------------------------------------------------------//
+	
+// *******************************************************************************//
+/*			
+
+		print "\n Vehicle Bank Angle Nodes are..\n";
+		print $BankVehAngleN;
+		print "\n Davvey © 2006..\n";
+		
+		print "\n Vehicle Bank Conversion Nodes are..\n";
+		print $BankConvertN;
+		print "\n Davvey © 2006..\n";
+		
+		print "\n Vehicle Bank Condition Nodes are..\n";
+		print $BankCondN;
+		print "\n Davvey © 2006..\n";
+		
+		print "\n Vehicle Bank Suspension Nodes are..\n";
+		print $BankSuspMultiDblN;
+		print "\n Davvey © 2006..\n";
+		
+		print "\n Vehicle Bank Average Nodes are..\n";
+		print $BankSuspMultiDblN;
+		print "\n Davvey © 2006..\n";
+
+		print "\n Vehicle Bank AddBank Nodes are..\n";
+		print $BankSuspMultiDblN;
+		print "\n Davvey © 2006..\n";
+*/		
+		
+	print "\n DVY_VehicleBank has set up Nodes for addition Vehicle Bank in bot X and Z Planes. See help file for more details. Davvey © 2006..\n\n";
+
+ }	//	End of the DVY_VehicleBank procedure.
+			
+			

@@ -1,0 +1,13 @@
+//  Creation Date:  24 January 2000
+//
+//  Author:         rns
+//
+//  Description:
+//      a quick multi-renaming script
+//
+
+global proc renamer (string $newName) 
+{
+	for ($each in `ls -sl`)
+		rename $each ($newName + "#");
+}

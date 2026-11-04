@@ -1,0 +1,117 @@
+global proc float MS_distance(string $target_a,string $target_b){
+	
+	float $a[] = `xform -q -ws -t $target_a`;
+	float $b[] = `xform -q -ws -t $target_b`;
+	//2点間の移動距離を計算
+	float $len = sqrt(($a[0]-$b[0])*($a[0]-$b[0])+($a[1]-$b[1])*($a[1]-$b[1])+($a[2]-$b[2])*($a[2]-$b[2]));
+	
+	return $len;
+	
+}
+
+
+
+global proc string[] MS_nearestObjectV2(string $sourceObj[],string $distObj){
+	//要MS_distance
+	//string $sourceObj[]=`ls -typ transform`;
+	string $entryObj[]=stringArrayRemove ({$distObj},$sourceObj);
+	string $dists[];
+	
+	$i=0;
+	for($each in $entryObj){
+		float $ftemp=`MS_distance $distObj $each`;
+		$dists[$i]=((1000000+$ftemp)+"<>"+$each);
+		$i++;
+	}
+	string $result[]=`sort $dists`;
+	
+	string $final[];
+	$j=0;
+	for($each in $result){
+		string $stemp[];
+		tokenize($each,"<>",$stemp);
+		$final[$j]=$stemp[1];
+		$j++;
+	}
+	return $final;
+}
+
+
+
+global proc string MS_skinWeightV2_SkinCluster(string $obj){
+	string $a[]=`ls -o $obj`;
+	string $b=`findRelatedSkinCluster $a[0]`;
+	return $b;
+}
+
+
+global proc MS_skinWeightV2_SkinWeight(string $joint,string $point){
+	
+	string $option;
+	
+	string $SkinCluster=`MS_skinWeightV2_SkinCluster $point`;
+	$option="skinPercent ";
+	//$option=$option+("-resetToDefault ");
+	$option=$option+("-transformValue "+$joint+" 1.0 ");
+	$option=$option+$SkinCluster+" "+$point;
+	print $option;
+	print "\n";
+	eval $option;
+	
+	
+}
+
+
+global proc MS_skinWeightV2(){
+	string $source=`textFieldGrp -q -tx TFGTgt`;
+	
+	string $sourceObj[];
+	tokenize($source," ",$sourceObj);
+	
+	string $points[]=`filterExpand -sm 31`;
+	
+	//スキニング
+	int $i=0;
+	for ($each in $points){
+		string $joint[]=`MS_nearestObjectV2 $sourceObj $each`;
+		MS_skinWeightV2_SkinWeight $joint[0] $each ;
+		$i++;
+	}
+
+}
+
+
+
+//ClickTragetList-------------------------------------------
+global proc ClickTargetList(){
+	string $objz[] = `ls -typ joint -sl`;
+	
+	string $objzstr=stringArrayToString($objz," ");
+	
+	textFieldGrp -e -tx $objzstr TFGTgt;
+	
+}
+
+
+
+
+{
+	if(`window -exists MS_window`){
+		deleteUI MS_window;
+	}
+	window -title "MS_window" "MS_window";	
+	columnLayout;
+	
+	
+	rowLayout -nc 2;
+	button -bgc 1 1 1 -al "center"  -l "SelectTargetObjects" -w 120 -c "ClickTargetList" "CLCTgt";
+	textFieldGrp -en 0 -cw 1 160  "TFGTgt";
+	setParent ..;
+	
+	button -l "go" -c "MS_skinWeightV2";
+	
+	showWindow "MS_window";
+}
+
+
+

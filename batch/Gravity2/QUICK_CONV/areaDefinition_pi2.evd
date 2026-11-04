@@ -1,0 +1,65 @@
+#----------------------------------------------------------------------------------
+#UTF-8形式で保存してください
+#boolean(真偽値)のデフォルトはfalseです
+#記述者の名前が無いテスト用らしき記述は最適化の為削除する事があります
+#----------------------------------------------------------------------------------
+
+#----------------------------------------------------------------------------------
+#採掘場2 pi2_a 黒野
+pi2_a_root:
+  root:     true
+pi2_b_root:                         #無限採掘用 津波
+  root:     true
+pi2_z_root:                         #無限採掘試作用 増谷
+  root:     true
+pi2_a_01:
+  occluder: "pi2_a_01_occ"
+  low:      "pi2_a_01_low"
+pi2_a_02:
+  occluder: "pi2_a_02_occ"
+  low:      "pi2_a_02_low"
+pi2_a_03:
+  occluder: "pi2_a_03_occ"
+  low:      "pi2_a_03_low"
+pi2_a_04:
+  occluder: "pi2_a_04_occ"
+  low:      "pi2_a_04_low"
+pi2_a_05:
+  occluder: "pi2_a_05_occ"
+  low:      "pi2_a_05_low"
+pi2_a_06:
+  occluder: "pi2_a_06_occ"
+  low:      "pi2_a_06_low"
+pi2_a_07:
+  occluder: "pi2_a_07_occ"
+  low:      "pi2_a_07_low"
+pi2_a_08:
+  occluder: "pi2_a_08_occ"
+  low:      "pi2_a_08_low"
+pi2_a_09:
+  occluder: "pi2_a_09_occ"
+  low:      "pi2_a_09_low"
+pi2_a_10:
+  occluder: "pi2_a_10_occ"
+  low:      "pi2_a_10_low"
+pi2_a_11:
+  occluder: "pi2_a_11_occ"
+  low:      "pi2_a_11_low"
+pi2_a_12:
+  occluder: "pi2_a_12_occ"
+  low:      "pi2_a_12_low"
+pi2_a_13:
+  occluder: "pi2_a_13_occ"
+  low:      "pi2_a_13_low"
+pi2_a_14:
+  occluder: "pi2_a_14_occ"
+  low:      "pi2_a_14_low"
+pi2_a_15:
+  occluder: "pi2_a_15_occ"
+  low:      "pi2_a_15_low"
+pi2_a_16:
+  occluder: "pi2_a_16_occ"
+  low:      "pi2_a_16_low"
+pi2_a_17:
+  occluder: "pi2_a_17_occ"
+  low:      "pi2_a_17_low"

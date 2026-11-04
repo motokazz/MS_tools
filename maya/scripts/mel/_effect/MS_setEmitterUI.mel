@@ -1,0 +1,512 @@
+/*
+MS_setEmitter
+20060814
+EOJ専用
+
+パーティクルエミッターを作成するツール。
+
+
+*/
+
+
+global proc string[] MS_emitterCheck(){
+	
+	string $obj[]=`filterExpand -sm 22`;
+	if (!size($obj)){
+		string $obj_all[]=`ls -typ transform`;
+		//select -r $obj_all;
+		$obj=`filterExpand -sm 22 $obj_all`;
+	}
+	
+	string $result[];
+	string $all_emitter[];
+	
+	int $i=0;
+	for ($each in $obj){
+		if(`attributeExists "EmitterName" $each`){
+			$all_emitter[$i]=`getAttr ($each+".EmitterName")`;
+			$i++;
+		}
+	}
+	$result=`stringArrayRemoveDuplicates($all_emitter)`;
+	
+	return $result;
+}
+global proc MS_emitterCheckWindow(){
+	
+	$baseList=`MS_emitterCheck`;
+	string $list=stringArrayToString($baseList,"\n");
+
+	//Create Window
+	if(`window -exists MS_emitterCheck`){
+		deleteUI MS_emitterCheck;
+	}
+	window -title "MS_emitterCheck" MS_emitterCheck;
+	columnLayout;
+	scrollField -en 1 -w 200 -h 200 -tx $list;
+	setParent ..;
+	
+	window -e -w 210 -h 230 -sizeable 0 MS_emitterCheck;
+	
+	showWindow MS_emitterCheck;
+	
+}
+
+
+global proc MS_renameEmitter(){
+//global proc MS_renameEmitterAll(string $org,string $rep){
+	$obj=`ls -typ transform -sl`;
+	for ($each in $obj){
+		$EmitterVolume=($each+".EmitterVolume");
+		if(`objExists $EmitterVolume`){
+			string $EVValue=`getAttr($each+".EmitterName")`;
+			print $EVValue;
+			//string $aaa= `substitute $org $EVValue $rep`;
+			//print ($aaa+"\n");
+			//setAttr ($each+".EmitterName") -typ "string" $aaa;
+			rename $each $EVValue;
+		}
+	}
+}
+
+
+
+global proc string[] MS_selectFilter(){
+
+/*
+より分け選択
+*/
+
+	string $objz[];
+	
+	$objz=`filterExpand
+		-sm 0  //Handle
+		-sm 9  //NurbsCurves
+		-sm 10 //NurbsSurfaces
+		-sm 11 //NurbsCurvesOnSurface
+		-sm 12 //Polygon
+		-sm 22 //LocatorXYZ
+		-sm 23 //OrientationLocator
+		-sm 24 //LocatorUV
+		-sm 28 //ControlVertices(CVs)
+		-sm 30 //EditPoints
+		-sm 31 //PolygonVertices
+		-sm 32 //PolygonEdges
+		-sm 34 //PolygonFace
+		-sm 35 //PolygonUVs
+		-sm 36 //SubdivisionMeshPoints
+		-sm 37 //SubdivisionMeshEdges
+		-sm 38 //SubdivisionMeshFaces
+		-sm 39 //CurveParameterPoints
+		-sm 40 //CurveKnot
+		-sm 41 //SurfaceParameterPoints
+		-sm 42 //SurfaceKnot
+		-sm 43 //SurfaceRange
+		-sm 44 //TrimSurfaceEdge
+		-sm 45 //SurfaceIsoparms
+		-sm 46 //LatticePoints
+		-sm 47 //Particles
+		-sm 49 //ScalePivots
+		-sm 50 //RotatePivots
+		-sm 51 //SelectHandles
+		-sm 68 //SubdivisionSurface
+		-sm 70 //PolygonVertexFace
+		-sm 72 //NURBSSurfaceFace
+		-sm 73 //SubdivisionMeshUVs
+	 `;
+
+return $objz;
+
+}
+
+
+
+
+
+global proc MS_setEmitter(string $EmitterName,int $StartFlame,int $AnimationTotal,int $BeforeFlame0,int $AfterFlame0,int $rnd1,int $noKey){
+	string $obj[]=`ls -sl`;
+	string $newname[];
+	
+	for($name in $obj){
+		
+		select -r $name;
+		setEmitterInfo;
+		
+		setAttr -type "string" ($name+".EmitterName") $EmitterName;
+		
+
+	}
+	
+	if(!$noKey){
+		
+		$StartFlame=$StartFlame+rand ($rnd1);
+		
+//スタートフレーム設定
+		if($BeforeFlame0){
+			
+			currentTime ($StartFlame-1);
+			for($name in $obj){
+				setKeyframe -v 0 ($name+".EmitterVolume");
+			}
+		
+		}
+		for($name in $obj){
+		currentTime $StartFlame ;
+		setKeyframe -v 1 ($name+".EmitterVolume");
+		}
+		
+		for($name in $obj){
+		currentTime ($StartFlame+$AnimationTotal-1);
+		setKeyframe -v 1 ($name+".EmitterVolume");
+		}
+//エンドフレーム設定
+		if($AfterFlame0){
+			for($name in $obj){
+			currentTime ($StartFlame+$AnimationTotal);
+			setKeyframe -v 0 ($name+".EmitterVolume");
+			}
+		}
+
+		
+		keyTangent -ott step ($name+".EmitterVolume");
+		
+		currentTime ($StartFlame+$AnimationTotal-1);
+		
+	}
+	
+	int $i=0;
+	/*
+	for ($name in $obj){
+		$newname[$i]=`rename $name ("em_"+$EmitterName)`;
+		$i++;
+	}
+	*/
+	select -r $obj;
+}
+
+
+
+
+global proc MS_setEmitter_pipe(){
+	//
+	string $EmitterName=`textFieldGrp -q -tx EmitterName`;
+	global string $gPlayBackSlider;
+	int $StartFlame;
+	int $AnimationTotal;
+	
+	if(`checkBox -q -v useTimeSlider`){
+			
+			string $buf[];
+			//タイムスライダーから時間を取得
+			string $tc=`timeControl -q -rng -gt $gPlayBackSlider`;
+			tokenize $tc ":\"" $buf;
+			$StartFlame=$buf[0];
+			int $EndFlame=$buf[1];
+			$AnimationTotal=($EndFlame-$StartFlame);
+			
+		}else{
+			//UIから時間を取得
+			$StartFlame=`intSliderGrp -q -v ct1`;
+			$AnimationTotal=`intSliderGrp -q -v ct2`;
+	}
+	
+	int $BeforeFlame0=`checkBox -q -v StartFlame0`;
+	int $AfterFlame0=`checkBox -q -v EndFlame0`;
+	
+	int $rnd1=`intSliderGrp -q -v rnd1`;
+	
+	MS_setEmitter($EmitterName,$StartFlame,$AnimationTotal,$BeforeFlame0,$AfterFlame0,$rnd1,0);
+	
+}
+
+global proc MS_setEmitter_noKey(){
+	string $EmitterName=`textFieldGrp -q -tx EmitterName`;
+	MS_setEmitter($EmitterName,0,0,0,0,0,1);
+}
+
+global proc MS_setEmitter_delAttr(){
+//エミッターのアトリビュートを削除する。
+	string $obj[]=`ls -sl`;
+	for($name in $obj){
+		if(`attributeExists "EmitterName" $name`){
+			deleteAttr ($name+".EmitterName");
+		}
+		
+		if(`attributeExists "EmitterVolume" $name`){
+			cutKey -clear -time ":" -float ":" -hierarchy none -controlPoints 0 -shape 1 ($name+".EmitterVolume");
+			deleteAttr ($name+".EmitterVolume");
+		}
+	}
+
+}
+
+global proc MS_setEmitter_createLocator(){
+	
+	string $EmitterName=`textFieldGrp -q -tx EmitterName`;
+	string $locname[]=`spaceLocator -p 0 0 0`;
+	if($EmitterName!=""){
+	rename $locname[0] ($EmitterName+"_em0");
+	}
+	MS_setEmitter_pipe;
+}
+
+
+global proc MS_setEmitterUI_valReset(){
+
+	textFieldGrp -e -tx "" EmitterName;
+	intSliderGrp -e -v 1 ct1;
+	intSliderGrp -e -v 100 ct2;
+	checkBox -e -v 1 StartFlame0;
+	checkBox -e -v 1 EndFlame0;
+	intSliderGrp -e -v 0 rnd1;
+
+}
+
+global proc MS_setEmitterUI_sliderUnlock(){
+	intSliderGrp -e -en 1 ct1;
+	intSliderGrp -e -en 1 ct2;
+}
+
+global proc MS_setEmitterUI_sliderLock(){
+	intSliderGrp -e -en 0 ct1;
+	intSliderGrp -e -en 0 ct2;
+}
+
+global proc MS_setEmitterUI_takeEmitterName(){
+	string $obj[]=`ls -sl`;
+	if(`objExists ($obj[0]+".EmitterName")`){
+	string $val=`getAttr ($obj[0]+".EmitterName")`;
+	textFieldGrp -e -tx $val EmitterName;
+	}
+	
+}
+
+
+global proc MS_setEmitterUI()
+{
+	
+	//Window Check
+	if(`window -exists MS_setEmitterUI`){
+		deleteUI MS_setEmitterUI;
+	}
+	
+	
+	//Create Window
+	
+	window -title "MS_setEmitterUI" MS_setEmitterUI;
+
+	scrollLayout scrollLayout;
+//		columnLayout -adjustableColumn true;
+	columnLayout;
+	frameLayout 
+		-l "About"
+		-borderVisible true 
+		-labelVisible true 
+		-labelAlign "center"
+		-cll 1
+		-w 400
+		-h 40;
+
+
+		columnLayout ;
+	
+	//Contents
+			//text
+			text -label "ThisWindowIs MS_setEmitterUI";
+	
+			setParent ..;
+		setParent ..;
+	
+	frameLayout 
+		-l "Control"
+		-borderVisible true 
+		-labelVisible true 
+		-labelAlign "center"
+		-cll 1
+		-w 400
+		-h 120;
+
+
+	$form=`formLayout`;
+
+
+	$tf1=`textFieldGrp -l "EmitterName" EmitterName`;
+	$bt1=`button -l "take fromSelected " -c "MS_setEmitterUI_takeEmitterName" MS_setEmitterUI_takeEmitterName`;
+	
+	
+	//intSilder
+	$sg1=`intSliderGrp -en 0 -bgc 0.9 0.7 0.7 -l "StartFlame" -field true -min -1000 -max 1000 -v 1 ct1`;
+	$sg2=`intSliderGrp -en 0 -bgc 0.9 0.7 0.7 -l "AnimationTotal" -field true -min 1 -max 1000 -v 100 ct2`;
+	
+
+	$cb1=`checkBox -bgc 0.7 0.9 0.7 -l "BeforeFlame0" -v 1 StartFlame0`;
+	$cb2=`checkBox -bgc 0.7 0.9 0.7 -l "AfterFlame0" -v 1 EndFlame0`;
+	$cb3=`checkBox -bgc 0.9 0.6 0.6 -onc MS_setEmitterUI_sliderLock -ofc MS_setEmitterUI_sliderUnlock -l "useTimeSlider" -v 1 useTimeSlider`;
+	
+	formLayout -e 
+		-af $tf1 "left" -50
+		-af $tf1 "top" 0
+		-af $bt1 "left" 300
+		-af $bt1 "top" 0
+	
+		-af $sg1 "left" -50
+		-af $sg1 "top" 40
+		-af $sg2 "left" -50
+		-af $sg2 "top" 60
+
+		-af $cb1 "left" 20
+		-af $cb1 "top" 85
+		-af $cb2 "left" 100
+		-af $cb2 "top" 85
+		-af $cb3 "left" 20
+		-af $cb3 "top" 24
+		
+	$form;
+
+				setParent ..;
+		setParent ..;
+
+	frameLayout 
+		-l "RandomSetting"
+		-borderVisible true 
+		-labelVisible true 
+		-labelAlign "center"
+		-cll 1
+		-w 400
+		-h 45;
+	
+	columnLayout ;
+		intSliderGrp -l "Random1" -field true -min -1000 -max 1000 -v 0 rnd1;
+				setParent ..;
+		setParent ..;
+
+
+
+	frameLayout 
+		-l "Buttons"
+		-borderVisible true 
+		-labelVisible true 
+		-labelAlign "center"
+		-cll 1
+		-w 400
+		-h 80;
+		$form2=`formLayout`;
+		//rowLayout -numberOfColumns 6 -cw6 64 80 112 64 32 32;
+	//---------------
+	//Execute Buttons
+	//---------------
+			$setEmitter=`
+			button 
+				-w 64 
+				-bgc 1.0 0.9 0.7 
+				-l "setEmitter" 
+				-command "MS_setEmitter_pipe" 
+			`;
+			
+			$setNameOnly=`
+				button 
+				-w 64 
+				-bgc 0.7 1.0 0.9 
+				-l "setNameOnly" 
+				-command "MS_setEmitter_noKey" 
+			`;
+			
+			$delAttr=`
+				button 
+				-w 64 
+				-bgc 1.0 0.7 0.7 
+				-l "delAttr" 
+				-command "MS_setEmitter_delAttr" 
+			`;
+			
+			$createEmitter=`
+				button 
+				-w 80 
+				-bgc 0.7 0.7 1.0 
+				-l "createEmitter" 
+				-command "MS_setEmitter_createLocator" 
+			`;
+			
+			$Reset=`
+				button 
+				-w 48 
+				-bgc 0.5 0.7 0.5 
+				-l "Reset" 
+				-command "MS_setEmitterUI_valReset" 
+			`;
+			
+			$emitterCheck=
+				`button 
+				-w 80 
+				-bgc 0.8 1 1 
+				-l "emitterCheck" 
+				-command "MS_emitterCheckWindow" 
+			`;
+			
+			$renameEmitter=
+				`button 
+				-w 80 
+				-bgc 0.8 0.8 1 
+				-l "renameEmitter" 
+				-command "MS_renameEmitter" 
+			`;			
+			$undoButton=`
+				button 
+				-w 32 
+				-l "undo" 
+				-command "Undo" 
+			`;
+			
+			$exitButton=`
+				button 
+				-w 32 
+				-l "exit" 
+				-command "deleteUI MS_setEmitterUI" 
+			`;
+			
+		formLayout -e
+			
+			-af $setEmitter "top" 0
+			-af $setEmitter "left" 20
+			-af $setNameOnly "top" 0
+			-af $setNameOnly "left" 90
+			
+			-af $delAttr "top" 0
+			-af $delAttr "left" 160
+			-af $createEmitter "top" 0
+			-af $createEmitter "left" 250
+			-af $Reset "top" 0 
+			-af $Reset "left" 340
+			
+			-af $emitterCheck "top" 32
+			-af $emitterCheck "left" 20
+			
+			-af $renameEmitter "top" 32
+			-af $renameEmitter "left" 160
+			
+			-af $undoButton "top" 32
+			-af $undoButton "left" 300
+			-af $exitButton "top" 32
+			-af $exitButton "left" 350
+			
+			
+			
+			
+			
+			
+			
+			
+		
+		$form2;
+		
+			setParent ..;
+		setParent ..;
+		
+	//Footer
+	showWindow MS_setEmitterUI;
+	
+}
+
+//MS_setEmitterUI;
+
+

@@ -1,0 +1,72 @@
+global proc MS_functionCurveSlider(float $valueOfSlide){
+	int $i=1;
+	string $obj[]= `ls -sl`;
+	
+	string $attrMainChannel[]=`channelBox -q -sma mainChannelBox`;
+	string $attrShapeChannel[]=`channelBox -q -ssa mainChannelBox`;
+	for($eachobj in $obj){
+		for ($eachattrMainChannel in $attrMainChannel){
+			keyframe -e -iub true -r -o over -tc ($valueOfSlide*$i) ($eachobj+"."+$eachattrMainChannel) ;
+		}
+		for ($eachattrShapeChannel in $attrShapeChannel){
+			keyframe -e -iub true -r -o over -tc ($valueOfSlide*$i) ($eachobj+"."+$eachattrShapeChannel) ;
+		}
+		$i++;
+	}
+}
+
+global proc MS_functionCurveSliderSimple(float $valueOfSlide){
+	string $obj[]= `ls -sl`;
+	
+	string $attrMainChannel[]=`channelBox -q -sma mainChannelBox`;
+	string $attrShapeChannel[]=`channelBox -q -ssa mainChannelBox`;
+	for($eachobj in $obj){
+		for ($eachattrMainChannel in $attrMainChannel){
+			keyframe -e -iub true -r -o over -tc ($valueOfSlide) ($eachobj+"."+$eachattrMainChannel) ;
+		}
+		for ($eachattrShapeChannel in $attrShapeChannel){
+			keyframe -e -iub true -r -o over -tc ($valueOfSlide) ($eachobj+"."+$eachattrShapeChannel) ;
+		}
+	}
+}
+
+
+
+global proc MS_functionCurveSlider_pipe(){
+
+	float $valueOfSlide=`floatSliderGrp -q -v "valueOfSlide"`;
+	MS_functionCurveSlider($valueOfSlide);
+}
+
+global proc MS_functionCurveSliderSimple_pipe(){
+
+	float $valueOfSlide=`floatSliderGrp -q -v "valueOfSlide"`;
+	MS_functionCurveSliderSimple($valueOfSlide);
+}
+
+
+global proc MS_functionCurveSliderUI(){
+if(`window -exists MS_functionCurveSlider`){deleteUI "MS_functionCurveSlider";}
+window -t MS_functionCurveSlider MS_functionCurveSlider;
+
+columnLayout;
+
+text -w 1000 -al "left" -fn "boldLabelFont" -l "1.select animated object.";
+text -w 1000 -al "left" -fn "boldLabelFont" -l "2.select animating attribute from channelBox.";
+text -w 1000 -al "left" -fn "boldLabelFont" -l "3.go";
+separator -w 1000 ;
+
+
+
+floatSliderGrp -f 1 -l "Value of Slide" -v 1 -min -10000 -max 10000 "valueOfSlide";
+rowLayout -numberOfColumns 2 -columnWidth2 110 110 ;
+
+button -w 100-l "simpleSlide" -c "MS_functionCurveSliderSimple_pipe" "simpleslide";
+button -w 100-l "groupSlide" -c "MS_functionCurveSlider_pipe" "groupslide";
+setParent ..;
+
+showWindow MS_functionCurveSlider;
+}
+
+
+

@@ -1,0 +1,166 @@
+//マテリアルの名前にタイプ識別可能なヘッダーをつける。
+//※今のところランバートタイプだけできる。
+//要改良
+
+global proc MS_functionalRename_core()
+{
+/*
+##############
+Material Nodes
+##############
+*/
+
+/*
+	string $mat_name[];
+	
+	string $aniso_list[]=`lsType anisotropic`;
+	string $blinn_list[]=`lsType blinn`;
+	string $lambt_list[]=`lsType lambert`;
+	string $phong_list[]=`lsType phong`;
+	string $phonE_list[]=`lsType phongE`;
+*/
+
+//CGFXShader
+	for ($each in `lsType cgfxShader`){
+		//if($each!="lambert1" && startString($each,4) != "cgx_"&& $each!= "<done>")
+		if($each!="lambert1" && $each!= "<done>")
+		{
+			string $cgxName=`MS_serachCGFXShader $each`;
+			rename $each ("cgx_"+$cgxName);
+		}
+	}
+
+//Lambert
+	for ($each in `lsType lambert`){
+		//if($each!="lambert1" && startString($each,4) != "lbt_" && $each!= "<done>")
+		if($each!="lambert1" && $each!= "<done>")
+		{
+			string $lbtName;
+			string $connected[]=`listConnections ($each+".hardwareShader")`;
+			if($connected[0]!=0){
+				int $mass=(`size $connected[0]`-4);
+				$lbtName=endString ( $connected[0] , $mass );
+			}else{
+				$lbtName=$each;
+			}
+			
+			print ($lbtName+"\n");
+			rename $each ("lbt_"+$lbtName);
+		}
+	}
+	
+	
+/*	
+	for ($each in `lsType anisotropic`){
+		rename $each ("ans_"+$each);
+	}
+	
+	for ($each in `lsType blinn`){
+		rename $each ("bln_"+$each);
+	}
+	for ($each in `lsType phong`){
+		rename $each ("pho_"+$each);
+	}
+	
+	for ($each in `lsType phongE`){
+		rename $each ("pho_e_"+$each);
+	}
+*/
+
+
+/*
+#############
+Texture Nodes
+#############
+*/
+
+	for ($each in `lsType file`){
+		//if($each!="lambert1" && startString($each,4) != "ftx_"&& $each!= "<done>")
+		if($each!="lambert1" && $each!= "<done>")
+		{
+			string $ftxName=`MS_serachTexture $each`;
+			rename $each ("ftx_"+$ftxName);
+			
+		}
+	}
+
+
+	for ($each in `lsType layeredTexture`){
+		if($each!="lambert1" && startString($each,4) != "ltx_"&& $each!= "<done>")
+		{
+			rename $each ("ltx_"+$each);
+		}
+	}
+
+
+
+}
+
+global proc string MS_serachTexture(string $ftxNode){
+
+string $fn=`getAttr ($ftxNode+".fileTextureName")`;
+
+string $split1[];
+string $split2[];
+tokenize $fn "/" $split1;
+tokenize $split1[(size($split1)-1)] "." $split2;
+
+return $split2[0];
+
+}
+
+
+global proc string MS_serachCGFXShader(string $cgxNode){
+
+string $fn=`getAttr ($cgxNode+".shader")`;
+
+string $split1[];
+string $split2[];
+tokenize $fn "/" $split1;
+tokenize $split1[(size($split1)-1)] "." $split2;
+
+return $split2[0];
+
+}
+
+global proc MS_functionalRenamer()
+{
+	
+	//Window Check
+	if(`window -exists MS_functionalRenamer`){
+		deleteUI MS_functionalRenamer;
+	}
+	
+	
+	//Create Window
+	
+	window -title "MS_functionalRenamer" MS_functionalRenamer;
+
+	columnLayout ;
+	
+	//text
+	text -label "put nodetype header\nnow in function about Lambert node only";
+	separator -w 600 -h 40 -st "single";
+	
+	
+	//---------------
+	//Execute Buttons
+	//---------------
+	separator -w 600 -h 40 -st "doubleDash";
+	
+	button -bgc 1.0 0.5 0.5 -l "do" -command "MS_functionalRename_core" ;
+	
+	separator -w 600 -h 40 -st "double";
+	
+	button -l "undo" -command "Undo" ;
+	
+	button -l "exit" -command "deleteUI MS_functionalRenamer" ;
+	
+	
+	//Footer
+	showWindow MS_functionalRenamer;
+	
+}
+
+//MS_functionalRenamer;
+

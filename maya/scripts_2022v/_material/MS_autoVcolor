@@ -1,0 +1,134 @@
+# _*_coding:utf-8_*_
+########################################
+# 説明
+#	１・モデルを選んで
+# 	２・このスクリプトをScriptEditorにコピペして実行
+#   マテリアル名でソートした順に定義済みの頂点カラーを塗っていきます。
+#	※lambert1などの標準マテリアルは無視します
+########################################
+
+import maya.cmds as cmds
+
+
+def getFaces(CONP):  # フェース選択
+	FACE = cmds.polyListComponentConversion(CONP, tf=True)
+	result = cmds.filterExpand(FACE, ex=True, sm=34)
+	return result
+
+
+def getShapeSelectionList():
+	currentSelectionList = []
+	childrenBuffer = []
+	resultList = []
+
+	currentSelectionList = cmds.ls(sl=True, o=True)
+	for this in currentSelectionList:
+
+		nodeType = cmds.nodeType(this)
+
+		if nodeType == "transform":
+			childrenBuffer = cmds.listRelatives(this, c=True)
+
+			if len(childrenBuffer) > 0:
+				resultList.append(childrenBuffer[0])
+	return resultList
+
+
+def getHyperGraphShapeSelectionList():
+	currentSelectionList = []
+	parentBuffer = []
+	childrenBuffer = []
+	resultList = []
+
+	currentSelectionList = cmds.ls(sl=True, typ='transform')
+
+	for this in currentSelectionList:
+		parentBuffer = cmds.listRelatives(this, p=True)
+
+		if cmds.nodeType(this) == 'shape':
+			resultList.append(this)
+		elif cmds.listRelatives(this, ad=True, s=True):
+			resultList.append(cmds.listRelatives(this, ad=True, s=True)[0])
+		elif len(parentBuffer) > 0:
+			nodeType = cmds.nodeType(parentBuffer[0])
+
+			if nodeType == "transform":
+
+				childrenBuffer[0] = this
+
+				if childrenBuffer:
+					resultList.append(childrenBuffer[0])
+					resultList.extend(resultList, childrenBuffer)
+	return resultList
+
+
+def selectInSelectedObjectWithMaterial(node=''):
+	crrentShapesList = []
+	crrentComponentsList = []
+	hyperShadeShapesList = []
+	hyperShadeComponentsList = []
+
+	currentShapesList = getShapeSelectionList()
+	currentComponentsList = getFaces(cmds.ls(sl=True))
+
+	cmds.hyperShade(objects=node)
+
+	hyperShadeShapesList = getHyperGraphShapeSelectionList()
+	hyperShadeComponentsList = getFaces(cmds.ls(sl=True))
+
+	cmds.select(clear=True)
+
+	exact_match_list = set(hyperShadeComponentsList) & set(currentComponentsList)
+
+	# exact match -- component
+
+	exact_match_list = set(hyperShadeComponentsList) & set(currentComponentsList)
+	cmds.select(exact_match_list, r=True)
+
+
+IDPallets = [
+	[1,0,0]
+	,[0,1,0]
+	,[0,0,1]
+	,[1,1,0]
+	,[1,0,1]
+	,[0,1,1]
+	,[1,0.5,0]
+	,[1,0,0.5]
+	,[0.5,1,0]
+	,[0,1,0.5]
+	,[0.5,0,1]
+	,[0,0.5,1]
+	,[1,0.5,0.5]
+	,[0.5,1,0.5]
+	,[0.5,0.5,1]
+	,[0.5,0,0]
+	,[0,0.5,0]
+	,[0,0,0.5]
+	,[0.5,0.5,0]
+	,[0.5,0,0.5]
+	,[0,0.5,0.5]
+]
+
+#IDマップ作成
+def autoIDMap():
+	sel = cmds.ls(sl=True)
+	Materials = cmds.ls(mat=True)
+	Materials.sort()
+	i=0
+	for each in Materials:
+		if each == 'lambert1' or each == 'particleCloud1' or each == 'shaderGlow1':
+			continue
+		cmds.select(sel,r=True)
+		try:
+			selectInSelectedObjectWithMaterial(each)
+			cmds.polyColorPerVertex(rgb=IDPallets[i])
+		except:
+			pass
+		i+=1
+
+autoIDMap()
+
+
+
+

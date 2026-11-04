@@ -1,0 +1,12 @@
+【デュエル】  ,D:/EOJPSP/MAYADATA/duel/ui/,D:/EOJPSP/develop_psp_pre/duel/ui_toro1/,D:/EOJPSP/MAYADATA/duel/ui/,D:/EOJPSP/develop_psp_pre/duel/
+【コモン】    ,D:/EOJPSP/MAYADATA/common/ui/,D:/EOJPSP/develop_psp_pre/common/ui_toro1/,D:/EOJPSP/develop_psp_pre/common/ui_toro2/,D:/EOJPSP/develop_psp_pre/common/
+【デッキ】    ,D:/EOJPSP/MAYADATA/deck/ui/,D:/EOJPSP/develop_psp_pre/deck/ui_toro1/,D:/EOJPSP/develop_psp_pre/deck/ui_toro2/,D:/EOJPSP/develop_psp_pre/deck/
+【ストーリー】,D:/EOJPSP/MAYADATA/story/ui/,D:/EOJPSP/develop_psp_pre/story/ui_toro1/,D:/EOJPSP/develop_psp_pre/story/ui_toro2/,D:/EOJPSP/develop_psp_pre/story/
+【坂井さんdata】,D:/EOJPSP/MAYADATA/duel/ui/ui_duel_sakai/,D:/EOJPSP/develop_psp_pre/duel/ui_toro1/,D:/EOJPSP/develop_psp_pre/duel/ui_toro2/,D:/EOJPSP/develop_psp_pre/duel/
+【マニュアル関連】,D:/EOJPSP/MAYADATA/manual/ui/,D:/EOJPSP/MAYADATA/manual/work_toro/,D:/EOJPSP/develop_psp_pre/common/ui_toro2/,D:/EOJPSP/develop_psp_pre/manual/
+【インフラ】,D:/EOJPSP/MAYADATA/infr/ui/,D:/EOJPSP/develop_psp_pre/infr/ui_toro1/,D:/EOJPSP/develop_psp_pre/infr/ui_toro2/,D:/EOJPSP/develop_psp_pre/infr/
+【タイトル】,D:/EOJPSP/MAYADATA/title/ui/,D:/EOJPSP/develop_psp_pre/title/,D:/EOJPSP/develop_psp_pre/title/,D:/EOJPSP/develop_psp_pre/title/
+【ブリーフィング】,D:/EOJPSP/MAYADATA/briefing/ui/,D:/EOJPSP/develop_psp_pre/briefing/ui_toro1,D:/EOJPSP/develop_psp_pre/briefing/ui_toro2,D:/EOJPSP/develop_psp_pre/briefing/
+【バトルアリーナ】,D:/EOJPSP/MAYADATA/areana/ui/,D:/EOJPSP/develop_psp_pre/areana/ui_toro1,D:/EOJPSP/develop_psp_pre/areana/ui_toro2,D:/EOJPSP/develop_psp_pre/areana/
+【リザルト】,D:/EOJPSP/MAYADATA/result/ui/,D:/EOJPSP/develop_psp_pre/result/ui_toro1,D:/EOJPSP/develop_psp_pre/result/ui_toro2,D:/EOJPSP/develop_psp_pre/result/
+【図書館】,D:/EOJPSP/MAYADATA/library/ui/,D:/EOJPSP/develop_psp_pre/library/ui_toro1,D:/EOJPSP/develop_psp_pre/result/ui_toro2,D:/EOJPSP/develop_psp_pre/library/

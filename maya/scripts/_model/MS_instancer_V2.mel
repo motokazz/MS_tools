@@ -1,0 +1,416 @@
+
+global proc float[] MS_instancer_ditectCompornentTransform(string $OBJ){
+	//コンポーネントのワールド座標を返す。
+	float $var[]=`xform -q -ws -t $OBJ`;
+	float $x=0;
+	float $y=0;
+	float $z=0;
+	float $RET[];
+	
+	int $i=0;
+	for ($each in $var){
+		if($i==0)$x+=$each;
+		if($i==1)$y+=$each;
+		if($i==2)$z+=$each;
+		if($i>1){$i=0;}else{$i++;}
+	}
+	$RET[0]=($x/(size($var)/3));
+	$RET[1]=($y/(size($var)/3));
+	$RET[2]=($z/(size($var)/3));
+	return $RET;
+}
+
+global proc MS_instancer_CenterResetter_x(string $obj_a){
+	string $obj_a_tx=$obj_a+".tx";
+	string $obj_a_ty=$obj_a+".ty";
+	string $obj_a_tz=$obj_a+".tz";
+
+	string $obj_a_rptx=$obj_a+".transMinusRotatePivotX";
+	string $obj_a_rpty=$obj_a+".transMinusRotatePivotY";
+	string $obj_a_rptz=$obj_a+".transMinusRotatePivotZ";
+	
+	float $orgx=`getAttr $obj_a_tx`;
+	float $orgy=`getAttr $obj_a_ty`;
+	float $orgz=`getAttr $obj_a_tz`;
+	float $flpx=(`getAttr $obj_a_rptx`);
+	float $flpy=(`getAttr $obj_a_rpty`);
+	float $flpz=(`getAttr $obj_a_rptz`);
+	
+	setAttr $obj_a_tx ($flpx);
+	setAttr $obj_a_ty ($flpy);
+	setAttr $obj_a_tz ($flpz);
+	
+	makeIdentity -apply true -t 1 -r 0 -s 0 -n 0  $obj_a;
+	
+	setAttr $obj_a_tx ($orgx-$flpx);
+	setAttr $obj_a_ty ($orgy-$flpy);
+	setAttr $obj_a_tz ($orgz-$flpz);
+
+}
+
+global proc MS_instancer_CenterResetter(){
+	string $objz[]=`ls -l -sl`;
+	for($each in $objz){
+		MS_instancer_CenterResetter_x $each;
+	}
+}
+
+global proc MS_instancer_ClickTargetList(string $TGT){
+	//パーツリスト取得
+	string $objz[]= `ls -l -typ transform -sl`;
+	
+	string $fexz[] =`filterExpand -sm 31 -sm 32 -sm 34 -sm 46 -sm 28 `;
+	
+	string $objzstr=stringArrayToString($objz," ");
+	string $fexzstr=stringArrayToString($fexz," ");
+	
+	textFieldGrp -e -tx ($objzstr+" "+$fexzstr) $TGT;
+	
+}
+
+global proc string[] MS_instancer_returenTargetList(string $TGT){
+	//テキストフィールドのパーツリストを配列化して返す
+	string $RETURN[];
+	string $TARGET=`textFieldGrp -q -tx "MS_instancer_TFGTgt"`;
+	tokenize($TARGET," ",$RETURN);
+	return $RETURN;
+}
+
+global proc MS_instancer_instanceReplace(){
+	//デュプリケーター本体
+	string $SOURCE_TXT=`textFieldGrp -q -tx "MS_instancer_TFGTgt"`;
+	int $RANDCHECK=`checkBox -q -v "RAND"`;
+	int $VCOLOR_CHECK=`checkBox -q -v "VCOLOR"`;
+	int $INST_CHECK=`checkBox -q -v "INSTANCE"`;
+	//
+	string $TARGET[]=`ls -tr -l -sl`;
+	string $SOURCE[];
+	tokenize($SOURCE_TXT," ",$SOURCE);
+	string $SHAPE[];
+	string $RESULT_OBJ[];
+	float $VCOLORRGB[];
+	int $RAND;
+	
+	float $loc[];
+	float $rot[];
+	float $scl[];
+	
+	for ($each in $TARGET){
+		//ランダムチェック
+		if($RANDCHECK){
+			$RAND=rand(size($SOURCE));
+		}else if ($RAND>=(size($SOURCE)-1)){
+			$RAND=0;
+		}else{
+			$RAND=$RAND+1;
+		}
+		//
+		string $NOW_SOURCE=$SOURCE[$RAND];
+		string $TARGET_PARENT[]=`listRelatives -p -f $each`;
+		if ($INST_CHECK){
+			$RESULT_OBJ=`instance $NOW_SOURCE`;
+		}else{
+			$RESULT_OBJ=`duplicate -rc $NOW_SOURCE`;
+			//頂点カラーサンプル
+			if($VCOLOR_CHECK){
+				$VCOLORRGB=`polyColorPerVertex -q -rgb ($each+".vtx[0]")`;
+				polyColorPerVertex -rgb $VCOLORRGB[0] $VCOLORRGB[1] $VCOLORRGB[2] $RESULT_OBJ[0];
+			}
+		}
+		string $NEW_PARENT[]=`listRelatives -p -f $RESULT_OBJ`;
+		if(size($TARGET_PARENT) && $NEW_PARENT[0]!=$TARGET_PARENT[0]){
+			string $PARENTED[]=`parent $RESULT_OBJ[0] $TARGET_PARENT[0]`;
+		}
+		//ターゲット移動値取得
+		$loc=`xform -q -a -ws -t $each`;
+		xform -a -ws -t  $loc[0] $loc[1] $loc[2] $RESULT_OBJ[0];
+		$rot=`xform -q -a -ws -ro $each`;
+		xform -a -ws -ro $rot[0] $rot[1] $rot[2] $RESULT_OBJ[0];
+		$scl=`xform -q -r -s $each`;
+		xform -s  $scl[0] $scl[1] $scl[2] $RESULT_OBJ[0];
+		
+		setAttr ($RESULT_OBJ[0]+".visibility") `getAttr ($each+".visibility")`;
+
+		//元オブジェクト削除Shiftキー押しながらで削除しない
+		int $mods = `getModifiers`;
+		if (!$mods % 2) delete $each;
+		
+	}
+}
+global proc float MS_instancer_distance(string $target_a,string $target_b){
+	float $a[] = `xform -q -ws -t $target_a`;
+	float $b[] = `xform -q -ws -t $target_b`;
+	//2点間の移動距離を計算
+	float $len = sqrt(($a[0]-$b[0])*($a[0]-$b[0])+($a[1]-$b[1])*($a[1]-$b[1])+($a[2]-$b[2])*($a[2]-$b[2]));
+	
+	return $len;
+	
+}
+
+global proc float MS_instancer_measurementArea(string $orgComp[]){
+	//ポリゴン面積計測
+	polyTriangulate -ch 1 $orgComp;
+	string $triangle[]=`filterExpand -sm 34`;
+	undo;
+	float $total=0;
+	for($each in $triangle){
+		string $comp[]=`polyListComponentConversion -fe -fuv -ff -fvf -tv $each`;
+		string $vertex[]=`filterExpand -sm 31 $comp`;
+		float $s=0;
+		float $a=0;
+		float $dist[];
+		
+		$dist[0]=`MS_instancer_distance $vertex[0] $vertex[1]`;
+		$dist[1]=`MS_instancer_distance $vertex[1] $vertex[2]`;
+		$dist[2]=`MS_instancer_distance $vertex[2] $vertex[0]`;
+		if (($dist[0]+$dist[1]+$dist[2])>0){
+			$s=(($dist[0]+$dist[1]+$dist[2])/2);
+			$a=sqrt($s*($s-$dist[0])*($s-$dist[1])*($s-$dist[2]));
+		}
+		$total+=$a;
+	}
+	return $total;
+}
+
+global proc float MS_instancer_measurementArea_Max(string $OBJ[]){
+	//選択オブジェクト群のポリゴン面積MAX値を返す
+	//戻り値：
+	//BBXYZMax[0]＝X幅MAX値
+	//BBXYZMax[1]＝Y幅MAX値
+	//BBXYZMax[2]＝Z幅MAX値
+	//BBXYZMax[3]＝体積MAX値
+	float $MA;
+	float $MAMax;
+	for($each in $OBJ){
+		string $pipe[]={$each};
+		$MA=`MS_instancer_measurementArea($pipe)`;
+		if($MAMax<$MA){$MAMax=$MA;}
+	}
+	return $MAMax;
+}
+
+global proc float[] MS_instancer_BBMax(string $OBJ[]){
+	//選択オブジェクト群のバウンディングボックスMAX値を返す
+	//戻り値：
+	//BBXYZMax[0]＝X幅MAX値
+	//BBXYZMax[1]＝Y幅MAX値
+	//BBXYZMax[2]＝Z幅MAX値
+	//BBXYZMax[3]＝体積MAX値
+	float $boundingBox[];
+	float $BBXYZ[];
+	float $BBXYZMax[];
+	for($each in $OBJ){
+		select -r $each;
+		$boundingBox=`polyEvaluate -bc`;
+		$BBXYZ[0]=($boundingBox[1]-$boundingBox[0]);
+		$BBXYZ[1]=($boundingBox[3]-$boundingBox[2]);
+		$BBXYZ[2]=($boundingBox[5]-$boundingBox[4]);
+		$BBXYZ[3]=($boundingBox[1]-$boundingBox[0])*($boundingBox[3]-$boundingBox[2])*($boundingBox[5]-$boundingBox[4]);
+		if($BBXYZMax[0]<$BBXYZ[0]){$BBXYZMax[0]=$BBXYZ[0];}
+		if($BBXYZMax[1]<$BBXYZ[1]){$BBXYZMax[1]=$BBXYZ[1];}
+		if($BBXYZMax[2]<$BBXYZ[2]){$BBXYZMax[2]=$BBXYZ[2];}
+		if($BBXYZMax[3]<$BBXYZ[3]){$BBXYZMax[3]=$BBXYZ[3];}
+		
+	}
+	return $BBXYZMax;
+}
+
+global proc MS_instancer_duplicateToVertex(){
+	//コンポーネント座標にデュプリケート本体
+	string $OBJ[]=`MS_instancer_returenTargetList "MS_instancer_TFGTgt"`;
+	int $RANDCHECK=`checkBox -q -v "RAND"`;
+	int $VCOLOR_CHECK=`checkBox -q -v "VCOLOR"`;
+	int $INST_CHECK=`checkBox -q -v "INSTANCE"`;
+	int $SCALE_CHECK=`checkBox -q -v "SCALE"`;
+	int $ROTMETHOD_CHECK=`radioButtonGrp -q -sl "ROTMETHOD"`;
+	int $BB=`checkBox -q -v "ScaleByBoundingBox"`;//スケールオプション
+	//
+	string $COMP[]=`filterExpand -sm 31 -sm 32 -sm 34 -sm 35`;
+	string $RESULT_OBJ[];
+	float $COMPTR[];
+	float $COMPNRM[];
+	string $CONSTRAINT[];
+	string $LOCATOR[]=`spaceLocator`;//親ロケーター作成
+	float $VCOLORRGB[];
+	int $RAND;
+	vector $VECTOR;
+	float $ROT[];
+	//スケール変数
+	
+	float $BBXYZMax[];
+	if($BB){
+		$BBXYZMax=`MS_instancer_BBMax($COMP)`;
+	}else{
+		$BBXYZMax[0]=`MS_instancer_measurementArea_Max($COMP)`;
+	}
+	float $BBXYZNow[];
+	for($each in $COMP){ 
+		//ランダムチェック
+		if($RANDCHECK){
+			$RAND=rand(size($OBJ));
+		}else if ($RAND>=(size($OBJ)-1)){
+			$RAND=0;
+		}else{
+			$RAND=$RAND+1;
+		}
+		
+		if ($INST_CHECK){
+			$RESULT_OBJ=`instance $OBJ[$RAND]`;
+		}else{
+			$RESULT_OBJ=`duplicate $OBJ[$RAND]`;
+			select -r $RESULT_OBJ;
+			$RESULT_OBJ=`ls -l -sl $RESULT_OBJ`;
+			print "DUP\n";
+			print $OBJ[$RAND];
+			//頂点カラーサンプル
+			if($VCOLOR_CHECK){
+				$VCOLORRGB=`polyColorPerVertex -q -rgb $each`;
+				polyColorPerVertex -rgb $VCOLORRGB[0] $VCOLORRGB[1] $VCOLORRGB[2] $RESULT_OBJ;
+			}
+		}
+		//座標フィット
+		//$COMPTR=`xform -q -ws -t $each`;
+		$COMPTR=`MS_instancer_ditectCompornentTransform($each)`;//コンポーネント座標取得
+		xform -ws -t $COMPTR[0] $COMPTR[1] $COMPTR[2] $RESULT_OBJ;
+		//面にフィット
+		if($ROTMETHOD_CHECK==2){
+			$CONSTRAINT=`normalConstraint -weight 1 -aimVector 0 1 0 -upVector 0 1 0 -worldUpType "vector" -worldUpVector 0 1 0 $each $RESULT_OBJ`;
+			delete $CONSTRAINT;
+		}
+		if($ROTMETHOD_CHECK==3){
+			$VECTOR=`MS_instancer_componentNormalAverage($each)`;
+			$ROT=`MS_instancer_globalAngleCheck($VECTOR)`;
+			xform -ro $ROT[0] 0 $ROT[1] $RESULT_OBJ;
+		}
+		//スケーリングフィット
+		if($SCALE_CHECK){
+			select -r $each;
+			if ($BB){
+				//バウンディングボックスを元にスケーリングするとき。
+				$BBXYZNow=`polyEvaluate -bc`;
+				float $BBXYZNowVol=($BBXYZNow[1]-$BBXYZNow[0])*($BBXYZNow[3]-$BBXYZNow[2])*($BBXYZNow[5]-$BBXYZNow[4]);
+		
+				if($BBXYZNowVol&&$BBXYZMax[0]){
+					print $BBXYZNowVol;
+					xform -r -scale ($BBXYZNowVol/$BBXYZMax[3]) ($BBXYZNowVol/$BBXYZMax[3]) ($BBXYZNowVol/$BBXYZMax[3]) $RESULT_OBJ;
+				}
+			}else{
+				float $BBXYZNowVol=`MS_instancer_measurementArea{$each}`;
+				xform -r -scale ($BBXYZNowVol/$BBXYZMax[0]) ($BBXYZNowVol/$BBXYZMax[0]) ($BBXYZNowVol/$BBXYZMax[0]) $RESULT_OBJ;
+			}
+		}
+		print $RESULT_OBJ;
+		print $LOCATOR[0];
+		parent $RESULT_OBJ $LOCATOR[0];
+	}
+	
+}
+
+global proc vector MS_instancer_componentNormalAverage(string $comp){
+	//いろんなコンポーネントで法線ベクトルの平均値を帰す
+	//フェースやエッジから法線平均値取るのに便利
+	//モチロンバーテックスでも使えるよ。
+	float $pret[];
+	float $ret[];
+	string $vvv[]=`polyListComponentConversion -tv $comp`;
+	float $nrm[]=`polyNormalPerVertex -q -xyz $vvv`;
+	$i=0;
+	while($i<size($nrm)){
+		$pret[0]=$pret[0]+$nrm[$i];
+		$pret[1]=$pret[1]+$nrm[$i+1];
+		$pret[2]=$pret[2]+$nrm[$i+2];
+		$i+=3;
+	}
+	
+	$ret[0]=$pret[0] ? ($pret[0]/(size($nrm)/3)):0;
+	$ret[1]=$pret[1] ? ($pret[1]/(size($nrm)/3)):0;
+	$ret[2]=$pret[2] ? ($pret[2]/(size($nrm)/3)):0;
+	
+	vector $retvec=<<$ret[0],$ret[1],$ret[2]>>;
+	return $retvec;
+}
+
+global proc MS_OBJCount(){
+	int $count=size(`ls -sl`);
+	confirmDialog -m $count;
+}
+
+
+global proc float[] MS_instancer_globalAngleCheck(vector $vec){
+	float $out[2];
+	float $xAngle, $zAngle, $xyLength, $vecLength;
+	  
+	$xyLength = sqrt(($vec.x) * ($vec.x) +
+					  ($vec.y) * ($vec.y));
+	$vecLength = sqrt(($vec.x) * ($vec.x) +
+					   ($vec.y) * ($vec.y) + 
+					   ($vec.z) * ($vec.z));
+	  
+	// $xyLength will be zero when $vec is pointing
+	// along the +z or -z axis
+	if($xyLength == 0)
+		$zAngle = ($vec.x) > 0 ? deg_to_rad(90) : deg_to_rad(-90);
+	else
+		$zAngle = acos(($vec.y)/$xyLength);
+	  
+	$xAngle = acos($xyLength/$vecLength);
+	  
+	$xAngle = ($vec.z) > 0 ? $xAngle : -$xAngle;
+	$out[0] = rad_to_deg($xAngle);
+	  
+	$zAngle = ($vec.x) > 0 ? -$zAngle : $zAngle;
+	$out[1] = rad_to_deg($zAngle);
+	return $out;
+}
+ 
+global proc MS_instancer_V2(){
+	if(`window -exists MS_instancer_V2`){
+		deleteUI MS_instancer_V2;
+	}
+	
+	window -title "MS_instancer_V2" "MS_instancer_V2";
+
+	columnLayout;
+	
+	button -bgc 1 1 1 -al "center"  -l "PARTS" -w 200 -c "MS_instancer_ClickTargetList MS_instancer_TFGTgt" "MS_instancer_CLCTgt";
+	textFieldGrp -en 0 -cw 1 200  "MS_instancer_TFGTgt";
+	
+	separator -w 200 ;
+	checkBox -v 0 -l "RandmizeObject" "RAND";
+	text -l "RotationMethod";
+	radioButtonGrp
+		-cw3 50 70 70
+		-numberOfRadioButtons 3
+		-labelArray3 "none" "constraint" "MSmethod"
+		-sl 1 "ROTMETHOD";
+	
+	checkBox -v 0 -l "VERTX COLOR" "VCOLOR";
+	checkBox -v 0 -l "INSTANCE" "INSTANCE";
+	checkBox -v 0 -l "SCALE" "SCALE";
+	checkBox -v 0 -l "ScaleByBoundingBox" "ScaleByBoundingBox";
+	
+	separator -w 200 ;
+	button -bgc 0.9 0.9 1 -al "center" -l "DuplicateToCompornent" -w 200 -h 20 -c "MS_instancer_duplicateToVertex";
+	
+	separator -w 200 ;
+	button -bgc 0.9 1 0.9 -al "center" -l "DuplicateReplace" -w 200 -h 20 -c "MS_instancer_instanceReplace" -ann "オブジェクト差し替え。Shiftキー押しながらで元オブジェクト残す";
+	
+	separator -w 200 ;
+	button -bgc 1 0.9 0.9 -al "center" -l "MS_OBJCount" -w 200 -h 20 -c "MS_OBJCount";
+	
+	separator -w 200 ;
+	button -bgc 1 1 0.9 -al "center" -l "MS_CenterResetter" -w 200 -h 20 -c "MS_instancer_CenterResetter";
+	
+	//setParent ..;
+	frameLayout -cll 0;
+	checkBox -v 0 "test";
+	
+	
+	
+	window -e -w 210 -h 300 "MS_instancer_V2";
+	showWindow "MS_instancer_V2";
+	
+}
+
+
+

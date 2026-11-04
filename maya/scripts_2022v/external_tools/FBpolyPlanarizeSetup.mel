@@ -1,0 +1,159 @@
+/*------------------------------- (version 1.1) 5-30-2012 ----
+FBpolyPlanarizeSetup.mel
+by Chris "Funky Bunnies" Whitaker
+========================================================
+-Concept: Quick script to set up FBpolyPlanarize.mel in a separate "FBTools" menu with any of my other scripts you've got
+
+-So what exactly does it do?:
+	-This is the script that sets up the menu and writes "FBpolyPlanarizeSetup();" to your userSetup.mel
+	-You can also add or remove it from the userSetup.mel manually in a text editor
+
+"I've never used a melscript before in my life. What are you talking about???"
+	(1)Just drop both scripts in your scripts directory (usually My Documents/maya/[version number]/scripts)
+	(2)start/restart Maya
+	(3)now just type the main procedure in the commandline down at the bottom left of the interface and hit enter
+	   ( in this case, the main procedure is: FBpolyPlanarizeSetup )
+	
+--------------------------------------------------------
+Main proc: FBpolyPlanarizeSetup
+=========================================================
+--Changelog (1.1):
+--	Bugfix: was missing an error-check in case the user didn't already have a userSetup.mel file to write to, resolved now
+
+==========================================================================
+//     Please feel free to contact me with any suggestions or bugs      \\
+//----------------------------------------------------------------------\\
+//            Contact Me: Chris@FunkyBunnies3d.com                      \\
+==========================================================================
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//Generic Disclaimer: Use at your own risk.  I won't be responsible for anything bad that happens to your objects, scenes, or your car.//
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+*/
+
+
+global proc FBpolyPlanarizeFBtools()
+{
+	if (!`menu -q -ex FBtoolsMenu`)
+	{
+		menu 
+			-l "FB Tools"
+			-p MayaWindow
+			-to 1
+			-aob true
+		FBtoolsMenu;
+		setParent -m FBtoolsMenu;
+		menuItem
+			-ecr 0
+			-l "Contact Me"
+			-ann "email: Chris@FunkyBunnies3d.com"
+			-echoCommand true
+			-c "showHelp -absolute \"mailto: Chris@FunkyBunnies3d.com\""
+		ContactItem;
+	
+		menuItem 
+			-ecr 0
+			-l "Visit my Website"
+			-ann "www.FunkyBunnies3d.com"
+			-echoCommand true
+			-c "showHelp -absolute \"http:\//www.FunkyBunnies3d.com\""
+		WebsiteItem;	
+	}
+	
+	string $FBmenuItems[] = `menu -q -ia FBtoolsMenu`;
+
+    if (!stringArrayContains("FBpolyPlanarizeTool", $FBmenuItems))
+    {
+        setParent -m FBtoolsMenu;
+		menuItem -divider 1;
+        menuItem
+			-ecr 0
+			-l "FBpolyPlanarize Tool"
+			-ann "FBpolyPlanarize makes selected components planar along X,Y,Z, or Best Plane"
+			-echoCommand false
+			-c "FBpolyPlanarize;" //keep in mind this will only work if you put the script files into the right folder! :P
+		FBpolyPlanarizeTool;
+
+	}
+		
+}
+
+//////////////////////////////////////////////////////////////
+//global proc FBpolyPlanarizetoUserSetup(int $addRemove)	//
+//based on input argument, this proc will add or remove		//
+//"FBsaveSelection;" to userSetup.mel						//
+//so that it will/won't load upon startup					//
+//1: add,  0: remove										//
+//////////////////////////////////////////////////////////////
+global proc FBpolyPlanarizetoUserSetup(int $addRemove)
+{	
+//This simply edits your usersetup.mel file to enable FBsaveSelection every session
+    string $fileName = (`internalVar -userScriptDir` + "userSetup.mel");
+   
+    if ($addRemove)//for adding
+	{
+		int $skipIt =0;
+        if (`file -q -ex $fileName`)
+        {
+    		//read to find unwanted line and store to $userSetupText[]
+    		int $userSetupId = `fopen $fileName "r"`;
+    		int $index = 0;
+    		
+    		while ( !`feof $userSetupId` && !$skipIt )
+    		{
+    			if (endsWith(`fgetline $userSetupId`, "FBpolyPlanarizeSetup(); \n"))
+    				$skipIt = 1;
+    			$index++;
+    		}
+    		fclose $userSetupId;
+    	}
+		
+		if (!$skipIt)
+		{
+			int $userSetupId = `fopen $fileName "a"`;
+    		fprint $userSetupId ("\nFBpolyPlanarizeSetup(); \n");
+    		fclose $userSetupId;
+		}
+	}
+	else//for removing
+	{
+    	string $userSetupText[];
+	    if (`file -q -ex $fileName`)
+        {
+    		//read to find unwanted line and store to $userSetupText[]
+    		int $userSetupId = `fopen $fileName "r"`;
+    		int $index = 0;
+    		while ( !`feof $userSetupId` )
+    		{
+    			string $temp = `fgetline $userSetupId`;
+    			if (!endsWith($temp, "FBpolyPlanarizeSetup(); \n"))
+    				$userSetupText[$index] = $temp;
+    			$index++;
+    		}
+    		fclose $userSetupId;
+    	}
+		
+		//now write it from $userSetupText[]
+		int $userSetupWriteId = `fopen $fileName "w"`;
+		for ($i=0;$i<`size $userSetupText`;$i++)
+		{
+			fprint $userSetupWriteId $userSetupText[$i];
+		}
+		fclose $userSetupWriteId;
+	}
+	
+}
+
+//////////////////////////////////////////////
+//global proc FBsaveSelectionSetup()		//
+//This is the main proc that creates a GUI	//
+//for setup of FBsaveSelection				//
+//////////////////////////////////////////////
+global proc FBpolyPlanarizeSetup()
+{
+	//To Set Up:
+		FBpolyPlanarizetoUserSetup(1); FBpolyPlanarizeFBtools; warning "FBpolyPlanarize has been Set Up!";
+	//To Remove:
+		//FBpolyPlanarizetoUserSetup(0); if (`menuItem -ex FBpolyPlanarizeTool`) deleteUI  -mi FBpolyPlanarizeTool; warning "FBpolyPlanarize has been Removed!";
+	
+
+}FBpolyPlanarizeSetup();

@@ -1,0 +1,195 @@
+//--------------------------------------------------------------------------
+//
+// ScriptName : AriBoundingBoxScaling
+// Contents   : バウンディングボックスのサイズを基準にコンポーネントをスケールします。
+// Author     : Ari
+// Since      : 2015/10
+// LastUpdate : 2015/10/07 バグ修正。ポリゴングループを選択際、子の情報まで取得してしまっていたので修正しました。
+// Note       : 
+//
+//--------------------------------------------------------------------------
+
+
+
+global proc AriBoundingBoxScaling(){
+
+global string $AriBoundingBoxScaling_boxNowSizeF[3];
+global string $AriBoundingBoxScaling_boxGSizeF[3];
+global string $AriBoundingBoxScaling_boxLSizeF[3];
+if((`window -ex  AriBoundingBoxScaling`)==true)deleteUI AriBoundingBoxScaling;
+window -title "AriBoundingBoxScaling"  -w 190 -h 170 AriBoundingBoxScaling;
+columnLayout;
+rowLayout -nc 5;
+$AriBoundingBoxScaling_boxNowSizeF[0]=`floatField -w 60 -ed false `;
+$AriBoundingBoxScaling_boxNowSizeF[1]=`floatField -w 60 -ed false `;
+$AriBoundingBoxScaling_boxNowSizeF[2]=`floatField -w 60 -ed false `;
+setParent..;
+frameLayout -cll true -cl false -l "絶対";
+columnLayout;
+rowLayout -nc 5;
+$AriBoundingBoxScaling_boxGSizeF[0]=`floatField -w 60 -v 10 `;
+$AriBoundingBoxScaling_boxGSizeF[1]=`floatField -w 60 -v 10 `;
+$AriBoundingBoxScaling_boxGSizeF[2]=`floatField -w 60 -v 10 `;
+setParent..;
+rowLayout -nc 5;
+button -bgc 1 0.5 0.5 -h 20 -w 60 -l "X" -c "AriAniSizeChanger_setGScale(0)";
+button -bgc 0.5 1 0.5 -h 20 -w 60 -l "Y" -c "AriAniSizeChanger_setGScale(1)";
+button -bgc 0.5 0.5 1 -h 20 -w 60 -l "Z" -c "AriAniSizeChanger_setGScale(2)";
+setParent..;
+button -w 184 -h 30 -l "XYZ" -c "AriAniSizeChanger_setGScale(3)";
+setParent..;
+setParent..;
+frameLayout -cll true -cl false -l "相対";
+columnLayout;
+rowLayout -nc 3 -cw3 60 60 60;
+$AriBoundingBoxScaling_boxLSizeF[0]=`floatField -w 60 -v 2 `;
+$AriBoundingBoxScaling_boxLSizeF[1]=`floatField -w 60 -v 2 `;
+$AriBoundingBoxScaling_boxLSizeF[2]=`floatField -w 60 -v 2 `;
+setParent..;
+rowLayout -nc 6 -cw6 29 29 29 29 29 29  ;
+button -bgc 1 0.5 0.5 -h 20 -w 28 -l "X *" -c "AriAniSizeChanger_setLScale(0)";
+button -bgc 1 0.5 0.5 -h 20 -w 28 -l "X /" -c "AriAniSizeChanger_setLScale(4)";
+button -bgc 0.5 1 0.5 -h 20 -w 28 -l "Y *" -c "AriAniSizeChanger_setLScale(1)";
+button -bgc 0.5 1 0.5 -h 20 -w 28 -l "Y /" -c "AriAniSizeChanger_setLScale(5)";
+button -bgc 0.5 0.5 1 -h 20 -w 28 -l "Z *" -c "AriAniSizeChanger_setLScale(2)";
+button -bgc 0.5 0.5 1 -h 20 -w 28 -l "Z /" -c "AriAniSizeChanger_setLScale(6)";
+setParent..;
+rowLayout -nc 2 -cw2 90 90;
+button -w 88 -h 30 -l "XYZ *" -c "AriAniSizeChanger_setLScale(3)";
+button -w 88 -h 30 -l "XYZ /" -c "AriAniSizeChanger_setLScale(7)";
+setParent..;
+setParent..;
+setParent..;
+setParent..;
+showWindow;
+scriptJob -p "AriBoundingBoxScaling" -event "SelectionChanged" "AriAniSizeChanger_scale";
+AriAniSizeChanger_scale();
+}
+global proc AriAniSizeChanger_scale(){
+global string $AriBoundingBoxScaling_boxNowSizeF[3];
+string $selectObj[]=`ls -sl -tr`;
+float $boxSize[];
+if(size($selectObj)!=0){
+$boxSize = AriAniSizeChanger_getScaleObj($selectObj[size($selectObj)-1]);
+}
+else{
+$boxSize[0]=0;
+$boxSize[1]=0;
+$boxSize[2]=0;
+}
+floatField -e -v $boxSize[0] $AriBoundingBoxScaling_boxNowSizeF[0];
+floatField -e -v $boxSize[1] $AriBoundingBoxScaling_boxNowSizeF[1];
+floatField -e -v $boxSize[2] $AriBoundingBoxScaling_boxNowSizeF[2];
+}
+global proc AriAniSizeChanger_setGScale(int $jiku){
+global string $AriBoundingBoxScaling_boxGSizeF[3];
+float $gosa=0.001;
+float $targetSize[3];
+$targetSize[0]=`floatField -q -v $AriBoundingBoxScaling_boxGSizeF[0]`;
+$targetSize[1]=`floatField -q -v $AriBoundingBoxScaling_boxGSizeF[1]`;
+$targetSize[2]=`floatField -q -v $AriBoundingBoxScaling_boxGSizeF[2]`;
+string $selectObj[]=`ls -sl -tr`;
+for($obj in $selectObj){	
+float $boxSize[]=AriAniSizeChanger_getScaleObj($obj);
+float $scaleValue[3];
+$scaleValue[0]=1;
+$scaleValue[1]=1;
+$scaleValue[2]=1;
+if($jiku==0 || $jiku==3){
+if($boxSize[0]>$gosa)$scaleValue[0] = $targetSize[0]/$boxSize[0];
+else $scaleValue[0]=0;
+}
+if($jiku==1 || $jiku==3){
+if($boxSize[1]>$gosa)$scaleValue[1] = $targetSize[1]/$boxSize[1];
+else $scaleValue[1]=0;
+}
+if($jiku==2 || $jiku==3){
+if($boxSize[2]>$gosa)$scaleValue[2] = $targetSize[2]/$boxSize[2];
+else $scaleValue[2]=0;
+}
+string $shape[] = `listRelatives -pa -c -s $obj`;
+if(size($shape)==0)continue;
+string $compCurve_List[]  = AriAniSizeChanger_curveComponentConversion($obj);
+string $compVertex_List[] = `polyListComponentConversion -tv $shape`;
+$compVertex_List = `filterExpand -selectionMask 31 $compVertex_List`;
+string $compList[]=stringArrayCatenate($compCurve_List,$compVertex_List);
+if(size($compList)==0)continue;
+scale -r $scaleValue[0] $scaleValue[1] $scaleValue[2] $compList;
+}
+AriAniSizeChanger_scale();
+}
+global proc AriAniSizeChanger_setLScale(int $jiku){
+global string $AriBoundingBoxScaling_boxLSizeF[3];
+float $targetSize[3];
+$targetSize[0]=`floatField -q -v $AriBoundingBoxScaling_boxLSizeF[0]`;
+$targetSize[1]=`floatField -q -v $AriBoundingBoxScaling_boxLSizeF[1]`;
+$targetSize[2]=`floatField -q -v $AriBoundingBoxScaling_boxLSizeF[2]`;
+string $selectObj[]=`ls -sl -tr`;
+float $scaleValue[3];
+$scaleValue[0]=1;
+$scaleValue[1]=1;
+$scaleValue[2]=1;
+if($jiku==0 || $jiku==3) $scaleValue[0] = $targetSize[0];
+if($jiku==1 || $jiku==3) $scaleValue[1] = $targetSize[1];
+if($jiku==2 || $jiku==3) $scaleValue[2] = $targetSize[2];
+if($jiku==4 || $jiku==7) $scaleValue[0] = 1/$targetSize[0];
+if($jiku==5 || $jiku==7) $scaleValue[1] = 1/$targetSize[1];
+if($jiku==6 || $jiku==7) $scaleValue[2] = 1/$targetSize[2];
+for($obj in $selectObj){	
+string $shape[] = `listRelatives -pa -c -s $obj`;
+if(size($shape)==0)continue;
+string $compCurve_List[]=AriAniSizeChanger_curveComponentConversion($obj);
+string $compVertex_List[] = `polyListComponentConversion -tv $shape`;
+$compVertex_List = `filterExpand -selectionMask 31 $compVertex_List`;
+string $compList[]=stringArrayCatenate($compCurve_List,$compVertex_List);
+if(size($compList)==0)continue;
+scale -r $scaleValue[0] $scaleValue[1] $scaleValue[2] $compList;
+}
+AriAniSizeChanger_scale();
+}
+global proc string[] AriAniSizeChanger_curveComponentConversion(string $obj){
+string $componentList[];
+if(objectType($obj)!="transform")return $componentList;
+string $curves[]=`listRelatives -pa -c -type "nurbsCurve" $obj`;
+string $cvList[];
+int $i=0;
+for($curve in $curves){
+$cvList[$i] = ($curve+".cv[*]");
+$i++;
+}
+$i=0;
+int $filstPos=false;
+for($cv in $cvList){
+string $cvFlatList[]= `filterExpand -selectionMask 28 $cv`;
+for($cvFlat in $cvFlatList){
+$componentList[$i]=$cvFlat;
+$i++;
+}
+}
+return $componentList;
+}
+global proc float[] AriAniSizeChanger_getScaleObj(string $obj){
+float $boxSize[3];
+string $shape[] = `listRelatives -pa -c -s $obj`;
+if(size($shape)==0)return $boxSize;
+string $compCurve_List[]=AriAniSizeChanger_curveComponentConversion($obj);
+string $compVertex_List[] = `polyListComponentConversion -tv $shape`;
+$compVertex_List = `filterExpand -selectionMask 31 $compVertex_List`;
+string $cvList[]=stringArrayCatenate($compCurve_List,$compVertex_List);
+if(size($cvList)==0)return $boxSize;
+float $maxPos[3];
+float $minPos[3];
+$maxPos=`pointPosition -l $cvList[0]`;
+$minPos=`pointPosition -l $cvList[0]`;
+for($cvFlat in $cvList){
+float $pos[]=`pointPosition -l $cvFlat`;
+for($i=0; $i<size($pos); $i++){
+if($maxPos[$i]<$pos[$i])$maxPos[$i]=$pos[$i];
+if($minPos[$i]>$pos[$i])$minPos[$i]=$pos[$i];
+}
+}
+$boxSize[0] = (($maxPos[0]-$minPos[0])+"\n");
+$boxSize[1] = (($maxPos[1]-$minPos[1])+"\n");
+$boxSize[2] = (($maxPos[2]-$minPos[2])+"\n");
+return $boxSize;
+}

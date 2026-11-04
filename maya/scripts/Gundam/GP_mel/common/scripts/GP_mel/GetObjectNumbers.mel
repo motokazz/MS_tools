@@ -1,0 +1,100 @@
+//GetObjectNumbers
+
+//選択しているオブジェクトの数、あるいは
+//選択しているオブジェクト（一つ）のインスタンス数（選択中の物を含む）を表示します。
+//-------------------------------------------------------------------------
+global proc GetObjectNumbers()
+{
+//ダミー
+}
+//-------------------------------------------------------------------------
+global proc displayObjNum()
+{
+//現在選択しているオブジェクトの数を表示します
+
+string $list[] = `ls -sl`;
+int $size = `size $list`;
+$sizeString = (string)$size;
+
+GPResultWindow "Result:" $sizeString "selected." "" "";
+}
+//-------------------------------------------------------------------------
+global proc displayInstanceMembersNum()
+{
+//現在選択しているオブジェクトのインスタンスの全メンバーの数を表示します。
+
+string $list[] = `ls -sl`;
+	if(`size $list`!=0)
+	{
+
+	string $obj = $list[0];
+
+	string $resultList[];
+	clear $resultList;
+
+	string $shapeList[] = `listRelatives -c -pa $obj`;
+	string $parentList[] = `listRelatives -ap -pa -type "transform" $shapeList[0]`;
+
+	$resultList = $parentList;
+
+	int $resultListSize = `size $resultList`;
+	GPResultWindow "Result:"  $resultListSize  "instances." "(includes current selection)" "";
+	}
+	else
+	{
+	GPResultWindow "Please select an object" "" "" "" "";
+	}
+}
+//-------------------------------------------------------------------------
+global proc GPResultWindow(string$line1,string$line2,string$line3,string$line4,string$line5)
+{
+//リザルトウィンドウ
+string $windowTitle = "GPResultWindow";
+string $windowObjName = $windowTitle + "WindowObj";
+
+	if(`window -ex  $windowObjName` == 1)
+	{
+	deleteUI  $windowObjName;
+	}
+
+window -t $windowTitle $windowObjName;
+columnLayout;
+//--------------------------
+text -l $line1;
+text -l $line2;
+text -l $line3;
+text -l $line4;
+text -l $line5;
+//--------------------------
+//ウィンドウサイズを指定
+window -e -w 200 -h 150 $windowObjName;
+showWindow $windowObjName;
+}
+//-------------------------------------------------------------------------
+//ダイアログウィンドウ作成
+{
+//ウィンドウタイトルとウィンドウオブジェクト名
+string $windowTitle = "CheckObjectNumbers";
+string $windowObjName = $windowTitle + "WindowObj";
+
+	if(`window -ex  $windowObjName` == 1)
+	{
+	deleteUI  $windowObjName;
+	}
+
+window -t $windowTitle $windowObjName;
+string $layoutName = $windowObjName + "Layout";
+columnLayout $layoutName;
+//--------------------------
+text -l "CheckObjectNumbers";
+separator -w 110;
+button -w 100 -c "displayObjNum"  -l "Selected Object";
+button -w 100 -c "displayInstanceMembersNum"  -l "Instances Number";
+
+//--------------------------
+//ウィンドウサイズを指定
+window -e -w 110 -h 130 $windowObjName;
+showWindow $windowObjName;
+}
+//-------------------------------------------------------------------------
+//終了

@@ -1,0 +1,258 @@
+global proc MS_mel_install_core(){
+	
+	//初期設定
+	
+	string $current_maya_path="C:/Documents and Settings/s002000/My Documents/maya/7.0/";
+	
+	string $shelf_name="Custom";
+	
+	string $mel_path=($current_maya_path+"scripts/");
+	string $icon_path=($current_maya_path+"prefs/icons/");
+	
+	string $uninstbat_name;
+	string $uninstbat_content;
+	
+	
+	//取得
+	string $org_mel_path=`textFieldButtonGrp -q -text smp_tfbg`;
+	string $org_icon_path=`textFieldButtonGrp -q -text smp_icon`;
+	
+	
+	string $tknz_mel_path[];
+	string $tknz_icon_path[];
+	tokenize $org_mel_path "/" $tknz_mel_path;
+	tokenize $org_icon_path "/" $tknz_icon_path;
+	
+	
+	//実行
+	
+	//ファイルコピー
+	print ($mel_path+$tknz_mel_path[size($tknz_mel_path)-1]+"\n"+$org_mel_path+"\n");
+	print ($icon_path+$tknz_icon_path[size($tknz_icon_path)-1]+"\n"+$org_icon_path+"\n");
+	
+	sysFile -cp ($mel_path+$tknz_mel_path[size($tknz_mel_path)-1]) $org_mel_path;
+	sysFile -cp ($icon_path+$tknz_icon_path[size($tknz_icon_path)-1]) $org_icon_path;
+	
+	print "*\n";
+	
+	//シェルフ登録
+	string $val_label=`textFieldGrp -q -text smp_mel_name`;
+	print $val_label;
+	string $val_icon=($tknz_icon_path[size($tknz_icon_path)-1]);
+	string $val_command=( $val_label+";");
+	string $val_annotation=`textFieldGrp -q -text smp_mel_annotation`;
+
+	if(`window -exists MS_melpalette`){
+		deleteUI MS_melpalette;
+	}
+	/*
+	string $sav_BANK1=("saveShelf BANK1 \"C:/Documents and Settings/s002000/My Documents/maya/7.0/prefs/shelves/shelf_BANK1\"");
+	string $sav_BANK2=("saveShelf BANK2 \"C:/Documents and Settings/s002000/My Documents/maya/7.0/prefs/shelves/shelf_BANK2\"");
+	string $sav_BANK3=("saveShelf BANK3 \"C:/Documents and Settings/s002000/My Documents/maya/7.0/prefs/shelves/shelf_BANK3\"");
+	*/
+	window -title "MS_melpalette" MS_melpalette;
+		
+  		columnLayout;
+		/*
+		button -l "sav_BANK1" -command `eval $sav_BANK1`;
+ 		button -l "sav_BANK2" -command `eval $sav_BANK2`;
+ 		button -l "sav_BANK3" -command `eval $sav_BANK3`;
+ 		*/
+ 	 	//setParent ..;
+ 	 	
+		shelfTabLayout
+ 			-image "smallTrash.xpm"
+ 			-imageVisible true mainShelfTab;
+ 
+			shelfLayout WorkWindow;
+
+			
+	 		shelfButton
+				-enableCommandRepeat 1
+				-enable 1
+				-width 34
+				-height 34
+				-manage 1
+				-visible 1
+				-preventOverride 0
+				//-annotation $val_annotation
+				-align "center"
+				-label $val_label
+				-labelOffset 0
+				-font "tinyBoldLabelFont"
+				//-imageOverlayLabel $val_label
+				-image $val_icon
+				-image1 $val_icon
+				-style "iconOnly"
+				-marginWidth 1
+				-marginHeight 1
+				-command $val_command
+				-actionIsSubstitute 0
+			;
+/*
+		setParent ..;
+  			shelfLayout BANK1;
+			shelf_BANK1;
+ 		setParent ..;
+ 			shelfLayout BANK2;
+ 			shelf_BANK2;
+ 		setParent ..;
+ 			shelfLayout BANK3;
+ 			shelf_BANK3;
+ 		setParent ..;
+			shelfLayout COMANDS;
+		setParent ..;
+*/
+ 	showWindow MS_melpalette;
+ 	
+ 	
+ 	
+ 	
+ 	
+	/*
+	string $shelf_path=(($current_maya_path+"prefs/shelves/"+$shelf_name);
+	saveShelf $shelf_name $shelf_path;
+	
+	
+	
+	//ファイル書き込み
+	
+	$uninstbat_content=(
+		"del "+$mel_path+"\n"+
+		"del "+$icon_path+"\n"
+	);
+	
+	$exampleFileName = ( $mel_path+$uninstbat_name);
+	$fileId=`fopen $exampleFileName`;
+	fprint $fileId $uninstbat_content;
+	fclose $fileId;
+	
+	
+	
+	
+	int $check_name=`validateShelfName "Custom"`;
+	
+	if ($check_shelf_name==0){
+	addNewShelfTab "Custom"; 
+	}
+	
+	*/
+}
+
+
+
+global proc MS_exeORGmel(){
+	string $org_mel_path=`textFieldButtonGrp -q -text smp_tfbg`;
+	string $org_command=("source \""+$org_mel_path+"\"");
+	eval $org_command;
+	
+}
+
+
+global proc MS_get_file(){
+
+	string $file_path=`fileDialog -dm "C:/Documents and Settings/s002000/デスクトップ/My_mel/\*.mel"`;
+	textFieldButtonGrp -e -text $file_path smp_tfbg;
+	
+	
+	string $smp_tfbg=`textFieldButtonGrp -q -text smp_tfbg`;
+	string $tknz_mel_path[];
+	string $str_mel_command[];
+	
+	tokenize $smp_tfbg "/" $tknz_mel_path;
+	tokenize $tknz_mel_path[size($tknz_mel_path)-1] "." $str_mel_command;
+	
+	textFieldGrp -e -text $str_mel_command[0] smp_mel_name;
+	
+}
+
+
+
+global proc MS_get_icon(){
+	string $file_path=`fileDialog -dm "C:/Documents and Settings/s002000/デスクトップ/My_mel/icon/*.bmp;*.xpm"`;
+	textFieldButtonGrp -e -text $file_path smp_icon;
+}
+
+
+
+global proc MS_mel_install()
+{
+	
+	//Window Check
+	if(`window -exists MS_mel_install`){
+		deleteUI MS_mel_install;
+	}
+	
+	
+	//Create Window
+	
+	window -title "MS_mel_install" MS_mel_install;
+	
+	columnLayout ;
+	
+	//Contents	
+	
+	
+	//text
+	text -label "MS_mel_install is mel installer";
+	separator;
+	
+	
+	
+	textFieldGrp -l "Mel name" smp_mel_name;
+	//getFile
+	
+	textFieldButtonGrp 
+		-l "Mel File"
+		-tx "C:/Documents and Settings/s002000/デスクトップ/My_mel"
+		-buttonLabel "Browse..." 
+		-bc "MS_get_file"
+		smp_tfbg
+		;
+	
+	//getFile
+	
+	textFieldButtonGrp 
+		-l "Icon Files"
+		-tx "C:/Documents and Settings/s002000/デスクトップ/My_mel/icon/MS_mel_0.bmp"
+		-buttonLabel "Browse..." 
+		-bc "MS_get_icon"
+		smp_icon
+		;
+	
+	
+	textFieldGrp -l "Mel annotation" smp_mel_annotation;
+	
+	separator -w 600 -h 40 -st "single";
+	
+	
+	
+	
+	
+	
+	//---------------
+	//Execute Buttons
+	//---------------
+	separator -w 600 -h 40 -st "doubleDash";
+	
+	button -l "mel_install" -command "MS_mel_install_core" ;
+	
+	button -l "exeORGmel" -command "MS_exeORGmel";
+	
+	separator -w 600 -h 40 -st "double";
+	
+	button -l "undo" -command "Undo" ;
+	
+	button -l "exit" -command "deleteUI MS_mel_install" ;
+	
+	
+	//Footer
+	showWindow MS_mel_install;
+	
+}
+
+
+
+MS_mel_install;
+
+

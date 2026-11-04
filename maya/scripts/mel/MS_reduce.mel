@@ -1,0 +1,129 @@
+
+global proc MS_Reduce_KillPlannerFace(){
+/*
+MS_KillPlannerFace.mel
+◆概要
+UVボーダーエッジだけが残って、他のは全部なくなるつもり。
+◆使い方
+オブジェクトを選んで実行
+◆詳細
+※注意事項
+*/
+	//PolySelectConvert 4;
+	//SelectUVBorder;
+	PolySelectConvert 3;
+	//InvertSelection;
+	polyDeleteVertex;
+}
+
+
+global proc MS_quad_core(){
+	polyTriangulate -ch 0;
+	polyQuad  -a 50 -kgb 1 -ktb 1 -khe 1 -ws 1 -ch 0;
+}
+
+global proc MS_reduce_core(){
+	float $val1=`floatField -q -v "floatField6"`;
+	string $obj[]=`ls -sl -typ transform`;
+	string $compo[]=`ls -sl -typ float3`;
+	int $check_quad=`checkBox -q -v "checkBox1"`;
+	int $rep=`intField -q -v "intField1"`;
+	
+	delete -ch $obj;
+	
+	for($each in $obj){
+		for($i=1;$i<=$rep;$i++){
+			polySoftEdge -a (($val1/$rep)*$i) -ch 0 $each;
+			//PolySelectConvert 2;
+			print "catch";
+			polySelectConstraint -m 2 -t 0x8000 -sm 2;
+			delete;
+//			polyListComponentConversion -fv -fe -fuv -fvf -tv;
+			ConvertSelectionToVertices;
+			delete;
+			select -r $each;
+			if($check_quad!=0){
+				polyTriangulate -ch 0 $each;
+			}
+			print (($val1/$rep)*$i);
+			print "*";
+		}
+	}
+	
+	//for($i=1;$i<=$rep;$i++){
+		if (size($compo)!=0){
+			select -r $compo;
+			PolySelectConvert 2;
+			//polySoftEdge -a (($val1/$rep)*$i) -ch 0 $compo;
+			polySoftEdge -a $val1 -ch 0 $compo;
+			polySelectConstraint -m 2 -t 0x8000 -sm 2;
+			delete;
+			
+			polyListComponentConversion -fv -fe -fuv -fvf -tv;
+			delete;
+			
+			
+			if($check_quad!=0){
+				$obj_p=`ls -hl`;
+				polyTriangulate -ch 0 $obj_p;
+			}
+			
+		}
+	//}
+	polySelectConstraint -dis;
+	select -r $obj;
+	
+}
+
+global proc MS_reduce(){
+if(`window -q -ex MyTools_MS_reduce`)deleteUI MyTools_MS_reduce;
+window MyTools_MS_reduce;
+formLayout myUIFormLayout;
+//--DataPart--//
+button -width 160 -label "KillPlannerFace" -command "MS_Reduce_KillPlannerFace;" "button17" ;//Data//
+button -width 64 -label "Triangrate" -command "polyTriangulate -ch 0;" "button16" ;//Data//
+button -width 64 -label "MS_quad" -command "MS_quad_core" "button12" ;//Data//
+separator -width 200 -style "double" "separator8" ;//Data//
+separator -width 200 "separator5" ;//Data//
+text -label "MS_reduce" "text6" ;//Data//
+text -label "Detail" "text5" ;//Data//
+text -label "Reduce Angle" "text4" ;//Data//
+intField -v 5 "intField1" ;//Data//
+button -c "undo;"-label "undo" -width 64 "button11" ;//Data//
+floatField -v 5 "floatField6" ;//Data//
+checkBox -v 1 -label "Trianglate" -width 80 "checkBox1" ;//Data//
+button -c "MS_reduce_core;" -label "do" -width 64 "button10" ;//Data//
+
+formLayout -e
+	-af "button17" "left" 16//Data//
+	-af "button17" "top" 208//Data//
+
+	-af "button16" "left" 112//Data//
+	-af "button16" "top" 176//Data//
+	-af "button12" "left" 16//Data//
+	-af "button12" "top" 176//Data//
+	-af "separator8" "left" 0//Data//
+	-af "separator8" "top" 160//Data//
+	-af "button11" "left" 112//Data//
+	-af "button11" "top" 128//Data//
+	-af "button10" "left" 16//Data//
+	-af "button10" "top" 128//Data//
+	-af "separator5" "left" 0//Data//
+	-af "separator5" "top" 112//Data//
+	-af "text6" "left" 16//Data//
+	-af "text6" "top" 0//Data//
+	-af "text5" "left" 16//Data//
+	-af "text5" "top" 64//Data//
+	-af "text4" "left" 16//Data//
+	-af "text4" "top" 32//Data//
+	-af "intField1" "left" 112//Data//
+	-af "intField1" "top" 64//Data//
+	-af "floatField6" "left" 112//Data//
+	-af "floatField6" "top" 32//Data//
+	-af "checkBox1" "left" 16//Data//
+	-af "checkBox1" "top" 96//Data//
+//--DataPart--//
+myUIFormLayout;
+showWindow MyTools_MS_reduce;
+}
+//MS_reduce;

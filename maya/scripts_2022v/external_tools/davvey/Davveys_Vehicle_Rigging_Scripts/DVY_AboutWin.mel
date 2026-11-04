@@ -1,0 +1,68 @@
+/* This file downloaded from Highend3d.com
+''  
+''  Highend3d.com File Information:
+''  
+''    Script Name: Davveys Vehicle Rigging Scripts
+''    Author:  
+''    Last Updated: Jul 21, 2007
+''    Update/Change this file at:
+''    http://Highend3d.com/maya/downloads/mel_scripts/animation/4109.html
+''  
+''  Please do not alter any information above this line
+''  it is generated dynamically by Highend3d.com and will
+''  be changed automatically on any updates.
+*/
+
+	
+global proc DVY_AboutWin()
+ {
+	global float $DVYTol;
+	if ((`window -ex DavveyAboutWindow`) == true) 
+		{
+			deleteUI DavveyAboutWindow;
+			windowPref -remove DavveyAboutWindow;
+		}
+	window -t " About:-  Davveys Vehicle Rigging System." -w 400 -h 300 -sizeable 0 DavveyAboutWindow;
+		//Build 'Edit' menu.
+	
+	string $menuBarLayout = `menuBarLayout -height 20`;
+		menu -label "File"; 
+ 			menuItem -label "Close" -command "deleteUI DavveyAboutWindow";		
+		menu -label "Help"; 
+	 		menuItem -label "SetUp Help" -command "DVY_HelpWin";		
+		menu -label "About"; 
+	 		menuItem -label "About Davvey's Rig" -command " DVY_AboutWin;";		
+
+
+	setParent;
+	setParent;
+
+		columnLayout -adjustableColumn true -columnAttach "both" 5 -columnWidth 300; 
+	
+		text -height 2 -label " " ;	//Spacer
+		separator -height 10 -style "double" ;
+			text -bgc 0.5 0.5 1 -height 20 -align "center" -fn "boldLabelFont" -l "Davvey's Vehicle Rigging System..";
+			text -bgc 0.5 0.5 1 -height 20 -align "center" -fn "boldLabelFont" -l "copyright (c) 2006 Dave Lake..";
+		separator -height 8 -style "double" ;
+		text -height 2 -label " " ;	//Spacer
+		
+	frameLayout -cl 0 -label "" -labelAlign "center" -borderStyle "etchedOut";
+		columnLayout -adjustableColumn true -columnAttach "both" 2 -columnWidth 250; 
+		
+		text -bgc 1 1 0.8 -height 5 -align "left" -l " ";
+		text -bgc 1 1 0.8 -height 20 -align "left" -fn "boldLabelFont" -l "  Special Thanks:- ";
+		text -bgc 1 1 0.8 -height 20 -align "left" -fn "plainLabelFont" -l "  Thanks to my wife Jan for her support and patience during the time";
+		text -bgc 1 1 0.8 -height 20 -align "left" -l "   its taken to learn Maya and how to write these scripts.";
+		text -bgc 1 1 0.8 -height 10 -align "left" -l " ";
+		text -bgc 1 1 0.8 -height 20 -align "left" -l "  Also dedicated to Jackie and Joanna (my expensive pride and joys!!)";
+		text -bgc 1 1 0.8 -height 20 -align "left" -l "  Finally these collected works are dedicated to the memory of Darryl.";
+		text -bgc 1 1 0.8 -height 5 -align "left" -l " ";
+		setParent ..;	
+		setParent ..;	
+		text -align "center" -l "email :- Davvey@ntlworld.com";
+		text -align "center" -l "website :- www..............";
+	setParent ..; 
+
+	showWindow DavveyAboutWindow;
+	
+}

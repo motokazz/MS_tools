@@ -1,0 +1,145 @@
+
+/*
+-------------------
+mel_name.mel
+-------------------
+
+◆概要
+なんだかよくわからない
+
+◆使用方法
+
+
+
+◆詳細
+多分、法線の角度をチェックして？度以内のフェースを選択するようなものだと思う。
+SelectionConstrainを発見して開発中止したような気がする。
+
+
+※注意
+使っても何も得しない。
+
+
+
+*/
+
+
+
+
+
+global proc MS_AngleCheck_A(){
+	string $name_vtx[]=`filterExpand -ex true -sm 31 -sm 28`;
+	string $res_vtx[];
+	
+	float $val_org=`floatSliderGrp -q -v throushold`;
+	float $pai=(3.141592654);
+	
+	$i=0;
+	$j=0;
+	
+	for($i=0;$i<size($name_vtx);$i++){
+	
+		select $name_vtx[$i];
+	
+		PolySelectConvert 2;
+		PolySelectConvert 3;
+	
+		string $name_temp[]=`filterExpand -ex true -sm 31 -sm 28`;
+	
+		vector $vec_a=`pointPosition -w $name_temp[0]`;
+		vector $vec_b=`pointPosition -w $name_temp[1]`;
+		vector $vec_c=`pointPosition -w $name_temp[2]`;
+	
+	
+	
+		vector $vec_ab=$vec_a-$vec_b;
+		vector $vec_bc=$vec_b-$vec_c;
+		$res_a=`angle $vec_ab $vec_bc`;
+		print $res_a;
+	/*
+	
+		print "----------------------------------------------\n";
+		print ($i+"\n"+$name_temp[0]+"\n"+$name_temp[1]+"\n"+$name_temp[2]+"\nangle:"+`angle $vec_ab $vec_bc`+"\n"+`cross $vec_ab $vec_bc`+"\n"+`dot $vec_ab $vec_bc`+"\nmag:"+`mag $vec_ab`+"\n\n");
+		print ($res_a+"\n");
+		print "----------------------------------------------\n";
+	*/
+	
+		float $val_big=`fmod $res_a $pai`;
+	
+	
+		if($val_big<$val_org || ($pai-$val_org)<$val_big && $val_big<($pai+$val_org)){
+			$res_vtx[$j]=$name_vtx[$i];
+			$j++;
+		}
+	
+	clear $name_temp;
+	}
+
+select $res_vtx;
+
+clear $res_vtx;
+clear $name_vtx;
+
+
+}
+
+
+
+global proc Ms_AngleCheck(){
+	if(`window -exists Ms_AngleCheck`){
+		deleteUI Ms_AngleCheck;
+	}
+	
+	window -title "Ms_AngleCheck" Ms_AngleCheck;	
+	
+	$form = `formLayout`;
+
+	setParent $form;
+	$sep=`separator`;
+
+
+	$com_throushold=`floatSliderGrp -l "throushold" -field true -min 0 -max 3.14 -v 0.1 throushold`;
+
+
+	$com_anglecheck=`button -l "AngleCheck" -command "MS_AngleCheck_A" `;
+	$com_und=`button -l "undo" -command "Undo" `;
+	$com_ext=`button -l "exit" -command "deleteUI Ms_AngleCheck" `;
+
+
+	formLayout -e
+//----------------------------------
+	-af $com_throushold "top" 10
+        -af $com_throushold "left" 5
+        -an $com_throushold "right"
+        -an $com_throushold "bottom"
+
+	-af $sep "top" 80
+	-af $sep "left" 5
+	-af $sep "right" 5
+	-an $sep "bottom"
+//------------------------------------
+
+	-af $com_anglecheck "top" 100
+        -af $com_anglecheck "left" 5
+        -ap $com_anglecheck "right" 0 20
+        -an $com_anglecheck "bottom"
+
+        -af $com_und "top" 100
+        -ap $com_und "left" 0 60
+        -ap $com_und "right" 0 80
+        -an $com_und "bottom"
+
+        -af $com_ext "top" 100
+        -ap $com_ext "left" 0 80
+        -af $com_ext "right" 5
+        -an $com_ext "bottom"
+	$form;
+	
+	showWindow Ms_AngleCheck;
+	
+
+}
+
+
+Ms_AngleCheck;
+

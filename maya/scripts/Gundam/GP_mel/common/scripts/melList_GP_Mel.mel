@@ -1,0 +1,77 @@
+/*!
+		@file		melList_GP_Mel.mel
+		@author		h-hamada
+		@date		2012.03.15
+		@brief		GPMEL のリスト
+*/
+
+
+
+// ****************************************************************************
+// 外部に公開するコマンド
+// ****************************************************************************
+global	proc	string[]	melList_GP_Mel()
+{
+	// MEL の名前
+	string	$melNames[] = 
+	{
+//		"GetObjectNumbers",
+//		"GPGetValueForHG",
+//		"HeightAdjuster",
+//		"UVTRS",
+//		"GPMobileSuitShiftUVShellForBake",
+//		"mel_setTexPathLocalInScene",
+//		"GPMobileSuitSceneChecker",
+//		"WeightFiller",
+		"IDBindTool",
+//		"GPMobileSuitPartClipper",
+		"AutoRigging",
+		"AutoRigging_PG",
+		"partsDivideTool",
+		"partsRiggingTool",
+//		"Multi_Motion_Transfer",
+//		"Multi_Motion_Exporter",
+		"GPRigSelecter",
+//		"GPMotionToolLauncher",
+//		"CharacterSetupSystem",
+		"rigAdjustTool",
+//		"motionDataChecker",
+//		"RTDSetupTool",
+//		"modelCheckTool",
+		"GP2_motionExporter",
+		"GP2_makeHardEdgePolyUV",
+//		"GP2_mtUVTool",
+//		"Pose_Selecter",
+		"GPUVScaleTool",
+		"multiPurposeEditablePicker",
+//		"GP2_Commit_Motion",
+//		"SegmentScale_OFF",
+		// dummy
+		""
+	};
+	
+	return	$melNames;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+// ****************************************************************************
+///////////////////////////////////////////////////////////////////////////////
+// ----------------------------------------------------------------------------
+// EOF
+
+
+
+
+
+
+

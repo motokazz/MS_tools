@@ -1,0 +1,54 @@
+/*!
+		@file		skShelfCreateTab.mel
+		@brief		シェルフタブの新規作成
+
+		@param		$newName	作成するタブ名
+		@retval		作成されたタブ名
+*/
+global	proc	string	skShelfCreateTab(string $newName)
+{
+	// シェルフファイルの存在チェック
+	int		$bFileExists = false;
+	string	$dirs = internalVar( "-userShelfDir" );// 複数のパスが繋がっている可能性がある
+	string	$buf[];
+	int	$num = tokenize( $dirs, ";", $buf );
+	for( $i = 0;  $i < $num;  $i++ )
+	{
+		string	$filePath = $buf[$i] + "shelf_" + $newName + ".mel";
+		if( file( "-q", "-exists", $filePath ) )
+		{
+			$bFileExists = true;
+			break;
+		}
+	}
+	if( $bFileExists )
+	{
+		return	"";
+	}
+
+	// シェルフタブの作成
+	return	addNewShelfTab( $newName );
+}
+
+
+
+
+
+
+
+
+
+
+
+
+// ****************************************************************************
+///////////////////////////////////////////////////////////////////////////////
+// ----------------------------------------------------------------------------
+// EOF
+
+
+
+
+
+
+

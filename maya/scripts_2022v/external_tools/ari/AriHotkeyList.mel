@@ -1,0 +1,66 @@
+//--------------------------------------------------------------------------
+//
+// ScriptName : AriHotkeyList
+// Contents   : ホットキー設定のリストをスクリプトエディタに表示します。
+// Author     : A-RI
+// Since      : 2014/12
+// LastUpdate : 
+//
+//--------------------------------------------------------------------------
+
+
+global proc AriHotkeyList()
+{
+	string $amkey_command[];
+	string $annotation[];
+	string $amkey_char[];
+	string $amkey_ann[];
+	int $amkey_altON[];
+	int $amkey_ctrlON[];
+	int $amkey_upON[];
+	int $amkey_downON[];
+	int $amkey_shiftON[];
+	int $alt[];
+	int $ctrl[];
+	int $up[];
+	int $down[];
+	int $count = `assignCommand -query -numElements`;
+	int $k=0;
+	for($i=1;$i<=$count;$i++){
+		string $keyWork[]= `assignCommand -q -ka $i`;
+		string $com= `assignCommand -q -c $i`;
+		string $ann="";
+		if($keyWork[0] != ""){
+			$amkey_command[$k]= `assignCommand -q -c $i`;
+			int $keysize=(size($keyWork));
+			if(`runTimeCommand -ex $com`)$ann= `runTimeCommand -q -ann $amkey_command[$k]`;
+			if($ann=="")$ann= $com+" (command)";
+			while($keysize>0){
+				$keysize=$keysize-5;
+				$amkey_altON[$k]=0;
+				$amkey_ctrlON[$k]=0;
+				$amkey_upON[$k]=0;
+				$amkey_downON[$k]=0;
+				$amkey_command[$k]= `assignCommand -q -c $i`;
+				$amkey_char[$k]=$keyWork[$keysize];
+				$amkey_ann[$k]=$ann;
+				if($keyWork[$keysize+1]==1)$amkey_altON[$k]=1;
+				if($keyWork[$keysize+2]==1)$amkey_ctrlON[$k]=1;
+				if($keyWork[$keysize+3]==1)$amkey_upON[$k]=1;
+				if($keyWork[$keysize+4]==1)$amkey_downON[$k]=1;
+				$k++;
+			}
+		}
+	}
+	string $bgcolor;
+	for($i=0;$i<size($amkey_char);$i++){
+		if($amkey_ctrlON[$i])print("Ctrl+");
+		if($amkey_altON[$i])print("Alt+");
+		print ($amkey_char[$i]);
+		print "\t";
+		print ($amkey_command[$i]);
+		print "\t";
+		print ($amkey_ann[$i]);
+		print "\n";
+	}
+}

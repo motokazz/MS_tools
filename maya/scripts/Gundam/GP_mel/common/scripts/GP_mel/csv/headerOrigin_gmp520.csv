@@ -1,0 +1,5 @@
+#ifdef GR_FILE_LINKED
+GR_FILE_LINKED( _basepose )
+GR_FILE_LINKED( motion_c100_gmp520_rtd_pg_encount_00 )
+#undef GR_FILE_LINKED
+#endif // GR_FILE_LINKED

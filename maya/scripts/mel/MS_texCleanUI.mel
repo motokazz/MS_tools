@@ -1,0 +1,148 @@
+global proc MS_deleteUnconnectExpression(string $type){
+
+	//$typeにコネクションがないexpressionノードを削除
+
+	string $exp[]=`ls -typ expression`;
+	for($each in $exp){
+		string $connect[]=`listConnections -t $type $each`;
+		if ((size($connect))==0){delete $each;}
+	print (size($connect));
+	}
+
+}
+
+global proc string[] MS_listAllTextureFiles(){
+string $filez[]=`ls -typ file`;
+string $fileTextureName[];
+$i=0;
+
+for($each1 in $filez){
+	$fileTextureName[$i]=`getAttr ($each1+".fileTextureName")`;
+	$i++;
+}
+
+
+string $fileTexturez[]=`stringArrayRemoveDuplicates $fileTextureName`;
+return $fileTexturez;
+
+}
+
+
+
+
+global proc MS_setFilePath(string $newRoot){
+//シーン全体のfileノードのルートパスを設定しなおす
+	$file=`ls -typ file`;
+	for($each in $file){
+		$ftn=`getAttr ($each+".fileTextureName")`;
+		$nfn=stringToStringArray($ftn,"/");
+		string $fullpath=($newRoot+$nfn[size($nfn)-1]);
+		setAttr ($each+".fileTextureName") -typ "string" $fullpath;
+		print $nfn;
+		
+	}
+
+}
+
+//MS_setFilePath "texture/";
+
+
+global proc MS_texClean(string $tex[]){
+	//$texの先頭（クリーンナップ後の残るテクスチャー）を取り除いた配列を作成
+	string $cleanTex[]=stringArrayRemove({$tex[0]}, $tex) ;
+	//
+	string $p2d[]=`listConnections -t place2dTexture $tex[0]`;
+	
+	for($each in $cleanTex){
+		string $checkp2d[]=`listConnections -t place2dTexture $each`;
+		
+		int $check=`MS_p2dAnimCheck $checkp2d[0]`;
+		if($check){continue;}
+		
+		//CGFXノードと、fileノードのコネクション
+		string $connectORG_d[]=`listConnections -d 1 -s 0 -c 1 -p 1 $each`;
+		for($i=0;$i<size($connectORG_d);$i=$i+2){
+			
+			string $attrName[];
+			tokenize ($connectORG_d[$i],".",$attrName);
+			if(`isConnected ($tex[0] + "." + $attrName[1]) $connectORG_d[$i+1]`){
+				disconnectAttr ($tex[0] + "." + $attrName[1]) $connectORG_d[$i+1];
+			}
+			connectAttr -f ($tex[0] + "." + $attrName[1]) $connectORG_d[$i+1];
+		}
+		
+		//fileノードの子p2dノードと親のCGFXノードをコネクトする
+		string $p2d2[]=`listConnections -t place2dTexture $each`;
+		string $connectORG_p2d[]=`listConnections -s 0 -d 1 -c 1 -p 1 -t cgfxShader $p2d2[0]`;
+		
+		for($k=0;$k<(size($connectORG_p2d));$k=$k+2){
+			string $attrName[];
+			tokenize ($connectORG_p2d[$k],".",$attrName);
+			if(`isConnected ($p2d[0] + "." + $attrName[1]) $connectORG_p2d[$k+1]`){
+				disconnectAttr ($p2d[0] + "." + $attrName[1]) $connectORG_p2d[$k+1];
+			}
+			connectAttr -f ($p2d[0] + "." + $attrName[1]) $connectORG_p2d[$k+1];
+		}
+	}
+
+}
+
+
+global proc int MS_p2dAnimCheck(string $p2d){
+	
+	$con=`listConnections -d 0 -s 1 -c 1 -p 1 $p2d`;
+	print $con;
+	return size($con);
+}
+
+
+
+global proc MS_texCleanAll(){
+
+	string $fileTexturez[]=`MS_listAllTextureFiles`;
+	
+string $filez[]=`ls -typ file`;
+
+
+
+for($each1 in $fileTexturez){
+	$i=0;
+	for($each2 in $filez){
+		
+		string $temp[];
+		if(`getAttr ($each2+".fileTextureName")`==$each1){
+			$temp[$i]=$each2;
+			$i++;
+			//select -r $temp;
+			MS_texClean $temp;
+		}
+	}
+}
+
+$uc = `ls -typ unitConversion`;
+delete $uc;
+}
+
+
+
+global proc MS_texCleanUI()
+{
+	if(`window -exists MS_texCleanUI`){
+		deleteUI MS_texCleanUI;
+	}
+	
+	window -title "MS_UVToolsUI" MS_texCleanUI;	
+	
+	columnLayout;
+	
+	button -l "MS_texClean" -c "string $aaa[]=`ls -typ file -sl`;MS_texClean $aaa;";
+	button -l "MS_texCleanAll" -c "MS_texCleanAll";
+	button -l "MS_deleteUnconnectExpression" -c "MS_deleteUnconnectExpression transform";
+	showWindow MS_texCleanUI;
+	
+
+}
+
+
+//MS_texCleanUI;
+

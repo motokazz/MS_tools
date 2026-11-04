@@ -1,0 +1,265 @@
+//UI
+global proc MS_UIBase01_get_dir(string $exp_dir,string $dummy){
+	textField -e -fileName ($exp_dir+"/") "MS_UIBase01_filePath";
+}
+
+global proc MS_UIBase01_fileBrowser(){
+	global string $gDefaultFileBrowserDir;
+	string $orgpath=$gDefaultFileBrowserDir;
+	string $filePath=`textField -q -fileName "MS_UIBase01_filePath"`;
+	eval("global string $gDefaultFileBrowserDir=\""+$filePath+"\"");
+	fileBrowser "MS_UIBase01_get_dir" "Select Directory" "" 4 ;
+	MS_UIBase01_storeRecallUI store;
+	eval("global string $gDefaultFileBrowserDir=\""+$orgpath+"\"");
+}
+
+global proc MS_UIBase01_storeRecallUI( string $mode ){
+	string $prefix="MS_UIBase01__";
+	
+	string $floatFieldList[] = {
+		"MS_UIBase01_floatField01"
+		};
+
+	string $intFieldList[] = {
+		"MS_UIBase01_intField01"
+		};
+
+	string $floatSliderGrpList[] = {
+		};
+
+	string $intSliderGrpList[] = {
+		};
+
+	string $checkBoxList[] = {
+		"MS_UIBase01_checkBox01"
+		};
+
+	string $radioButtonGrpList[] = {
+		"MS_UIBase01_radioButtonGrp01"
+		};
+
+	string $frameLayoutList[] = {
+		};
+
+	string $textFieldList[] = {
+		"MS_UIBase01_fileName"
+		};
+
+	string $textFieldList_file[] = {
+		"MS_UIBase01_filePath"
+		};
+
+	int $cnt;
+
+	if ( $mode == "store" )
+	{
+		for ( $each in $floatFieldList)
+			optionVar -floatValue ($prefix+$each) `floatField -q -value $each`;
+
+		for ( $each in $intFieldList)
+			optionVar -intValue ($prefix+$each) `intField -q -value $each`;
+
+		for ( $each in $floatSliderGrpList)
+			optionVar -floatValue ($prefix+$each) `floatSliderGrp -q -value $each`;
+
+		for ( $each in $intSliderGrpList)
+			optionVar -intValue ($prefix+$each) `intSliderGrp -q -value $each`;
+
+		for ( $each in $checkBoxList)
+			optionVar -intValue ($prefix+$each) `checkBox -q -value $each`;
+
+		for ( $each in $radioButtonGrpList)
+			optionVar -intValue ($prefix+$each) `radioButtonGrp -q -select $each`;
+
+		for ( $each in $frameLayoutList)
+			optionVar -intValue ($prefix+$each) `frameLayout -q -collapse $each`;
+
+		for ( $each in $textFieldList)
+			optionVar -stringValue ($prefix+$each) `textField -q -tx $each`;
+
+		for ( $each in $textFieldList_file)
+			optionVar -stringValue ($prefix+$each) `textField -q -fileName $each`;
+	}
+
+	if ( $mode == "recall" )
+	{
+		for ( $each in $floatFieldList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				floatField -e -value `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $intFieldList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				intField -e -value `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $floatSliderGrpList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				floatSliderGrp -e -value `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $intSliderGrpList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				intSliderGrp -e -value `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $checkBoxList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				checkBox -e -value `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $radioButtonGrpList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				radioButtonGrp -e -select `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $frameLayoutList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				frameLayout -e -collapse `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $textFieldList)
+			if ( `optionVar -exists ($prefix+$each)` )
+				textField -e -tx `optionVar -q ($prefix+$each)` $each;
+
+		for ( $each in $textFieldList_file)
+			if ( `optionVar -exists ($prefix+$each)` )
+				textField -e -fileName `optionVar -q ($prefix+$each)` $each;
+
+	}
+
+	if ( $mode == "reset" )
+	{
+		for ( $each in $floatFieldList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $intFieldList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $floatSliderGrpList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $intSliderGrpList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $checkBoxList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $radioButtonGrpList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $frameLayoutList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $textFieldList)
+			optionVar -remove ($prefix+$each);
+
+		for ( $each in $textFieldList_file)
+			optionVar -remove ($prefix+$each);
+	}
+}
+
+
+global proc MS_UIBase01(){
+	if (`window -q -ex MS_UIBase01`){
+		deleteUI MS_UIBase01;
+	}
+	window MS_UIBase01;
+	
+	columnLayout;
+		text -w 217 -bgc 0.9 0.9 0.9 -l "ファイルオプション";
+		//ファイルパス選択
+		rowLayout -nc 3 -cw3 50 110 50;
+			text -label "filePath";
+			textField -w 110 -fileName "D:/export/" "MS_UIBase01_filePath" ;
+			button -w 50 -label "Brouse" -c "MS_UIBase01_fileBrowser" "Brouse";
+		setParent..;
+		
+		//ファイル名入力
+		rowLayout -nc 2 -cw2 50 160;
+			text -label "fileName";
+			textField -w 160 -tx "default" -cc "MS_UIBase01_storeRecallUI store" "MS_UIBase01_fileName";
+		setParent..;
+		
+		//checkBox
+		text -w 217 -bgc 0.9 0.9 0.9 -l "checkBox";
+		checkBox 
+			-l "オブジェクト名をファイル名に使用する" 
+			-v 0 
+			-onc "textField -e -en 0 \"MS_UIBase01_fileName\";MS_UIBase01_storeRecallUI store;" 
+			-ofc "textField -e -en 1 \"MS_UIBase01_fileName\";MS_UIBase01_storeRecallUI store;" 
+			"MS_UIBase01_checkBox01";
+			
+		//radioButton
+		text -w 217 -bgc 0.9 0.9 0.9 -l "radioButtonGrp";
+		radioButtonGrp
+			-numberOfRadioButtons 4
+			-onc "MS_UIBase01_storeRecallUI store;" 
+			-ofc "MS_UIBase01_storeRecallUI store;" 
+			-cw5 10 40 40 40 40
+			-label ""
+			-labelArray4 "01" "02" "03" "04"
+			-sl 1
+			"MS_UIBase01_radioButtonGrp01";
+			
+		//intField
+		text -w 217 -bgc 0.9 0.9 0.9 -l "intField";
+		rowLayout -nc 2 -cw2 160 50;
+			text -l "intField";
+			intField -min -255 -max 255 "MS_UIBase01_intField01";
+		setParent..;
+		
+		//floatField
+		text -w 217 -bgc 0.9 0.9 0.9 -l "floatField";
+		rowLayout -nc 2 -cw2 160 50;
+			text -l "floatField";
+			floatField -min -255 -max 255 "MS_UIBase01_floatField01";
+		setParent..;
+		
+		//intSliderGrp
+		text -w 217 -bgc 0.9 0.9 0.9 -l "intSliderGrp";
+		intSliderGrp 
+			-cw3 60 50 110
+			-w 217
+			-ct3 left left both
+			-value 0
+			-field true
+			-label "intSliderGrp"
+			-min -255 -max 255 
+			-fieldMinValue -255 -fieldMaxValue 255 
+			-step 1
+			"MS_UIBase01_intSliderGrp01";
+		//floatSliderGrp
+		text -w 217 -bgc 0.9 0.9 0.9 -l "floatSliderGrp";
+		floatSliderGrp 
+			-cw3 60 50 110
+			-w 217
+			-ct3 left left both
+			-value 0
+			-field true
+			-label "floatSliderGrp"
+			-min -255 -max 255 
+			-fieldMinValue -255 -fieldMaxValue 255 
+			-step 1
+			"MS_UIBase01_floatSliderGrp01";
+	
+		
+		//BUTTON
+		button -w 210 -l "exportAll" -bgc 0.7 0.8 0.8  -c "MS_UIBase01_core 0";
+		button -w 210 -l "exportSelection" -bgc 0.8 0.8 0.7  -c "MS_UIBase01_core 1";
+		setParent..;
+	setParent..;
+	
+	
+		separator -w 217 -h 100;
+		button -w 210 -l "環境変数クリアボタン" -bgc 1.0 0.5 0.5  -c "MS_UIBase01_storeRecallUI reset";
+
+	MS_UIBase01_storeRecallUI recall;
+	
+	//MS_UIBase01_checkBox01が入ってたら
+	if(`checkBox -q -v "MS_UIBase01_checkBox01"`){
+		textField -e -en 0 "MS_UIBase01_fileName";
+	}else{
+		textField -e -en 1 "MS_UIBase01_fileName";
+	}
+	
+	window -e -wh 217 290 MS_UIBase01;
+	
+	showWindow MS_UIBase01;
+}
+
+
+MS_UIBase01;

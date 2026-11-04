@@ -1,0 +1,43 @@
+/*
+MS_Reverse
+何でも反転ツール
+コンポーネント反転は出来ない。
+*/
+
+global proc MS_Reverse(){
+	
+	string $obj[]=`ls -sl`;
+	
+	string $snode[];
+	string $check;
+	
+	for ($each in $obj){
+		
+		$snode=`listRelatives -s $each`;
+		$check=`objectType $snode[0]`;
+		
+		//NURBSサーフェイス反転
+		if ($check=="nurbsSurface"){
+		reverseSurface -d 1 -ch 0 -rpo 1 $each;
+
+		}
+
+		//NURBSカーブ反転
+		if ($check=="nurbsCurve"){
+		reverseCurve -ch 0 -rpo 1 $each;
+
+		}
+
+		//ポリゴン法線反転
+		if ($check=="mesh"){
+		polyNormal -normalMode 0 -ch 0  $each;
+		}
+		
+		
+		
+	}
+	select -r $obj;
+}
+
+MS_Reverse;
+

@@ -1,0 +1,36 @@
+/*
+1. Model the phone and receiver and a curve that defines the start position of the cord. The cvs on the cord should be evenly spaced and the first cvs should be at the base of the phone with the last at the base of the receiver. The curls are added after the dynamics so you may only need about 10- 20 cvs. If desired you can use fewer and later increase the number of simulating segments by increasing the sample density on the follicle.
+*/
+
+
+
+/*
+2. Select the curve and do "Hair: Make Selected Curves Dynamic". Turn off the "exact shape match" option if you wish to have more simulating cvs than curve cvs and increase the sample density on the resulting follicle. This allows one to model the rest shape of the phone using only a few cvs.
+
+3. Parent the created follicle (folliicle1) to your phone. (in outliner middle mouse drag follicle1 onto the phone) The node "hairSystemFollicles" will now be empty and can be deleted if desired.
+
+4. Edit the follicle node:
+pointLock = Base (start point of the hair is attached to the follicle, which is parented to the phone, end point free)
+restPose = straight (generally this is more stable if we add stiffness to the chord)
+
+5. Select the last cv on the hair curve and do "Hair: Create Constraint: Transform". Parent this constraint to your receiver if you plan on transforming the receiver. The hair should now be locked at both ends when you play the simulation.
+
+6. Select the hairSystem and do "Hair: Assign Paint Effects Brush To Hair". On the created pfxHairShape turn on "Draw As Mesh". You should now see a tube that tapers near the end.
+
+7. On the created brush make the globalScale = 1 so that the width of the tube is the hairSystem hairWidth setting. On the hairSystemShape make the hairWidthScale ramp all 1 and increase the hairWidth to the desired cord width.
+
+8. Now to create the coils: On the hairSystem make the clumpWidthScale all 1 and set the clumpWidth to the desired coil width. Increase the subSegments based on how many coils you need and edit the clumpCurl to determine the number of coils. You may need something like 10 subSegments and a clumpCurl of 2( type into selectedValue) depending on how long the cord is. Note that clumpCurl is generally better than the hair curl( under displacement ), because the twist along the cord is better handled.
+
+9. To flatten the cord a bit (if it is more of a ribbon style cord) simply increase the flatness1 value on the brush.
+
+10. To edit the cross-section points on the tube you can make the brushType = mesh and set the tubeSections.
+
+11. The shading defaults on the brush will be wrong for a cord, but it is probably best to simply select the chord and do "Convert: Paint Effects to Poly" with history on. Then assign a suitable shader to the result.
+
+12. Collisions: On the hairSystem turn on collideGround and set the groundHeight to the desired value( the table top, unless you need the cord to go below this ). For each object you wish to collide with, select that object and the follicle( or curve ) and do "Hair: Create Constraint: Collide Cube" (or sphere), parenting and sizing each constraint object to fit the object to be collided with. One can use geometry collisions, but they are more prone to sticking and errors. In general it is better to have these stand-in collision constraints sized to just a little larger than the object being collided with. Be careful not to overlap the curve ends, however, as this can push the curve out of connection with the phone.
+
+13. Dynamics: Edit the stiffness ramp so it is very low in the middle and increase the stiffness to 1.0. This allows the cord to flex, but keeps it normal to the surfaces where it attaches. Depending on the number of simulating cvs you may need to adjust the iterations and lengthFlex attributes. Some length flex may be useful, as the phone cord can stretch due to the coils. Also if your scene scale is large increase the gravity value. The default gravity setting works when modeled such that each unit is interpreted as a meter (ignore the actual units settings, which are best left at cm). If you make the phone really large the gravity needs to be large. If needed you can adjust the collide width of the coil by tweaking the collideWidthOffset attribute.
+
+You can now animate the phone and handset. To allow the cord to be in a settled state on the first frame you could run the simulation a few frames then do "Hair: Set Start Position From Current".
+.
+

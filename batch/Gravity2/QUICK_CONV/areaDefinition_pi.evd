@@ -1,0 +1,80 @@
+#----------------------------------------------------------------------------------
+#UTF-8形式で保存してください
+#boolean(真偽値)のデフォルトはfalseです
+#記述者の名前が無いテスト用らしき記述は最適化の為削除する事があります
+#----------------------------------------------------------------------------------
+
+#----------------------------------------------------------------------------------
+#採掘場 pi_a 茂木
+# オクルーダーモデルが古いようなので、ゲームシェアのために一度切らせて貰います（大倉）
+pi_a_gate_root:                    #重力嵐の空とクレーン船のみのエリア
+  root:     true
+pi_a_root:
+  root:     true
+pi_b_root:                         #1stPub用の一部削除されたroot
+  root:     true
+pi_c_root:                         #ep00_c用　工藤
+  root:     true
+pi_d_root:                         #ep00_a/b用　工藤
+  root:     true
+pi_z_root:                         #無限採掘試作用 増谷
+  root:     true
+
+pi_a_01:
+  occluder: "pi_a_01_occ"
+  low:      "pi_a_01_low"
+pi_a_02:
+  occluder: "pi_a_02_occ"
+  low:      "pi_a_02_low"
+pi_a_03:
+  occluder: "pi_a_03_occ"
+  low:      "pi_a_03_low"
+pi_a_06:
+  occluder: "pi_a_06_occ"
+  low:      "pi_a_06_low"
+pi_a_09:
+  occluder: "pi_a_09_occ"
+  low:      "pi_a_09_low"
+pi_a_10:
+  occluder: "pi_a_10_occ"
+  low:      "pi_a_10_low"
+pi_a_11:
+  occluder: "pi_a_11_occ"
+  low:      "pi_a_11_low"
+pi_a_12:
+  occluder: "pi_a_12_occ"
+  low:      "pi_a_12_low"
+pi_a_13:
+  occluder: "pi_a_13_occ"
+  low:      "pi_a_13_low"
+pi_a_14:
+  occluder: "pi_a_14_occ"
+  low:      "pi_a_14_low"
+pi_a_16:
+  occluder: "pi_a_16_occ"
+  low:      "pi_a_16_low"
+pi_a_17:
+  occluder: "pi_a_17_occ"
+  low:      "pi_a_17_low"
+pi_a_18:
+  occluder: "pi_a_18_occ"
+  low:      "pi_a_18_low"
+pi_a_19:
+  occluder: "pi_a_19_occ"
+  low:      "pi_a_19_low"
+pi_a_20:
+  occluder: "pi_a_20_occ"
+  low:      "pi_a_20_low"
+pi_a_22:
+  occluder: "pi_a_22_occ"
+  low:      "pi_a_22_low"
+pi_a_23:
+  occluder: "pi_a_23_occ"
+  low:      "pi_a_23_low"
+pi_a_24:
+  occluder: "pi_a_24_occ"
+  low:      "pi_a_24_low"
+pi_a_25:
+  occluder: "pi_a_25_occ"
+  low:      "pi_a_25_low"
+

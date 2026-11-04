@@ -1,0 +1,99 @@
+//--------------------------------------------------------------------------
+//
+// ScriptName : AriSelectMaterialAndObject
+// Contents   : プロジェクトセットの手間を減らします。
+// Author     : Ari
+// LastUpdate : 2015/11
+// Note       : オブジェクトのみを選択して実行するとマテリアル選択
+//              マテリアルのみを選択して実行するとオブジェクト選択
+//              オブジェクトとマテリアルを両方選択して実行すると
+//              選択しているオブジェクト内だけでマテリアルがアサインされているオブジェクト選択
+//
+//--------------------------------------------------------------------------
+
+
+
+proc string[] AriObjectsWithMaterials(string $objectList[],string $materialList[]){
+string $selectObjects[];
+if(!size($materialList))return $selectObjects;
+string $matToMeshList[];
+clear $matToMeshList;
+int $i=0;
+for($mat in $materialList){
+hyperShade -objects $mat;
+string $selects[]=`ls -sl`;
+$matToMeshList = stringArrayCatenate($matToMeshList, $selects);
+}
+if(size($objectList)){
+$i=0;
+string $shapeAndMeshList[];
+for($obj in $objectList){
+$shapeAndMeshList[$i]=$obj+".";
+$i++;
+}
+string $meshList[]=`listRelatives -pa -c -s $objectList`;
+$shapeAndMeshList=stringArrayCatenate($shapeAndMeshList, $meshList);
+$i=0;
+string $selectList[];
+for($matToMesh in $matToMeshList){
+string $sepa[];
+tokenize $matToMesh "." $sepa;
+if(size($sepa)==1){
+for($shapeAndMesh in $shapeAndMeshList){
+if($matToMesh==$shapeAndMesh){
+$selectList[$i]=$matToMesh;
+$i++;
+break;
+}
+}
+}
+if(size($sepa)>1){
+for($shapeAndMesh in $shapeAndMeshList){
+if(startsWith($matToMesh,$shapeAndMesh)){
+$selectList[$i]=$matToMesh;
+$i++;
+break;
+}
+}
+}
+}
+return $selectList;
+}
+else{	
+return $matToMeshList;
+}
+}
+global proc AriSelectObjectsWithMaterials_GO(){
+string $selectList[]=`ls -sl`;
+string $objectList[]=`ls -sl -tr`;
+string $materialList[]=`ls -sl -mat`;
+string $selects[]=AriObjectsWithMaterials($objectList,$materialList);
+select $selects;
+}
+proc AriSelectObjectsWithMaterials(string $transformList[],string $materialList[]){
+string $selects[]=AriObjectsWithMaterials($transformList,$materialList);
+select $selects;
+}
+global proc AriSelectMaterialAndObject(){
+if(!`window -ex "hyperShadePanel1Window"`)HypershadeWindow;
+string $allSelectsList[]=`ls -sl`;
+string $shapeList[] = `polyListComponentConversion $allSelectsList`;
+string $transformList[]=`ls -sl -tr`;
+string $materialList[]=`ls -sl -mat`;
+int $shapeSize     = size($shapeList);
+int $transformSize = size($transformList);
+int $matSize       = size($materialList);
+if($shapeSize>0 && $matSize==0){
+hyperShade -smn "";
+string $matSelect[]=`ls -sl -mat`;
+select $matSelect;
+hyperShadePanelGraphCommand("hyperShadePanel1", "addSelected");
+}
+if($shapeSize==0 && $matSize>0){
+hyperShade -objects "";
+}
+if($transformSize>0 && $matSize>0){
+AriSelectObjectsWithMaterials($transformList,$materialList);
+}
+}
+

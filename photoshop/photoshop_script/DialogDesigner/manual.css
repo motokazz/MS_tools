@@ -1,0 +1,170 @@
+BODY {
+    color: #000000;
+    background-color: #ffffff;
+    line-height: 130%;
+}
+H1,H2 { /* ページ見出し */
+    color: #ffffff;
+    background-color: #8090e0;
+    border: 1px solid #5060c0;
+    padding: 4px 0px 2px 3px;
+    text-align: center;
+    width: 100%;
+    font-weight: bold;
+}
+H3 { /* インデックス見出し */
+    color: #000000;
+    padding: 0px;
+    margin: 1em 0px 8px 0px;
+    font-size: 1em;
+    font-weight : bold;
+}
+H4 { /* 各セクション */
+    color: #ffffff;
+    background-color: #8090e0;
+    border: 1px solid #5060c0;
+    padding: 4px 0px 2px 3px;
+    width: 100%;
+    font-weight: bold;
+}
+H5 { /* サンプルコード名 */
+    color: #303d76;
+    width: 100%;
+    border-style: dashed;
+    border-color: #5060b0;
+    border-width: 0px 0px 2px 0px;
+    padding: 4px 0px 2px 3px;
+    margin: 0px 0px 10px 0px;
+    font-size: 1.5em;
+}
+H6 { /* サンプルコード内容 */
+    color: #000000;
+    padding: 0px;
+    margin: 0px 0px 1em 0px;
+    font-size: 1em;
+    font-weight : bold;
+}
+LI { /* リストアイテム */
+    margin: 1em 0px 0px 0px;
+}
+P { /* 段落 */
+    text-indent: 1em;
+}
+P.ps { /* 注釈 */
+    text-indent: 0em;
+    margin: 0px;
+}
+A {
+    text-decoration : none;
+    font-weight : bold;
+}
+A.list {
+    text-decoration : none;
+    font-weight : normal;
+    font-size: smaller;
+}
+A:visited {
+    color:#6060f0;
+}
+A:active {
+    color:#4040e0;
+}
+A:link {
+    color:#4040e0;
+}
+A.back {
+    border: 1px solid #6060f0;
+    padding: 4px 2px 2px 3px;
+    font-weight: bold;
+}
+A.back:visited {
+    color:#8080ff;
+}
+A.back:active {
+    color:#4040e0;
+}
+A.back:link {
+    color:#6060f0;
+}
+A.btn:visited {
+    color:#e0e0ff;
+}
+A.btn:active {
+    color:#ffffff;
+}
+A.btn:link {
+    color:#ffffff;
+}
+
+PRE { /* code */
+    border: 1px solid #9090c0;
+    padding: 8px;
+    white-space: pre;
+    width: 100%;
+    background-color: #f0f0ff;
+    line-height: normal;
+}
+DIV.sample { /* サンプルスクリプト */
+    border: 2px solid #303d76;
+    padding: 8px;
+    width: 100%;
+    background-color: #eaecff;
+    line-height: normal;
+    font-size: smaller;
+}
+DIV.i { /* インデント */
+    margin: 0em 2em 0em 1.8em;
+}
+DIV.v { /* Tips対象および更新日 */
+    border-style: dashed;
+    border-color: #5060c0;
+    border-width: 1px 0px 0px 0px;
+    padding: 4px;
+    width: 100%;
+    color: #808080;
+    line-height: normal;
+    font-size: smaller;
+}
+SPAN.btn { /* リンクボタン */
+    display: inline;
+    width: 150px;
+    border: 1px solid #303d76;
+    background-color: #8090e0;
+    text-align: center;
+    padding: 2px 8px 0px 8px;
+    font-size: larger;
+}
+SPAN.info { /* サンプルコード対象および更新日 */
+    width: 150px;
+    border: 1px solid #303d76;
+    background-color: #c0c8f0;
+    text-align: center;
+    padding: 2px 8px 0px 8px;
+    font-size: larger;
+}
+
+
+HR { /* 水平線 */
+    height: 1px;
+    color: #5060c0;
+    background-color: #5060c0;
+    border: 0px;
+}
+EM { /* caution */
+    color: #e00000;
+    font-style: normal;
+    font-weight: bold;
+}
+.d { /* directory */
+    color: #a04040;
+    font-weight: bold;
+}
+.f { /* file */
+    color: #d04000;
+    font-weight: bold;
+}
+
+.m { /* modify */
+    color: #f080a0;
+    font-weight: bold;
+}

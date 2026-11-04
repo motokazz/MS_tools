@@ -1,0 +1,51 @@
+#----------------------------------------------------------------------------------
+#UTF-8形式で保存してください
+#boolean(真偽値)のデフォルトはfalseです
+#記述者の名前が無いテスト用らしき記述は最適化の為削除する事があります
+#----------------------------------------------------------------------------------
+
+#----------------------------------------------------------------------------------
+#ヘキサビル・インダストリエ　id_a 茂木
+id_a_root:
+  root:     true
+  occluder: "id_a_root_occ"
+  low:      "id_a_root_low"
+
+id_a_01:
+  low:      "id_a_01"
+
+g1_base_id_a1_road_01:
+  low:      "g1_base_id_a1_road_01_low"
+  part:     true
+g1_base_id_a1_road_02:
+  low:      "g1_base_id_a1_road_02_low"
+  part:     true
+g1_base_id_b1_road_01:
+  low:      "g1_base_id_b1_road_01_low"
+  part:     true
+g1_base_id_b1_road_02:
+  low:      "g1_base_id_b1_road_02_low"
+  part:     true
+g1_base_id_c1_road_01:
+  low:      "g1_base_id_c1_road_01_low"
+  part:     true
+g1_base_id_c1_road_02:
+  low:      "g1_base_id_c1_road_02_low"
+  part:     true
+g1_base_id_c2_road:
+  low:      "g1_base_id_c2_road_low"
+  part:     true
+g1_base_id_d1_road:
+  low:      "g1_base_id_d1_road_low"
+  part:     true
+g1_base_id_e1_road_01:
+  low:      "g1_base_id_e1_road_01_low"
+  part:     true
+g1_base_id_e1_road_02:
+  low:      "g1_base_id_e1_road_02_low"
+  part:     true
+g1_base_id_e2_road:
+  low:      "g1_base_id_e2_road_low"
+  part:     true
+
+

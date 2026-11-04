@@ -1,0 +1,14 @@
+#ifdef GR_FILE_LINKED
+
+GR_FILE_LINKED( _basepose )
+GR_FILE_LINKED( motion_c100_gmp934_ex_fullopen_lefthand_00_start )
+GR_FILE_LINKED( motion_c100_gmp934_ex_fullopen_lefthand_01_loop )
+GR_FILE_LINKED( motion_c100_gmp934_ex_fullopen_lefthand_02_shoot )
+GR_FILE_LINKED( motion_c100_gmp934_ex_fullopen_lefthand_03_end )
+GR_FILE_LINKED( motion_c100_gmp934_ex_fullopen_nohand_00_start )
+GR_FILE_LINKED( motion_c100_gmp934_ex_fullopen_nohand_01_loop )
+GR_FILE_LINKED( motion_c100_gmp934_ex_fullopen_nohand_02_shoot )
+GR_FILE_LINKED( motion_c100_gmp934_ex_fullopen_nohand_03_end )
+
+#undef GR_FILE_LINKED
+#endif // GR_FILE_LINKED

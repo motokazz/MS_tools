@@ -1,0 +1,44 @@
+//--------------------------------------------------------------------------
+//
+// ScriptName : AriResetAnimationPosition
+// Contents   : アニメーションキーを打ったオブジェクトのポジションを再設定
+// Author     : Ari
+// Since      : 2016/01
+// LastUpdate : 
+//            : 
+//
+//--------------------------------------------------------------------------
+
+
+proc AriKeyFrameOfset(string $object, float $x ,float $y, float $z){
+string $transX[]=`listConnections   -d 0 -s 1  -type "animCurveTL" ($object+".translateX")`;
+string $transY[]=`listConnections   -d 0 -s 1  -type "animCurveTL" ($object+".translateY")`;
+string $transZ[]=`listConnections   -d 0 -s 1  -type "animCurveTL" ($object+".translateZ")`;
+if($transX[0]!="")keyframe -e -iub true -r -o over -vc $x $transX[0];
+if($transY[0]!="")keyframe -e -iub true -r -o over -vc $y $transY[0];
+if($transZ[0]!="")keyframe -e -iub true -r -o over -vc $z $transZ[0];
+}
+global proc AriResetAnimationPosition(){
+string $transformObj[]=`ls -sl -tr`;
+vector $afterPos[];
+int $i=0;
+for($obj in $transformObj){
+float $pos[] = `xform  -q -ws -piv  $obj`;
+$afterPos[$i] = <<$pos[0],$pos[1],$pos[2]>>;
+$i++;
+}
+int $time=`currentTime -q`;
+currentTime ($time+1);
+currentTime ($time);
+$i=0;
+for($obj in $transformObj){
+float $beforePos[] = `xform  -q -ws -piv  $obj`;
+string $movePos[3];
+vector $afterPosVec = $afterPos[$i];
+$movePos[0] = $afterPosVec.x-$beforePos[0];
+$movePos[1] = $afterPosVec.y-$beforePos[1];
+$movePos[2] = $afterPosVec.z-$beforePos[2];
+AriKeyFrameOfset($obj, $movePos[0],$movePos[1],$movePos[2]);
+$i++;
+}
+}

@@ -1,0 +1,150 @@
+#----------------------------------------------------------------------------------
+#UTF-8形式で保存してください
+#boolean(真偽値)のデフォルトはfalseです
+#記述者の名前が無いテスト用らしき記述は最適化の為削除する事があります
+#----------------------------------------------------------------------------------
+
+#----------------------------------------------------------------------------------
+#ヘキサビル・オルドノワ　cc_a 茂木
+cc_a_root:
+  root:     true
+  occluder: "cc_a_root_occ"
+  low:      "cc_a_root_low"
+
+cc_a_01:
+  low:      "cc_a_01"
+
+g1_base_cc_a_road:
+  low:      "g1_base_cc_a_road_low"
+  part:     true
+g1_base_cc_a_road_01:
+  low:      "g1_base_cc_a_road_01_low"
+  part:     true
+g1_base_cc_a_road_02:
+  low:      "g1_base_cc_a_road_02_low"
+  part:     true
+g1_base_cc_a_road_03:
+  low:      "g1_base_cc_a_road_03_low"
+  part:     true
+g1_base_cc_b1_road:
+  low:      "g1_base_cc_b1_road_low"
+  part:     true
+g1_base_cc_b1_road_01:
+  low:      "g1_base_cc_b1_road_01_low"
+  part:     true
+g1_base_cc_b1_road_02:
+  low:      "g1_base_cc_b1_road_02_low"
+  part:     true
+g1_base_cc_b1_road_03:
+  low:      "g1_base_cc_b1_road_03_low"
+  part:     true
+g1_base_cc_b1_road_04:
+  low:      "g1_base_cc_b1_road_04_low"
+  part:     true
+g1_base_cc_b1_road_05:
+  low:      "g1_base_cc_b1_road_05_low"
+  part:     true
+g1_base_cc_b1_road_06:
+  low:      "g1_base_cc_b1_road_06_low"
+  part:     true
+g1_base_cc_b1_road_07:
+  low:      "g1_base_cc_b1_road_07_low"
+  part:     true
+g1_base_cc_b2_road_01:
+  low:      "g1_base_cc_b2_road_01_low"
+  part:     true
+g1_base_cc_c1_road:
+  low:      "g1_base_cc_c1_road_low"
+  part:     true
+g1_base_cc_c1_road_02:
+  low:      "g1_base_cc_c1_road_02_low"
+  part:     true
+g1_base_cc_c1_road_03:
+  low:      "g1_base_cc_c1_road_03_low"
+  part:     true
+g1_base_cc_c1_road_04:
+  low:      "g1_base_cc_c1_road_04_low"
+  part:     true
+g1_base_cc_c2_road_01:
+  low:      "g1_base_cc_c2_road_01_low"
+  part:     true
+g1_base_cc_c2_road_02:
+  low:      "g1_base_cc_c2_road_02_low"
+  part:     true
+g1_base_cc_d1_road:
+  low:      "g1_base_cc_d1_road_low"
+  part:     true
+g1_base_cc_d1_road_01:
+  low:      "g1_base_cc_d1_road_01_low"
+  part:     true
+g1_base_cc_d1_road_02:
+  low:      "g1_base_cc_d1_road_02_low"
+  part:     true
+g1_base_cc_d1_road_03:
+  low:      "g1_base_cc_d1_road_03_low"
+  part:     true
+g1_base_cc_d1_road_04:
+  low:      "g1_base_cc_d1_road_04_low"
+  part:     true
+g1_base_cc_d2_road:
+  low:      "g1_base_cc_d2_road_low"
+  part:     true
+g1_base_cc_d2_road_01:
+  low:      "g1_base_cc_d2_road_01_low"
+  part:     true
+g1_base_cc_e1_road:
+  low:      "g1_base_cc_e1_road_low"
+  part:     true
+g1_base_cc_e1_road_01:
+  low:      "g1_base_cc_e1_road_01_low"
+  part:     true
+g1_base_cc_e1_road_02:
+  low:      "g1_base_cc_e1_road_02_low"
+  part:     true
+g1_base_cc_e1_road_03:
+  low:      "g1_base_cc_e1_road_03_low"
+  part:     true
+g1_base_cc_e1_road_04:
+  low:      "g1_base_cc_e1_road_04_low"
+  part:     true
+g1_base_cc_e1_road_05:
+  low:      "g1_base_cc_e1_road_05_low"
+  part:     true
+g1_base_cc_e1_road_06:
+  low:      "g1_base_cc_e1_road_06_low"
+  part:     true
+g1_base_cc_e2_road:
+  low:      "g1_base_cc_e2_road_low"
+  part:     true
+g1_base_cc_e2_road_01:
+  low:      "g1_base_cc_e2_road_01_low"
+  part:     true
+g1_base_cc_f1_road:
+  low:      "g1_base_cc_f1_road_low"
+  part:     true
+g1_base_cc_f1_road_01:
+  low:      "g1_base_cc_f1_road_01_low"
+  part:     true
+g1_base_cc_f2_road:
+  low:      "g1_base_cc_f2_road_low"
+  part:     true
+g1_base_cc_g_road:
+  low:      "g1_base_cc_g_road_low"
+  part:     true
+g1_base_cc_g_road_01:
+  low:      "g1_base_cc_g_road_01_low"
+  part:     true
+
+
+g1_base_cc_sign:                 # ブレフマン政権の旗と噴水
+  root:     true
+
+g1_base_cc_sign_af:              # DLCとep24以降（ブレフマン政権が転覆した）
+  root:     true
+
+#----------------------------------------------------------------------------------
+#ヘキサビル・オルドノワ DLC版　cc_b 黒野
+cc_b_root:
+  root:     true
+  occluder: "cc_b_root_occ"
+  

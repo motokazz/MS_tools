@@ -1,0 +1,32 @@
+//--------------------------------------------------------------------------
+//
+// ScriptName : AriKeepUnusedNodes
+// Contents   : 選択したマテリアルを「未使用ノードの削除」(Delete Unused Nodes)から除外して消さないようにします。
+// Author     : A-RI
+// Since      : 2015/08
+// Update     : 2016/09/18 MEL名変更
+// Note       : 削除したくないマテリアルを選択して実行。
+//               
+//--------------------------------------------------------------------------
+
+
+global proc AriKeepUnusedNodes(){
+	string $materialList[]=`ls -sl -mat`;
+	int $i=0;
+	string $cubeList[];
+	
+	if(!size($materialList))return;
+	
+	for($mat in $materialList){
+		string $polyCube[]=`polyCube -w 1 -h 1 -d 1 -sx 1 -sy 1 -sz 1 -ax 0 1 0 -cuv 4 -ch 1 -name ("matcube_"+$mat)`;
+		$cubeList[$i]=$polyCube[0];
+		hyperShade -assign $mat $cubeList[$i];
+		$i++;
+	}
+	
+	hyperShadePanelMenuCommand("hyperShadePanel1", "deleteUnusedNodes");
+	delete $cubeList;
+	
+	select $materialList;
+}
+//AriKeepUnusedNodes;

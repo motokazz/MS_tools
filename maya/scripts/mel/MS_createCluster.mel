@@ -1,0 +1,6 @@
+global proc MS_createCluster(){
+	string $CV[]=`filterExpand -sm 28`;
+	for ($each in $CV){
+		cluster -relative -envelope 1 $each;
+	}
+}

@@ -1,0 +1,47 @@
+//--------------------------------------------------------------------------
+//
+// ScriptName : AriSelectHardEdgeInside
+// Contents   : ハードエッジで囲まれたフェースを選択します。
+// Author     : Ari
+// URL        : http://cgjishu.net/
+// Since      : 2016/05
+// LastUpdate : 
+//
+//--------------------------------------------------------------------------
+
+
+global proc AriSelectHardEdgeInside(){
+	string $processedFaceList[];
+	string $processedEdgeList[];
+	string $selects[]=`ls -sl`;
+	string $faceList[] = `filterExpand -selectionMask 34 $selects`;
+	$processedFaceList=$selects;
+	int $i=0;	
+	while($i<5000){
+		string $newFaceList[];
+		clear $newFaceList;
+		string $edgeList[]=`polyListComponentConversion -te $faceList`;
+		$edgeList = `filterExpand -selectionMask 32 $edgeList`;
+		for($edge in $edgeList){
+			if(stringArrayContains($edge,$processedEdgeList))continue; 
+			string $edgeInfo[]=`polyInfo -ev $edge`;
+			string $sepa[];
+			tokenize $edgeInfo[0] " " $sepa;
+			if($sepa[size($sepa)-1] == "Hard\n")continue;
+			string $nextFaceList[];
+			$nextFaceList = `polyListComponentConversion -tf $edge`;
+			$nextFaceList = `filterExpand -selectionMask 34 $nextFaceList`;
+			for($face in $nextFaceList){
+				if(stringArrayContains($face,$processedFaceList))continue; 
+				$processedFaceList[size($processedFaceList)] = $face;
+				$newFaceList[size($newFaceList)]=$face;
+			}
+		}
+		if(size($newFaceList)==0){
+			break;
+		}
+		$faceList=$newFaceList;
+		$i++;
+	}
+	select $processedFaceList;
+}
